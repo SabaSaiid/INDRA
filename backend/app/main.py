@@ -6,7 +6,7 @@ Smart India Hackathon 2026 - Team Sixth Sense
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from typing import List
 from pathlib import Path
 import json
@@ -56,9 +56,14 @@ class ConnectionManager:
 
 ws_manager = ConnectionManager()
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def serve_dashboard():
-    """Serves the INDRA Emergency Command Center visual web application."""
+    """Redirects to the modern INDRA Next.js frontend dashboard on port 3000."""
+    return RedirectResponse(url="http://localhost:3000", status_code=307)
+
+@app.get("/legacy", response_class=HTMLResponse)
+async def serve_legacy_dashboard():
+    """Serves the legacy INDRA prototype template."""
     index_path = TEMPLATES_DIR / "index.html"
     if index_path.exists():
         with open(index_path, "r", encoding="utf-8") as f:

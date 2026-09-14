@@ -34,12 +34,15 @@ fi
 # --- Project Paths ---
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
+FRONTEND_DIR="$ROOT_DIR/frontend"
 DATA_DIR="$ROOT_DIR/data"
 SCRIPTS_DIR="$ROOT_DIR/scripts"
 RUN_DIR="$ROOT_DIR/.run"
 LOG_DIR="$ROOT_DIR/logs"
 PID_FILE="$RUN_DIR/indra.pid"
+FRONTEND_PID_FILE="$RUN_DIR/indra_frontend.pid"
 LOG_FILE="$LOG_DIR/indra.log"
+FRONTEND_LOG_FILE="$LOG_DIR/indra_frontend.log"
 ENV_FILE="$ROOT_DIR/.env"
 ENV_EXAMPLE="$ROOT_DIR/.env.example"
 DOCKER_COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
@@ -55,10 +58,12 @@ fi
 # Load port and host defaults from .env if present
 if [[ -f "$ENV_FILE" ]]; then
     ENV_PORT=$(grep -E '^(API_PORT|PORT)=' "$ENV_FILE" 2>/dev/null | cut -d '=' -f2 | tr -d ' "\r\n' | tail -n 1)
+    ENV_FRONTEND_PORT=$(grep -E '^(FRONTEND_PORT)=' "$ENV_FILE" 2>/dev/null | cut -d '=' -f2 | tr -d ' "\r\n' | tail -n 1)
     ENV_HOST=$(grep -E '^(API_HOST|HOST)=' "$ENV_FILE" 2>/dev/null | cut -d '=' -f2 | tr -d ' "\r\n' | tail -n 1)
 fi
 
 DEFAULT_PORT="${ENV_PORT:-8000}"
+DEFAULT_FRONTEND_PORT="${ENV_FRONTEND_PORT:-3000}"
 DEFAULT_HOST="${ENV_HOST:-0.0.0.0}"
 DEFAULT_WORKERS=1
 DEFAULT_RELOAD=true
@@ -67,6 +72,7 @@ DEFAULT_BROWSER=true
 # State variables
 COMMAND=""
 PORT="$DEFAULT_PORT"
+FRONTEND_PORT="$DEFAULT_FRONTEND_PORT"
 HOST="$DEFAULT_HOST"
 WORKERS="$DEFAULT_WORKERS"
 RELOAD="$DEFAULT_RELOAD"
@@ -101,12 +107,14 @@ ${BOLD}USAGE:${RESET}
   ./start.sh [COMMAND] [OPTIONS]
 
 ${BOLD}COMMANDS:${RESET}
-  ${GREEN}start${RESET}                  Launch FastAPI backend in foreground mode (default)
-  ${GREEN}bg${RESET} | ${GREEN}daemon${RESET}             Launch FastAPI backend as a background daemon
-  ${GREEN}stop${RESET}                   Gracefully stop running backend process
-  ${GREEN}restart${RESET}                Restart running backend process
-  ${GREEN}status${RESET}                 Inspect backend, port, and Docker infrastructure status
-  ${GREEN}setup${RESET}                  Create virtual environment and install dependencies
+  ${GREEN}start${RESET}                  Launch full stack (Next.js Frontend & FastAPI Backend) (default)
+  ${GREEN}frontend${RESET}               Launch Next.js frontend dashboard only (port 3000)
+  ${GREEN}backend${RESET}                Launch FastAPI backend API server only (port 8000)
+  ${GREEN}bg${RESET} | ${GREEN}daemon${RESET}             Launch full platform as background daemons
+  ${GREEN}stop${RESET}                   Gracefully stop running backend and frontend processes
+  ${GREEN}restart${RESET}                Restart running backend and frontend processes
+  ${GREEN}status${RESET}                 Inspect backend, frontend, and Docker infrastructure status
+  ${GREEN}setup${RESET}                  Create virtualenv and install backend + frontend dependencies
   ${GREEN}infra${RESET} [up|down|ps|logs] Manage PostGIS, Redis & Redpanda Docker services
   ${GREEN}doctor${RESET}                 Run comprehensive environment and dependency diagnostics
   ${GREEN}demo${RESET}                   Execute 10-Scene Patna flood verification simulation
@@ -235,18 +243,85 @@ kill_process_gracefully() {
     fi
 }
 
+# --- Frontend Service Management ---
+ensure_frontend_deps() {
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "${YELLOW}⚠ npm is not installed or not in PATH.${RESET}"
+        return 1
+    fi
+    if [[ -d "$FRONTEND_DIR" && ! -d "$FRONTEND_DIR/node_modules" ]]; then
+        echo "${CYAN}Installing frontend dependencies in frontend/...${RESET}"
+        (cd "$FRONTEND_DIR" && npm install)
+    fi
+    return 0
+}
+
+start_frontend_bg() {
+    if [[ ! -d "$FRONTEND_DIR" ]]; then
+        return 0
+    fi
+
+    local f_pids
+    f_pids=$(get_pid_on_port "$FRONTEND_PORT")
+    if [[ -n "$f_pids" ]]; then
+        echo "  Frontend Dashboard:    ${GREEN}● ACTIVE${RESET} (Port $FRONTEND_PORT already running PID: $f_pids)"
+        return 0
+    fi
+
+    ensure_frontend_deps || return 1
+
+    echo "${BOLD}▶ Starting INDRA Next.js Frontend Dashboard (port $FRONTEND_PORT)...${RESET}"
+    cd "$FRONTEND_DIR" || return 1
+    nohup npx next dev -p "$FRONTEND_PORT" > "$FRONTEND_LOG_FILE" 2>&1 &
+    local fpid=$!
+    echo "$fpid" > "$FRONTEND_PID_FILE"
+    cd "$ROOT_DIR" || return 1
+
+    local count=0
+    while ! curl -s -m 1 "http://127.0.0.1:$FRONTEND_PORT" >/dev/null 2>&1 && [[ $count -lt 25 ]]; do
+        sleep 0.4
+        count=$((count + 1))
+    done
+
+    if kill -0 "$fpid" 2>/dev/null; then
+        echo "  Frontend Service:      ${GREEN}✓ STARTED${RESET} (PID: $fpid, http://localhost:$FRONTEND_PORT)"
+    fi
+}
+
+stop_frontend() {
+    local stopped=false
+    if [[ -f "$FRONTEND_PID_FILE" ]]; then
+        local fpid
+        fpid=$(cat "$FRONTEND_PID_FILE" 2>/dev/null)
+        if [[ -n "$fpid" ]]; then
+            kill_process_gracefully "$fpid" "INDRA Frontend"
+            stopped=true
+        fi
+        rm -f "$FRONTEND_PID_FILE"
+    fi
+
+    local f_pids
+    f_pids=$(get_pid_on_port "$FRONTEND_PORT")
+    if [[ -n "$f_pids" ]]; then
+        for p in $f_pids; do
+            kill_process_gracefully "$p" "Frontend Port $FRONTEND_PORT occupant"
+            stopped=true
+        done
+    fi
+}
+
 # --- Browser Launcher ---
 open_browser() {
-    local url="$1"
-    local target_port="${2:-$PORT}"
+    local url="${1:-http://localhost:$FRONTEND_PORT}"
+    local target_port="${2:-$FRONTEND_PORT}"
     if [[ "$NO_BROWSER" == true || "$DEFAULT_BROWSER" == false || "$NO_BROWSER" == "1" ]]; then
         return 0
     fi
 
     (
         local count=0
-        while ! curl -s -m 1 "http://127.0.0.1:$target_port/healthz" >/dev/null 2>&1 && [[ $count -lt 25 ]]; do
-            sleep 0.3
+        while ! curl -s -m 1 "http://127.0.0.1:$target_port" >/dev/null 2>&1 && [[ $count -lt 30 ]]; do
+            sleep 0.4
             count=$((count + 1))
         done
 
@@ -302,7 +377,7 @@ ensure_docker_infra() {
 # --- Subcommand: setup ---
 cmd_setup() {
     print_banner
-    echo "${BOLD}⚙ Setting up INDRA Backend Environment...${RESET}"
+    echo "${BOLD}⚙ Setting up INDRA Backend & Frontend Environment...${RESET}"
     
     if [[ ! -x "$BACKEND_DIR/.venv/bin/python" ]]; then
         echo "${CYAN}Creating virtual environment at backend/.venv...${RESET}"
@@ -312,31 +387,36 @@ cmd_setup() {
     echo "${CYAN}Installing backend requirements from backend/requirements.txt...${RESET}"
     "$BACKEND_DIR/.venv/bin/pip" install -r "$BACKEND_DIR/requirements.txt"
     
+    if command -v npm >/dev/null 2>&1 && [[ -d "$FRONTEND_DIR" ]]; then
+        echo "${CYAN}Installing frontend dependencies in frontend/...${RESET}"
+        (cd "$FRONTEND_DIR" && npm install)
+    fi
+
     echo "${GREEN}✓ Environment setup complete!${RESET}"
     echo ""
 }
 
-# --- Subcommand: start ---
+# --- Subcommand: start (Full-Stack) ---
 cmd_start() {
     ensure_uvicorn
     print_banner
 
-    echo "${BOLD}▶ Starting INDRA FastAPI Backend Server...${RESET}"
-    echo "  Host:           ${CYAN}$HOST${RESET}"
-    echo "  Port:           ${CYAN}$PORT${RESET}"
-    echo "  Python:         ${CYAN}$($PYTHON_CMD --version 2>&1)${RESET}"
+    echo "${BOLD}▶ Starting INDRA Full-Stack Platform...${RESET}"
+    echo "  Dashboard UI:   ${CYAN}http://localhost:$FRONTEND_PORT${RESET}"
+    echo "  Backend API:    ${CYAN}http://$HOST:$PORT${RESET}"
+    echo "  Python:         ${CYAN}$("$PYTHON_CMD" --version 2>&1)${RESET}"
     echo "  Environment:    ${CYAN}$VENV_PATH${RESET}"
     echo "  Auto-Reload:    ${CYAN}$RELOAD${RESET}"
     echo ""
 
-    # Check port conflicts
+    # Check port conflicts for backend
     local port_pids
     port_pids=$(get_pid_on_port "$PORT")
     if [[ -n "$port_pids" ]]; then
         if [[ "$FORCE" == true ]]; then
             echo "${YELLOW}⚠ Port $PORT is occupied by PID(s): $port_pids. Force terminating...${RESET}"
             for p in $port_pids; do
-                kill_process_gracefully "$p" "Port occupant"
+                kill_process_gracefully "$p" "Backend Port occupant"
             done
         else
             echo "${RED}✘ Port $PORT is currently occupied by process PID(s): $port_pids${RESET}"
@@ -347,17 +427,23 @@ cmd_start() {
 
     ensure_docker_infra
 
-    local APP_URL="http://localhost:$PORT"
+    # Start Next.js Frontend
+    start_frontend_bg
+
+    local APP_URL="http://localhost:$FRONTEND_PORT"
+    local API_URL="http://localhost:$PORT"
     local DOCS_URL="http://localhost:$PORT/docs"
-    echo "${GREEN}✓ Command Center Dashboard:${RESET}     ${BOLD}$APP_URL${RESET}"
+    echo ""
+    echo "${GREEN}✓ Weather Intelligence Dashboard:${RESET} ${BOLD}$APP_URL${RESET}"
+    echo "${GREEN}✓ FastAPI Backend API:${RESET}           ${BOLD}$API_URL${RESET}"
     echo "${GREEN}✓ Swagger Interactive API Docs:${RESET} ${BOLD}$DOCS_URL${RESET}"
     echo "${GREEN}✓ Health Endpoint:${RESET}              ${BOLD}http://localhost:$PORT/healthz${RESET}"
     echo "${GREEN}✓ Live WebSocket Stream:${RESET}        ${BOLD}ws://localhost:$PORT/ws/events${RESET}"
     echo ""
-    echo "${DIM}Press Ctrl+C at any time to halt the server.${RESET}"
+    echo "${DIM}Press Ctrl+C at any time to halt all INDRA services.${RESET}"
     echo "--------------------------------------------------------------------------------"
 
-    open_browser "$APP_URL" "$PORT"
+    open_browser "$APP_URL" "$FRONTEND_PORT"
 
     local RELOAD_FLAG=""
     if [[ "$RELOAD" == true ]]; then
@@ -365,7 +451,74 @@ cmd_start() {
     fi
 
     cd "$BACKEND_DIR" || exit 1
-    trap 'echo -e "\n${YELLOW}Halted by user. Shutting down INDRA...${RESET}"; exit 0' INT TERM
+    cleanup() {
+        echo -e "\n${YELLOW}Halted by user. Shutting down INDRA...${RESET}"
+        stop_frontend
+        exit 0
+    }
+    trap cleanup INT TERM
+    "$PYTHON_CMD" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --workers "$WORKERS" $RELOAD_FLAG
+}
+
+# --- Subcommand: frontend ---
+cmd_frontend() {
+    print_banner
+    echo "${BOLD}▶ Starting INDRA Next.js Frontend in Foreground...${RESET}"
+    ensure_frontend_deps || exit 1
+    cd "$FRONTEND_DIR" || exit 1
+    open_browser "http://localhost:$FRONTEND_PORT" "$FRONTEND_PORT"
+    npx next dev -p "$FRONTEND_PORT"
+}
+
+# --- Subcommand: backend ---
+cmd_backend() {
+    ensure_uvicorn
+    print_banner
+
+    echo "${BOLD}▶ Starting INDRA FastAPI Backend Server Only...${RESET}"
+    echo "  Host:           ${CYAN}$HOST${RESET}"
+    echo "  Port:           ${CYAN}$PORT${RESET}"
+    echo "  Python:         ${CYAN}$("$PYTHON_CMD" --version 2>&1)${RESET}"
+    echo "  Environment:    ${CYAN}$VENV_PATH${RESET}"
+    echo "  Auto-Reload:    ${CYAN}$RELOAD${RESET}"
+    echo ""
+
+    local port_pids
+    port_pids=$(get_pid_on_port "$PORT")
+    if [[ -n "$port_pids" ]]; then
+        if [[ "$FORCE" == true ]]; then
+            echo "${YELLOW}⚠ Port $PORT is occupied by PID(s): $port_pids. Force terminating...${RESET}"
+            for p in $port_pids; do
+                kill_process_gracefully "$p" "Backend Port occupant"
+            done
+        else
+            echo "${RED}✘ Port $PORT is currently occupied by process PID(s): $port_pids${RESET}"
+            echo "  Use ${CYAN}./start.sh stop${RESET} or ${CYAN}./start.sh -f${RESET} to terminate conflicting processes."
+            exit 1
+        fi
+    fi
+
+    ensure_docker_infra
+
+    local API_URL="http://localhost:$PORT"
+    local DOCS_URL="http://localhost:$PORT/docs"
+    echo "${GREEN}✓ FastAPI Backend API:${RESET}           ${BOLD}$API_URL${RESET}"
+    echo "${GREEN}✓ Swagger Interactive API Docs:${RESET} ${BOLD}$DOCS_URL${RESET}"
+    echo "${GREEN}✓ Health Endpoint:${RESET}              ${BOLD}http://localhost:$PORT/healthz${RESET}"
+    echo "${GREEN}✓ Live WebSocket Stream:${RESET}        ${BOLD}ws://localhost:$PORT/ws/events${RESET}"
+    echo ""
+    echo "${DIM}Press Ctrl+C at any time to halt the backend.${RESET}"
+    echo "--------------------------------------------------------------------------------"
+
+    open_browser "$API_URL" "$PORT"
+
+    local RELOAD_FLAG=""
+    if [[ "$RELOAD" == true ]]; then
+        RELOAD_FLAG="--reload"
+    fi
+
+    cd "$BACKEND_DIR" || exit 1
+    trap 'echo -e "\n${YELLOW}Halted by user. Shutting down backend...${RESET}"; exit 0' INT TERM
     "$PYTHON_CMD" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --workers "$WORKERS" $RELOAD_FLAG
 }
 
@@ -374,30 +527,27 @@ cmd_bg() {
     ensure_uvicorn
     print_banner
 
-    echo "${BOLD}▶ Starting INDRA in Background (Daemon Mode)...${RESET}"
+    echo "${BOLD}▶ Starting INDRA Full Stack in Background (Daemon Mode)...${RESET}"
 
-    # Check if already running
+    # Check if backend already running
     if [[ -f "$PID_FILE" ]]; then
         local existing_pid
         existing_pid=$(cat "$PID_FILE" 2>/dev/null)
         if [[ -n "$existing_pid" ]] && kill -0 "$existing_pid" 2>/dev/null; then
-            echo "${YELLOW}⚠ INDRA is already running in background with PID: $existing_pid${RESET}"
-            echo "  View logs with:   ${CYAN}./start.sh logs${RESET}"
-            echo "  Stop with:        ${CYAN}./start.sh stop${RESET}"
-            exit 0
+            echo "${YELLOW}⚠ INDRA Backend is already running in background with PID: $existing_pid${RESET}"
         else
             rm -f "$PID_FILE"
         fi
     fi
 
-    # Check port conflicts
+    # Check port conflicts for backend
     local port_pids
     port_pids=$(get_pid_on_port "$PORT")
     if [[ -n "$port_pids" ]]; then
         if [[ "$FORCE" == true ]]; then
             echo "${YELLOW}⚠ Port $PORT occupied by PID(s): $port_pids. Force terminating...${RESET}"
             for p in $port_pids; do
-                kill_process_gracefully "$p" "Port occupant"
+                kill_process_gracefully "$p" "Backend Port occupant"
             done
         else
             echo "${RED}✘ Port $PORT is currently occupied by PID(s): $port_pids${RESET}"
@@ -408,6 +558,9 @@ cmd_bg() {
 
     ensure_docker_infra
 
+    # Start Frontend
+    start_frontend_bg
+
     local RELOAD_FLAG=""
     if [[ "$RELOAD" == true ]]; then
         RELOAD_FLAG="--reload"
@@ -417,22 +570,25 @@ cmd_bg() {
     nohup "$PYTHON_CMD" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --workers "$WORKERS" $RELOAD_FLAG > "$LOG_FILE" 2>&1 &
     local NEW_PID=$!
     echo "$NEW_PID" > "$PID_FILE"
+    cd "$ROOT_DIR" || exit 1
 
     sleep 1.2
     if kill -0 "$NEW_PID" 2>/dev/null; then
         echo "${GREEN}✓ INDRA successfully launched in background!${RESET}"
-        echo "  PID:            ${CYAN}$NEW_PID${RESET}"
-        echo "  Command Center: ${CYAN}http://localhost:$PORT${RESET}"
+        echo "  Backend PID:    ${CYAN}$NEW_PID${RESET}"
+        echo "  Dashboard UI:   ${CYAN}http://localhost:$FRONTEND_PORT${RESET}"
+        echo "  Backend API:    ${CYAN}http://localhost:$PORT${RESET}"
         echo "  API Docs:       ${CYAN}http://localhost:$PORT/docs${RESET}"
-        echo "  Logs:           ${CYAN}$LOG_FILE${RESET}"
+        echo "  Backend Logs:   ${CYAN}$LOG_FILE${RESET}"
+        echo "  Frontend Logs:  ${CYAN}$FRONTEND_LOG_FILE${RESET}"
         echo ""
-        echo "Commands to control background process:"
+        echo "Commands to control background processes:"
         echo "  Status:         ${CYAN}./start.sh status${RESET}"
         echo "  Stream Logs:    ${CYAN}./start.sh logs${RESET}"
-        echo "  Stop Server:    ${CYAN}./start.sh stop${RESET}"
-        open_browser "http://localhost:$PORT" "$PORT"
+        echo "  Stop Platform:  ${CYAN}./start.sh stop${RESET}"
+        open_browser "http://localhost:$FRONTEND_PORT" "$FRONTEND_PORT"
     else
-        echo "${RED}✘ Failed to start INDRA in background. Check log output:${RESET}"
+        echo "${RED}✘ Failed to start INDRA backend in background. Check log output:${RESET}"
         tail -n 20 "$LOG_FILE"
         rm -f "$PID_FILE"
         exit 1
@@ -444,7 +600,7 @@ cmd_stop() {
     echo "${BOLD}▶ Stopping INDRA Platform...${RESET}"
     local stopped=false
 
-    # 1. Stop recorded PID
+    # 1. Stop backend recorded PID
     if [[ -f "$PID_FILE" ]]; then
         local pid
         pid=$(cat "$PID_FILE" 2>/dev/null)
@@ -455,21 +611,24 @@ cmd_stop() {
         rm -f "$PID_FILE"
     fi
 
-    # 2. Check and terminate any processes on target port
+    # 2. Check and terminate any processes on backend port
     local port_pids
     port_pids=$(get_pid_on_port "$PORT")
     if [[ -n "$port_pids" ]]; then
         echo "${YELLOW}Cleaning up remaining process(es) on port $PORT: $port_pids${RESET}"
         for p in $port_pids; do
-            kill_process_gracefully "$p" "Port $PORT occupant"
+            kill_process_gracefully "$p" "Backend Port $PORT occupant"
             stopped=true
         done
     fi
 
+    # 3. Stop frontend
+    stop_frontend
+
     if [[ "$stopped" == true ]]; then
         echo "${GREEN}✓ INDRA stopped successfully.${RESET}"
     else
-        echo "${DIM}ℹ No active INDRA backend processes found.${RESET}"
+        echo "${DIM}ℹ All INDRA processes stopped.${RESET}"
     fi
 }
 
@@ -487,10 +646,29 @@ cmd_status() {
     echo "${BOLD}▶ Checking INDRA Platform Operational Status...${RESET}"
     echo ""
 
+    # Frontend Status
+    local frontend_running=false
+    local frontend_pid=""
+    if [[ -f "$FRONTEND_PID_FILE" ]]; then
+        frontend_pid=$(cat "$FRONTEND_PID_FILE" 2>/dev/null)
+        if [[ -n "$frontend_pid" ]] && kill -0 "$frontend_pid" 2>/dev/null; then
+            frontend_running=true
+        fi
+    fi
+    local fport_pids
+    fport_pids=$(get_pid_on_port "$FRONTEND_PORT")
+
+    if [[ "$frontend_running" == true ]]; then
+        echo "  Frontend Dashboard:    ${GREEN}● RUNNING${RESET} (PID: $frontend_pid, http://localhost:$FRONTEND_PORT)"
+    elif [[ -n "$fport_pids" ]]; then
+        echo "  Frontend Dashboard:    ${GREEN}● ACTIVE${RESET} (Port $FRONTEND_PORT occupied by PID: $fport_pids)"
+    else
+        echo "  Frontend Dashboard:    ${DIM}○ STOPPED${RESET}"
+    fi
+
     # Backend Status
     local backend_running=false
     local backend_pid=""
-
     if [[ -f "$PID_FILE" ]]; then
         backend_pid=$(cat "$PID_FILE" 2>/dev/null)
         if [[ -n "$backend_pid" ]] && kill -0 "$backend_pid" 2>/dev/null; then
@@ -511,9 +689,9 @@ cmd_status() {
 
     # Port 8000
     if [[ -n "$port_pids" ]]; then
-        echo "  Port $PORT:             ${GREEN}● OPEN${RESET} (Binding: $HOST:$PORT)"
+        echo "  Backend Port $PORT:       ${GREEN}● OPEN${RESET} (Binding: $HOST:$PORT)"
     else
-        echo "  Port $PORT:             ${DIM}○ FREE${RESET}"
+        echo "  Backend Port $PORT:       ${DIM}○ FREE${RESET}"
     fi
 
     # API Probe
@@ -695,10 +873,10 @@ cmd_test() {
     local passed=0
     local failed=0
 
-    # Test 1: GET / (Root endpoint)
-    echo -n "  Testing GET / (Platform Info) ... "
+    # Test 1: GET /api/info (Platform Info)
+    echo -n "  Testing GET /api/info (Platform Info) ... "
     local root_resp
-    root_resp=$(curl -s -m 3 "$BASE_URL/" 2>/dev/null)
+    root_resp=$(curl -s -m 3 "$BASE_URL/api/info" 2>/dev/null)
     if echo "$root_resp" | grep -q '"platform": *"INDRA"'; then
         echo "${GREEN}✓ PASSED${RESET}"
         passed=$((passed + 1))
@@ -766,13 +944,17 @@ cmd_clean() {
 # --- Argument Parsing ---
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        start|bg|daemon|stop|restart|status|setup|infra|doctor|demo|test|logs|clean|help)
+        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|demo|test|logs|clean|help)
             COMMAND="$1"
             shift
             if [[ "$COMMAND" == "infra" && $# -gt 0 && ! "$1" =~ ^- ]]; then
                 INFRA_ACTION="$1"
                 shift
             fi
+            ;;
+        --frontend-port)
+            FRONTEND_PORT="$2"
+            shift 2
             ;;
         -p|--port)
             PORT="$2"
@@ -831,6 +1013,12 @@ COMMAND="${COMMAND:-start}"
 case "$COMMAND" in
     start)
         cmd_start
+        ;;
+    frontend)
+        cmd_frontend
+        ;;
+    backend)
+        cmd_backend
         ;;
     bg|daemon)
         cmd_bg
