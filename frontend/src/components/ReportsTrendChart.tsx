@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
-import { reportsTrend } from '@/lib/mock-data';
+import { reportsTrend, type TrendDataPoint } from '@/lib/mock-data';
+import { fetchReportsTrend } from '@/lib/api';
 import {
   AreaChart,
   Area,
@@ -37,6 +38,23 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export default function ReportsTrendChart() {
   const [dateRange, setDateRange] = useState('7d');
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>(reportsTrend);
+
+  // Fetch live trend data and re-fetch when range changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchReportsTrend(dateRange);
+        if (!cancelled && data.length > 0) {
+          setTrendData(data);
+        }
+      } catch {
+        // mock data already set
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [dateRange]);
 
   return (
     <motion.div
@@ -64,7 +82,7 @@ export default function ReportsTrendChart() {
 
         <div className="h-[200px] -ml-2">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={reportsTrend}>
+            <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="reportGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15} />

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
-import { eventDistribution } from '@/lib/mock-data';
+import { eventDistribution, type DistributionItem } from '@/lib/mock-data';
+import { fetchEventDistribution } from '@/lib/api';
 import {
   PieChart,
   Pie,
@@ -12,73 +13,32 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const total = eventDistribution.reduce((sum, item) => sum + item.value, 0);
-
-// Custom animated active shape for the donut
-interface ActiveShapeProps {
-  cx: number;
-  cy: number;
-  innerRadius: number;
-  outerRadius: number;
-  startAngle: number;
-  endAngle: number;
-  fill: string;
-}
-
-function AnimatedCell({ cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill }: ActiveShapeProps) {
-  return (
-    <g>
-      <path
-        d={describeArc(cx, cy, outerRadius, innerRadius, startAngle, endAngle)}
-        fill={fill}
-        stroke="white"
-        strokeWidth={2}
-      />
-    </g>
-  );
-}
-
-function describeArc(
-  cx: number,
-  cy: number,
-  outerRadius: number,
-  innerRadius: number,
-  startAngle: number,
-  endAngle: number
-): string {
-  const RADIAN = Math.PI / 180;
-  const cos1 = Math.cos(-RADIAN * startAngle);
-  const sin1 = Math.sin(-RADIAN * startAngle);
-  const cos2 = Math.cos(-RADIAN * endAngle);
-  const sin2 = Math.sin(-RADIAN * endAngle);
-
-  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
-
-  const outerX1 = cx + outerRadius * cos1;
-  const outerY1 = cy + outerRadius * sin1;
-  const outerX2 = cx + outerRadius * cos2;
-  const outerY2 = cy + outerRadius * sin2;
-  const innerX1 = cx + innerRadius * cos1;
-  const innerY1 = cy + innerRadius * sin1;
-  const innerX2 = cx + innerRadius * cos2;
-  const innerY2 = cy + innerRadius * sin2;
-
-  return [
-    `M ${outerX1} ${outerY1}`,
-    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0 ${outerX2} ${outerY2}`,
-    `L ${innerX2} ${innerY2}`,
-    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${innerX1} ${innerY1}`,
-    'Z',
-  ].join(' ');
-}
-
 export default function EventDistributionChart() {
   const [animate, setAnimate] = useState(false);
+  const [distribution, setDistribution] = useState<DistributionItem[]>(eventDistribution);
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 300);
     return () => clearTimeout(timer);
   }, []);
+
+  // Fetch live distribution data
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchEventDistribution();
+        if (!cancelled && data.length > 0) {
+          setDistribution(data);
+        }
+      } catch {
+        // mock data already set
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const total = distribution.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <motion.div
@@ -96,7 +56,7 @@ export default function EventDistributionChart() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={eventDistribution}
+                  data={distribution}
                   cx="50%"
                   cy="50%"
                   innerRadius={45}
@@ -111,7 +71,7 @@ export default function EventDistributionChart() {
                   stroke="white"
                   strokeWidth={2}
                 >
-                  {eventDistribution.map((entry, index) => (
+                  {distribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -134,7 +94,7 @@ export default function EventDistributionChart() {
 
           {/* Legend */}
           <div className="flex-1 space-y-2">
-            {eventDistribution.map((item, index) => (
+            {distribution.map((item, index) => (
               <motion.div
                 key={item.name}
                 initial={{ opacity: 0, x: 10 }}

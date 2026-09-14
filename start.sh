@@ -824,7 +824,7 @@ cmd_doctor() {
         check_docker_infra
         local dstatus=$?
         if [[ $dstatus -eq 0 ]]; then
-            echo "  ${GREEN}✓ Docker Containers:${RESET}   PostGIS (5432), Redis (6379), Redpanda (19092) are RUNNING"
+            echo "  ${GREEN}✓ Docker Containers:${RESET}   PostGIS (5433), Redis (6379), Redpanda (19092) are RUNNING"
         else
             echo "  ${YELLOW}ℹ Docker Containers:${RESET}   Containers currently stopped. Run './start.sh infra up'"
         fi
@@ -906,6 +906,80 @@ cmd_test() {
         passed=$((passed + 1))
     else
         echo "${RED}✘ FAILED (HTTP $docs_code)${RESET}"
+        failed=$((failed + 1))
+    fi
+
+    # Test 4: GET /api/dashboard/summary (National Dashboard KPIs)
+    echo -n "  Testing GET /api/dashboard/summary (Dashboard KPIs) ... "
+    local dash_code
+    dash_code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$BASE_URL/api/dashboard/summary" 2>/dev/null)
+    if [[ "$dash_code" == "200" ]]; then
+        echo "${GREEN}✓ PASSED (HTTP 200)${RESET}"
+        passed=$((passed + 1))
+    else
+        echo "${RED}✘ FAILED (HTTP $dash_code)${RESET}"
+        failed=$((failed + 1))
+    fi
+
+    # Test 5: GET /api/events (Events List)
+    echo -n "  Testing GET /api/events (Events List) ... "
+    local events_code
+    events_code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$BASE_URL/api/events" 2>/dev/null)
+    if [[ "$events_code" == "200" ]]; then
+        echo "${GREEN}✓ PASSED (HTTP 200)${RESET}"
+        passed=$((passed + 1))
+    else
+        echo "${RED}✘ FAILED (HTTP $events_code)${RESET}"
+        failed=$((failed + 1))
+    fi
+
+    # Test 6: GET /api/events/distribution (Donut Chart Data)
+    echo -n "  Testing GET /api/events/distribution (Distribution) ... "
+    local dist_code
+    dist_code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$BASE_URL/api/events/distribution" 2>/dev/null)
+    if [[ "$dist_code" == "200" ]]; then
+        echo "${GREEN}✓ PASSED (HTTP 200)${RESET}"
+        passed=$((passed + 1))
+    else
+        echo "${RED}✘ FAILED (HTTP $dist_code)${RESET}"
+        failed=$((failed + 1))
+    fi
+
+    # Test 7: GET /api/reports/trend (Trend Chart Data)
+    echo -n "  Testing GET /api/reports/trend?range=7d (Reports Trend) ... "
+    local trend_code
+    trend_code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$BASE_URL/api/reports/trend?range=7d" 2>/dev/null)
+    if [[ "$trend_code" == "200" ]]; then
+        echo "${GREEN}✓ PASSED (HTTP 200)${RESET}"
+        passed=$((passed + 1))
+    else
+        echo "${RED}✘ FAILED (HTTP $trend_code)${RESET}"
+        failed=$((failed + 1))
+    fi
+
+    # Test 8: GET /api/feed/recent (Live Feed)
+    echo -n "  Testing GET /api/feed/recent?limit=10 (Live Feed) ... "
+    local feed_code
+    feed_code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$BASE_URL/api/feed/recent?limit=10" 2>/dev/null)
+    if [[ "$feed_code" == "200" ]]; then
+        echo "${GREEN}✓ PASSED (HTTP 200)${RESET}"
+        passed=$((passed + 1))
+    else
+        echo "${RED}✘ FAILED (HTTP $feed_code)${RESET}"
+        failed=$((failed + 1))
+    fi
+
+    # Test 9: POST /api/auth/token (JWT Auth)
+    echo -n "  Testing POST /api/auth/token (JWT Auth) ... "
+    local auth_resp
+    auth_resp=$(curl -s -m 5 -X POST "$BASE_URL/api/auth/token" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "username=admin&password=admin123" 2>/dev/null)
+    if echo "$auth_resp" | grep -q '"access_token"'; then
+        echo "${GREEN}✓ PASSED${RESET}"
+        passed=$((passed + 1))
+    else
+        echo "${RED}✘ FAILED${RESET}"
         failed=$((failed + 1))
     fi
 

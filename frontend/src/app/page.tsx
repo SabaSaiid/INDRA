@@ -11,7 +11,8 @@ import RecentEventsList from '@/components/RecentEventsList';
 import EventDistributionChart from '@/components/EventDistributionChart';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import LiveFeed from '@/components/LiveFeed';
-import { kpiData } from '@/lib/mock-data';
+import { kpiData, type KpiItem } from '@/lib/mock-data';
+import { fetchDashboardSummary } from '@/lib/api';
 import {
   KpiCardSkeleton,
   MapCardSkeleton,
@@ -24,11 +25,22 @@ export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [liveKpiData, setLiveKpiData] = useState<KpiItem[]>(kpiData);
 
-  // Simulate initial data loading
+  // Fetch live KPI data from API, fall back to mock
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchDashboardSummary();
+        if (!cancelled) setLiveKpiData(data);
+      } catch {
+        // mock data is already set as default
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // Auto-collapse sidebar on medium screens
@@ -126,7 +138,7 @@ export default function DashboardPage() {
                   animate="visible"
                   className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6"
                 >
-                  {kpiData.map((item, index) => (
+                  {liveKpiData.map((item, index) => (
                     <KpiCard key={item.id} item={item} index={index} />
                   ))}
                 </motion.div>

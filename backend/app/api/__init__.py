@@ -1,0 +1,14 @@
+"""INDRA API — router exports."""
+from app.api.dashboard import router as dashboard_router
+from app.api.events import router as events_router
+from app.api.reports import router as reports_router
+from app.api.feed import router as feed_router
+from app.api.auth import router as auth_router
+
+__all__ = [
+    "dashboard_router",
+    "events_router",
+    "reports_router",
+    "feed_router",
+    "auth_router",
+]

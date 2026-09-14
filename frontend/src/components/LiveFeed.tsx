@@ -1,10 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
-import { liveFeedItems, feedSourceConfig, type FeedSourceType } from '@/lib/mock-data';
+import {
+  liveFeedItems,
+  feedSourceConfig,
+  type FeedSourceType,
+  type FeedItem,
+} from '@/lib/mock-data';
+import { fetchRecentFeed } from '@/lib/api';
 import { ArrowRight, User, Share2, CloudSun, Newspaper } from 'lucide-react';
 
 const sourceIcons: Record<FeedSourceType, React.ComponentType<{ className?: string }>> = {
@@ -15,6 +21,59 @@ const sourceIcons: Record<FeedSourceType, React.ComponentType<{ className?: stri
 };
 
 export default function LiveFeed() {
+  const [feedItems, setFeedItems] = useState<FeedItem[]>(liveFeedItems);
+
+  // Fetch live feed data
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchRecentFeed(10);
+        if (!cancelled && data.length > 0) {
+          setFeedItems(data);
+        }
+      } catch {
+        // mock data already set
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // WebSocket for real-time NEW_REPORT pushes
+  useEffect(() => {
+    const wsUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000')
+      .replace('http://', 'ws://')
+      .replace('https://', 'wss://');
+
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(`${wsUrl}/ws/events`);
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'NEW_REPORT' && msg.report) {
+            const newItem: FeedItem = {
+              id: msg.report.id || `ws-${Date.now()}`,
+              source: 'citizen' as FeedSourceType,
+              sourceLabel: 'Citizen report',
+              message: msg.report.text || msg.report.raw_text || 'New report received',
+              time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            };
+            setFeedItems((prev) => [newItem, ...prev.slice(0, 9)]);
+          }
+        } catch {
+          // ignore malformed WS messages
+        }
+      };
+    } catch {
+      console.warn('[INDRA] WebSocket connection failed (non-fatal)');
+    }
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
+
   return (
     <motion.div
       variants={fadeSlideUp}
@@ -40,9 +99,10 @@ export default function LiveFeed() {
           className="space-y-0 custom-scrollbar overflow-y-auto"
           style={{ maxHeight: '220px' }}
         >
-          {liveFeedItems.map((item, index) => {
-            const Icon = sourceIcons[item.source];
-            const sourceStyle = feedSourceConfig[item.source];
+          {feedItems.map((item) => {
+            const source = (item.source || 'news') as FeedSourceType;
+            const Icon = sourceIcons[source] || Newspaper;
+            const sourceStyle = feedSourceConfig[source] || feedSourceConfig.news;
 
             return (
               <motion.div

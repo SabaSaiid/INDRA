@@ -7,6 +7,7 @@ import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { mapMarkers, severityConfig, type MapMarker } from '@/lib/mock-data';
+import { fetchEvents, apiEventsToMapMarkers } from '@/lib/api';
 import {
   CloudRain,
   Waves,
@@ -85,10 +86,27 @@ function createMarkerIcon(severity: string) {
 export default function EventMap() {
   const [mounted, setMounted] = useState(false);
   const [timeRange, setTimeRange] = useState('24h');
+  const [markers, setMarkers] = useState<MapMarker[]>(mapMarkers);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch live event data for map markers
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const events = await fetchEvents({ time_range: timeRange });
+        if (!cancelled && events.length > 0) {
+          setMarkers(apiEventsToMapMarkers(events));
+        }
+      } catch {
+        // mock data already set as default
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [timeRange]);
 
   if (!mounted) {
     return <MapCardSkeleton />;
@@ -135,7 +153,7 @@ export default function EventMap() {
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {mapMarkers.map((marker) => (
+            {markers.map((marker) => (
               <MarkerComponent
                 key={marker.id}
                 position={[marker.lat, marker.lng]}
@@ -144,17 +162,17 @@ export default function EventMap() {
                 <Popup>
                   <div className="min-w-[180px]">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <span style={{ color: severityConfig[marker.severity].color }}>
+                      <span style={{ color: severityConfig[marker.severity]?.color || '#64748B' }}>
                         <AlertTriangle className="w-3.5 h-3.5" />
                       </span>
                       <span
                         className="text-xs font-semibold px-1.5 py-0.5 rounded"
                         style={{
-                          backgroundColor: severityConfig[marker.severity].bg,
-                          color: severityConfig[marker.severity].textColor,
+                          backgroundColor: severityConfig[marker.severity]?.bg || '#F1F5F9',
+                          color: severityConfig[marker.severity]?.textColor || '#334155',
                         }}
                       >
-                        {severityConfig[marker.severity].label}
+                        {severityConfig[marker.severity]?.label || marker.severity}
                       </span>
                     </div>
                     <p className="font-semibold text-sm">

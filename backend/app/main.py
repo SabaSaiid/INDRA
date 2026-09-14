@@ -4,6 +4,8 @@ Main FastAPI Application Entry Point
 Smart India Hackathon 2026 - Team Sixth Sense
 """
 
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,10 +17,45 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("indra.api")
 
+
+# ── Lifespan: DB init + background consumer ───────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan — startup and shutdown hooks."""
+    # Startup
+    logger.info("INDRA Platform starting up...")
+    consumer_task = None
+    try:
+        from app.core.database import init_db
+        await init_db()
+    except Exception as e:
+        logger.warning(f"Database init skipped (non-fatal): {e}")
+
+    # Start Kafka consumer in background (non-blocking)
+    try:
+        from app.workers.report_consumer import start_report_consumer, set_ws_manager
+        set_ws_manager(ws_manager)
+        consumer_task = asyncio.create_task(start_report_consumer())
+    except Exception as e:
+        logger.warning(f"Report consumer startup skipped (non-fatal): {e}")
+
+    yield
+
+    # Shutdown
+    if consumer_task:
+        consumer_task.cancel()
+        try:
+            await consumer_task
+        except asyncio.CancelledError:
+            pass
+    logger.info("INDRA Platform shut down.")
+
+
 app = FastAPI(
     title="INDRA Platform API",
     description="Intelligent National Disaster & Weather Platform - Event Ingestion, AI Fusion, and Geospatial Verification API.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Enable CORS
@@ -32,6 +69,7 @@ app.add_middleware(
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 SCENARIO_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "samples" / "patna_flood_scenario.json"
+
 
 class ConnectionManager:
     """Manages real-time WebSocket connections to the Command Center dashboard."""
@@ -55,6 +93,28 @@ class ConnectionManager:
                 logger.error(f"Error broadcasting message: {e}")
 
 ws_manager = ConnectionManager()
+
+
+# ── Mount API Routers ──────────────────────────────────────────────────────────
+try:
+    from app.api import (
+        dashboard_router,
+        events_router,
+        reports_router,
+        feed_router,
+        auth_router,
+    )
+    app.include_router(dashboard_router)
+    app.include_router(events_router)
+    app.include_router(reports_router)
+    app.include_router(feed_router)
+    app.include_router(auth_router)
+    logger.info("✓ All API routers mounted successfully")
+except Exception as e:
+    logger.warning(f"⚠ Could not mount API routers (non-fatal): {e}")
+
+
+# ── Existing Demo Endpoints (preserved) ───────────────────────────────────────
 
 @app.get("/")
 async def serve_dashboard():

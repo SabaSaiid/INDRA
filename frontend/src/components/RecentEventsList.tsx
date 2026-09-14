@@ -1,15 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { recentEvents, severityConfig, verificationConfig } from '@/lib/mock-data';
+import {
+  recentEvents,
+  severityConfig,
+  verificationConfig,
+  type RecentEvent,
+} from '@/lib/mock-data';
+import { fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import { getRelativeTime } from '@/lib/utils';
 import { ArrowRight, MapPin, CheckCircle2, Clock } from 'lucide-react';
 
 export default function RecentEventsList() {
+  const [events, setEvents] = useState<RecentEvent[]>(recentEvents);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const apiEvents = await fetchEvents({ time_range: '7d' });
+        if (!cancelled && apiEvents.length > 0) {
+          setEvents(apiEventsToRecentEvents(apiEvents));
+        }
+      } catch {
+        // mock data already set
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <motion.div
       variants={fadeSlideUp}
@@ -35,9 +58,9 @@ export default function RecentEventsList() {
           className="space-y-0 custom-scrollbar overflow-y-auto"
           style={{ maxHeight: '380px' }}
         >
-          {recentEvents.map((event, index) => {
-            const severity = severityConfig[event.severity];
-            const verification = verificationConfig[event.verification];
+          {events.map((event, index) => {
+            const severity = severityConfig[event.severity] || severityConfig.moderate;
+            const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
 
             return (
               <motion.div
