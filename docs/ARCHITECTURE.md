@@ -1,138 +1,177 @@
-# INDRA Architecture Specification
+# INDRA Architecture Specification & Engineering Blueprint
 
-**Project Title**: Intelligent National Disaster & Weather Platform  
+**Project Title**: INDRA (Intelligent National Disaster & Weather Platform)  
 **Problem Statement ID**: SIH26069 (National Weather Big Data Analytics Platform)  
-**Theme**: Disaster Management  
+**Theme**: Disaster Management | **Category**: Software  
 **Team**: Sixth Sense — Smart India Hackathon 2026  
 
 ---
 
-## 1. Executive System Architecture
+## 1. Core Engineering Philosophy
 
-INDRA is designed to solve the critical bottleneck in disaster management: **alert fragmentation and verification latency**. During extreme meteorological occurrences, government command centers are overwhelmed by hundreds of unvetted social media posts, conflicting citizen reports, and asynchronous sensor readings. 
+> **"We are building an intelligence platform, not a weather app."**
 
-INDRA ingests, clusters, deduplicates, and fuses multi-source signals in real-time, converting **hundreds of noisy signals into a single, explainable, verified weather event**.
+Traditional weather apps simply answer: *"What is the weather in Patna?"* (1 API request $\rightarrow$ 1 UI update).  
+**INDRA** answers the critical emergency question: **"What weather events are unfolding, how severe are they, how reliable is the data, and what is the underlying verifiable evidence?"**
+
+| Dimension | Standard Weather App | INDRA Intelligence Platform |
+| :--- | :--- | :--- |
+| **System Paradigm** | Basic CRUD / Proxy to third-party API | Event-Fusion Engine & Emergency Command Center |
+| **Data Ingestion** | Synchronous pull on user page load | Asynchronous multi-stream push via Kafka/Redpanda |
+| **Data Integrity** | Unvetted, blind trust in external feed | AI Verification, cross-source corroboration, anomaly detection |
+| **Output Entity** | Simple weather forecast card (temp, rain %) | Fused **Verified Weather Event** with unalterable evidence trail |
+| **Target User** | Individual citizen checking today's rain | NDRF, SDMAs, District Emergency Operations Centers (EOCs) |
+
+---
+
+## 2. Decoupling Confidence from Severity: The 2×2 Matrix
+
+Disaster response requires separating **how dangerous an event is** (Severity) from **how certain we are that it is happening** (Confidence).
+
+```
+                      SEVERITY (Low ───────► Critical)
+          ▲
+          │   ┌─────────────────────────────┬─────────────────────────────┐
+          │   │      UNVERIFIED THREAT      │   CRITICAL VERIFIED EVENT   │
+          │   │                             │                             │
+          │   │  Single report of dam break │  Patna flood (100+ reports) │
+H         │   │  ACTION: Immediate Admin    │  ACTION: Immediate Public   │
+I  C      │   │          Review Flag        │          & NDRF Alert       │
+G  O      │   ├─────────────────────────────┼─────────────────────────────┤
+H  N      │   │            NOISE            │    CONFIRMED MINOR EVENT    │
+   F      │   │                             │                             │
+│  I      │   │  Isolated rumor or tweet    │  Verified localized puddle  │
+│  D      │   │  ACTION: Filter & Ignore    │  ACTION: Monitor; no alert  │
+▼  E      │   │                             │          dispatch           │
+   N      │   └─────────────────────────────┴─────────────────────────────┘
+   C
+   E
+```
+
+- **Critical Verified Event (High Severity, High Confidence)**: Multi-source consensus confirmed. Auto-publishes and triggers instant sirens, SMS broadcast, and NDRF dispatch.
+- **Unverified Threat (High Severity, Low Confidence)**: A catastrophic claim (e.g. dam breach or landslide) with only 1 or 2 uncorroborated reports. **Never ignored, never auto-published**—flagged with highest priority in the human review queue.
+- **Confirmed Minor Event (Low Severity, High Confidence)**: Confirmed minor waterlogging; logged for urban municipal tracking without inducing public panic.
+- **Noise (Low Severity, Low Confidence)**: Filtered out before reaching operators.
+
+---
+
+## 3. The Complete Tiered System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph S1["1. MULTI-SOURCE INGESTION"]
-        A1[IMD / Govt Weather APIs]
-        A2[Social Media / #IMD Posts]
-        A3[Citizen Mobile App Reports]
-        A4[CWC River / Hydrology Gauges]
-        A5[Crowdsourced Media & Images]
+    subgraph TIER1["TIER 1: DATA SOURCES (INPUTS)"]
+        S1[Open-Meteo Primary API]
+        S2[OpenWeather Secondary API]
+        S3[Citizen Mobile PWA: GPS + Camera]
+        S4[Public Sensor Datasets: CWC / IMD AWS]
     end
 
-    subgraph S2["2. STREAMING & PRE-PROCESSING"]
-        B1[FastAPI Ingestion Gateway]
-        B2[Redpanda / Kafka Buffer]
-        B3[Normalization & Deduplication]
+    subgraph TIER2["TIER 2: INGESTION & PROCESSING"]
+        K1[Kafka / Redpanda Event Highway]
+        V1[Coordinate Validation & Normalization]
+        V2[Geocoding: Country / State / City]
+        V3[Deduplication: Text + GPS + Time]
     end
 
-    subgraph S3["3. AI & GEOSPATIAL INTELLIGENCE"]
-        C1[NLP Text Embeddings & Sentiment]
-        C2[PostGIS ST_ClusterDBSCAN]
-        C3[OpenCV / CNN Image Integrity Check]
-        C4[Isolation Forest Sensor Anomaly Detector]
+    subgraph TIER3["TIER 3: THE BRAIN (ENGINES)"]
+        AI1[BERT / Sentence Transformers NLP]
+        AI2[PyTorch / OpenCV Vision Pipeline]
+        AI3[Isolation Forest Anomaly Detector]
+        GEO1[PostGIS ST_ClusterDBSCAN]
+        GEO2[Uber H3 Hexagonal Spatial Indexing]
+        FUS[Multi-Source Event Fusion Engine]
     end
 
-    subgraph S4["4. FUSION & VERIFICATION ENGINE"]
-        D1[Multi-Source Agreement Correlator]
-        D2[Explainable Confidence Scorer]
-        D3{Confidence Threshold}
-        D3 -- ">= 90%" --> D4[Auto-Published Event]
-        D3 -- "70% - 89%" --> D5[Human Review Queue]
-        D3 -- "< 70%" --> D6[Suppressed / Monitoring]
+    subgraph TIER4["TIER 4: PLATFORM & OUTPUT"]
+        DB[(PostgreSQL + PostGIS)]
+        RD[(Redis State & Pub/Sub)]
+        S3[(MinIO / S3 Media)]
+        API[FastAPI Gateway]
+        UI[Next.js Live WebSocket Command Center]
     end
 
-    subgraph S5["5. COMMAND CENTER & DISPATCH"]
-        E1[(PostgreSQL + PostGIS DB)]
-        E2[(Redis Pub/Sub)]
-        E3[WebSocket Real-Time Broadcast]
-        E4[Next.js Command Center Dashboard]
-        E5[SMS/CAP Emergency Alerts]
-    end
-
-    S1 --> B1 --> B2 --> B3 --> S3
-    C1 & C2 & C3 & C4 --> D1 --> D2 --> D3
-    D4 & D5 --> E1
-    D4 & D5 --> E2 --> E3 --> E4
-    D4 --> E5
+    S1 & S2 & S3 & S4 --> K1
+    K1 --> V1 --> V2 --> V3
+    V3 --> AI1 & AI2 & AI3 & GEO1 & GEO2
+    AI1 & AI2 & AI3 & GEO1 & GEO2 --> FUS
+    FUS --> DB & RD & S3
+    DB & RD --> API --> UI
 ```
 
 ---
 
-## 2. The Five-Stage Processing Pipeline
+## 4. Spatio-Temporal Clustering & Indexing
 
-### Stage 1: Data Sources & Ingestion
-Signals arrive from disparate protocols with varying rates:
-- **IMD AWS / Doppler Feeds**: High-precision, low-frequency (every 15–60 mins) REST/SFTP feeds.
-- **Citizen Reports**: Geotagged user submissions with photo attachments submitted via mobile PWA.
-- **Social Media / Microblogs**: Public streams filtered for hashtags (`#IMD`, `#PatnaRains`, `#CycloneAlert`).
-- **Hydrological Sensors**: River gauge levels from Central Water Commission (CWC).
+INDRA processes incoming reports through a 3-step spatial pipeline:
 
-### Stage 2: Streaming & Pre-Processing (Kafka/Redpanda)
-- **Surge Absorption**: During acute catastrophes (e.g. cloudbursts, cyclone landfall), report volume spikes by ~50x. Writing directly to PostgreSQL will exhaust connection pools and crash the API. 
-- **Decoupled Buffer**: Redpanda acts as a persistent, high-throughput distributed log (`indra.raw.reports`).
-- **Standardized Event Wrapper**: Ingested payloads are normalized into a unified `SignalEvent` schema before worker consumption.
-
-### Stage 3: AI & Geospatial Intelligence
-1. **Semantic Text NLP**:
-   - Uses sentence embeddings (`all-MiniLM-L6-v2`) to project raw report descriptions into a 384-dimensional vector space.
-   - Computes cosine similarity between incoming reports within the active time window to cluster colloquial descriptions (e.g., *"water up to waist on bypass"* vs *"heavy waterlogging near bypass road"*).
-2. **Spatial Polygon Clustering (PostGIS ST_ClusterDBSCAN)**:
-   - Evaluates coordinate proximity using geospatial distance metrics (`eps = 5km`, `minpoints = 2`).
-   - Generates convex/concave boundary polygons representing flood inundation zones rather than single lat/lng points.
-3. **Computer Vision Verification**:
-   - OpenCV and lightweight CNNs verify image authenticity, detect floodwater/inundation levels, and check image metadata against submission timestamps to flag recycled or fake internet images.
-4. **Sensor Anomaly Detection**:
-   - Isolation Forest algorithms identify faulty or jammed physical telemetry (e.g., stuck float sensors or sudden impossible telemetry leaps).
+1. **Coordinate Validation**: Validates latitude $[-90, 90]$ and longitude $[-180, 180]$, stripping coordinate jitter and normalizing timestamps to UTC.
+2. **Administrative Geocoding**: Resolves coordinates to official administrative boundaries:  
+   $$\text{GPS Lat/Lng} \longrightarrow \text{Country: India} \longrightarrow \text{State: Bihar} \longrightarrow \text{District: Patna}$$
+3. **Hybrid Spatial Clustering**:
+   - **PostGIS `ST_ClusterDBSCAN`**: Identifies dense arbitrary spatial shapes of disaster boundaries (`eps = 5km`, `min_samples = 2`).
+   - **Uber H3 (`H3_HEX`)**: Partitions the geographic area into discrete hexagonal cells (Resolution 8, edge length $\approx 460\text{m}$) for high-speed spatial hashing, heatmaps, and spatial indexing.
 
 ---
 
-## 3. Multi-Source Event Fusion Engine & Verification Math
+## 5. Explainable Verification: The Verification Receipt
 
-An event is confirmed **only when independent sources agree**. Single-source spikes are never escalated directly to critical alert status.
+INDRA does **not** treat confidence as a black box. For every generated incident, the system computes and prints an **unalterable Verification Receipt** with exact mathematical weights summing to $100\%$:
 
-### Confidence Score Formulation
-The composite confidence score $C \in [0, 1.0]$ is computed as:
+$$C = 0.25 \cdot S_{\text{weather}} + 0.20 \cdot S_{\text{reports}} + 0.20 \cdot S_{\text{spatio-temporal}} + 0.15 \cdot S_{\text{image}} + 0.15 \cdot S_{\text{reliability}} + 0.05 \cdot S_{\text{anomaly}}$$
 
-$$C = w_{sta} \cdot S_{sta} + w_{div} \cdot S_{div} + w_{spa} \cdot S_{spa} + w_{med} \cdot S_{med} + w_{rel} \cdot S_{rel}$$
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        THE VERIFICATION RECEIPT                        │
+│                     CONFIDENCE SCORE: 94 / 100                         │
+├────────────────────────────────────────────────────────────────────────┤
+│  ✓ Weather Agreement (25%)          : Open-Meteo/AWS recorded 92mm     │
+│  ✓ Independent Reports (20%)        : 103 verified independent reports │
+│  ✓ Location & Time Consistency (20%): PostGIS & H3 cluster within 0.8km│
+│  ✓ Image Evidence (15%)             : PyTorch floodwater prob: 0.91    │
+│  ✓ Source Reliability (15%)         : Verified app users & AWS sensors │
+│  ✓ Historical Anomaly (5%)          : 140mm vs 35mm seasonal baseline   │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
-Where:
-- $S_{sta}$: **Weather Station Agreement** (0.0 to 1.0). Correlation between reported conditions and nearest official IMD AWS readings within 15 km.
-- $S_{div}$: **Source Diversity Metric** ($1 - e^{-k \cdot N_{types}}$). Ensures reports come from multiple distinct channels (e.g., IMD + Citizen + River Gauge vs 100 bots on X).
-- $S_{spa}$: **Spatio-Temporal Cohesion**. Density of signals clustering inside the PostGIS DBSCAN polygon within a $\Delta t \le 120\text{ min}$ window.
-- $S_{med}$: **Multimedia Corroboration**. Proportion of submitted photos passing EXIF timestamp check and floodwater CV segmentation.
-- $S_{rel}$: **Source Reliability Weight**. Historical reliability score of the contributing entities.
-
-### Verification Thresholds & Gating
-
-| Confidence Score | Classification | Action | Alert Level |
-| :--- | :--- | :--- | :--- |
-| **$\ge 90\%$** | **Verified Weather Event** | **Auto-Published** to Command Center & Dispatched to NDRF/SDMA | Level 1 (Critical / Red) |
-| **$70\% - 89\%$** | **Probable Event** | Queued for **Human-in-the-Loop Review** by Disaster Officer | Level 2 (Watch / Orange) |
-| **$< 70\%$** | **Unconfirmed Signal** | Retained in working memory buffer; awaiting corroborating evidence | Level 3 (Advisory / Green) |
-
----
-
-## 4. Grounded Technical Choices
-
-| Technology Chosen | Alternative Rejected | Architectural Justification |
-| :--- | :--- | :--- |
-| **PostGIS Geometry/Geography** | Naive Lat/Lng columns in MySQL | Floods, cyclones, and heatwaves are **spatial polygons**, not point coordinates. PostGIS enables real-time polygon intersection (`ST_Intersects`), spatial joins, and dynamic hazard risk zone calculations. |
-| **Redpanda / Apache Kafka** | Direct PostgreSQL Synchronous Writes | Disaster events trigger sudden **50x to 100x traffic surges**. A streaming message broker buffers ingestion spikes without starving read queries on the operational dashboard. |
-| **Sentence Transformers (NLP)** | Exact Keyword Matching | Citizens use vastly different terminology, colloquial Hindi/English expressions, and local phrasing to describe the same disaster. Embeddings capture underlying semantic intent. |
-| **DBSCAN Clustering** | K-Means Clustering | K-Means requires specifying $K$ (number of disaster clusters) in advance, which is impossible during live unfolding emergencies. DBSCAN discovers arbitrary cluster shapes and naturally filters out spatial noise. |
+### Duplicate Merging Engine
+Reports are grouped and merged before fusion using the composite duplicate rule:
+$$\text{Duplicate if: } [\text{Cosine Similarity} \ge 0.88] + [\Delta \text{GPS} \le 1.0\text{ km}] + [\Delta t \le 15\text{ mins}]$$
 
 ---
 
-## 5. Case Study: The Patna Flood Verification (127 $\rightarrow$ 1)
+## 6. Human-in-the-Loop Review & Unalterable Audit Trails
 
-During the benchmark Patna Urban Inundation scenario:
-1. **127 raw signals** were collected within a 90-minute window (64 citizen reports, 48 social media posts, 3 IMD stations, 2 CWC river sensors, 10 geotagged photographs).
-2. The NLP pipeline grouped the 64 citizen descriptions and 48 social posts into **2 high-density text clusters**.
-3. PostGIS DBSCAN consolidated the spatial points into **1 geographic polygon** over Central Patna (covering Rajendra Nagar, Kankarbagh, and Digha).
-4. Official IMD station at Patna Airport recorded $82.4\text{ mm}$ rainfall, corroborating citizen claims. CWC Digha Ghat sensor confirmed river surge.
-5. The Fusion Engine computed a composite confidence score of **$94\%$**.
-6. **Result**: Instead of 127 alert popups overwhelming emergency operators, INDRA produced **1 verified, geo-bounded disaster incident** dispatched instantly to BSDMA and NDRF.
+To guarantee accountability, every human intervention is recorded with an immutable SHA-256 hash in PostgreSQL:
+
+- **$\mathbf{> 90\%}$**: Automatically Verified & Published to Command Center.
+- **$\mathbf{60\% - 90\%}$ (Probable)**: Flagged for Emergency Analyst review.
+- **$\mathbf{< 60\%}$ (Suspicious)**: Retained in quarantine buffer. If severity is Critical, escalated to Emergency Review.
+
+```
++-------------------------------------------------------------------------------+
+| AUDIT LOG OUTPUT:                                                             |
+| Admin A | 15:42 | Verified EVENT-28231827-A | Reason: AWS + citizen evidence |
+| Hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855       |
++-------------------------------------------------------------------------------+
+```
+
+---
+
+## 7. Deployment Strategy: Modular Monolith
+
+Rather than introducing 15 fragile microservices during an active hackathon sprint, INDRA follows a **Modular Monolith** pattern:
+- **FastAPI Monolith**: Serves Auth, Citizen PWA APIs, Weather Ingestion, Alert Queries, and WebSocket feeds.
+- **AI Worker Process**: Runs NLP embeddings, OpenCV computer vision, and DBSCAN clustering.
+- **Redpanda / Kafka Buffer**: Absorbs sudden mass-reporting traffic surges (e.g. 10,000 simultaneous reports) and feeds them to workers at a controlled rate without dropping packets.
+- **Infrastructure**: Single `docker compose up` orchestrating PostGIS, Redis, Redpanda, and MinIO.
+
+---
+
+## 8. The 10-Scene Hackathon Demonstration Sequence
+
+1. **Scene 1 (Baseline)**: India map displays normal operational telemetry with live Open-Meteo feeds.
+2. **Scene 3 (The Spike)**: `scripts/run_patna_demo.py` simulates a cloudburst surge—127 reports enter via Kafka in seconds.
+3. **Scene 5 (Fusion)**: Duplicate detection collapses 127 reports into 1 major flood event; PostGIS binds coordinates to Central Patna.
+4. **Scene 7 (Evidence)**: OpenCV confirms waist-deep water; Open-Meteo confirms 92mm rainfall anomaly.
+5. **Scene 8 (Intelligence)**: INDRA outputs the 94% Verification Receipt and tags the event as `Critical Verified Event`.
+6. **Scene 10 (Action)**: WebSocket pushes incident polygon to the Next.js dashboard; emergency broadcast alert is triggered.

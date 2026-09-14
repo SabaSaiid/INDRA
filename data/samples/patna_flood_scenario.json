@@ -6,6 +6,7 @@
     "state": "Bihar",
     "total_raw_signals": 127,
     "fused_event_summary": {
+      "event_id": "WX-EV-28231827-A",
       "event_type": "URBAN_FLOOD",
       "severity": "CRITICAL",
       "confidence_score": 0.94,
@@ -14,108 +15,77 @@
       "center_coordinates": {
         "latitude": 25.6093,
         "longitude": 85.1376
+      },
+      "report_stats": {
+        "total_incoming": 127,
+        "verified_corroborated": 103,
+        "suspicious_flagged": 8,
+        "filtered_noise": 16
       }
     }
   },
   "evidence_breakdown": {
     "citizen_reports": 64,
     "social_media_posts": 48,
-    "imd_automatic_weather_stations": 3,
+    "weather_api_stations": 3,
     "cwc_river_level_sensors": 2,
     "verified_multimedia_evidence": 10
   },
-  "sample_raw_signals": [
-    {
-      "signal_id": "SIG-IMD-001",
-      "source_type": "IMD_STATION",
-      "source_name": "Patna Airport IMD AWS",
-      "reliability_weight": 0.98,
-      "timestamp": "2026-09-14T08:15:00Z",
-      "location": {
-        "latitude": 25.5913,
-        "longitude": 85.0880,
-        "landmark": "Jai Prakash Narayan International Airport"
+  "verification_receipt": {
+    "confidence_total": 94,
+    "breakdown": [
+      {
+        "factor": "Weather Agreement",
+        "weight_pct": 25,
+        "score": 0.96,
+        "weighted_points": 24.0,
+        "evidence": "Open-Meteo & IMD AWS recorded 92mm rainfall within 3hr window"
       },
-      "text": "Heavy convective storm recorded. Cumulative rainfall 82.4mm within last 3 hours. Cloudburst-like intensity detected.",
-      "metrics": {
-        "rainfall_rate_mm_per_hr": 38.5,
-        "humidity_pct": 96.0,
-        "wind_gust_kmh": 54.0
+      {
+        "factor": "Independent Reports",
+        "weight_pct": 20,
+        "score": 0.95,
+        "weighted_points": 19.0,
+        "evidence": "103 verified independent citizen submissions across 5 distinct channels"
+      },
+      {
+        "factor": "Location & Time Consistency",
+        "weight_pct": 20,
+        "score": 0.95,
+        "weighted_points": 19.0,
+        "evidence": "PostGIS + H3 Hexagon clustering within 0.8km & 4min spatio-temporal window"
+      },
+      {
+        "factor": "Image Evidence",
+        "weight_pct": 15,
+        "score": 0.91,
+        "weighted_points": 13.65,
+        "evidence": "PyTorch/OpenCV detected floodwater (waist-deep) with 0.91 flood probability"
+      },
+      {
+        "factor": "Source Reliability",
+        "weight_pct": 15,
+        "score": 0.89,
+        "weighted_points": 13.35,
+        "evidence": "High aggregate trust score from verified citizen app accounts and official sensors"
+      },
+      {
+        "factor": "Historical Anomaly",
+        "weight_pct": 5,
+        "score": 1.0,
+        "weighted_points": 5.0,
+        "evidence": "Isolation Forest flagged 140mm rate vs 35mm seasonal baseline (Anomaly = HIGH)"
       }
-    },
-    {
-      "signal_id": "SIG-CWC-002",
-      "source_type": "PUBLIC_SENSOR",
-      "source_name": "CWC Digha Ghat Sensor",
-      "reliability_weight": 0.95,
-      "timestamp": "2026-09-14T08:20:00Z",
-      "location": {
-        "latitude": 25.6420,
-        "longitude": 85.1050,
-        "landmark": "Ganges River - Digha Ghat"
-      },
-      "text": "Ganges river gauge indicates rapid water level surge approaching danger mark (+1.2m/hr).",
-      "metrics": {
-        "water_level_meters": 50.4,
-        "danger_mark_meters": 50.52
-      }
-    },
-    {
-      "signal_id": "SIG-CIT-019",
-      "source_type": "CITIZEN_REPORT",
-      "source_name": "INDRA Citizen App User #4812",
-      "reliability_weight": 0.85,
-      "timestamp": "2026-09-14T08:25:30Z",
-      "location": {
-        "latitude": 25.6025,
-        "longitude": 85.1520,
-        "landmark": "Rajendra Nagar, Road No. 4"
-      },
-      "text": "Water entered ground floor homes. Cars submerged up to bonnet level. Drainage completely overwhelmed.",
-      "media": [
-        {
-          "type": "image",
-          "url": "https://indra.gov.in/evidence/patna_rajendra_nagar_submerged_cars.jpg",
-          "cv_water_level_detected": "WAIST_DEEP",
-          "tampering_score": 0.02
-        }
-      ]
-    },
-    {
-      "signal_id": "SIG-X-088",
-      "source_type": "SOCIAL_MEDIA",
-      "source_name": "Twitter/X (@patnawxupdate)",
-      "reliability_weight": 0.72,
-      "timestamp": "2026-09-14T08:28:10Z",
-      "location": {
-        "latitude": 25.6130,
-        "longitude": 85.1415,
-        "landmark": "Kankarbagh Colony"
-      },
-      "text": "#PatnaRains #IMD Massive waterlogging near Tiwari Bechar. Knee-deep flood water on main bypass road. Avoid route.",
-      "hashtags": ["#PatnaRains", "#IMD", "#BiharFloods"]
-    }
-  ],
-  "verification_fusion_output": {
-    "event_id": "INDRA-EVT-20260914-001",
-    "title": "Severe Urban Inundation & Flash Flooding - Central Patna",
-    "event_type": "FLOOD",
-    "severity": "CRITICAL",
-    "confidence_score": 0.94,
-    "threshold_action": "AUTO_PUBLISHED",
-    "verification_factors": {
-      "source_diversity_count": 5,
-      "independent_reports_count": 127,
-      "station_agreement_score": 0.98,
-      "spatial_dbscan_cluster_cohesion": 0.93,
-      "temporal_cluster_cohesion": 0.96,
-      "cv_multimedia_validation_score": 0.89
-    },
-    "alert_dispatched_to": [
-      "Bihar State Disaster Management Authority (BSDMA)",
-      "National Disaster Response Force (NDRF 9th Bn)",
-      "District Magistrate Patna Emergency Operations Centre",
-      "IMD Cyclone & Flood Forecasting Division"
     ]
+  },
+  "intelligence_matrix": {
+    "severity": "CRITICAL",
+    "confidence": "HIGH (94%)",
+    "quadrant": "Critical Verified Event",
+    "recommended_action": "Trigger Immediate Public Alert & Dispatch NDRF / BSDMA"
+  },
+  "audit_trail": {
+    "log_entry": "Admin A | 15:42 | Verified EVENT-28231827-A | Reason: Weather station + citizen evidence",
+    "tamper_proof_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   }
 }
