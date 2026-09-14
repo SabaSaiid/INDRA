@@ -44,8 +44,8 @@ export function Card({ children, className, hover = true, padding = true }: Card
 }
 
 interface CardHeaderProps {
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
 }

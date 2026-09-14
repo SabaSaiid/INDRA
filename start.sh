@@ -1011,8 +1011,9 @@ cmd_clean() {
     find "$ROOT_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find "$ROOT_DIR" -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
     find "$ROOT_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+    rm -rf "$FRONTEND_DIR/.next"
     rm -rf "$RUN_DIR"/*.pid "$LOG_DIR"/*.log
-    echo "${GREEN}✓ Project cleaned.${RESET}"
+    echo "${GREEN}✓ Project cleaned (Python bytecode, test cache, and Next.js build cache purged).${RESET}"
 }
 
 # --- Argument Parsing ---
