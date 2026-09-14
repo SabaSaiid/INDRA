@@ -6,7 +6,9 @@ Smart India Hackathon 2026 - Team Sixth Sense
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from typing import List
+from pathlib import Path
 import json
 import logging
 
@@ -19,7 +21,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Enable CORS for Next.js frontend
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,6 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+SCENARIO_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "samples" / "patna_flood_scenario.json"
 
 class ConnectionManager:
     """Manages real-time WebSocket connections to the Command Center dashboard."""
@@ -51,8 +56,18 @@ class ConnectionManager:
 
 ws_manager = ConnectionManager()
 
-@app.get("/")
-async def root():
+@app.get("/", response_class=HTMLResponse)
+async def serve_dashboard():
+    """Serves the INDRA Emergency Command Center visual web application."""
+    index_path = TEMPLATES_DIR / "index.html"
+    if index_path.exists():
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), status_code=200)
+    return HTMLResponse(content="<h1>INDRA Command Center - Template Loading</h1>", status_code=200)
+
+@app.get("/api/info")
+async def platform_info():
+    """Returns platform metadata and SIH problem statement details."""
     return {
         "platform": "INDRA",
         "tagline": "From fragmented weather reports to verified, actionable weather events.",
@@ -61,6 +76,28 @@ async def root():
         "sih_ps_id": "SIH26069",
         "team": "Sixth Sense"
     }
+
+@app.get("/api/scenario")
+async def get_patna_scenario():
+    """Returns the 127-report Patna flood verification scenario dataset."""
+    if SCENARIO_FILE.exists():
+        with open(SCENARIO_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"error": "Scenario dataset not found"}
+
+@app.post("/api/demo/trigger")
+async def trigger_demo():
+    """Broadcasts a live scenario pulse to connected dashboard WebSocket clients."""
+    if SCENARIO_FILE.exists():
+        with open(SCENARIO_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        await ws_manager.broadcast({
+            "type": "DEMO_PULSE",
+            "scenario": data.get("scenario_metadata", {}),
+            "receipt": data.get("verification_receipt", {})
+        })
+        return {"status": "broadcast_sent", "recipients": len(ws_manager.active_connections)}
+    return {"status": "error", "message": "Dataset not found"}
 
 @app.get("/healthz")
 async def health_check():
@@ -77,7 +114,6 @@ async def websocket_events_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            # Echo or handle incoming client signals if needed
             logger.debug(f"Received client payload: {data}")
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)

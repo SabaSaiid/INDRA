@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INDRA - Intelligent National Disaster & Weather Platform</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        :root {
+            --bg-base: #060911;
+            --bg-surface: #0c1220;
+            --bg-surface-elevated: #131b2e;
+            --bg-surface-trans: rgba(19, 27, 46, 0.75);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-active: rgba(0, 240, 255, 0.35);
+            --cyan-primary: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.25);
+            --emerald-success: #10b981;
+            --emerald-glow: rgba(16, 185, 129, 0.25);
+            --amber-warning: #f59e0b;
+            --crimson-critical: #ef4444;
+            --crimson-glow: rgba(239, 68, 68, 0.3);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ambient Background Grid */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.04) 0%, transparent 45%),
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header Bar */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(12, 18, 32, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 100, 255, 0.4));
+            border: 1px solid var(--cyan-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--cyan-glow);
+            position: relative;
+        }
+
+        .logo-icon span {
+            font-size: 22px;
+        }
+
+        .brand-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            background: linear-gradient(90deg, #ffffff, var(--cyan-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-tagline {
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .badge-sih {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .status-indicators {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .indicator-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: var(--bg-surface-elevated);
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .dot-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--emerald-success);
+            box-shadow: 0 0 8px var(--emerald-success);
+            animation: pulse-dot 2s infinite;
+        }
+
+        .dot-pulse.critical {
+            background-color: var(--crimson-critical);
+            box-shadow: 0 0 8px var(--crimson-critical);
+            animation: pulse-dot 1.2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Action Buttons */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00f0ff 0%, #0070f3 100%);
+            color: #050a14;
+            box-shadow: 0 0 16px var(--cyan-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 24px rgba(0, 240, 255, 0.45);
+        }
+
+        .btn-outline {
+            background: var(--bg-surface-elevated);
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--cyan-primary);
+            color: var(--cyan-primary);
+        }
+
+        /* Top KPI Bar */
+        .kpi-row {
+            position: relative;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 20px 24px 10px 24px;
+        }
+
+        .kpi-card {
+            background: var(--bg-surface-trans);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 16px 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .kpi-card:hover {
+            border-color: var(--border-active);
+        }
+
+        .kpi-card::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--cyan-primary);
+        }
+
+        .kpi-card.critical::after { background: var(--crimson-critical); }
+        .kpi-card.success::after { background: var(--emerald-success); }
+        .kpi-card.amber::after { background: var(--amber-warning); }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kpi-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .kpi-meta {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Main Workspace Grid */
+        .workspace {
+            position: relative;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 20px;
+            padding: 14px 24px 24px 24px;
+            flex: 1;
+        }
+
+        /* Map Panel */
+        .panel {
+            background: var(--bg-surface-trans);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(19, 27, 46, 0.5);
+        }
+
+        .panel-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+        }
+
+        .map-container {
+            flex: 1;
+            min-height: 480px;
+            position: relative;
+            background: #090e17;
+        }
+
+        #disaster-map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .map-overlay-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 500;
+            background: rgba(12, 18, 32, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--crimson-critical);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #fff;
+            box-shadow: 0 0 16px var(--crimson-glow);
+            pointer-events: none;
+        }
+
+        /* Right Panel: Tabs */
+        .tabs-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(12, 18, 32, 0.6);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-btn.active {
+            color: var(--cyan-primary);
+            border-bottom-color: var(--cyan-primary);
+            background: rgba(0, 240, 255, 0.04);
+        }
+
+        .tab-content {
+            padding: 18px;
+            overflow-y: auto;
+            max-height: 580px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Receipt Breakdown Styling */
+        .receipt-card {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .receipt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed var(--border-subtle);
+            margin-bottom: 14px;
+        }
+
+        .receipt-total {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--cyan-primary);
+            text-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .factor-item {
+            margin-bottom: 12px;
+        }
+
+        .factor-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .factor-evidence {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .progress-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00f0ff, #0070f3);
+            border-radius: 3px;
+            transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 2x2 Intelligence Matrix */
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .matrix-cell {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 14px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .matrix-cell.active-quadrant {
+            border: 2px solid var(--crimson-critical);
+            box-shadow: 0 0 16px var(--crimson-glow);
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .matrix-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
+
+        .matrix-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .matrix-action {
+            margin-top: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--cyan-primary);
+        }
+
+        /* Live Stream Ticker */
+        .stream-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stream-card {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            transition: transform 0.15s ease;
+        }
+
+        .stream-card:hover {
+            transform: translateX(4px);
+            border-color: var(--border-active);
+        }
+
+        .stream-icon {
+            font-size: 18px;
+            padding-top: 2px;
+        }
+
+        .stream-body {
+            flex: 1;
+        }
+
+        .stream-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Demo Controller Modal / Bar */
+        .demo-bar {
+            background: rgba(12, 18, 32, 0.95);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-subtle);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            bottom: 0;
+            z-index: 1000;
+        }
+
+        .scene-progress-container {
+            flex: 1;
+            max-width: 650px;
+            margin: 0 24px;
+        }
+
+        .scene-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .scene-progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .scene-progress-fill {
+            height: 100%;
+            width: 10%;
+            background: linear-gradient(90deg, #00f0ff, #ef4444);
+            transition: width 0.5s ease;
+        }
+
+        /* Leaflet Popups & Tooltips Dark Theme */
+        .leaflet-popup-content-wrapper {
+            background: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid var(--border-active);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            font-family: 'Outfit', sans-serif;
+        }
+        .leaflet-popup-tip {
+            background: #0f172a !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand-group">
+            <div class="logo-icon">
+                <span>🌩️</span>
+            </div>
+            <div>
+                <div class="brand-title">
+                    INDRA <span class="badge-sih">SIH26069</span>
+                </div>
+                <div class="brand-tagline">
+                    Intelligent National Disaster & Weather Platform • Team Sixth Sense
+                </div>
+            </div>
+        </div>
+
+        <div class="status-indicators">
+            <div class="indicator-item">
+                <div class="dot-pulse critical"></div>
+                <span>CRITICAL INCIDENT: WX-EV-28231827-A</span>
+            </div>
+            <div class="indicator-item" id="ws-indicator">
+                <div class="dot-pulse"></div>
+                <span id="ws-status-text">WS HIGHWAY ACTIVE</span>
+            </div>
+            <div class="indicator-item" id="clock-ist">
+                <span>IST: --:--:--</span>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <button class="btn btn-primary" id="btn-run-simulation" onclick="triggerSimulation()">
+                <span>⚡</span> Run Patna Demo (127 → 1)
+            </button>
+            <a href="/docs" target="_blank" class="btn btn-outline">
+                <span>📖</span> Swagger API
+            </a>
+        </div>
+    </header>
+
+    <!-- KPI Summary Row -->
+    <div class="kpi-row">
+        <div class="kpi-card amber">
+            <div class="kpi-label">
+                <span>Raw Ingested Signals</span>
+                <span>📡 REDPANDA</span>
+            </div>
+            <div class="kpi-value" id="kpi-raw-signals">127 <span style="font-size: 14px; color: var(--amber-warning);">50x Surge</span></div>
+            <div class="kpi-meta">64 Citizen | 48 Social | 5 Sensors | 10 Media</div>
+        </div>
+
+        <div class="kpi-card critical">
+            <div class="kpi-label">
+                <span>Verified Weather Event</span>
+                <span>🚨 POSTGIS / H3</span>
+            </div>
+            <div class="kpi-value" id="kpi-verified-event">PATNA URBAN FLOOD</div>
+            <div class="kpi-meta">Radius: 6.8 km | Impact: Gandhi Maidan</div>
+        </div>
+
+        <div class="kpi-card success">
+            <div class="kpi-label">
+                <span>Explainable Confidence</span>
+                <span>🧾 RECEIPT</span>
+            </div>
+            <div class="kpi-value" id="kpi-confidence">94% <span style="font-size: 14px; color: var(--emerald-success);">[AUTO-VERIFIED]</span></div>
+            <div class="kpi-meta">6-Factor Multi-Modal Consensus</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">
+                <span>Streaming Highway</span>
+                <span>⚡ LATENCY</span>
+            </div>
+            <div class="kpi-value">0 Drops <span style="font-size: 14px; color: var(--cyan-primary);">1,240 msg/s</span></div>
+            <div class="kpi-meta">Tamper-Proof SHA-256 Audit Trail</div>
+        </div>
+    </div>
+
+    <!-- Main Tactical Workspace -->
+    <div class="workspace">
+        <!-- Left Column: Spatial GIS Map -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span>🗺️</span> Tactical Disaster Geospatial Fusion Map (Patna, Bihar)
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                    PostGIS ST_ClusterDBSCAN • Uber H3 Hex Resolution 8
+                </div>
+            </div>
+            <div class="map-container">
+                <div id="disaster-map"></div>
+                <div class="map-overlay-badge" id="map-status-badge">
+                    ● ACTIVE INUNDATION ZONE: 25.6093° N, 85.1376° E
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Verification Receipt, Matrix, Live Stream -->
+        <div class="panel">
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="switchTab('tab-receipt')">
+                    <span>🧾</span> Verification Receipt
+                </button>
+                <button class="tab-btn" onclick="switchTab('tab-matrix')">
+                    <span>⚖️</span> 2×2 Matrix
+                </button>
+                <button class="tab-btn" onclick="switchTab('tab-stream')">
+                    <span>📡</span> 127 Signals
+                </button>
+                <button class="tab-btn" onclick="switchTab('tab-audit')">
+                    <span>🔒</span> Audit Hash
+                </button>
+            </div>
+
+            <!-- Tab 1: Verification Receipt -->
+            <div class="tab-content active" id="tab-receipt">
+                <div class="receipt-card">
+                    <div class="receipt-header">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Confidence Audit Score</div>
+                            <div style="font-size: 15px; font-weight: 700; color: #fff;">Explainable Verification Receipt</div>
+                        </div>
+                        <div class="receipt-total" id="receipt-score">94 / 100</div>
+                    </div>
+
+                    <div id="factors-container">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <div style="font-size: 12px; color: var(--text-dim); line-height: 1.5; font-family: 'JetBrains Mono', monospace; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                    FORMULA: C = 0.25·S(wx) + 0.20·S(reports) + 0.20·S(spatial) + 0.15·S(vision) + 0.15·S(trust) + 0.05·S(anomaly)
+                </div>
+            </div>
+
+            <!-- Tab 2: 2x2 Intelligence Matrix -->
+            <div class="tab-content" id="tab-matrix">
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                    Decoupling <strong>Severity (Danger)</strong> from <strong>Confidence (Certainty)</strong> to eliminate false panic.
+                </div>
+                <div class="matrix-grid">
+                    <div class="matrix-cell" id="quad-unverified">
+                        <div class="matrix-title" style="color: var(--amber-warning);">Unverified Threat</div>
+                        <div class="matrix-desc">High Severity • Low Confidence (e.g. 1 isolated dam breach report).</div>
+                        <div class="matrix-action">👉 Human Review Queue</div>
+                    </div>
+                    <div class="matrix-cell active-quadrant" id="quad-critical">
+                        <div class="matrix-title" style="color: var(--crimson-critical);">Critical Verified Event</div>
+                        <div class="matrix-desc">High Severity • High Confidence (Patna Inundation confirmed by 103+ sources).</div>
+                        <div class="matrix-action">🚨 AUTO-DISPATCH NDRF & ALERTS</div>
+                    </div>
+                    <div class="matrix-cell" id="quad-noise">
+                        <div class="matrix-title" style="color: var(--text-dim);">Noise</div>
+                        <div class="matrix-desc">Low Severity • Low Confidence (Unverified rumor or tweet).</div>
+                        <div class="matrix-action">🧹 Filtered & Quarantined</div>
+                    </div>
+                    <div class="matrix-cell" id="quad-minor">
+                        <div class="matrix-title" style="color: var(--cyan-primary);">Confirmed Minor Event</div>
+                        <div class="matrix-desc">Low Severity • High Confidence (Isolated localized puddle).</div>
+                        <div class="matrix-action">ℹ️ Municipal Logging Only</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: 127 Signals Highway -->
+            <div class="tab-content" id="tab-stream">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px;">
+                    <span style="color: var(--text-muted);">Real-Time Signal Ingestion</span>
+                    <span style="color: var(--cyan-primary); font-family: 'JetBrains Mono', monospace;">127 Buffered Signals</span>
+                </div>
+                <div class="stream-list" id="stream-container">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Tab 4: Tamper-Proof Audit -->
+            <div class="tab-content" id="tab-audit">
+                <div class="receipt-card">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Cryptographic Action Ledger</div>
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #fff; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; word-break: break-all; margin-bottom: 14px;">
+                        SHA-256 HASH: <br>
+                        <span style="color: var(--cyan-primary);">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                        <strong>Audit Log Entry:</strong><br>
+                        "Admin A | 15:42 | Verified EVENT-28231827-A | Reason: Weather station + citizen evidence | Consensus: 94%"
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Demonstration Controller Bar -->
+    <div class="demo-bar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; color: #fff;">
+                🎬 SIH Demonstration Flow
+            </div>
+            <div style="font-size: 12px; color: var(--cyan-primary);" id="current-scene-title">
+                Scene 1: Operational Baseline Active
+            </div>
+        </div>
+
+        <div class="scene-progress-container">
+            <div class="scene-labels">
+                <span>Scene 1: Baseline</span>
+                <span>Scene 3: Spike</span>
+                <span>Scene 5: Fusion</span>
+                <span>Scene 7: Vision</span>
+                <span>Scene 8: Receipt</span>
+                <span>Scene 10: Alert</span>
+            </div>
+            <div class="scene-progress-bar">
+                <div class="scene-progress-fill" id="scene-progress-fill"></div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="font-size: 11px; padding: 6px 12px;" onclick="resetScenario()">
+                ↺ Reset
+            </button>
+            <button class="btn btn-primary" style="font-size: 11px; padding: 6px 14px;" onclick="triggerSimulation()">
+                ▶ Play Simulation
+            </button>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        // --- Live IST Clock ---
+        function updateClock() {
+            const now = new Date();
+            const istString = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+            document.getElementById('clock-ist').innerHTML = `<span>IST: ${istString}</span>`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- Tab Switching ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // --- Map Initialization ---
+        const patnaCoords = [25.6093, 85.1376];
+        const map = L.map('disaster-map', {
+            center: patnaCoords,
+            zoom: 13,
+            zoomControl: false
+        });
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Dark Tactical CartoDB Tiles
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Tactical Red Inundation Polygon (Gandhi Maidan & Central Patna)
+        const inundationPolygon = [
+            [25.6250, 85.1200],
+            [25.6200, 85.1550],
+            [25.5950, 85.1600],
+            [25.5900, 85.1250]
+        ];
+
+        const hazardLayer = L.polygon(inundationPolygon, {
+            color: '#ef4444',
+            fillColor: '#ef4444',
+            fillOpacity: 0.35,
+            weight: 2.5,
+            dashArray: '5, 5'
+        }).addTo(map);
+
+        hazardLayer.bindPopup(`
+            <div style="padding: 4px;">
+                <h4 style="color: #ef4444; margin-bottom: 4px;">🚨 Critical Inundation Zone</h4>
+                <p style="font-size: 12px; margin-bottom: 4px;"><strong>Event ID:</strong> WX-EV-28231827-A</p>
+                <p style="font-size: 12px; margin-bottom: 4px;"><strong>Depth:</strong> 1.2m - 1.8m (Waist Deep)</p>
+                <p style="font-size: 11px; color: #94a3b8;">Impact: Gandhi Maidan, Fraser Rd, Bailey Rd</p>
+            </div>
+        `);
+
+        // Uber H3 Hexagonal Grid Visualization (Resolution 8 sample)
+        const h3Hex = [
+            [25.618, 85.132], [25.614, 85.145], [25.604, 85.148],
+            [25.598, 85.138], [25.602, 85.125], [25.612, 85.122]
+        ];
+        L.polygon(h3Hex, {
+            color: '#00f0ff',
+            fillColor: '#00f0ff',
+            fillOpacity: 0.12,
+            weight: 1.5
+        }).addTo(map).bindTooltip("Uber H3 Hexagon: #8860905183fffff (Res 8)", { permanent: false });
+
+        // Map Markers for Sensors & Media
+        const markers = [
+            {
+                coords: [25.6120, 85.1410],
+                icon: '🌧️',
+                title: 'IMD AWS Station - Rajendra Nagar',
+                desc: 'Recorded 92.4 mm rainfall within 3hr window. Anomaly: +310%.'
+            },
+            {
+                coords: [25.6260, 85.1150],
+                icon: '🌊',
+                title: 'CWC Ganga River Gauge - Digha Ghat',
+                desc: 'Water Level: 50.45m (+1.8m above Danger Mark).'
+            },
+            {
+                coords: [25.6050, 85.1320],
+                icon: '📸',
+                title: 'Citizen Photo Verification #123',
+                desc: 'PyTorch Vision detected waist-deep floodwater (Prob: 0.91).'
+            }
+        ];
+
+        markers.forEach(m => {
+            const customIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style="background: rgba(12,18,32,0.9); border: 1px solid #00f0ff; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 0 10px rgba(0,240,255,0.4);">${m.icon}</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            L.marker(m.coords, { icon: customIcon }).addTo(map).bindPopup(`
+                <div style="padding: 4px;">
+                    <h4 style="color: #00f0ff; margin-bottom: 4px;">${m.title}</h4>
+                    <p style="font-size: 12px; color: #cbd5e1;">${m.desc}</p>
+                </div>
+            `);
+        });
+
+        // --- Fetch Scenario Data & Populate UI ---
+        async function loadScenarioData() {
+            try {
+                const res = await fetch('/api/scenario');
+                const data = await res.json();
+                renderReceipt(data.verification_receipt);
+                renderStream();
+            } catch (e) {
+                console.error("Failed to fetch scenario", e);
+            }
+        }
+
+        function renderReceipt(receipt) {
+            const container = document.getElementById('factors-container');
+            container.innerHTML = '';
+            receipt.breakdown.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'factor-item';
+                el.innerHTML = `
+                    <div class="factor-meta">
+                        <span>${item.factor} (${item.weight_pct}%)</span>
+                        <strong style="color: var(--cyan-primary);">${(item.score * 100).toFixed(0)}% (${item.weighted_points.toFixed(1)} pts)</strong>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${item.score * 100}%"></div>
+                    </div>
+                    <div class="factor-evidence">${item.evidence}</div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function renderStream() {
+            const container = document.getElementById('stream-container');
+            const signals = [
+                { icon: '📱', text: 'Citizen report: 4ft water outside Gandhi Maidan gate 5.', ch: 'Mobile App GPS', t: '2 mins ago' },
+                { icon: '🐦', text: '#PatnaRains Vehicles stranded along Bailey road underpass.', ch: 'Social Media', t: '3 mins ago' },
+                { icon: '🌧️', text: 'IMD AWS Station 42410 registered 92.4mm rain pulse.', ch: 'API Sensor', t: '4 mins ago' },
+                { icon: '🌊', text: 'CWC Gauge: Ganga level rising 4.2cm/hr at Digha Ghat.', ch: 'River Sensor', t: '5 mins ago' },
+                { icon: '📸', text: 'Photo flood_412.jpg verified by PyTorch CV (0.94 water prob).', ch: 'Vision AI', t: '6 mins ago' },
+                { icon: '📱', text: 'Citizen report: Electricity transformer submerged in Kankarbagh.', ch: 'Mobile App GPS', t: '7 mins ago' }
+            ];
+
+            container.innerHTML = signals.map(s => `
+                <div class="stream-card">
+                    <div class="stream-icon">${s.icon}</div>
+                    <div class="stream-body">
+                        <div>${s.text}</div>
+                        <div class="stream-meta">
+                            <span>${s.ch}</span>
+                            <span>${s.t}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Simulation Execution ---
+        let simInterval = null;
+        function triggerSimulation() {
+            const scenes = [
+                { title: "Scene 1: Baseline Telemetry Active", pct: 10 },
+                { title: "Scene 3: Kafka Surge (127 signals in seconds)", pct: 30 },
+                { title: "Scene 5: BERT NLP & PostGIS DBSCAN Clustering", pct: 55 },
+                { title: "Scene 7: Multi-Modal PyTorch & Anomaly Corroboration", pct: 75 },
+                { title: "Scene 8: 94% Verification Receipt Computed", pct: 90 },
+                { title: "Scene 10: Verified Event Published & NDRF Alert Dispatched", pct: 100 }
+            ];
+
+            let step = 0;
+            const titleEl = document.getElementById('current-scene-title');
+            const fillEl = document.getElementById('scene-progress-fill');
+            const btn = document.getElementById('btn-run-simulation');
+
+            btn.disabled = true;
+            btn.innerHTML = `<span>⏳</span> Simulating...`;
+
+            clearInterval(simInterval);
+            simInterval = setInterval(() => {
+                if (step < scenes.length) {
+                    titleEl.textContent = scenes[step].title;
+                    fillEl.style.width = `${scenes[step].pct}%`;
+                    step++;
+                } else {
+                    clearInterval(simInterval);
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>⚡</span> Re-Run Patna Demo`;
+                }
+            }, 1000);
+        }
+
+        function resetScenario() {
+            clearInterval(simInterval);
+            document.getElementById('current-scene-title').textContent = "Scene 1: Operational Baseline Active";
+            document.getElementById('scene-progress-fill').style.width = "10%";
+            document.getElementById('btn-run-simulation').disabled = false;
+            document.getElementById('btn-run-simulation').innerHTML = `<span>⚡</span> Run Patna Demo (127 → 1)`;
+        }
+
+        // --- WebSocket Connection ---
+        function initWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/events`;
+            const ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById('ws-status-text').textContent = "WS STREAM CONNECTED";
+                document.getElementById('ws-indicator').querySelector('.dot-pulse').style.backgroundColor = "var(--emerald-success)";
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log("WebSocket event received:", data);
+                } catch(e) {}
+            };
+
+            ws.onclose = () => {
+                document.getElementById('ws-status-text').textContent = "WS RECONNECTING...";
+                document.getElementById('ws-indicator').querySelector('.dot-pulse').style.backgroundColor = "var(--amber-warning)";
+                setTimeout(initWebSocket, 3000);
+            };
+        }
+
+        // Init
+        loadScenarioData();
+        initWebSocket();
+    </script>
+</body>
+</html>

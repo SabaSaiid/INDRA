@@ -207,30 +207,80 @@ INDRA/
 
 ---
 
-## 🛠️ Quick Start & Local Setup
+## 🛠️ Quick Start & Developer Control Suite
 
 ### Prerequisites
 - **Python 3.11+** (Tested on Python 3.14)
 - **Node.js 18+** & **npm**
 - **Docker & Docker Compose**
 
-### 1. Clone & Setup Environment
+---
+
+### ⚡ One-Command Developer Workflow (Recommended)
+
+INDRA includes a developer control suite via `./start.sh` and a companion `Makefile`:
+
 ```bash
+# Clone the repository
 git clone https://github.com/SabaSaiid/INDRA.git
 cd INDRA
+
+# 1. Run system diagnostics & dependency audit
+make doctor        # or: ./start.sh doctor
+
+# 2. Start Docker infrastructure (PostGIS, Redis, Redpanda)
+make infra-up      # or: ./start.sh infra up
+
+# 3. Launch the FastAPI backend (with auto-reload and Swagger docs)
+make dev           # or: ./start.sh
+
+# 4. Or launch as background daemon & inspect status
+make bg            # or: ./start.sh bg
+make status        # or: ./start.sh status
+make logs          # or: ./start.sh logs
+
+# 5. Run the 10-Scene Patna SIH Verification Simulation
+make demo          # or: ./start.sh demo
+
+# 6. Stop all background services
+make stop          # or: ./start.sh stop
+```
+
+#### Available Shell Commands:
+| Command | `make` Shortcut | Description |
+| :--- | :--- | :--- |
+| `./start.sh` | `make dev` / `make start` | Launch FastAPI backend in foreground (auto-opens Swagger docs) |
+| `./start.sh bg` | `make bg` | Run backend in background daemon mode |
+| `./start.sh stop` | `make stop` | Gracefully stop backend server processes |
+| `./start.sh restart` | `make restart` | Gracefully restart backend server |
+| `./start.sh status` | `make status` | Inspect backend status, port 8000, and Docker containers |
+| `./start.sh infra up` | `make infra-up` | Spin up PostGIS (5432), Redis (6379), and Redpanda (19092) |
+| `./start.sh infra down` | `make infra-down` | Stop and tear down Docker infrastructure |
+| `./start.sh doctor` | `make doctor` | Run full environment audit (Python, venv, deps, ports, Docker) |
+| `./start.sh demo` | `make demo` | Run the 10-Scene Patna flood verification demonstration |
+| `./start.sh test` | `make test` | Execute automated API endpoint probes |
+| `./start.sh logs` | `make logs` | Stream live backend server output |
+| `./start.sh clean` | `make clean` | Purge caches (`__pycache__`), logs, and PID files |
+
+---
+
+### 🔧 Manual Setup (Alternative)
+
+<details>
+<summary>Click to view manual step-by-step setup instructions</summary>
+
+#### 1. Setup Environment
+```bash
 cp .env.example .env
 ```
 
-### 2. Start Core Infrastructure (PostGIS, Redis, Redpanda)
+#### 2. Start Core Infrastructure (PostGIS, Redis, Redpanda)
 ```bash
 docker compose up -d
-```
-Verify all services are running:
-```bash
 docker compose ps
 ```
 
-### 3. Setup and Launch Backend
+#### 3. Setup and Launch Backend
 ```bash
 cd backend
 python3 -m venv .venv
@@ -240,7 +290,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 Interactive Swagger API documentation: `http://localhost:8000/docs`
 
-### 4. Setup and Launch Command Center Frontend
+#### 4. Setup and Launch Command Center Frontend
 ```bash
 cd ../frontend
 npm install
@@ -248,11 +298,13 @@ npm run dev
 ```
 Open `http://localhost:3000` to access the **INDRA Live Command Center**.
 
-### 5. Run the 10-Scene Patna Demonstration
+#### 5. Run the 10-Scene Patna Demonstration
 ```bash
 python3 scripts/run_patna_demo.py
 ```
 Witness 127 incoming chaotic signals condense in real-time into 1 verified critical flood event with a 94% Confidence Receipt.
+
+</details>
 
 ---
 

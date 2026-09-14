@@ -85,5 +85,7 @@ models/cache/
 
 # Temporary and log files
 *.log
+logs/
+.run/
 scratch/
 tmp/
