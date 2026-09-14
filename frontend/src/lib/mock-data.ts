@@ -7,6 +7,7 @@ import {
   Bell,
   Database,
   Shield,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },
+  { id: 'teams', label: 'Teams Hub', icon: Users, href: '/teams' },
   { id: 'live-map', label: 'Live Map', icon: Map, href: '/live-map' },
   { id: 'events', label: 'Events', icon: CalendarClock, href: '/events' },
   { id: 'reports', label: 'Reports', icon: FileText, href: '/reports' },
@@ -29,6 +31,7 @@ export const navItems: NavItem[] = [
   { id: 'datasets', label: 'Datasets', icon: Database, href: '/datasets' },
   { id: 'admin', label: 'Admin Panel', icon: Shield, href: '/admin' },
 ];
+
 
 // ─── KPI Data ────────────────────────────────────────────────────────────────
 
@@ -410,3 +413,324 @@ export const feedSourceConfig: Record<FeedSourceType, { color: string; bg: strin
   imd: { color: '#F59E0B', bg: '#FEF3C7' },
   news: { color: '#EF4444', bg: '#FEE2E2' },
 };
+
+// ─── Team & Profile Types & Configuration ─────────────────────────────────────
+
+export type DutyStatus = 'ON_DUTY' | 'STANDBY' | 'DEPLOYED' | 'OFF_DUTY';
+export type TeamAgency = 'NDRF' | 'SDRF' | 'IMD' | 'CWC' | 'NDMA' | 'MUNICIPAL';
+export type TeamStatus = 'AVAILABLE' | 'DEPLOYED' | 'STANDBY' | 'OFF_DUTY';
+export type OperatorRole = 'COMMANDER' | 'ANALYST' | 'ADMIN' | 'CITIZEN' | 'FIELD_RESPONDER';
+
+export interface TeamMember {
+  id: string;
+  full_name: string;
+  team_role: string;
+  duty_status: DutyStatus | string;
+  badge_number?: string;
+  callsign?: string;
+  phone?: string;
+}
+
+export interface TeamItem {
+  id: string;
+  team_code: string;
+  name: string;
+  agency: TeamAgency | string;
+  city: string;
+  state: string;
+  lead_name: string;
+  lead_phone?: string;
+  radio_callsign?: string;
+  specialization?: string;
+  status: TeamStatus | string;
+  members_count: number;
+  created_at?: string;
+  assigned_event_id?: string | null;
+  assigned_event_code?: string | null;
+  assigned_event_type?: string | null;
+  event_lat?: number;
+  event_lng?: number;
+  members?: TeamMember[];
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  full_name: string;
+  email?: string;
+  phone?: string;
+  role: OperatorRole | string;
+  agency: string;
+  operator_id: string;
+  badge_number?: string;
+  callsign?: string;
+  team_name?: string;
+  team_code?: string;
+  team_role?: string;
+  duty_status: DutyStatus;
+  avatar_initials?: string;
+  bio?: string;
+  verified_events_triaged?: number;
+  audits_logged?: number;
+  accuracy_rate?: number;
+  last_active_at?: string;
+}
+
+export interface HackathonMember {
+  id: string;
+  name: string;
+  role: string;
+  specialty: string;
+  bio: string;
+  avatar_initials: string;
+  github: string;
+  badge: string;
+}
+
+export interface HackathonTeamData {
+  team_name: string;
+  problem_statement: string;
+  theme: string;
+  tagline: string;
+  institution: string;
+  members: HackathonMember[];
+}
+
+export const dutyStatusConfig: Record<DutyStatus, { label: string; color: string; bg: string; dot: string }> = {
+  ON_DUTY: { label: 'On Duty', color: '#10B981', bg: '#D1FAE5', dot: '#059669' },
+  STANDBY: { label: 'Standby', color: '#F59E0B', bg: '#FEF3C7', dot: '#D97706' },
+  DEPLOYED: { label: 'Deployed', color: '#EF4444', bg: '#FEE2E2', dot: '#DC2626' },
+  OFF_DUTY: { label: 'Off Duty', color: '#64748B', bg: '#F1F5F9', dot: '#475569' },
+};
+
+export const teamAgencyConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  NDRF: { label: 'NDRF', color: '#EA580C', bg: '#FFEDD5', border: '#FDBA74' },
+  SDRF: { label: 'SDRF', color: '#0284C7', bg: '#E0F2FE', border: '#7DD3FC' },
+  IMD: { label: 'IMD', color: '#2563EB', bg: '#DBEAFE', border: '#93C5FD' },
+  CWC: { label: 'CWC', color: '#0D9488', bg: '#CCFBF1', border: '#5EEAD4' },
+  NDMA: { label: 'NDMA', color: '#7C3AED', bg: '#EDE9FE', border: '#C4B5FD' },
+  MUNICIPAL: { label: 'Municipal', color: '#4F46E5', bg: '#EEF2FF', border: '#A5B4FC' },
+};
+
+// ─── Default Mock Data ────────────────────────────────────────────────────────
+
+export const mockTeams: TeamItem[] = [
+  {
+    id: 'team-1',
+    team_code: 'TEAM-NDRF-09',
+    name: 'NDRF 9th Battalion - Flood Rescue Unit',
+    agency: 'NDRF',
+    city: 'Patna',
+    state: 'Bihar',
+    lead_name: 'Commandant R. K. Verma',
+    lead_phone: '+91 94311 02847',
+    radio_callsign: 'HAWK-ONE',
+    specialization: 'Urban Flood & Deep Water Evacuation',
+    status: 'DEPLOYED',
+    members_count: 18,
+    assigned_event_code: 'WX-EV-28231827-A',
+    assigned_event_type: 'URBAN_FLOOD',
+    members: [
+      { id: 'm-1', full_name: 'Commandant R. K. Verma', team_role: 'Commander', duty_status: 'DEPLOYED', badge_number: 'NDRF-PAT-091', callsign: 'HAWK-LEAD' },
+      { id: 'm-2', full_name: 'Inspector Sunil Yadav', team_role: 'Boat Rescue Lead', duty_status: 'DEPLOYED', badge_number: 'NDRF-PAT-104', callsign: 'HAWK-2' },
+      { id: 'm-3', full_name: 'Sub-Inspector Priya Sinha', team_role: 'Medical Dispatcher', duty_status: 'DEPLOYED', badge_number: 'NDRF-PAT-112', callsign: 'MEDIC-1' },
+      { id: 'm-4', full_name: 'Constable Amit Roy', team_role: 'Logistics / Dewatering', duty_status: 'DEPLOYED', badge_number: 'NDRF-PAT-130', callsign: 'PUMP-LEAD' },
+    ],
+  },
+  {
+    id: 'team-2',
+    team_code: 'TEAM-SDRF-MH01',
+    name: 'SDRF Coastal Quick Response Team',
+    agency: 'SDRF',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    lead_name: 'Inspector Sanjay Deshmukh',
+    lead_phone: '+91 98220 54198',
+    radio_callsign: 'SEA-HAWK-4',
+    specialization: 'Coastal Inundation & High Tide Evacuation',
+    status: 'DEPLOYED',
+    members_count: 14,
+    assigned_event_code: 'WX-EV-77291044-B',
+    assigned_event_type: 'CYCLONE_INUNDATION',
+  },
+  {
+    id: 'team-3',
+    team_code: 'TEAM-IMD-NOW01',
+    name: 'IMD Severe Weather Nowcasting Cell',
+    agency: 'IMD',
+    city: 'New Delhi',
+    state: 'Delhi',
+    lead_name: 'Dr. Sunita Raman',
+    lead_phone: '+91 98110 77312',
+    radio_callsign: 'DOPPLER-BASE',
+    specialization: 'Doppler Radar Analysis & Microburst Tracking',
+    status: 'AVAILABLE',
+    members_count: 8,
+  },
+  {
+    id: 'team-4',
+    team_code: 'TEAM-CWC-HYDRO04',
+    name: 'CWC Brahmaputra Basin Hydrology Unit',
+    agency: 'CWC',
+    city: 'Guwahati',
+    state: 'Assam',
+    lead_name: 'Chief Hydrologist B. K. Sarma',
+    lead_phone: '+91 94350 18273',
+    radio_callsign: 'RIVER-GUARD-2',
+    specialization: 'River Embankment & Inundation Modeling',
+    status: 'DEPLOYED',
+    members_count: 12,
+    assigned_event_code: 'WX-EV-44810293-C',
+    assigned_event_type: 'RIVER_BREACH',
+  },
+  {
+    id: 'team-5',
+    team_code: 'TEAM-NDRF-04',
+    name: 'NDRF 4th Battalion - Cyclone Action Team',
+    agency: 'NDRF',
+    city: 'Chennai',
+    state: 'Tamil Nadu',
+    lead_name: 'Deputy Commandant S. Karthik',
+    lead_phone: '+91 94440 99821',
+    radio_callsign: 'COROMANDEL-ONE',
+    specialization: 'Severe Cyclonic Storm Response & Heavy Debris Clearing',
+    status: 'STANDBY',
+    members_count: 22,
+  },
+  {
+    id: 'team-6',
+    team_code: 'TEAM-BBMP-URB02',
+    name: 'BBMP Disaster Rapid Drainage Taskforce',
+    agency: 'MUNICIPAL',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    lead_name: 'Executive Engineer K. Shivakumar',
+    lead_phone: '+91 98450 33124',
+    radio_callsign: 'RAPID-PUMP-8',
+    specialization: 'Stormwater Drain Cleansing & High-Volume Dewatering',
+    status: 'AVAILABLE',
+    members_count: 16,
+  },
+  {
+    id: 'team-7',
+    team_code: 'TEAM-GHMC-HYD01',
+    name: 'GHMC Monsoon Emergency Action Team',
+    agency: 'MUNICIPAL',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    lead_name: 'Superintendent P. Anji Reddy',
+    lead_phone: '+91 98490 12099',
+    radio_callsign: 'DECCAN-SHIELD-3',
+    specialization: 'Urban Flash Flood Control & Road Clearing',
+    status: 'STANDBY',
+    members_count: 15,
+  },
+  {
+    id: 'team-8',
+    team_code: 'TEAM-NDMA-NAT01',
+    name: 'NDMA National Aerial Reconnaissance Wing',
+    agency: 'NDMA',
+    city: 'New Delhi',
+    state: 'Delhi',
+    lead_name: 'Group Captain V. Nair',
+    lead_phone: '+91 99100 44552',
+    radio_callsign: 'GARUDA-CENTRAL',
+    specialization: 'UAV Disaster Surveillance & Thermal Flood Mapping',
+    status: 'AVAILABLE',
+    members_count: 10,
+  },
+];
+
+export const mockUserProfile: UserProfile = {
+  id: '22222222-2222-2222-2222-222222222201',
+  username: 'commander',
+  full_name: 'Commandant Rajesh K. Verma',
+  email: 'rajesh.verma@sih-indra.gov.in',
+  phone: '+91 94311 02847',
+  role: 'COMMANDER',
+  agency: 'SDMA_BIHAR',
+  operator_id: 'OP-CMD-001',
+  badge_number: 'NDRF-PAT-091',
+  callsign: 'EAGLE-LEADER',
+  team_name: 'NDRF 9th Battalion - Flood Rescue Unit',
+  team_code: 'TEAM-NDRF-09',
+  team_role: 'Incident Commander',
+  duty_status: 'ON_DUTY',
+  avatar_initials: 'RV',
+  bio: 'National Disaster Response Force commander leading urban inundation and river flood operations across Eastern India.',
+  verified_events_triaged: 24,
+  audits_logged: 19,
+  accuracy_rate: 96.8,
+  last_active_at: '2026-09-14T20:45:00Z',
+};
+
+export const mockSixthSenseTeam: HackathonTeamData = {
+  team_name: 'Sixth Sense',
+  problem_statement: 'SIH26069 — National Weather Big Data Analytics Platform',
+  theme: 'Disaster Management',
+  tagline: 'From fragmented weather reports to verified, actionable weather events.',
+  institution: 'Smart India Hackathon 2026',
+  members: [
+    {
+      id: 'ss-1',
+      name: 'Saba Saeed',
+      role: 'Team Lead & Full-Stack Architect',
+      specialty: 'Next.js Command Center, Real-Time WebSockets & System Design',
+      bio: 'Directs architecture and cross-service orchestration for the INDRA intelligence platform.',
+      avatar_initials: 'SS',
+      github: 'https://github.com/SabaSaiid',
+      badge: 'LEAD ARCHITECT',
+    },
+    {
+      id: 'ss-2',
+      name: 'AI & Bayesian Engine Lead',
+      role: 'AI / ML & Statistical Modeling',
+      specialty: 'Bayesian Probability Fusion, Anomaly Detection & Cross-Source Weighting',
+      bio: 'Formulated the 3-phase evidence synthesis engine condensing 127 raw signals into verified confidence receipts.',
+      avatar_initials: 'ML',
+      github: 'https://github.com/SabaSaiid/INDRA',
+      badge: 'FUSION SCIENTIST',
+    },
+    {
+      id: 'ss-3',
+      name: 'Geospatial Systems Engineer',
+      role: 'PostGIS & Spatial Intelligence',
+      specialty: 'Uber H3 Spatial Hexagons, DBSCAN Spatio-Temporal Clustering & PostGIS',
+      bio: 'Implemented dynamic ε-neighborhood spatial clustering and convex hull boundary polygon calculation.',
+      avatar_initials: 'GS',
+      github: 'https://github.com/SabaSaiid/INDRA',
+      badge: 'SPATIAL ENGINEER',
+    },
+    {
+      id: 'ss-4',
+      name: 'Data Pipeline Architect',
+      role: 'Streaming & Event Ingestion',
+      specialty: 'Redpanda / Kafka Streaming, Async Workers & Sensor Ingestion',
+      bio: 'Engineered high-throughput consumer pipelines processing citizen reports, AWS gauges, and social signals.',
+      avatar_initials: 'DP',
+      github: 'https://github.com/SabaSaiid/INDRA',
+      badge: 'PIPELINE LEAD',
+    },
+    {
+      id: 'ss-5',
+      name: 'NLP & Semantic Deduplication Lead',
+      role: 'NLP & Anti-Spam Verification',
+      specialty: 'TF-IDF + Cosine Similarity, Multilingual Signal Deduplication & Spam Filtering',
+      bio: 'Created the semantic similarity layer that clusters repetitive emergency reports within spatial windows.',
+      avatar_initials: 'NL',
+      github: 'https://github.com/SabaSaiid/INDRA',
+      badge: 'NLP SPECIALIST',
+    },
+    {
+      id: 'ss-6',
+      name: 'Cloud Infrastructure & Security',
+      role: 'DevOps & Cryptographic Ledger',
+      specialty: 'Docker Orchestration, OAuth2 JWT RBAC & Immutable SHA-256 Audit Logs',
+      bio: 'Built tamper-proof audit trails with PostgreSQL triggers and automated containerized deployment.',
+      avatar_initials: 'CS',
+      github: 'https://github.com/SabaSaiid/INDRA',
+      badge: 'SECURITY ARCHITECT',
+    },
+  ],
+};
+

@@ -52,3 +52,35 @@ class AuditAction(str, enum.Enum):
     MANUAL_OVERRIDE = "MANUAL_OVERRIDE"
     QUARANTINE = "QUARANTINE"
     ESCALATE = "ESCALATE"
+
+
+class TeamStatus(str, enum.Enum):
+    AVAILABLE = "AVAILABLE"
+    DEPLOYED = "DEPLOYED"
+    STANDBY = "STANDBY"
+    OFF_DUTY = "OFF_DUTY"
+
+
+class TeamAgency(str, enum.Enum):
+    NDRF = "NDRF"
+    SDRF = "SDRF"
+    IMD = "IMD"
+    CWC = "CWC"
+    NDMA = "NDMA"
+    MUNICIPAL = "MUNICIPAL"
+
+
+class DutyStatus(str, enum.Enum):
+    ON_DUTY = "ON_DUTY"
+    STANDBY = "STANDBY"
+    DEPLOYED = "DEPLOYED"
+    OFF_DUTY = "OFF_DUTY"
+
+
+class OperatorRole(str, enum.Enum):
+    COMMANDER = "COMMANDER"
+    ANALYST = "ANALYST"
+    ADMIN = "ADMIN"
+    CITIZEN = "CITIZEN"
+    FIELD_RESPONDER = "FIELD_RESPONDER"
+

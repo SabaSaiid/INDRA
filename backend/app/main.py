@@ -103,15 +103,20 @@ try:
         reports_router,
         feed_router,
         auth_router,
+        teams_router,
+        profile_router,
     )
     app.include_router(dashboard_router)
     app.include_router(events_router)
     app.include_router(reports_router)
     app.include_router(feed_router)
     app.include_router(auth_router)
+    app.include_router(teams_router)
+    app.include_router(profile_router)
     logger.info("✓ All API routers mounted successfully")
 except Exception as e:
     logger.warning(f"⚠ Could not mount API routers (non-fatal): {e}")
+
 
 
 # ── Existing Demo Endpoints (preserved) ───────────────────────────────────────

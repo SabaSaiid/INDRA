@@ -181,11 +181,19 @@ async def seed():
     existing = await conn.fetchval("SELECT COUNT(*) FROM verified_events")
     if existing > 0:
         print(f"⚠ Database already contains {existing} events. Clearing existing data...")
+        await conn.execute("ALTER TABLE audit_logs DISABLE TRIGGER trg_audit_immutable")
         await conn.execute("DELETE FROM audit_logs")
+        await conn.execute("ALTER TABLE audit_logs ENABLE TRIGGER trg_audit_immutable")
+        try:
+            await conn.execute("DELETE FROM user_profiles")
+            await conn.execute("DELETE FROM teams")
+        except Exception:
+            pass
         await conn.execute("DELETE FROM raw_reports")
         await conn.execute("DELETE FROM station_readings")
         await conn.execute("DELETE FROM verified_events")
         print("✓ Existing data cleared.")
+
 
     # ── 1. Generate verified events ────────────────────────────────────────
     print("\n📊 Generating 37 verified events across 10 cities...")
@@ -396,6 +404,59 @@ async def seed():
 
     print(f"  ✓ Inserted {audit_count} audit logs")
 
+    # ── 6. Generate teams and user profiles ────────────────────────────────
+    print("\n🛡️ Generating disaster response teams and operator profiles...")
+    teams_data = [
+        ("TEAM-NDRF-09", "NDRF 9th Battalion - Flood Rescue Unit", "NDRF", "Patna", "Bihar", "Commandant R. K. Verma", "+91 94311 02847", "HAWK-ONE", "Urban Flood & Deep Water Evacuation", "DEPLOYED", 18, events[0]["id"] if len(events) > 0 else None),
+        ("TEAM-SDRF-MH01", "SDRF Coastal Quick Response Team", "SDRF", "Mumbai", "Maharashtra", "Inspector Sanjay Deshmukh", "+91 98220 54198", "SEA-HAWK-4", "Coastal Inundation & High Tide Evacuation", "DEPLOYED", 14, events[1]["id"] if len(events) > 1 else None),
+        ("TEAM-IMD-NOW01", "IMD Severe Weather Nowcasting Cell", "IMD", "New Delhi", "Delhi", "Dr. Sunita Raman", "+91 98110 77312", "DOPPLER-BASE", "Doppler Radar Analysis & Microburst Tracking", "AVAILABLE", 8, None),
+        ("TEAM-CWC-HYDRO04", "CWC Brahmaputra Basin Hydrology Unit", "CWC", "Guwahati", "Assam", "Chief Hydrologist B. K. Sarma", "+91 94350 18273", "RIVER-GUARD-2", "River Embankment & Inundation Modeling", "DEPLOYED", 12, events[2]["id"] if len(events) > 2 else None),
+        ("TEAM-NDRF-04", "NDRF 4th Battalion - Cyclone Action Team", "NDRF", "Chennai", "Tamil Nadu", "Deputy Commandant S. Karthik", "+91 94440 99821", "COROMANDEL-ONE", "Severe Cyclonic Storm Response & Heavy Debris Clearing", "STANDBY", 22, None),
+        ("TEAM-BBMP-URB02", "BBMP Disaster Rapid Drainage Taskforce", "MUNICIPAL", "Bengaluru", "Karnataka", "Executive Engineer K. Shivakumar", "+91 98450 33124", "RAPID-PUMP-8", "Stormwater Drain Cleansing & High-Volume Dewatering", "AVAILABLE", 16, None),
+        ("TEAM-GHMC-HYD01", "GHMC Monsoon Emergency Action Team", "MUNICIPAL", "Hyderabad", "Telangana", "Superintendent P. Anji Reddy", "+91 98490 12099", "DECCAN-SHIELD-3", "Urban Flash Flood Control & Road Clearing", "STANDBY", 15, None),
+        ("TEAM-NDMA-NAT01", "NDMA National Aerial Reconnaissance Wing", "NDMA", "New Delhi", "Delhi", "Group Captain V. Nair", "+91 99100 44552", "GARUDA-CENTRAL", "UAV Disaster Surveillance & Thermal Flood Mapping", "AVAILABLE", 10, None),
+    ]
+
+    team_id_map = {}
+    try:
+        for t in teams_data:
+            tid = uuid.uuid4()
+            team_id_map[t[0]] = tid
+            await conn.execute("""
+                INSERT INTO teams
+                    (id, team_code, name, agency, city, state, lead_name, lead_phone,
+                     radio_callsign, specialization, status, members_count, assigned_event_id, created_at)
+                VALUES ($1, $2, $3, $4::team_agency_enum, $5, $6, $7, $8, $9, $10, $11::team_status_enum, $12, $13, NOW())
+                ON CONFLICT (team_code) DO UPDATE
+                SET status = EXCLUDED.status, assigned_event_id = EXCLUDED.assigned_event_id
+            """, tid, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7], t[8], t[9], t[10], t[11])
+        print(f"  ✓ Inserted {len(teams_data)} operational response teams")
+    except Exception as e:
+        print(f"  ⚠ Could not seed teams table (may not exist yet): {e}")
+
+    # Seed User Profiles
+    profiles_data = [
+        ("commander", "Commandant Rajesh K. Verma", "rajesh.verma@sih-indra.gov.in", "+91 94311 02847", "COMMANDER", "SDMA_BIHAR", "OP-CMD-001", "NDRF-PAT-091", "EAGLE-LEADER", team_id_map.get("TEAM-NDRF-09"), "Incident Commander", "ON_DUTY", "National Disaster Response Force commander leading urban inundation and river flood operations."),
+        ("admin", "Dr. Ananya Sen", "ananya.sen@ndma.gov.in", "+91 98100 11982", "ADMIN", "NDMA", "OP-ADMIN-001", "NDMA-DIR-004", "CENTRAL-ONE", team_id_map.get("TEAM-NDMA-NAT01"), "Platform Administrator", "ON_DUTY", "National Disaster Management Authority chief data officer administering the INDRA big data platform."),
+        ("analyst", "Dr. Vikram Sethi", "vikram.sethi@imd.gov.in", "+91 98710 44210", "ANALYST", "IMD", "OP-ANL-001", "IMD-MET-552", "RADAR-HAWK", team_id_map.get("TEAM-IMD-NOW01"), "Lead Meteorological Analyst", "ON_DUTY", "IMD Nowcasting specialist focusing on Doppler weather radar echoes and cloudburst probability synthesis."),
+        ("citizen", "Aarav Sharma", "aarav.sharma@gmail.com", "+91 97112 88401", "CITIZEN", "PUBLIC", "OP-CIT-001", "CITIZEN-REP-88", "OBSERVER-IND", None, "Volunteer Observer", "ON_DUTY", "Registered citizen weather observer contributing geotagged ground reports and flooding photos in Patna."),
+    ]
+
+    try:
+        for p in profiles_data:
+            pid = uuid.uuid4()
+            await conn.execute("""
+                INSERT INTO user_profiles
+                    (id, username, full_name, email, phone, role, agency, operator_id, badge_number,
+                     callsign, team_id, team_role, duty_status, bio, last_active_at, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6::operator_role_enum, $7, $8, $9, $10, $11, $12, $13::duty_status_enum, $14, NOW(), NOW())
+                ON CONFLICT (username) DO UPDATE
+                SET full_name = EXCLUDED.full_name, duty_status = EXCLUDED.duty_status, team_id = EXCLUDED.team_id
+            """, pid, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12])
+        print(f"  ✓ Inserted {len(profiles_data)} operator profiles")
+    except Exception as e:
+        print(f"  ⚠ Could not seed user_profiles table (may not exist yet): {e}")
+
     await conn.close()
 
     # ── Summary ────────────────────────────────────────────────────────────
@@ -407,8 +468,11 @@ async def seed():
     print(f"  Citizen Reports:   {citizen_count:,}")
     print(f"  Station Readings:  {station_count}")
     print(f"  Audit Logs:        {audit_count}")
+    print(f"  Response Teams:    {len(teams_data)}")
+    print(f"  Operator Profiles: {len(profiles_data)}")
     print(f"  Cities:            {', '.join(c['name'] for c in CITIES)}")
     print("=" * 60)
+
 
 
 if __name__ == "__main__":

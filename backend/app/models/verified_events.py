@@ -64,6 +64,8 @@ class VerifiedEvent(Base):
     # Relationships
     raw_reports = relationship("RawReport", back_populates="event", lazy="selectin")
     audit_logs = relationship("AuditLog", back_populates="event", lazy="selectin")
+    assigned_teams = relationship("Team", back_populates="assigned_event", lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<VerifiedEvent {self.event_code} [{self.severity.value}]>"
+

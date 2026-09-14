@@ -11,13 +11,20 @@ import {
   eventDistribution,
   reportsTrend,
   liveFeedItems,
+  mockTeams,
+  mockUserProfile,
+  mockSixthSenseTeam,
   type KpiItem,
   type MapMarker,
   type RecentEvent,
   type DistributionItem,
   type TrendDataPoint,
   type FeedItem,
+  type TeamItem,
+  type UserProfile,
+  type HackathonTeamData,
 } from './mock-data';
+
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -207,3 +214,108 @@ export async function fetchRecentFeed(limit: number = 10): Promise<FeedItem[]> {
     return liveFeedItems;
   }
 }
+
+// ─── Teams (Disaster Response Units & Hub) ───────────────────────────────────
+
+export async function fetchTeams(params?: {
+  agency?: string;
+  status?: string;
+  city?: string;
+}): Promise<TeamItem[]> {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.agency) searchParams.set('agency', params.agency);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.city) searchParams.set('city', params.city);
+
+    const url = `${API_BASE}/api/teams${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data || data.length === 0) return mockTeams;
+    return data;
+  } catch (err) {
+    console.warn('[INDRA] fetchTeams failed, using mock data:', err);
+    let filtered = mockTeams;
+    if (params?.agency) filtered = filtered.filter(t => t.agency.toLowerCase() === params.agency!.toLowerCase());
+    if (params?.status) filtered = filtered.filter(t => t.status.toLowerCase() === params.status!.toLowerCase());
+    if (params?.city) filtered = filtered.filter(t => t.city.toLowerCase().includes(params.city!.toLowerCase()));
+    return filtered;
+  }
+}
+
+export async function fetchTeamById(teamId: string): Promise<TeamItem> {
+  try {
+    const res = await fetch(`${API_BASE}/api/teams/${teamId}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[INDRA] fetchTeamById(${teamId}) failed, using mock data:`, err);
+    const match = mockTeams.find(t => t.id === teamId || t.team_code === teamId);
+    return match || mockTeams[0];
+  }
+}
+
+export async function assignTeamToEvent(teamId: string, eventId: string | null): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE}/api/teams/${teamId}/assign`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: eventId }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[INDRA] assignTeamToEvent failed, updating local state:`, err);
+    const team = mockTeams.find(t => t.id === teamId || t.team_code === teamId);
+    if (team) {
+      team.status = eventId ? 'DEPLOYED' : 'AVAILABLE';
+      team.assigned_event_code = eventId ? (eventId.startsWith('WX-') ? eventId : 'WX-EV-28231827-A') : null;
+    }
+    return { status: eventId ? 'DEPLOYED' : 'AVAILABLE' };
+  }
+}
+
+export async function fetchHackathonTeam(): Promise<HackathonTeamData> {
+  try {
+    const res = await fetch(`${API_BASE}/api/teams/hackathon/sixth-sense`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('[INDRA] fetchHackathonTeam failed, using mock data:', err);
+    return mockSixthSenseTeam;
+  }
+}
+
+// ─── User Profile & Identity ──────────────────────────────────────────────────
+
+export async function fetchUserProfile(username?: string): Promise<UserProfile> {
+  try {
+    const url = username
+      ? `${API_BASE}/api/profile/me?user=${username}`
+      : `${API_BASE}/api/profile/me`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('[INDRA] fetchUserProfile failed, using mock data:', err);
+    return mockUserProfile;
+  }
+}
+
+export async function updateUserProfile(data: Partial<UserProfile>, username: string = 'commander'): Promise<UserProfile> {
+  try {
+    const res = await fetch(`${API_BASE}/api/profile/me?user=${username}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('[INDRA] updateUserProfile failed, updating local mock state:', err);
+    Object.assign(mockUserProfile, data);
+    return mockUserProfile;
+  }
+}
+
