@@ -398,42 +398,54 @@ export default function GlobeEventMap({
 
       // Pin Head
       const pinHead = document.createElement('div');
-      pinHead.style.width = '28px';
-      pinHead.style.height = '28px';
+      pinHead.style.width = '26px';
+      pinHead.style.height = '26px';
       pinHead.style.borderRadius = '50%';
       pinHead.style.backgroundColor = color;
       pinHead.style.border = '2.5px solid #ffffff';
-      pinHead.style.boxShadow = '0 4px 12px rgba(0,0,0,0.45), inset 0 1px 2px rgba(255,255,255,0.4)';
+      pinHead.style.boxShadow = '0 3px 10px rgba(0,0,0,0.4), 0 0 12px ' + color + '80';
       pinHead.style.display = 'flex';
       pinHead.style.alignItems = 'center';
       pinHead.style.justifyContent = 'center';
-      pinHead.style.fontSize = '13px';
+      pinHead.style.fontSize = '12px';
       pinHead.style.position = 'relative';
       pinHead.style.zIndex = '2';
       pinHead.innerHTML = `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
       el.appendChild(pinHead);
 
-      // City Label Badge Pill
-      const labelBadge = document.createElement('div');
-      labelBadge.style.backgroundColor = 'rgba(15, 23, 42, 0.92)';
-      labelBadge.style.color = '#ffffff';
-      labelBadge.style.fontSize = '10px';
-      labelBadge.style.fontWeight = '700';
-      labelBadge.style.padding = '2px 6px';
-      labelBadge.style.borderRadius = '6px';
-      labelBadge.style.marginTop = '2px';
-      labelBadge.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-      labelBadge.style.border = '1px solid rgba(255,255,255,0.2)';
-      labelBadge.style.whiteSpace = 'nowrap';
-      labelBadge.innerText = marker.city;
-      el.appendChild(labelBadge);
+      // Sleek Floating Tooltip (shown on hover or selection only)
+      const tooltip = document.createElement('div');
+      tooltip.style.position = 'absolute';
+      tooltip.style.bottom = '100%';
+      tooltip.style.left = '50%';
+      tooltip.style.transform = isSelected ? 'translateX(-50%) translateY(-6px)' : 'translateX(-50%) translateY(0)';
+      tooltip.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+      tooltip.style.color = '#ffffff';
+      tooltip.style.fontSize = '10px';
+      tooltip.style.fontWeight = '700';
+      tooltip.style.padding = '3px 8px';
+      tooltip.style.borderRadius = '7px';
+      tooltip.style.boxShadow = '0 4px 14px rgba(0,0,0,0.4)';
+      tooltip.style.border = '1px solid rgba(255,255,255,0.2)';
+      tooltip.style.whiteSpace = 'nowrap';
+      tooltip.style.pointerEvents = 'none';
+      tooltip.style.opacity = isSelected ? '1' : '0';
+      tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+      tooltip.innerHTML = `<span>${marker.city}</span> <span style="opacity:0.65;font-weight:500;margin-left:4px;">${marker.eventType}</span>`;
+      el.appendChild(tooltip);
 
       // Hover animation
       el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.25) translateY(-6px)';
+        el.style.transform = 'scale(1.25) translateY(-4px)';
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateX(-50%) translateY(-6px)';
       });
       el.addEventListener('mouseleave', () => {
-        el.style.transform = isSelected ? 'scale(1.25) translateY(-8px)' : 'scale(1) translateY(0)';
+        el.style.transform = isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1) translateY(0)';
+        if (!isSelected) {
+          tooltip.style.opacity = '0';
+          tooltip.style.transform = 'translateX(-50%) translateY(0)';
+        }
       });
 
       // Click event
@@ -1039,8 +1051,8 @@ export default function GlobeEventMap({
             )}
           </AnimatePresence>
 
-          {/* Collapsible Incident Roster HUD (Sleek Compact Badge by Default - Zero Map Obstruction) */}
-          <div className="absolute top-3 right-3 z-20 flex flex-col items-end">
+          {/* Collapsible Incident Roster HUD (Positioned to the left of MapLibre zoom controls) */}
+          <div className="absolute top-3 right-14 z-20 flex flex-col items-end">
             {!isRosterOpen ? (
               <button
                 onClick={() => setIsRosterOpen(true)}
