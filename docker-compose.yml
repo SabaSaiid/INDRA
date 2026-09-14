@@ -1,0 +1,66 @@
+services:
+  # -------------------------------------------------------------
+  # PostgreSQL + PostGIS: Geospatial Data Engine
+  # Stores spatial polygons, station readings, reports, and verified events
+  # -------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: indra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: indra_db
+      POSTGRES_USER: indra_user
+      POSTGRES_PASSWORD: indra_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indra_user -d indra_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------
+  # Redis: Low-latency In-Memory Cache & WebSocket Pub/Sub
+  # -------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: indra-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------
+  # Redpanda: Lightweight Kafka-compatible Event Streaming Bus
+  # Ingests high-frequency citizen & sensor spikes (~50x surge absorption)
+  # -------------------------------------------------------------
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.11
+    container_name: indra-redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --memory 512M
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+      - "9644:9644"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+
+volumes:
+  postgres_data:
+  redis_data:
+  redpanda_data:

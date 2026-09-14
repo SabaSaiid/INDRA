@@ -1,0 +1,121 @@
+{
+  "scenario_metadata": {
+    "title": "Patna Urban Inundation & Flash Flood Event",
+    "location": "Patna, Bihar, India",
+    "district": "Patna",
+    "state": "Bihar",
+    "total_raw_signals": 127,
+    "fused_event_summary": {
+      "event_type": "URBAN_FLOOD",
+      "severity": "CRITICAL",
+      "confidence_score": 0.94,
+      "review_status": "AUTO_PUBLISHED",
+      "impact_radius_km": 6.8,
+      "center_coordinates": {
+        "latitude": 25.6093,
+        "longitude": 85.1376
+      }
+    }
+  },
+  "evidence_breakdown": {
+    "citizen_reports": 64,
+    "social_media_posts": 48,
+    "imd_automatic_weather_stations": 3,
+    "cwc_river_level_sensors": 2,
+    "verified_multimedia_evidence": 10
+  },
+  "sample_raw_signals": [
+    {
+      "signal_id": "SIG-IMD-001",
+      "source_type": "IMD_STATION",
+      "source_name": "Patna Airport IMD AWS",
+      "reliability_weight": 0.98,
+      "timestamp": "2026-09-14T08:15:00Z",
+      "location": {
+        "latitude": 25.5913,
+        "longitude": 85.0880,
+        "landmark": "Jai Prakash Narayan International Airport"
+      },
+      "text": "Heavy convective storm recorded. Cumulative rainfall 82.4mm within last 3 hours. Cloudburst-like intensity detected.",
+      "metrics": {
+        "rainfall_rate_mm_per_hr": 38.5,
+        "humidity_pct": 96.0,
+        "wind_gust_kmh": 54.0
+      }
+    },
+    {
+      "signal_id": "SIG-CWC-002",
+      "source_type": "PUBLIC_SENSOR",
+      "source_name": "CWC Digha Ghat Sensor",
+      "reliability_weight": 0.95,
+      "timestamp": "2026-09-14T08:20:00Z",
+      "location": {
+        "latitude": 25.6420,
+        "longitude": 85.1050,
+        "landmark": "Ganges River - Digha Ghat"
+      },
+      "text": "Ganges river gauge indicates rapid water level surge approaching danger mark (+1.2m/hr).",
+      "metrics": {
+        "water_level_meters": 50.4,
+        "danger_mark_meters": 50.52
+      }
+    },
+    {
+      "signal_id": "SIG-CIT-019",
+      "source_type": "CITIZEN_REPORT",
+      "source_name": "INDRA Citizen App User #4812",
+      "reliability_weight": 0.85,
+      "timestamp": "2026-09-14T08:25:30Z",
+      "location": {
+        "latitude": 25.6025,
+        "longitude": 85.1520,
+        "landmark": "Rajendra Nagar, Road No. 4"
+      },
+      "text": "Water entered ground floor homes. Cars submerged up to bonnet level. Drainage completely overwhelmed.",
+      "media": [
+        {
+          "type": "image",
+          "url": "https://indra.gov.in/evidence/patna_rajendra_nagar_submerged_cars.jpg",
+          "cv_water_level_detected": "WAIST_DEEP",
+          "tampering_score": 0.02
+        }
+      ]
+    },
+    {
+      "signal_id": "SIG-X-088",
+      "source_type": "SOCIAL_MEDIA",
+      "source_name": "Twitter/X (@patnawxupdate)",
+      "reliability_weight": 0.72,
+      "timestamp": "2026-09-14T08:28:10Z",
+      "location": {
+        "latitude": 25.6130,
+        "longitude": 85.1415,
+        "landmark": "Kankarbagh Colony"
+      },
+      "text": "#PatnaRains #IMD Massive waterlogging near Tiwari Bechar. Knee-deep flood water on main bypass road. Avoid route.",
+      "hashtags": ["#PatnaRains", "#IMD", "#BiharFloods"]
+    }
+  ],
+  "verification_fusion_output": {
+    "event_id": "INDRA-EVT-20260914-001",
+    "title": "Severe Urban Inundation & Flash Flooding - Central Patna",
+    "event_type": "FLOOD",
+    "severity": "CRITICAL",
+    "confidence_score": 0.94,
+    "threshold_action": "AUTO_PUBLISHED",
+    "verification_factors": {
+      "source_diversity_count": 5,
+      "independent_reports_count": 127,
+      "station_agreement_score": 0.98,
+      "spatial_dbscan_cluster_cohesion": 0.93,
+      "temporal_cluster_cohesion": 0.96,
+      "cv_multimedia_validation_score": 0.89
+    },
+    "alert_dispatched_to": [
+      "Bihar State Disaster Management Authority (BSDMA)",
+      "National Disaster Response Force (NDRF 9th Bn)",
+      "District Magistrate Patna Emergency Operations Centre",
+      "IMD Cyclone & Flood Forecasting Division"
+    ]
+  }
+}
