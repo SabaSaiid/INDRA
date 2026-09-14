@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [liveKpiData, setLiveKpiData] = useState<KpiItem[]>(kpiData);
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>(undefined);
 
   // Fetch live KPI data from API, fall back to mock
   useEffect(() => {
@@ -146,10 +147,16 @@ export default function DashboardPage() {
                 {/* Map + Recent Events */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
                   <div className="lg:col-span-3">
-                    <EventMap />
+                    <EventMap
+                      selectedEventId={selectedIncidentId}
+                      onEventSelect={(ev) => setSelectedIncidentId(ev?.id)}
+                    />
                   </div>
                   <div className="lg:col-span-2">
-                    <RecentEventsList />
+                    <RecentEventsList
+                      selectedEventId={selectedIncidentId}
+                      onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                    />
                   </div>
                 </div>
 

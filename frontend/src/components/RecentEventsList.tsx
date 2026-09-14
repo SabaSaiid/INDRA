@@ -15,7 +15,13 @@ import { fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import { getRelativeTime } from '@/lib/utils';
 import { ArrowRight, MapPin, CheckCircle2, Clock } from 'lucide-react';
 
-export default function RecentEventsList() {
+export default function RecentEventsList({
+  onSelectEvent,
+  selectedEventId,
+}: {
+  onSelectEvent?: (event: RecentEvent) => void;
+  selectedEventId?: string;
+}) {
   const [events, setEvents] = useState<RecentEvent[]>(recentEvents);
 
   useEffect(() => {
@@ -55,18 +61,24 @@ export default function RecentEventsList() {
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="space-y-0 custom-scrollbar overflow-y-auto"
+          className="space-y-1 custom-scrollbar overflow-y-auto"
           style={{ maxHeight: '380px' }}
         >
           {events.map((event, index) => {
             const severity = severityConfig[event.severity] || severityConfig.moderate;
             const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
+            const isSelected = selectedEventId === event.id;
 
             return (
               <motion.div
                 key={event.id}
                 variants={listItemSlideIn}
-                className="flex items-center gap-3 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 rounded-lg px-1 transition-colors cursor-pointer"
+                onClick={() => onSelectEvent?.(event)}
+                className={`flex items-center gap-3 py-3 border-b border-slate-50 last:border-0 rounded-xl px-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-50/80 ring-1 ring-blue-400/50 shadow-xs'
+                    : 'hover:bg-slate-50/80'
+                }`}
               >
                 {/* Thumbnail */}
                 <div
