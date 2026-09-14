@@ -30,15 +30,18 @@ import {
   X,
   Target,
   Navigation,
-  ExternalLink,
+  ChevronDown,
+  ChevronUp,
   ChevronRight,
   Activity,
   CheckCircle2,
   Play,
   Pause,
+  MapPin,
+  FileSpreadsheet,
 } from 'lucide-react';
 
-export type BasemapMode = 'satellite' | 'dark' | 'street';
+export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
 
 // Basemap Styles with Globe Projection & Atmospheric Sky
 const BASEMAP_STYLES: Record<BasemapMode, any> = {
@@ -71,6 +74,38 @@ const BASEMAP_STYLES: Record<BasemapMode, any> = {
         ['zoom'],
         0, 1.0,
         5, 0.2,
+      ],
+    },
+  },
+  topo: {
+    version: 8,
+    projection: { type: 'globe' },
+    sources: {
+      esri_topo: {
+        type: 'raster',
+        tiles: [
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+        ],
+        tileSize: 256,
+        attribution: '© Esri, USGS, NOAA, Survey of India',
+      },
+    },
+    layers: [
+      {
+        id: 'esri-topo-layer',
+        type: 'raster',
+        source: 'esri_topo',
+        minzoom: 0,
+        maxzoom: 19,
+      },
+    ],
+    sky: {
+      'atmosphere-blend': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        0, 0.6,
+        5, 0.0,
       ],
     },
   },
@@ -151,6 +186,17 @@ const severityColors: Record<string, string> = {
   low: '#64748B',
 };
 
+// Event type emojis
+const eventTypeEmojis: Record<string, string> = {
+  'Severe Rainfall': '🌧️',
+  'Flood': '🌊',
+  'Urban Flooding': '🌊',
+  'Heavy Rainfall': '🌧️',
+  'Thunderstorm': '⚡',
+  'Strong Winds': '💨',
+  'Fog': '🌫️',
+};
+
 // Bay of Bengal Cyclone Track Coordinates
 const cycloneTrackGeoJSON: GeoJSON.FeatureCollection = {
   type: 'FeatureCollection',
@@ -186,33 +232,11 @@ const ndrfBasesGeoJSON: GeoJSON.FeatureCollection = {
   ],
 };
 
-function buildEventsGeoJSON(markersList: MapMarker[]): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: markersList.map((m) => ({
-      type: 'Feature',
-      id: m.id,
-      geometry: {
-        type: 'Point',
-        coordinates: [m.lng, m.lat],
-      },
-      properties: {
-        id: m.id,
-        city: m.city,
-        state: m.state,
-        eventType: m.eventType,
-        severity: m.severity,
-        verification: m.verification,
-        description: m.description,
-        color: severityColors[m.severity] || '#64748B',
-        // Simulated sensor metrics for tactical telemetry
-        rainfall: m.severity === 'critical' ? '86 mm/h' : m.severity === 'high' ? '54 mm/h' : '22 mm/h',
-        wind: m.severity === 'critical' ? '68 km/h' : m.severity === 'high' ? '45 km/h' : '18 km/h',
-        waterLevel: m.severity === 'critical' ? '+1.9m Danger' : m.severity === 'high' ? '+0.8m Alert' : 'Normal',
-        populationAtRisk: m.severity === 'critical' ? '820,000' : m.severity === 'high' ? '340,000' : '95,000',
-      },
-    })),
-  };
+interface MarkerEntry {
+  marker: maplibregl.Marker;
+  el: HTMLElement;
+  lng: number;
+  lat: number;
 }
 
 export default function GlobeEventMap({
@@ -224,6 +248,7 @@ export default function GlobeEventMap({
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<MarkerEntry[]>([]);
   const autoOrbitAnimRef = useRef<number | null>(null);
 
   const [mounted, setMounted] = useState(false);
@@ -235,6 +260,7 @@ export default function GlobeEventMap({
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoOrbiting, setIsAutoOrbiting] = useState(false);
+  const [isRosterOpen, setIsRosterOpen] = useState(false);
 
   // Layer toggles
   const [showEventsLayer, setShowEventsLayer] = useState(true);
@@ -276,7 +302,7 @@ export default function GlobeEventMap({
     };
   }, [timeRange]);
 
-  // Sync external selectedEventId if passed from dashboard
+  // Sync external selectedEventId
   useEffect(() => {
     if (selectedEventId) {
       const match = markers.find((m) => m.id === selectedEventId);
@@ -287,193 +313,205 @@ export default function GlobeEventMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEventId, markers]);
 
-  // Build and sync native WebGL GeoJSON layers (100% Depth & Horizon Culled)
-  const syncWebGLLayers = useCallback(
-    (map: maplibregl.Map) => {
-      const eventsGeo = buildEventsGeoJSON(markers);
-
-      // Update or add Events GeoJSON Source
-      if (map.getSource('events-source')) {
-        (map.getSource('events-source') as maplibregl.GeoJSONSource).setData(eventsGeo);
-      } else {
-        map.addSource('events-source', {
-          type: 'geojson',
-          data: eventsGeo,
+  // Spherical Horizon Occlusion Update Algorithm
+  // Mathematically checks if coordinates lie on the visible hemisphere of the 3D globe
+  const updateMarkerOcclusion = useCallback(
+    (map: maplibregl.Map, globeMode: boolean) => {
+      if (!globeMode) {
+        markersRef.current.forEach(({ el }) => {
+          el.style.display = showEventsLayer ? 'block' : 'none';
+          el.style.opacity = '1';
         });
-
-        // 1. Impact Ground Radius (Translucent colored circle on globe surface)
-        map.addLayer({
-          id: 'events-impact-radius',
-          type: 'circle',
-          source: 'events-source',
-          paint: {
-            'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              3, ['case', ['==', ['get', 'severity'], 'critical'], 22, ['==', ['get', 'severity'], 'high'], 16, 11],
-              8, ['case', ['==', ['get', 'severity'], 'critical'], 64, ['==', ['get', 'severity'], 'high'], 48, 32],
-            ],
-            'circle-color': ['get', 'color'],
-            'circle-opacity': 0.16,
-            'circle-stroke-width': 1.5,
-            'circle-stroke-color': ['get', 'color'],
-            'circle-stroke-opacity': 0.65,
-          },
-        });
-
-        // 2. Outer Soft Beacon Glow
-        map.addLayer({
-          id: 'events-beacon-glow',
-          type: 'circle',
-          source: 'events-source',
-          paint: {
-            'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              2, 7,
-              7, 16,
-            ],
-            'circle-color': ['get', 'color'],
-            'circle-opacity': 0.35,
-          },
-        });
-
-        // 3. Crisp Core Beacon
-        map.addLayer({
-          id: 'events-core',
-          type: 'circle',
-          source: 'events-source',
-          paint: {
-            'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              2, 4.5,
-              6, 7.5,
-              10, 11,
-            ],
-            'circle-color': ['get', 'color'],
-            'circle-stroke-width': 2.5,
-            'circle-stroke-color': '#ffffff',
-          },
-        });
-
-        // 4. Interactive Click & Hover handlers on WebGL layer
-        map.on('click', 'events-core', (e) => {
-          const feature = e.features?.[0];
-          if (feature?.properties) {
-            const found = markers.find((m) => m.id === feature.properties.id);
-            if (found) {
-              handleSelectIncident(found);
-            }
-          }
-        });
-
-        map.on('mouseenter', 'events-core', () => {
-          map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', 'events-core', () => {
-          map.getCanvas().style.cursor = '';
-        });
+        return;
       }
 
-      // Add or update Selected Target Spotlight Source & Layer
-      const targetGeo: GeoJSON.FeatureCollection = {
-        type: 'FeatureCollection',
-        features: selectedMarker
-          ? [
-              {
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [selectedMarker.lng, selectedMarker.lat],
-                },
-                properties: { id: selectedMarker.id },
-              },
-            ]
-          : [],
-      };
-
-      if (map.getSource('target-spotlight-source')) {
-        (map.getSource('target-spotlight-source') as maplibregl.GeoJSONSource).setData(targetGeo);
-      } else {
-        map.addSource('target-spotlight-source', {
-          type: 'geojson',
-          data: targetGeo,
+      if (!showEventsLayer) {
+        markersRef.current.forEach(({ el }) => {
+          el.style.display = 'none';
         });
-
-        map.addLayer({
-          id: 'target-spotlight-ring',
-          type: 'circle',
-          source: 'target-spotlight-source',
-          paint: {
-            'circle-radius': 26,
-            'circle-color': '#38bdf8',
-            'circle-opacity': 0.15,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#38bdf8',
-            'circle-stroke-opacity': 0.9,
-          },
-        });
+        return;
       }
 
-      // Add Cyclone DANA Trajectory
-      if (!map.getSource('cyclone-track-source')) {
-        map.addSource('cyclone-track-source', {
-          type: 'geojson',
-          data: cycloneTrackGeoJSON,
-        });
+      const center = map.getCenter();
+      const toRad = Math.PI / 180;
+      const phi2 = center.lat * toRad;
+      const lambda2 = center.lng * toRad;
 
-        map.addLayer({
-          id: 'cyclone-outer-glow',
-          type: 'line',
-          source: 'cyclone-track-source',
-          paint: {
-            'line-color': '#f59e0b',
-            'line-width': 8,
-            'line-opacity': 0.35,
-          },
-        });
+      markersRef.current.forEach(({ el, lng, lat }) => {
+        const phi1 = lat * toRad;
+        const lambda1 = lng * toRad;
+        const deltaLambda = lambda1 - lambda2;
 
-        map.addLayer({
-          id: 'cyclone-inner-track',
-          type: 'line',
-          source: 'cyclone-track-source',
-          paint: {
-            'line-color': '#ef4444',
-            'line-width': 3,
-            'line-dasharray': [2, 2],
-          },
-        });
-      }
+        // Spherical dot product (cosine of angular distance)
+        const cosTheta = Math.sin(phi1) * Math.sin(phi2) + Math.cos(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
 
-      // Add NDRF Bases Layer
-      if (!map.getSource('ndrf-bases-source')) {
-        map.addSource('ndrf-bases-source', {
-          type: 'geojson',
-          data: ndrfBasesGeoJSON,
-        });
-
-        map.addLayer({
-          id: 'ndrf-bases-layer',
-          type: 'circle',
-          source: 'ndrf-bases-source',
-          paint: {
-            'circle-radius': 6,
-            'circle-color': '#0ea5e9',
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
-          },
-        });
-      }
+        // Hide marker if on the occluded far hemisphere
+        if (cosTheta < 0.08) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'block';
+          const opacity = Math.min(1, Math.max(0, (cosTheta - 0.08) / 0.22));
+          el.style.opacity = opacity.toFixed(2);
+        }
+      });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [markers, selectedMarker]
+    [showEventsLayer]
   );
 
-  // Initialize Map
+  // Render Prominent Tactical Disaster Pins
+  const renderProminentPins = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(({ marker }) => marker.remove());
+    markersRef.current = [];
+
+    markers.forEach((marker) => {
+      const color = severityColors[marker.severity] || '#64748B';
+      const isPulsing = marker.severity === 'critical' || marker.severity === 'high';
+      const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
+      const isSelected = selectedMarker?.id === marker.id;
+
+      // Pin container
+      const el = document.createElement('div');
+      el.className = 'tactical-pin-container cursor-pointer select-none';
+      el.style.position = 'relative';
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+      el.style.alignItems = 'center';
+      el.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      el.style.transform = isSelected ? 'scale(1.25) translateY(-8px)' : 'scale(1) translateY(0)';
+      el.style.zIndex = isSelected ? '50' : marker.severity === 'critical' ? '40' : '30';
+
+      // Pulse ring
+      if (isPulsing) {
+        const pulse = document.createElement('div');
+        pulse.className = `pulse-ring pulse-ring-${marker.severity}`;
+        pulse.style.width = '38px';
+        pulse.style.height = '38px';
+        pulse.style.top = '-5px';
+        pulse.style.left = '50%';
+        pulse.style.transform = 'translateX(-50%)';
+        el.appendChild(pulse);
+      }
+
+      // Pin Head
+      const pinHead = document.createElement('div');
+      pinHead.style.width = '28px';
+      pinHead.style.height = '28px';
+      pinHead.style.borderRadius = '50%';
+      pinHead.style.backgroundColor = color;
+      pinHead.style.border = '2.5px solid #ffffff';
+      pinHead.style.boxShadow = '0 4px 12px rgba(0,0,0,0.45), inset 0 1px 2px rgba(255,255,255,0.4)';
+      pinHead.style.display = 'flex';
+      pinHead.style.alignItems = 'center';
+      pinHead.style.justifyContent = 'center';
+      pinHead.style.fontSize = '13px';
+      pinHead.style.position = 'relative';
+      pinHead.style.zIndex = '2';
+      pinHead.innerHTML = `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
+      el.appendChild(pinHead);
+
+      // City Label Badge Pill
+      const labelBadge = document.createElement('div');
+      labelBadge.style.backgroundColor = 'rgba(15, 23, 42, 0.92)';
+      labelBadge.style.color = '#ffffff';
+      labelBadge.style.fontSize = '10px';
+      labelBadge.style.fontWeight = '700';
+      labelBadge.style.padding = '2px 6px';
+      labelBadge.style.borderRadius = '6px';
+      labelBadge.style.marginTop = '2px';
+      labelBadge.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+      labelBadge.style.border = '1px solid rgba(255,255,255,0.2)';
+      labelBadge.style.whiteSpace = 'nowrap';
+      labelBadge.innerText = marker.city;
+      el.appendChild(labelBadge);
+
+      // Hover animation
+      el.addEventListener('mouseenter', () => {
+        el.style.transform = 'scale(1.25) translateY(-6px)';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.transform = isSelected ? 'scale(1.25) translateY(-8px)' : 'scale(1) translateY(0)';
+      });
+
+      // Click event
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleSelectIncident(marker);
+      });
+
+      const m = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([marker.lng, marker.lat])
+        .addTo(map);
+
+      markersRef.current.push({
+        marker: m,
+        el,
+        lng: marker.lng,
+        lat: marker.lat,
+      });
+    });
+
+    updateMarkerOcclusion(map, isGlobe);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markers, isGlobe, selectedMarker, updateMarkerOcclusion]);
+
+  // Sync Vector Layers (Cyclone & NDRF)
+  const syncVectorLayers = useCallback((map: maplibregl.Map) => {
+    // Cyclone DANA Trajectory
+    if (!map.getSource('cyclone-track-source')) {
+      map.addSource('cyclone-track-source', {
+        type: 'geojson',
+        data: cycloneTrackGeoJSON,
+      });
+
+      map.addLayer({
+        id: 'cyclone-outer-glow',
+        type: 'line',
+        source: 'cyclone-track-source',
+        paint: {
+          'line-color': '#f59e0b',
+          'line-width': 8,
+          'line-opacity': 0.35,
+        },
+      });
+
+      map.addLayer({
+        id: 'cyclone-inner-track',
+        type: 'line',
+        source: 'cyclone-track-source',
+        paint: {
+          'line-color': '#ef4444',
+          'line-width': 3,
+          'line-dasharray': [2, 2],
+        },
+      });
+    }
+
+    // NDRF Bases Layer
+    if (!map.getSource('ndrf-bases-source')) {
+      map.addSource('ndrf-bases-source', {
+        type: 'geojson',
+        data: ndrfBasesGeoJSON,
+      });
+
+      map.addLayer({
+        id: 'ndrf-bases-layer',
+        type: 'circle',
+        source: 'ndrf-bases-source',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#0ea5e9',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+    }
+  }, []);
+
+  // Initialize MapLibre GL
   useEffect(() => {
     if (!mounted || !mapContainerRef.current || mapRef.current) return;
 
@@ -494,7 +532,8 @@ export default function GlobeEventMap({
 
     map.on('load', () => {
       map.setProjection({ type: isGlobe ? 'globe' : 'mercator' });
-      syncWebGLLayers(map);
+      syncVectorLayers(map);
+      renderProminentPins();
     });
 
     map.on('move', () => {
@@ -506,6 +545,7 @@ export default function GlobeEventMap({
         pitch: Math.round(map.getPitch()),
         bearing: Math.round(map.getBearing()),
       });
+      updateMarkerOcclusion(map, isGlobe);
     });
 
     mapRef.current = map;
@@ -514,41 +554,40 @@ export default function GlobeEventMap({
       if (autoOrbitAnimRef.current) {
         cancelAnimationFrame(autoOrbitAnimRef.current);
       }
+      markersRef.current.forEach(({ marker }) => marker.remove());
+      markersRef.current = [];
       map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
-  // Sync layers whenever markers, selection, or layers change
+  // Re-render pins when markers, globe mode, or selection changes
   useEffect(() => {
     if (mapRef.current && mapRef.current.isStyleLoaded()) {
-      syncWebGLLayers(mapRef.current);
+      renderProminentPins();
     }
-  }, [syncWebGLLayers]);
+  }, [renderProminentPins]);
 
-  // Layer visibility controls
+  // Layer visibility toggles
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
 
-    const setVisibility = (layerId: string, visible: boolean) => {
-      if (map.getLayer(layerId)) {
-        map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
-      }
-    };
+    if (map.getLayer('cyclone-outer-glow')) {
+      map.setLayoutProperty('cyclone-outer-glow', 'visibility', showCycloneLayer ? 'visible' : 'none');
+    }
+    if (map.getLayer('cyclone-inner-track')) {
+      map.setLayoutProperty('cyclone-inner-track', 'visibility', showCycloneLayer ? 'visible' : 'none');
+    }
+    if (map.getLayer('ndrf-bases-layer')) {
+      map.setLayoutProperty('ndrf-bases-layer', 'visibility', showNdrfLayer ? 'visible' : 'none');
+    }
 
-    setVisibility('events-impact-radius', showEventsLayer);
-    setVisibility('events-beacon-glow', showEventsLayer);
-    setVisibility('events-core', showEventsLayer);
+    updateMarkerOcclusion(map, isGlobe);
+  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, isGlobe, updateMarkerOcclusion]);
 
-    setVisibility('cyclone-outer-glow', showCycloneLayer);
-    setVisibility('cyclone-inner-track', showCycloneLayer);
-
-    setVisibility('ndrf-bases-layer', showNdrfLayer);
-  }, [showEventsLayer, showCycloneLayer, showNdrfLayer]);
-
-  // Handle basemap switch
+  // Switch basemap style
   const handleBasemapChange = (newBasemap: BasemapMode) => {
     setBasemap(newBasemap);
     const map = mapRef.current;
@@ -557,7 +596,8 @@ export default function GlobeEventMap({
     map.setStyle(BASEMAP_STYLES[newBasemap]);
     map.once('style.load', () => {
       map.setProjection({ type: isGlobe ? 'globe' : 'mercator' });
-      syncWebGLLayers(map);
+      syncVectorLayers(map);
+      renderProminentPins();
     });
   };
 
@@ -565,18 +605,29 @@ export default function GlobeEventMap({
   const toggleProjection = () => {
     const nextGlobe = !isGlobe;
     setIsGlobe(nextGlobe);
-    if (mapRef.current) {
-      mapRef.current.setProjection({ type: nextGlobe ? 'globe' : 'mercator' });
+    const map = mapRef.current;
+    if (map) {
+      map.setProjection({ type: nextGlobe ? 'globe' : 'mercator' });
+      // If switching to 2D flat, automatically switch to high-accuracy Survey Topo if satellite was active
+      if (!nextGlobe && basemap === 'satellite') {
+        handleBasemapChange('topo');
+      } else if (nextGlobe && basemap === 'topo') {
+        handleBasemapChange('satellite');
+      }
+      setTimeout(() => {
+        updateMarkerOcclusion(map, nextGlobe);
+      }, 50);
     }
   };
 
-  // Select an incident & swoop camera smoothly
+  // Select an incident
   const handleSelectIncident = (marker: MapMarker) => {
     setSelectedMarker(marker);
     if (onEventSelect) onEventSelect(marker);
 
-    if (mapRef.current) {
-      mapRef.current.flyTo({
+    const map = mapRef.current;
+    if (map) {
+      map.flyTo({
         center: [marker.lng, marker.lat],
         zoom: 6.8,
         pitch: 45,
@@ -610,7 +661,7 @@ export default function GlobeEventMap({
     const orbitLoop = () => {
       if (mapRef.current) {
         const center = mapRef.current.getCenter();
-        mapRef.current.setCenter([center.lng + 0.15, center.lat]);
+        mapRef.current.setCenter([center.lng + 0.12, center.lat]);
       }
       autoOrbitAnimRef.current = requestAnimationFrame(orbitLoop);
     };
@@ -683,7 +734,7 @@ export default function GlobeEventMap({
               <span>3D Planetary Weather Command — Earth Orbit</span>
             </div>
           }
-          subtitle="WebGL depth-culled severe incident radar with synchronized telemetry"
+          subtitle="Real-time multi-spectral GIS with seamless 3D spherical globe morphing"
           action={
             <div className="flex items-center gap-2 flex-wrap justify-end">
               {/* Projection Switcher */}
@@ -700,7 +751,7 @@ export default function GlobeEventMap({
                 <span>{isGlobe ? '3D Globe' : '2D Flat'}</span>
               </button>
 
-              {/* Basemap Switcher */}
+              {/* Basemap Switcher (Satellite, Topo Survey, Dark, Terrain) */}
               <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
                 <button
                   onClick={() => handleBasemapChange('satellite')}
@@ -713,6 +764,18 @@ export default function GlobeEventMap({
                 >
                   <Satellite className="w-3 h-3" />
                   <span className="hidden sm:inline">Satellite</span>
+                </button>
+                <button
+                  onClick={() => handleBasemapChange('topo')}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                    basemap === 'topo'
+                      ? 'bg-primary text-white font-semibold shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Accurate 2D National Survey / Topographic Map"
+                >
+                  <FileSpreadsheet className="w-3 h-3" />
+                  <span className="hidden sm:inline">2D Topo</span>
                 </button>
                 <button
                   onClick={() => handleBasemapChange('dark')}
@@ -733,10 +796,10 @@ export default function GlobeEventMap({
                       ? 'bg-primary text-white font-semibold shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
-                  title="Vector Terrain"
+                  title="Vector Street / Terrain"
                 >
                   <Layers className="w-3 h-3" />
-                  <span className="hidden sm:inline">Terrain</span>
+                  <span className="hidden sm:inline">Street</span>
                 </button>
               </div>
 
@@ -775,7 +838,7 @@ export default function GlobeEventMap({
               onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
               className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1"
             >
-              <span>🇮🇳</span> All India
+              <span>🇮🇳</span> All India Focus
             </button>
             <button
               onClick={() => flyToHotspot([80.0, 15.0], 1.6, 0, 0, 3000)}
@@ -809,7 +872,7 @@ export default function GlobeEventMap({
               title="Toggle Severe Alerts layer"
             >
               <AlertTriangle className="w-3 h-3" />
-              <span>Alerts</span>
+              <span>Alerts ({markers.length})</span>
             </button>
             <button
               onClick={() => setShowCycloneLayer(!showCycloneLayer)}
@@ -877,7 +940,7 @@ export default function GlobeEventMap({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -20, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute top-3 left-3 z-20 w-80 max-w-[calc(100%-24px)] bg-slate-900/95 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4"
+                className="absolute top-3 left-3 z-30 w-80 max-w-[calc(100%-24px)] bg-slate-900/95 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-2">
@@ -907,8 +970,9 @@ export default function GlobeEventMap({
                 </div>
 
                 {/* City & Event Title */}
-                <h4 className="text-base font-bold text-white tracking-tight">
-                  {selectedMarker.city}, {selectedMarker.state}
+                <h4 className="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
+                  <span>{eventTypeEmojis[selectedMarker.eventType] || '⚠️'}</span>
+                  <span>{selectedMarker.city}, {selectedMarker.state}</span>
                 </h4>
                 <p className="text-xs font-semibold text-blue-400 mt-0.5 flex items-center gap-1">
                   <Target className="w-3.5 h-3.5" />
@@ -946,7 +1010,7 @@ export default function GlobeEventMap({
                   </div>
                   <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
                     <div className="text-slate-400 flex items-center gap-1 text-[10px]">
-                      <Activity className="w-3 h-3 text-emerald-400" /> GPS Coordinates
+                      <Activity className="w-3 h-3 text-emerald-400" /> Coordinates
                     </div>
                     <div className="font-mono font-bold text-white mt-0.5 truncate">
                       {selectedMarker.lat.toFixed(2)}°N, {selectedMarker.lng.toFixed(2)}°E
@@ -975,59 +1039,88 @@ export default function GlobeEventMap({
             )}
           </AnimatePresence>
 
-          {/* Interactive Severe Events Quick Deck (Synchronized Map Roster) */}
-          <div className="absolute top-3 right-3 z-10 w-64 max-h-[360px] bg-slate-900/90 text-white backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/80 p-3 hidden sm:flex flex-col">
-            <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <Radio className="w-3 h-3 text-rose-400 animate-pulse" />
-                Live Incident Roster
-              </span>
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                {markers.length} PINS
-              </span>
-            </div>
+          {/* Collapsible Incident Roster HUD (Sleek Compact Badge by Default - Zero Map Obstruction) */}
+          <div className="absolute top-3 right-3 z-20 flex flex-col items-end">
+            {!isRosterOpen ? (
+              <button
+                onClick={() => setIsRosterOpen(true)}
+                className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-900 text-white backdrop-blur-xl px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-xl text-xs transition-all hover:scale-105 active:scale-95 group"
+                title="Open Live Incidents Roster"
+              >
+                <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                <span className="font-semibold">{markers.length} Incidents</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
+              </button>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                className="w-72 max-h-[360px] bg-slate-900/95 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-3 flex flex-col"
+              >
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <Radio className="w-3 h-3 text-rose-400 animate-pulse" />
+                    Live Incident Roster
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {markers.length} PINS
+                    </span>
+                    <button
+                      onClick={() => setIsRosterOpen(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                      title="Collapse Roster"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
 
-            <div className="space-y-1.5 overflow-y-auto custom-scrollbar pr-1 flex-1">
-              {markers.map((marker) => {
-                const isSelected = selectedMarker?.id === marker.id;
-                const color = severityColors[marker.severity] || '#64748B';
+                <div className="space-y-1.5 overflow-y-auto custom-scrollbar pr-1 flex-1">
+                  {markers.map((marker) => {
+                    const isSelected = selectedMarker?.id === marker.id;
+                    const color = severityColors[marker.severity] || '#64748B';
+                    const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
 
-                return (
-                  <button
-                    key={marker.id}
-                    onClick={() => handleSelectIncident(marker)}
-                    className={`w-full text-left p-2 rounded-xl border transition-all flex items-center justify-between group ${
-                      isSelected
-                        ? 'bg-blue-600/30 border-blue-400 shadow-sm'
-                        : 'bg-slate-800/60 hover:bg-slate-800 border-slate-700/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: color }}
-                      />
-                      <div className="truncate">
-                        <div className="text-xs font-semibold text-white group-hover:text-blue-300 truncate">
-                          {marker.city}, {marker.state}
+                    return (
+                      <button
+                        key={marker.id}
+                        onClick={() => handleSelectIncident(marker)}
+                        className={`w-full text-left p-2 rounded-xl border transition-all flex items-center justify-between group ${
+                          isSelected
+                            ? 'bg-blue-600/30 border-blue-400 shadow-sm'
+                            : 'bg-slate-800/60 hover:bg-slate-800 border-slate-700/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm">{emoji}</span>
+                          <div className="truncate">
+                            <div className="text-xs font-semibold text-white group-hover:text-blue-300 truncate">
+                              {marker.city}, {marker.state}
+                            </div>
+                            <div className="text-[10px] text-slate-400 truncate">
+                              {marker.eventType}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate">
-                          {marker.eventType}
-                        </div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-white shrink-0 ml-1" />
-                  </button>
-                );
-              })}
-            </div>
+                        <div
+                          className="w-2 h-2 rounded-full shrink-0 ml-1.5"
+                          style={{ backgroundColor: color }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Real-time Telemetry HUD (Bottom-Left) */}
           <div className="absolute bottom-3 left-3 z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
             <span className="flex items-center gap-1 text-emerald-400 font-bold">
               <Radio className="w-3 h-3 animate-pulse" />
-              {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: MERCATOR'}
+              {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
             </span>
             <span className="text-slate-600">|</span>
             <span className="text-slate-300">
@@ -1045,15 +1138,15 @@ export default function GlobeEventMap({
             {isAutoOrbiting && (
               <>
                 <span className="text-slate-600">|</span>
-                <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.15°/F</span>
+                <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.12°/F</span>
               </>
             )}
           </div>
 
-          {/* Occlusion / Zoom Status Pill */}
+          {/* Smooth Globe Zoom Hint Banner */}
           <div className="absolute bottom-3 right-3 sm:right-auto sm:left-[430px] z-10 pointer-events-none bg-slate-900/80 text-slate-300 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-800 text-[10px] font-mono flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-            <span>WebGL Depth Buffer Active (Zero Occlusion Leak)</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Horizon Occlusion Active (Pins Hide On Far Side)</span>
           </div>
         </div>
       </Card>
