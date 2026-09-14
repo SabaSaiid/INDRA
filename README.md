@@ -182,7 +182,7 @@ INDRA/
 
 ### 1. Clone & Setup Environment
 ```bash
-git clone https://github.com/your-org/INDRA.git
+git clone https://github.com/SabaSaiid/INDRA.git
 cd INDRA
 cp .env.example .env
 ```
@@ -228,5 +228,5 @@ Watch the 127 scattered signals ingest through Redpanda, cluster via PostGIS DBS
 Developed with pride for **Smart India Hackathon 2026** under Problem Statement **SIH26069** (*National Weather Big Data Analytics Platform*).
 
 * **Organization**: Ministry of Earth Sciences / Disaster Management Authorities
-* **Repository**: [INDRA on GitHub](https://github.com/your-org/INDRA)
+* **Repository**: [INDRA on GitHub](https://github.com/SabaSaiid/INDRA)
 * **License**: [MIT License](LICENSE)
