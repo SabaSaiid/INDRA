@@ -12,19 +12,15 @@ import {
   Award,
   Radio,
   Check,
-  LogOut,
-  ExternalLink,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { fadeIn } from '@/lib/motion';
 import {
-  type UserProfile,
   type DutyStatus,
   dutyStatusConfig,
-  mockUserProfile,
 } from '@/lib/mock-data';
-import { fetchUserProfile, updateUserProfile } from '@/lib/api';
+import { useOperatorProfile } from '@/lib/useOperatorProfile';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -32,26 +28,14 @@ interface TopbarProps {
 
 export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [currentProfile, setCurrentProfile] = useState<UserProfile>(mockUserProfile);
-  const [selectedRole, setSelectedRole] = useState<string>('commander');
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const {
+    profile: currentProfile,
+    selectedRole,
+    switchRole,
+    updateDuty,
+    isUpdatingStatus,
+  } = useOperatorProfile();
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Load profile on mount or role change
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await fetchUserProfile(selectedRole);
-        if (!cancelled && data) {
-          setCurrentProfile(data);
-        }
-      } catch {
-        // Fallback already in place
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [selectedRole]);
 
   // Click away listener to close dropdown
   useEffect(() => {
@@ -65,16 +49,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   }, []);
 
   const handleDutyChange = async (newStatus: DutyStatus) => {
-    if (newStatus === currentProfile.duty_status) return;
-    setIsUpdatingStatus(true);
-    setCurrentProfile(prev => ({ ...prev, duty_status: newStatus }));
-    try {
-      await updateUserProfile({ duty_status: newStatus }, selectedRole);
-    } catch (err) {
-      console.warn('Failed to update duty status', err);
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    updateDuty(newStatus);
   };
 
   const activeStatusCfg = dutyStatusConfig[currentProfile.duty_status as DutyStatus] || dutyStatusConfig.ON_DUTY;
@@ -138,7 +113,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               {/* Avatar with live duty status ring */}
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                  {currentProfile.avatar_initials || 'SS'}
+                  {currentProfile.avatar_initials || 'RV'}
                 </div>
                 <span
                   className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ring-1 ring-slate-100"
@@ -147,18 +122,16 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 />
               </div>
 
-              {/* Text metadata */}
+              {/* Text metadata — Explicit "Logged in as" role identity */}
               <div className="hidden sm:block text-left">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-semibold text-text-primary leading-tight truncate max-w-[130px]">
-                    {currentProfile.full_name.split(' ')[0]}
-                  </p>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-primary border border-blue-100">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Logged in</span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-primary border border-blue-100">
                     {currentProfile.role}
                   </span>
                 </div>
-                <p className="text-[10px] text-text-muted leading-tight truncate max-w-[130px]">
-                  {currentProfile.team_name ? currentProfile.team_name.split('-')[0] : 'Team Sixth Sense'}
+                <p className="text-xs font-semibold text-text-primary leading-tight truncate max-w-[140px]" title={currentProfile.full_name}>
+                  {currentProfile.full_name}
                 </p>
               </div>
 
@@ -184,7 +157,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-base shadow-md shadow-primary/20">
-                          {currentProfile.avatar_initials || 'SS'}
+                          {currentProfile.avatar_initials || 'RV'}
                         </div>
                         <div>
                           <h4 className="text-sm font-bold text-text-primary leading-snug">
@@ -210,7 +183,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       <div className="mt-2 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-white/80 border border-slate-200/70 text-slate-600">
                         <span className="flex items-center gap-1.5 font-medium">
                           <Radio className="w-3.5 h-3.5 text-primary" />
-                          Radio Callsign:
+                          Radio Designation:
                         </span>
                         <span className="font-mono font-bold text-slate-800 tracking-wider">
                           {currentProfile.callsign}
@@ -277,7 +250,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                         return (
                           <button
                             key={r.id}
-                            onClick={() => setSelectedRole(r.id)}
+                            onClick={() => switchRole(r.id)}
                             className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all ${
                               isSelected
                                 ? 'bg-primary text-white font-semibold shadow-sm'

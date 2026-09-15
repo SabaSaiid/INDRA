@@ -47,7 +47,7 @@ export default function LiveMapPage() {
       {/* Main Content Area */}
       <div
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[260px]'
+          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[280px]'
         }`}
       >
         <Topbar onMobileMenuOpen={openMobile} />
@@ -64,7 +64,7 @@ export default function LiveMapPage() {
               <div className="flex items-center gap-2 mb-1">
                 <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
                 <span className="text-xs font-mono font-semibold uppercase tracking-wider text-blue-300">
-                  Planetary Observation Console
+                  National Geospatial Observation Console
                 </span>
                 <span className="text-slate-600">•</span>
                 <span className="text-xs text-slate-400 font-mono">INSAT-3DR / MOSDAC / IMD Telemetry</span>

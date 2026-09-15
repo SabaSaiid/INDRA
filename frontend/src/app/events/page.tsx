@@ -104,7 +104,7 @@ export default function EventsPage() {
 
       <div
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[260px]'
+          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[280px]'
         }`}
       >
         <Topbar onMobileMenuOpen={openMobile} />

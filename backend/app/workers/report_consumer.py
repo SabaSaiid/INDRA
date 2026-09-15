@@ -23,6 +23,22 @@ def set_ws_manager(manager):
     _ws_manager = manager
 
 
+async def check_kafka_connection(bootstrap_servers: str, timeout: float = 1.5) -> bool:
+    """Checks if the Kafka/Redpanda broker port is open without raising library errors."""
+    try:
+        first_server = bootstrap_servers.split(",")[0].strip()
+        host, port_str = first_server.split(":")
+        _, writer = await asyncio.wait_for(
+            asyncio.open_connection(host, int(port_str)),
+            timeout=timeout,
+        )
+        writer.close()
+        await writer.wait_closed()
+        return True
+    except Exception:
+        return False
+
+
 async def start_report_consumer():
     """
     Long-running coroutine that consumes from Redpanda/Kafka topic
@@ -36,9 +52,23 @@ async def start_report_consumer():
 
     consumer: Optional[AIOKafkaConsumer] = None
     retry_delay = 5
+    kafka_was_offline = False
 
     while True:
         try:
+            # Check if broker is reachable before letting aiokafka attempt connection
+            is_alive = await check_kafka_connection(settings.KAFKA_BOOTSTRAP_SERVERS)
+            if not is_alive:
+                if not kafka_was_offline:
+                    logger.info(
+                        f"ℹ Kafka/Redpanda broker offline at {settings.KAFKA_BOOTSTRAP_SERVERS}. "
+                        "Background report consumer waiting (run './start.sh infra up' to start Docker services)."
+                    )
+                    kafka_was_offline = True
+                await asyncio.sleep(15)
+                continue
+
+            kafka_was_offline = False
             consumer = AIOKafkaConsumer(
                 settings.KAFKA_REPORTS_TOPIC,
                 bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,

@@ -119,6 +119,25 @@ export interface ApiEvent {
   timestamp: string;
 }
 
+export const fallbackApiEvents: ApiEvent[] = mapMarkers.map((m, idx) => ({
+  id: m.id,
+  event_code: `WX-EV-2823${1827 + idx}-A`,
+  eventType: m.eventType,
+  severity: m.severity,
+  confidence_score: m.confidence || Number((0.94 - idx * 0.02).toFixed(2)),
+  verification: m.verification,
+  review_status: m.verification === 'verified' ? 'AUTO_PUBLISHED' : 'PENDING_HUMAN_REVIEW',
+  quadrant: `${m.city} Central Sector`,
+  impact_radius_km: 5.0 + idx * 0.5,
+  lat: m.lat,
+  lng: m.lng,
+  city: m.city,
+  state: m.state,
+  imageGradient: 'linear-gradient(135deg, #2563EB, #1E3A8A)',
+  verified_at: new Date(Date.now() - idx * 3600000).toISOString(),
+  timestamp: new Date(Date.now() - idx * 3600000).toISOString(),
+}));
+
 export async function fetchEvents(
   params?: { severity?: string; time_range?: string; bbox?: string }
 ): Promise<ApiEvent[]> {
@@ -131,10 +150,16 @@ export async function fetchEvents(
     const url = `${API_BASE}/api/events${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) throw new Error('Empty events response');
+    return data;
   } catch (err) {
     console.warn('[INDRA] fetchEvents failed, using mock data:', err);
-    return [];
+    let filtered = fallbackApiEvents;
+    if (params?.severity) {
+      filtered = filtered.filter(e => e.severity.toLowerCase() === params.severity!.toLowerCase());
+    }
+    return filtered;
   }
 }
 
@@ -328,6 +353,15 @@ export async function updateUserProfile(data: Partial<UserProfile>, username: st
     return await res.json();
   } catch (err) {
     console.warn('[INDRA] updateUserProfile failed, updating local mock state:', err);
+    if (data.full_name) {
+      data.avatar_initials = data.full_name
+        .trim()
+        .split(/\s+/)
+        .map((p) => p[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+    }
     if (username && mockProfilesMap[username]) {
       Object.assign(mockProfilesMap[username], data);
       return mockProfilesMap[username];
