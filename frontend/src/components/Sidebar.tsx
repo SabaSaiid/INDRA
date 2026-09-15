@@ -31,10 +31,11 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-const sectionActionableBadges: Record<string, { label: string; variant: 'live' | 'critical' | 'neutral' }> = {
-  tactical: { label: '18 ACTIVE', variant: 'live' },
-  intelligence: { label: '4 CRIT', variant: 'critical' },
-  command: { label: 'ON DUTY', variant: 'neutral' },
+// Status badge per section header (counts only, high-contrast tactical styling)
+const sectionActionableBadges: Record<string, { label: string; variant: 'live' | 'alert' | 'neutral' }> = {
+  tactical: { label: '18 active', variant: 'live' },
+  intelligence: { label: '4 crit', variant: 'alert' },
+  command: { label: 'on duty', variant: 'neutral' },
 };
 
 export default function Sidebar({
@@ -46,7 +47,6 @@ export default function Sidebar({
   const pathname = usePathname();
   const { profile } = useOperatorProfile();
 
-  // Collapsible section state initialized consistently with SSR
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -73,11 +73,8 @@ export default function Sidebar({
     });
   };
 
-  // Active status matching (exact match for root '/', prefix for others)
   const isItemActive = (item: NavItem) => {
-    if (item.href === '/') {
-      return pathname === '/';
-    }
+    if (item.href === '/') return pathname === '/';
     return pathname.startsWith(item.href);
   };
 
@@ -85,7 +82,7 @@ export default function Sidebar({
     dutyStatusConfig[profile.duty_status as DutyStatus] ||
     dutyStatusConfig.ON_DUTY;
 
-  // Render a navigation item (used in both desktop and mobile drawer)
+  // ── Nav item renderer ───────────────────────────────────────────────────────
   const renderNavItem = (item: NavItem, isMobile = false) => {
     const isActive = isItemActive(item);
     const Icon = item.icon;
@@ -98,92 +95,92 @@ export default function Sidebar({
           onClick={isMobile ? onMobileClose : undefined}
           title={item.label}
           className={cn(
-            'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 outline-none',
+            'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 outline-none select-none',
             isCollapsedState ? 'justify-center px-2' : 'justify-between',
             isActive
-              ? 'bg-gradient-to-r from-blue-600/25 via-blue-500/15 to-transparent text-white border border-blue-500/30 shadow-[0_0_15px_rgba(37,99,235,0.15)]'
-              : 'text-slate-400 hover:text-slate-100 hover:bg-slate-850/60 border border-transparent'
+              ? 'text-white bg-white/[0.12] border border-white/[0.15] shadow-sm'
+              : 'text-slate-300 hover:text-white hover:bg-white/[0.08]'
           )}
           aria-current={isActive ? 'page' : undefined}
         >
-          {/* Active indicator bar on the left */}
+          {/* Terracotta active spine with glow */}
           {isActive && (
             <motion.div
               layoutId={isMobile ? 'mobile-sidebar-active-bar' : 'sidebar-active-bar'}
-              className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-cyan-400 shadow-[0_0_8px_#38bdf8]"
+              className="absolute left-0 top-1.5 bottom-1.5 w-[3.5px] rounded-r-full bg-[#E05D38] shadow-[0_0_10px_rgba(224,93,56,0.65)]"
               transition={{ type: 'spring', stiffness: 350, damping: 30 }}
             />
           )}
 
-          {/* Left section: Icon + Label */}
+          {/* Icon + label */}
           <div className="flex items-center gap-3 min-w-0 z-10">
             <div className="relative flex-shrink-0">
               <Icon
                 className={cn(
-                  'w-5 h-5 transition-transform duration-200 group-hover:scale-110',
-                  isActive ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'
+                  'w-5 h-5 transition-transform duration-200 group-hover:scale-105',
+                  isActive
+                    ? 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]'
+                    : 'text-slate-400 group-hover:text-white'
                 )}
               />
-
-              {/* Collapsed mode micro-badge dot */}
+              {/* Collapsed micro-badge dot */}
               {isCollapsedState && item.badge && (
                 <span
                   className={cn(
-                    'absolute -top-1 -right-1 w-2 h-2 rounded-full ring-2 ring-slate-950',
-                    item.badge.variant === 'live' && 'bg-emerald-400 animate-pulse',
-                    item.badge.variant === 'critical' && 'bg-rose-500 animate-pulse',
-                    item.badge.variant === 'warning' && 'bg-amber-400',
+                    'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ring-2 ring-[#182235]',
+                    item.badge.variant === 'live' && 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]',
+                    item.badge.variant === 'critical' && 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]',
+                    item.badge.variant === 'warning' && 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]',
                     item.badge.variant === 'neutral' && 'bg-slate-400'
                   )}
                 />
               )}
             </div>
 
-            {/* Label (hidden in collapsed mode) — with robust truncation */}
             {!isCollapsedState && (
               <span
                 title={item.label}
-                className="truncate block text-[13px] font-medium tracking-wide"
+                className={cn(
+                  'truncate block text-[13.5px]',
+                  isActive ? 'font-semibold text-white' : 'font-medium text-slate-200 group-hover:text-white'
+                )}
               >
                 {item.label}
               </span>
             )}
           </div>
 
-          {/* Right section (Expanded only): EXACTLY ONE Trailing Element */}
+          {/* Trailing — badge or shortcut */}
           {!isCollapsedState && (
             <div className="flex items-center gap-1.5 flex-shrink-0 z-10 ml-auto pl-1">
               {item.badge ? (
-                /* Priority 1: Status Badge */
                 <span
                   className={cn(
-                    'text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 leading-none shadow-sm',
-                    item.badge.variant === 'live' &&
-                      'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
-                    item.badge.variant === 'critical' &&
-                      'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse',
-                    item.badge.variant === 'warning' &&
-                      'bg-amber-500/20 text-amber-300 border border-amber-500/40',
-                    item.badge.variant === 'neutral' &&
-                      'bg-slate-800 text-slate-400 border border-slate-700'
+                    'text-[10px] font-semibold px-2 py-0.5 rounded leading-none border transition-colors',
+                    item.badge.variant === 'live'
+                      && 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.2)]',
+                    item.badge.variant === 'critical'
+                      && 'bg-rose-500/25 text-rose-200 border-rose-500/50 shadow-[0_0_8px_rgba(244,63,94,0.3)] animate-pulse',
+                    item.badge.variant === 'warning'
+                      && 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                    item.badge.variant === 'neutral'
+                      && 'bg-slate-700/60 text-slate-300 border-slate-600/50'
                   )}
                 >
-                  {item.badge.variant === 'live' && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                  )}
                   {item.badge.text}
                 </span>
               ) : item.shortcut ? (
-                /* Priority 2: Dimmed Shortcut on Row Hover */
-                <span className="text-[10px] font-mono text-slate-500 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800/80 opacity-50 group-hover:opacity-100 group-hover:text-slate-300 transition-opacity">
+                <kbd
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded text-slate-400 bg-white/[0.06] border border-white/10 group-hover:text-slate-200 group-hover:border-white/20 transition-all"
+                >
                   {item.shortcut}
-                </span>
+                </kbd>
               ) : null}
             </div>
           )}
         </Link>
 
-        {/* Floating tactical tooltip in collapsed mode */}
+        {/* Floating tooltip in collapsed mode */}
         {isCollapsedState && (
           <div
             className={cn(
@@ -202,37 +199,30 @@ export default function Sidebar({
                     {item.label}
                   </span>
                   {item.shortcut && (
-                    <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-mono text-slate-300 px-1.5 py-0.5 rounded bg-white/10 border border-white/15">
                       {item.shortcut}
                     </span>
                   )}
                 </div>
 
                 {item.description && (
-                  <p className="text-[11px] text-slate-400 leading-snug">
+                  <p className="text-[11px] leading-snug text-slate-300">
                     {item.description}
                   </p>
                 )}
 
                 {item.badge && (
-                  <div className="pt-1 border-t border-slate-800 flex items-center justify-between text-[10px]">
-                    <span className="text-slate-500 font-mono">STATUS</span>
+                  <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-400 font-medium">STATUS</span>
                     <span
                       className={cn(
-                        'font-semibold px-2 py-0.5 rounded-full flex items-center gap-1',
-                        item.badge.variant === 'live' &&
-                          'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
-                        item.badge.variant === 'critical' &&
-                          'bg-rose-500/20 text-rose-300 border border-rose-500/40',
-                        item.badge.variant === 'warning' &&
-                          'bg-amber-500/20 text-amber-300 border border-amber-500/40',
-                        item.badge.variant === 'neutral' &&
-                          'bg-slate-800 text-slate-400'
+                        'font-semibold px-1.5 py-0.5 rounded text-[9px]',
+                        item.badge.variant === 'live' && 'bg-emerald-500/20 text-emerald-300',
+                        item.badge.variant === 'critical' && 'bg-rose-500/25 text-rose-300',
+                        item.badge.variant === 'warning' && 'bg-amber-500/20 text-amber-300',
+                        item.badge.variant === 'neutral' && 'bg-slate-700 text-slate-300'
                       )}
                     >
-                      {item.badge.variant === 'live' && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      )}
                       {item.badge.text}
                     </span>
                   </div>
@@ -245,22 +235,23 @@ export default function Sidebar({
     );
   };
 
-  // Reusable Sidebar content body
+  // ── Sidebar body ────────────────────────────────────────────────────────────
   const sidebarBody = (isMobile = false) => {
     const isCollapsedState = collapsed && !isMobile;
 
     return (
       <div className="flex flex-col h-full select-none">
-        {/* Brand Header — Aligned tightly with Topbar (h-16) */}
+        {/* Brand header — aligns with topbar h-16 */}
         <div
           className={cn(
-            'flex items-center justify-between px-3.5 h-16 border-b border-slate-850/80 flex-shrink-0',
+            'flex items-center justify-between px-3.5 h-16 border-b border-white/10 flex-shrink-0',
             isCollapsedState && 'justify-center px-2'
           )}
         >
           <Link href="/" className="flex items-center gap-3 group min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400/30 group-hover:scale-105 transition-transform duration-200">
-              <CloudLightning className="w-4.5 h-4.5 text-white animate-pulse" />
+            {/* Brand mark — glowing terracotta lightning */}
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#B5482E]/25 border border-[#B5482E]/50 shadow-[0_0_12px_rgba(181,72,46,0.35)] group-hover:scale-105 group-hover:border-[#B5482E]/80 transition-all duration-200">
+              <CloudLightning className="w-5 h-5 text-[#F97316]" />
             </div>
 
             <AnimatePresence mode="wait">
@@ -273,17 +264,20 @@ export default function Sidebar({
                   className="overflow-hidden whitespace-nowrap min-w-0"
                 >
                   <div className="flex items-center gap-2">
-                    <h1 className="text-white font-black text-base tracking-wider font-mono">
+                    <h1
+                      className="text-white font-bold text-base tracking-wide"
+                      style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                    >
                       INDRA
                     </h1>
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-slate-300 border border-white/15">
                       v1.2
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                    <p className="text-emerald-400 font-mono text-[9px] font-semibold tracking-wide">
-                      IMD GRID: ONLINE
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse inline-block" />
+                    <p className="text-[10px] font-medium text-emerald-400">
+                      Grid live
                     </p>
                   </div>
                 </motion.div>
@@ -291,12 +285,14 @@ export default function Sidebar({
             </AnimatePresence>
           </Link>
 
-          {/* Anchored Sidebar Collapse Toggle (Desktop Header) */}
+          {/* Collapse toggle */}
           {!isMobile && (
             <button
               onClick={onToggle}
               className={cn(
-                'flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 border border-slate-800/80 transition-colors p-1.5',
+                'flex items-center justify-center rounded-md transition-colors p-1.5',
+                'text-slate-400 hover:text-white hover:bg-white/10',
+                'border border-white/15',
                 isCollapsedState ? 'hidden' : 'block'
               )}
               title="Collapse sidebar ( [ or ⌘B )"
@@ -307,13 +303,13 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Collapsed Expand Toggle Anchor */}
+        {/* Collapsed expand button */}
         {isCollapsedState && !isMobile && (
           <div className="pt-2 pb-1 px-2 flex justify-center flex-shrink-0">
             <button
               onClick={onToggle}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 border border-slate-800 transition-colors"
-              title="Expand sidebar ( [ or ⌘B )"
+              className="p-1.5 rounded-md transition-colors border border-white/15 text-slate-400 hover:text-white hover:bg-white/10"
+              title="Expand sidebar"
               aria-label="Expand sidebar"
             >
               <ChevronRight className="w-4 h-4" />
@@ -321,35 +317,36 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Quick Command shortcut trigger button */}
+        {/* Quick command button */}
         {!isCollapsedState && (
-          <div className="px-3 pt-2.5 pb-1 flex-shrink-0">
+          <div className="px-3 pt-3 pb-1 flex-shrink-0">
             <button
               onClick={() => {
                 const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
                 if (searchInput) searchInput.focus();
               }}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs transition-colors group"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group border border-white/15 bg-white/[0.07] hover:bg-white/[0.12] hover:border-white/30 text-slate-300 hover:text-white shadow-sm"
             >
-              <span className="flex items-center gap-2 font-mono text-[11px]">
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                Quick Command...
+              <span className="flex items-center gap-2 text-[11.5px] font-medium">
+                <Sparkles className="w-3.5 h-3.5 text-[#F97316] group-hover:scale-110 transition-transform" />
+                Quick command…
               </span>
-              <kbd className="text-[10px] font-mono bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700 text-slate-400 group-hover:text-slate-300">
+              <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 border border-white/20 text-slate-300">
                 ⌘K
               </kbd>
             </button>
           </div>
         )}
 
-        {/* Grouped Navigation — Independent Scrollable Region */}
+        {/* Navigation */}
         <div
           className={cn(
             'min-h-0 flex-1 px-3 py-2 space-y-3',
             isCollapsedState
               ? 'overflow-visible'
-              : 'overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent'
+              : 'overflow-y-auto overflow-x-hidden'
           )}
+          style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.15) transparent' }}
         >
           {navSections.map((section) => {
             const sectionItems = navItems.filter(
@@ -362,32 +359,31 @@ export default function Sidebar({
 
             return (
               <div key={section.id} className="space-y-1">
-                {/* Section Header with Collapsible Toggle & Actionable Badges */}
+                {/* Section header */}
                 {!isCollapsedState ? (
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full px-2 pt-2 pb-1 flex items-center justify-between text-[10px] font-mono tracking-widest text-slate-500 uppercase font-semibold hover:text-slate-300 transition-colors group/sec text-left"
+                    className="w-full px-2 pt-2.5 pb-1 flex items-center justify-between text-[11px] font-semibold tracking-wider uppercase text-slate-400 hover:text-slate-200 transition-colors group/sec text-left"
                     title={isSectionCollapsed ? `Expand ${section.label}` : `Collapse ${section.label}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <ChevronDown
                         className={cn(
-                          'w-3 h-3 text-slate-500 transition-transform duration-200 group-hover/sec:text-slate-300',
+                          'w-3.5 h-3.5 transition-transform duration-200 text-slate-400 group-hover/sec:text-slate-200',
                           isSectionCollapsed && '-rotate-90'
                         )}
                       />
-                      <span>{section.label}</span>
+                      <span className="transition-colors">
+                        {section.label}
+                      </span>
                     </div>
                     {badgeCfg && (
                       <span
                         className={cn(
-                          'text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full border leading-none',
-                          badgeCfg.variant === 'live' &&
-                            'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-                          badgeCfg.variant === 'critical' &&
-                            'bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse',
-                          badgeCfg.variant === 'neutral' &&
-                            'bg-slate-800 text-slate-400 border-slate-700'
+                          'text-[9px] font-semibold font-mono px-1.5 py-0.5 rounded border leading-none',
+                          badgeCfg.variant === 'live' && 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                          badgeCfg.variant === 'alert' && 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+                          badgeCfg.variant === 'neutral' && 'bg-slate-700/50 text-slate-300 border-slate-600/50'
                         )}
                       >
                         {badgeCfg.label}
@@ -395,10 +391,9 @@ export default function Sidebar({
                     )}
                   </button>
                 ) : (
-                  <div className="h-[1px] bg-slate-800/70 mx-2 my-2" />
+                  <div className="h-px mx-2 my-2 bg-white/10" />
                 )}
 
-                {/* Section Items */}
                 <AnimatePresence initial={false}>
                   {(!isSectionCollapsed || isCollapsedState) && (
                     <motion.div
@@ -417,53 +412,53 @@ export default function Sidebar({
           })}
         </div>
 
-        {/* Tactical Footer: Operator Identity & Readiness */}
+        {/* Footer — operator identity */}
         <div
           className={cn(
-            'p-3 border-t border-slate-850/85 bg-slate-950/60 mt-auto flex-shrink-0',
+            'p-3 border-t border-white/10 mt-auto flex-shrink-0 bg-black/25',
             isCollapsedState && 'px-2'
           )}
         >
-          {/* Sector Command Context Label */}
+          {/* Sector label */}
           {!isCollapsedState && (
             <div className="flex items-center justify-between px-1 mb-1.5">
-              <span className="text-[9px] font-mono font-semibold tracking-wider text-slate-500 uppercase">
-                Sector Command
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-400">
+                Operator
               </span>
-              <span className="text-[9px] font-mono text-cyan-400" suppressHydrationWarning>
+              <span
+                className="text-[10px] font-mono font-bold text-[#F97316] bg-[#B5482E]/15 border border-[#B5482E]/30 px-1.5 py-0.2 rounded"
+                suppressHydrationWarning
+              >
                 {profile.callsign}
               </span>
             </div>
           )}
 
-          {/* Operator Profile Card */}
+          {/* Profile card */}
           <div className="relative group">
             <Link
               href="/profile"
               onClick={isMobile ? onMobileClose : undefined}
               className={cn(
-                'flex items-center gap-3 p-2 rounded-xl transition-all duration-200 outline-none',
-                'bg-slate-900/60 hover:bg-slate-850 border border-slate-800/80 hover:border-slate-700',
+                'flex items-center gap-3 p-2 rounded-lg transition-all duration-200 outline-none border border-white/10 bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/20',
                 isCollapsedState && 'justify-center p-1.5'
               )}
             >
-              {/* Operator Avatar with Duty Dot */}
+              {/* Avatar with duty dot */}
               <div className="relative flex-shrink-0">
                 <div
-                  className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-cyan-600 text-white font-bold text-xs flex items-center justify-center shadow-md"
+                  className="w-8 h-8 rounded-md text-white font-bold text-xs flex items-center justify-center bg-[#B5482E]/40 border border-[#B5482E]/50 shadow-sm"
                   suppressHydrationWarning
                 >
                   {profile.avatar_initials}
                 </div>
                 <span
-                  className={cn(
-                    'absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-slate-950',
-                    activeStatusCfg.dot
-                  )}
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-[#182235]"
+                  style={{ backgroundColor: activeStatusCfg.dot }}
                 />
               </div>
 
-              {/* Operator Info (Expanded) */}
+              {/* Name (expanded) */}
               {!isCollapsedState && (
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
@@ -474,9 +469,9 @@ export default function Sidebar({
                     >
                       {profile.full_name}
                     </p>
-                    <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400 transition-colors shrink-0 ml-1" />
+                    <ExternalLink className="w-3 h-3 flex-shrink-0 ml-1 text-slate-400 group-hover:text-white transition-colors" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 truncate">
+                  <div className="flex items-center gap-1.5 text-[10.5px] text-slate-400 truncate">
                     <span className="truncate" suppressHydrationWarning>
                       {profile.team_name ? profile.team_name.split('—')[0].trim() : profile.agency}
                     </span>
@@ -485,7 +480,7 @@ export default function Sidebar({
               )}
             </Link>
 
-            {/* Collapsed Operator Tooltip */}
+            {/* Collapsed operator tooltip */}
             {isCollapsedState && (
               <div
                 className={cn(
@@ -501,18 +496,21 @@ export default function Sidebar({
                       <span className="font-semibold text-xs text-white" suppressHydrationWarning>
                         {profile.full_name}
                       </span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" suppressHydrationWarning>
+                      <span
+                        className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        suppressHydrationWarning
+                      >
                         {profile.duty_status.replace('_', ' ')}
                       </span>
                     </div>
-                    <p className="text-[10px] font-mono text-cyan-400" suppressHydrationWarning>
-                      Callsign: {profile.callsign}
+                    <p className="text-[10px] font-mono text-[#F97316] font-bold" suppressHydrationWarning>
+                      {profile.callsign}
                     </p>
-                    <p className="text-[10px] text-slate-400" suppressHydrationWarning>
+                    <p className="text-[10px] text-slate-300" suppressHydrationWarning>
                       {profile.team_name}
                     </p>
-                    <div className="pt-1.5 border-t border-slate-800 text-[10px] text-blue-400 font-medium flex items-center gap-1">
-                      <span>Click to open operator dossier</span>
+                    <div className="pt-1.5 border-t border-slate-800 text-[10px] text-slate-300 font-medium flex items-center gap-1">
+                      <span>Open operator dossier</span>
                       <ExternalLink className="w-2.5 h-2.5" />
                     </div>
                   </div>
@@ -521,20 +519,20 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* Operational Status Bar — Sober Disaster-Ops Phrasing */}
+          {/* Status bar */}
           {!isCollapsedState && (
-            <div className="mt-2.5 pt-2 border-t border-slate-850 flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span className="flex items-center gap-1.5 text-amber-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Sector Active
+            <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[10.5px] font-medium text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)] animate-pulse" />
+                <span className="text-amber-300 font-medium">Sector active</span>
               </span>
               <Link
                 href="/settings"
                 onClick={isMobile ? onMobileClose : undefined}
-                className="hover:text-cyan-300 transition-colors flex items-center gap-1 text-slate-400"
+                className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
                 title="Platform Settings (⌘,)"
               >
-                <Settings className="w-3 h-3 hover:rotate-45 transition-transform" />
+                <Settings className="w-3.5 h-3.5 hover:rotate-45 transition-transform" />
                 <span>Settings</span>
               </Link>
             </div>
@@ -546,7 +544,7 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Desktop Persistent Tactical Sidebar (280px expanded for ample breathing room) */}
+      {/* Desktop sidebar */}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? 72 : 280 }}
@@ -554,13 +552,17 @@ export default function Sidebar({
         className={cn(
           'fixed left-0 top-0 h-screen z-40',
           'hidden md:flex flex-col',
-          'bg-slate-950/95 backdrop-blur-xl border-r border-slate-850'
+          'border-r'
         )}
+        style={{
+          background: 'linear-gradient(180deg, #182235 0%, #111827 100%)',
+          borderColor: 'rgba(255, 255, 255, 0.10)',
+        }}
       >
         {sidebarBody(false)}
       </motion.aside>
 
-      {/* Mobile Slide-in Drawer */}
+      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -568,7 +570,7 @@ export default function Sidebar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+              className="fixed inset-0 z-40 md:hidden bg-black/60 backdrop-blur-sm"
               onClick={onMobileClose}
             />
             <motion.aside
@@ -576,11 +578,15 @@ export default function Sidebar({
               animate={{ x: 0 }}
               exit={{ x: -290 }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="fixed left-0 top-0 h-screen w-[290px] z-50 md:hidden bg-slate-950 border-r border-slate-800 shadow-2xl"
+              className="fixed left-0 top-0 h-screen w-[290px] z-50 md:hidden border-r"
+              style={{
+                background: 'linear-gradient(180deg, #182235 0%, #111827 100%)',
+                borderColor: 'rgba(255, 255, 255, 0.10)',
+              }}
             >
               <button
                 onClick={onMobileClose}
-                className="absolute right-3 top-4 w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                className="absolute right-3 top-4 w-8 h-8 rounded-lg border border-white/15 bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
                 aria-label="Close menu"
               >
                 <X className="w-4 h-4" />

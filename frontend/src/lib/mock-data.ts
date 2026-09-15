@@ -365,7 +365,7 @@ export const recentEvents: RecentEvent[] = [
     severity: 'critical',
     verification: 'verified',
     timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-    imageGradient: 'linear-gradient(135deg, #2563EB, #1E3A8A)',
+    imageGradient: 'linear-gradient(135deg, #8C2F26, #5C1A14)',
   },
   {
     id: 'ev-2',
@@ -375,7 +375,7 @@ export const recentEvents: RecentEvent[] = [
     severity: 'high',
     verification: 'under-review',
     timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-    imageGradient: 'linear-gradient(135deg, #F59E0B, #92400E)',
+    imageGradient: 'linear-gradient(135deg, #B8873A, #8A611E)',
   },
   {
     id: 'ev-3',
@@ -385,7 +385,7 @@ export const recentEvents: RecentEvent[] = [
     severity: 'moderate',
     verification: 'verified',
     timestamp: new Date(now.getTime() - 5 * 60 * 60 * 1000),
-    imageGradient: 'linear-gradient(135deg, #0EA5E9, #4338CA)',
+    imageGradient: 'linear-gradient(135deg, #4A6670, #2D4A54)',
   },
   {
     id: 'ev-4',
@@ -395,7 +395,7 @@ export const recentEvents: RecentEvent[] = [
     severity: 'low',
     verification: 'verified',
     timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000),
-    imageGradient: 'linear-gradient(135deg, #94A3B8, #334155)',
+    imageGradient: 'linear-gradient(135deg, #7A8599, #4A5568)',
   },
   {
     id: 'ev-5',
@@ -405,7 +405,7 @@ export const recentEvents: RecentEvent[] = [
     severity: 'high',
     verification: 'under-review',
     timestamp: new Date(now.getTime() - 8 * 60 * 60 * 1000),
-    imageGradient: 'linear-gradient(135deg, #EF4444, #C2410C)',
+    imageGradient: 'linear-gradient(135deg, #B8873A, #8A611E)',
   },
 ];
 
@@ -419,19 +419,19 @@ export interface DistributionItem {
 }
 
 export const eventDistribution: DistributionItem[] = [
-  { name: 'Rainfall', value: 14, count: 14, color: '#3B82F6' },
-  { name: 'Flood', value: 8, count: 8, color: '#F59E0B' },
-  { name: 'Thunderstorm', value: 6, count: 6, color: '#8B5CF6' },
-  { name: 'Strong Winds', value: 5, count: 5, color: '#2563EB' },
-  { name: 'Fog', value: 3, count: 3, color: '#64748B' },
-  { name: 'Others', value: 1, count: 1, color: '#94A3B8' },
+  { name: 'Rainfall', value: 14, count: 14, color: '#4A6670' },
+  { name: 'Flood', value: 8, count: 8, color: '#8C2F26' },
+  { name: 'Thunderstorm', value: 6, count: 6, color: '#7A5C8A' },
+  { name: 'Strong Winds', value: 5, count: 5, color: '#26314A' },
+  { name: 'Fog', value: 3, count: 3, color: '#7A8599' },
+  { name: 'Others', value: 1, count: 1, color: '#B0A898' },
 ];
 
 export const eventSeverityDistribution: DistributionItem[] = [
-  { name: 'Critical', value: 4, count: 4, color: '#EF4444' },
-  { name: 'High', value: 8, count: 8, color: '#F59E0B' },
-  { name: 'Moderate', value: 15, count: 15, color: '#3B82F6' },
-  { name: 'Advisory', value: 10, count: 10, color: '#10B981' },
+  { name: 'Critical', value: 4, count: 4, color: '#8C2F26' },
+  { name: 'High', value: 8, count: 8, color: '#B8873A' },
+  { name: 'Moderate', value: 15, count: 15, color: '#4A6670' },
+  { name: 'Advisory', value: 10, count: 10, color: '#4C7A5B' },
 ];
 
 
@@ -525,23 +525,24 @@ export const liveFeedItems: FeedItem[] = [
 
 // ─── Severity Config (shared lookup) ─────────────────────────────────────────
 
+// Low Pressure severity palette — muted earth tones
 export const severityConfig: Record<SeverityLevel, { label: string; color: string; bg: string; textColor: string }> = {
-  critical: { label: 'Critical', color: '#EF4444', bg: '#FEE2E2', textColor: '#991B1B' },
-  high: { label: 'High', color: '#F59E0B', bg: '#FEF3C7', textColor: '#92400E' },
-  moderate: { label: 'Moderate', color: '#3B82F6', bg: '#DBEAFE', textColor: '#1E40AF' },
-  low: { label: 'Low', color: '#64748B', bg: '#F1F5F9', textColor: '#334155' },
+  critical: { label: 'Critical', color: '#8C2F26', bg: '#F5E8E7', textColor: '#6D1F18' },
+  high: { label: 'High', color: '#B8873A', bg: '#FBF2E4', textColor: '#8A611E' },
+  moderate: { label: 'Moderate', color: '#4A6670', bg: '#E6EFF1', textColor: '#374E57' },
+  low: { label: 'Low', color: '#6B7280', bg: '#F3F4F6', textColor: '#4B5563' },
 };
 
 export const verificationConfig: Record<VerificationStatus, { label: string; color: string; bg: string; textColor: string; icon: string }> = {
-  verified: { label: 'Verified', color: '#10B981', bg: '#D1FAE5', textColor: '#065F46', icon: '✓' },
-  'under-review': { label: 'Under Review', color: '#F59E0B', bg: '#FEF3C7', textColor: '#92400E', icon: '○' },
+  verified: { label: 'Verified', color: '#4C7A5B', bg: '#E7F2EC', textColor: '#3A5E46', icon: '✓' },
+  'under-review': { label: 'Under review', color: '#B8873A', bg: '#FBF2E4', textColor: '#8A611E', icon: '○' },
 };
 
 export const feedSourceConfig: Record<FeedSourceType, { color: string; bg: string }> = {
-  citizen: { color: '#2563EB', bg: '#EFF6FF' },
-  social: { color: '#0F172A', bg: '#F1F5F9' },
-  imd: { color: '#F59E0B', bg: '#FEF3C7' },
-  news: { color: '#EF4444', bg: '#FEE2E2' },
+  citizen: { color: '#26314A', bg: '#ECEEF3' },
+  social: { color: '#4A5568', bg: '#F3F4F6' },
+  imd: { color: '#B8873A', bg: '#FBF2E4' },
+  news: { color: '#8C2F26', bg: '#F5E8E7' },
 };
 
 // ─── Team & Profile Types & Configuration ─────────────────────────────────────

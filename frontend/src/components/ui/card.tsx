@@ -20,7 +20,7 @@ export function Card({ children, className, hover = true, padding = true }: Card
         whileHover="hover"
         variants={cardHover}
         className={cn(
-          'bg-white rounded-2xl border border-slate-100 shadow-card',
+          'bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card',
           padding && 'p-5',
           className
         )}
@@ -33,7 +33,7 @@ export function Card({ children, className, hover = true, padding = true }: Card
   return (
     <div
       className={cn(
-        'bg-white rounded-2xl border border-slate-100 shadow-card',
+        'bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card',
         padding && 'p-5',
         className
       )}
@@ -54,9 +54,9 @@ export function CardHeader({ title, subtitle, action, className }: CardHeaderPro
   return (
     <div className={cn('flex items-center justify-between mb-4', className)}>
       <div>
-        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+        <h3 className="text-sm font-semibold text-ink">{title}</h3>
         {subtitle && (
-          <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
+          <p className="text-xs text-ink-3 mt-0.5">{subtitle}</p>
         )}
       </div>
       {action && <div>{action}</div>}

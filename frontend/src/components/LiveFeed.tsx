@@ -11,13 +11,14 @@ import {
   type FeedItem,
 } from '@/lib/mock-data';
 import { fetchRecentFeed } from '@/lib/api';
-import { ArrowRight, User, Share2, CloudSun, Newspaper } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
-const sourceIcons: Record<FeedSourceType, React.ComponentType<{ className?: string }>> = {
-  citizen: User,
-  social: Share2,
-  imd: CloudSun,
-  news: Newspaper,
+// Source label abbreviation
+const sourceAbbr: Record<FeedSourceType, string> = {
+  citizen: 'CTZN',
+  social:  'SOCI',
+  imd:     'IMD',
+  news:    'NEWS',
 };
 
 export default function LiveFeed() {
@@ -83,10 +84,14 @@ export default function LiveFeed() {
     >
       <Card hover={false} className="h-full">
         <CardHeader
-          title="Live Reports Feed"
+          title={
+            <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              Live Reports
+            </span>
+          }
           action={
-            <button className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-hover transition-colors">
-              View All
+            <button className="flex items-center gap-1 text-xs font-medium text-[#7A8599] hover:text-ink transition-colors">
+              View all
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           }
@@ -96,41 +101,45 @@ export default function LiveFeed() {
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="space-y-0 custom-scrollbar overflow-y-auto"
+          className="custom-scrollbar overflow-y-auto"
           style={{ maxHeight: '220px' }}
         >
           {feedItems.map((item) => {
             const source = (item.source || 'news') as FeedSourceType;
-            const Icon = sourceIcons[source] || Newspaper;
             const sourceStyle = feedSourceConfig[source] || feedSourceConfig.news;
+            const abbr = sourceAbbr[source] ?? 'LOG';
 
             return (
               <motion.div
                 key={item.id}
                 variants={listItemSlideIn}
-                className="flex items-start gap-3 py-2.5 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 rounded-lg px-1 transition-colors"
+                className="flex items-start gap-2.5 py-2.5 border-b border-[#F0EBE0] last:border-0 px-1 transition-colors hover:bg-[#F7F3EA] rounded"
               >
-                {/* Source icon */}
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: sourceStyle.bg }}
+                {/* Source tag in JetBrains Mono */}
+                <span
+                  className="text-[10px] font-medium mt-0.5 flex-shrink-0 tabular-nums"
+                  style={{
+                    fontFamily: 'JetBrains Mono, monospace',
+                    color: sourceStyle.color,
+                  }}
                 >
-                  <span style={{ color: sourceStyle.color }}>
-                    <Icon className="w-4 h-4" />
-                  </span>
-                </div>
+                  {abbr}
+                </span>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-text-primary">
+                  <div className="flex items-baseline gap-2 mb-0.5">
+                    <span className="text-xs font-semibold text-ink">
                       {item.sourceLabel}
                     </span>
-                    <span className="text-[10px] text-text-muted tabular-nums">
+                    <span
+                      className="text-[10px] text-[#B0A898] tabular-nums"
+                      style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                    >
                       {item.time}
                     </span>
                   </div>
-                  <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">
+                  <p className="text-xs text-[#4A5568] leading-relaxed line-clamp-2">
                     {item.message}
                   </p>
                 </div>

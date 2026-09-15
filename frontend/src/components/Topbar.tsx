@@ -51,7 +51,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Keyboard shortcut listener: Cmd+, or Ctrl+, for quick settings HUD
+  // Keyboard shortcut: Cmd+, for settings
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
@@ -75,26 +75,27 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
       variants={fadeIn}
       initial="hidden"
       animate="visible"
-      className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100"
+      className="sticky top-0 z-40 border-b border-[#E8E2D4]"
+      style={{ background: 'rgba(247, 243, 234, 0.95)', backdropFilter: 'blur(16px)' }}
     >
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Mobile menu button */}
         <button
           onClick={onMobileMenuOpen}
-          className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
+          className="md:hidden p-2 rounded-md hover:bg-[#F0EBE0] transition-colors"
           aria-label="Open menu"
         >
-          <Menu className="w-5 h-5 text-slate-600" />
+          <Menu className="w-5 h-5 text-ink-2" />
         </button>
 
         {/* Search */}
         <div className="flex-1 max-w-xl mx-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0A898]" />
             <input
               type="text"
-              placeholder="Search location, event or report..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-text-primary placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              placeholder="Search location, event or report…"
+              className="w-full h-10 pl-10 pr-4 rounded-md bg-[#F0EBE0] border border-[#E8E2D4] text-sm text-ink placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all"
               aria-label="Search"
             />
           </div>
@@ -102,73 +103,78 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
 
         {/* Right section */}
         <div className="flex items-center gap-3">
-          {/* Live System Status Pill */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-medium text-slate-600">National Grid Active</span>
+          {/* Grid status — quiet */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E7F2EC] border border-[#C5DECE]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4C7A5B] animate-pulse" />
+            <span className="text-xs font-medium text-[#3A5E46]">Grid live</span>
           </div>
 
           {/* Notifications */}
           <button
-            className="relative p-2 rounded-xl hover:bg-slate-50 transition-colors"
+            className="relative p-2 rounded-md hover:bg-[#F0EBE0] transition-colors"
             aria-label="Notifications"
           >
-            <Bell className="w-5 h-5 text-slate-500" />
-            {/* Red dot badge */}
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-critical" />
+            <Bell className="w-5 h-5 text-[#7A8599]" />
+            {/* Alert dot */}
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#8C2F26]" />
           </button>
 
-          {/* Settings Trigger Button */}
+          {/* Settings trigger */}
           <button
             onClick={() => setSettingsOpen(true)}
-            className="relative p-2 rounded-xl hover:bg-slate-50 transition-colors text-slate-500 hover:text-slate-800 group"
+            className="relative p-2 rounded-md hover:bg-[#F0EBE0] transition-colors text-[#7A8599] hover:text-ink group"
             aria-label="Platform Settings"
             title="System Settings & HUD Preferences (⌘,)"
           >
             <Settings className="w-5 h-5 transition-transform duration-300 group-hover:rotate-45" />
           </button>
 
-          {/* Interactive User & Team Profile Menu */}
+          {/* Profile menu */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2.5 pl-2.5 pr-2 py-1.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200"
+              className="flex items-center gap-2.5 pl-2.5 pr-2 py-1.5 rounded-md hover:bg-[#F0EBE0] transition-colors border border-transparent hover:border-[#E8E2D4]"
               aria-expanded={profileOpen}
               aria-haspopup="true"
             >
-              {/* Avatar with live duty status ring */}
+              {/* Avatar */}
               <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center text-white text-xs font-bold shadow-sm" suppressHydrationWarning>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#F7F3EA] text-xs font-semibold shadow-sm"
+                  style={{ background: '#26314A' }}
+                  suppressHydrationWarning
+                >
                   {currentProfile.avatar_initials || 'RV'}
                 </div>
                 <span
-                  className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ring-1 ring-slate-100"
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#F7F3EA]"
                   style={{ backgroundColor: activeStatusCfg.dot }}
                   title={`Status: ${activeStatusCfg.label}`}
                 />
               </div>
 
-              {/* Text metadata — Explicit "Logged in as" role identity */}
+              {/* Name metadata */}
               <div className="hidden sm:block text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Logged in</span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-primary border border-blue-100" suppressHydrationWarning>
-                    {currentProfile.role}
-                  </span>
-                </div>
-                <p className="text-xs font-semibold text-text-primary leading-tight truncate max-w-[140px]" title={currentProfile.full_name} suppressHydrationWarning>
+                <p
+                  className="text-xs font-semibold text-ink leading-tight truncate max-w-[140px]"
+                  title={currentProfile.full_name}
+                  suppressHydrationWarning
+                >
                   {currentProfile.full_name}
+                </p>
+                <p className="text-[10px] text-[#7A8599]" suppressHydrationWarning>
+                  {currentProfile.role}
                 </p>
               </div>
 
               <ChevronDown
-                className={`w-3.5 h-3.5 text-slate-400 hidden sm:block transition-transform duration-200 ${
+                className={`w-3.5 h-3.5 text-[#7A8599] hidden sm:block transition-transform duration-200 ${
                   profileOpen ? 'rotate-180' : ''
                 }`}
               />
             </button>
 
-            {/* Profile Dropdown Popover */}
+            {/* Profile dropdown */}
             <AnimatePresence>
               {profileOpen && (
                 <motion.div
@@ -176,27 +182,31 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 divide-y divide-slate-100"
+                  className="absolute right-0 mt-2 w-80 sm:w-96 rounded-lg border border-[#E8E2D4] overflow-hidden z-50 divide-y divide-[#E8E2D4]"
+                  style={{ background: '#FDFAF5', boxShadow: '0 8px 24px rgba(30,42,59,0.12)' }}
                 >
-                  {/* Dropdown Header: Operator Card */}
-                  <div className="p-4 bg-gradient-to-br from-slate-50 via-white to-blue-50/40">
+                  {/* Header: Operator card */}
+                  <div className="p-4" style={{ background: '#F7F3EA' }}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-base shadow-md shadow-primary/20">
+                        <div
+                          className="w-11 h-11 rounded-lg flex items-center justify-center font-semibold text-base"
+                          style={{ background: '#26314A', color: '#F7F3EA' }}
+                        >
                           {currentProfile.avatar_initials || 'RV'}
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-text-primary leading-snug">
+                          <h4 className="text-sm font-semibold text-ink leading-snug">
                             {currentProfile.full_name}
                           </h4>
-                          <p className="text-xs text-text-secondary">
+                          <p className="text-xs text-[#7A8599]">
                             {currentProfile.email || 'operator@sih-indra.gov.in'}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200/80 text-slate-700">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[#E8E2D4] text-[#4A5568]">
                               {currentProfile.operator_id}
                             </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
                               {currentProfile.agency}
                             </span>
                           </div>
@@ -204,14 +214,17 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       </div>
                     </div>
 
-                    {/* Radio Call Sign & Active Team */}
+                    {/* Radio callsign */}
                     {currentProfile.callsign && (
-                      <div className="mt-2 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-white/80 border border-slate-200/70 text-slate-600">
+                      <div className="mt-2 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-md bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <Radio className="w-3.5 h-3.5 text-primary" />
+                          <Radio className="w-3.5 h-3.5 text-[#7A8599]" />
                           Radio Designation:
                         </span>
-                        <span className="font-mono font-bold text-slate-800 tracking-wider">
+                        <span
+                          className="font-semibold text-ink tracking-wider"
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        >
                           {currentProfile.callsign}
                         </span>
                       </div>
@@ -219,13 +232,13 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                   </div>
 
                   {/* Duty Status Selector */}
-                  <div className="p-3.5 bg-white">
+                  <div className="p-3.5">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-400">
+                      <span className="text-[11px] font-semibold tracking-wider uppercase text-[#7A8599]">
                         Operational Status
                       </span>
                       {isUpdatingStatus && (
-                        <span className="text-[10px] text-primary animate-pulse">Syncing...</span>
+                        <span className="text-[10px] text-[#B5482E] animate-pulse">Syncing…</span>
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -236,52 +249,54 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                           <button
                             key={st}
                             onClick={() => handleDutyChange(st)}
-                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
                               isSelected
-                                ? 'bg-slate-900 text-white shadow-sm'
-                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                ? 'text-[#F7F3EA]'
+                                : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
                             }`}
+                            style={isSelected ? { background: '#26314A' } : {}}
                           >
                             <span className="flex items-center gap-1.5">
                               <span
                                 className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: isSelected ? '#FFFFFF' : cfg.dot }}
+                                style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }}
                               />
                               {cfg.label}
                             </span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                            {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Demo Role Switcher (RBAC Tester for SIH Jury) */}
-                  <div className="p-3.5 bg-slate-50/70">
+                  {/* Role Switcher (RBAC Demo) */}
+                  <div className="p-3.5" style={{ background: '#F7F3EA' }}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 flex items-center gap-1">
-                        <Shield className="w-3 h-3 text-slate-400" />
+                      <span className="text-[11px] font-semibold tracking-wider uppercase text-[#7A8599] flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-[#7A8599]" />
                         Switch Role (RBAC Demo)
                       </span>
-                      <span className="text-[10px] text-slate-400">SIH Testing</span>
+                      <span className="text-[10px] text-[#B0A898]">SIH Testing</span>
                     </div>
                     <div className="grid grid-cols-4 gap-1">
                       {[
-                        { id: 'commander', label: 'Cmdr', badge: 'CMD' },
-                        { id: 'analyst', label: 'Analyst', badge: 'ANL' },
-                        { id: 'admin', label: 'Admin', badge: 'ADM' },
-                        { id: 'citizen', label: 'Citizen', badge: 'CIT' },
+                        { id: 'commander', label: 'Cmdr'  },
+                        { id: 'analyst',   label: 'Analyst' },
+                        { id: 'admin',     label: 'Admin'  },
+                        { id: 'citizen',   label: 'Citizen' },
                       ].map((r) => {
                         const isSelected = selectedRole === r.id;
                         return (
                           <button
                             key={r.id}
                             onClick={() => switchRole(r.id)}
-                            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                            className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
                               isSelected
-                                ? 'bg-primary text-white font-semibold shadow-sm'
-                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                ? 'text-[#F7F3EA] font-semibold'
+                                : 'bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
                             }`}
+                            style={isSelected ? { background: '#B5482E' } : {}}
                           >
                             {r.label}
                           </button>
@@ -290,42 +305,42 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     </div>
                   </div>
 
-                  {/* Navigation Links */}
+                  {/* Navigation links */}
                   <div className="p-2 space-y-0.5">
                     <Link
                       href="/profile"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                      className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
-                        <User className="w-4 h-4 text-slate-400" />
+                        <User className="w-4 h-4 text-[#7A8599]" />
                         My Profile &amp; Dispatch Settings
                       </span>
-                      <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-slate-400" />
+                      <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-[#B0A898]" />
                     </Link>
 
                     <Link
                       href="/teams"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                      className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
-                        <Users className="w-4 h-4 text-slate-400" />
+                        <Users className="w-4 h-4 text-[#7A8599]" />
                         Disaster Response Units &amp; Teams
                       </span>
-                      <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-slate-400" />
+                      <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-[#B0A898]" />
                     </Link>
 
                     <Link
                       href="/teams?tab=hackathon"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                      className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
-                        <Award className="w-4 h-4 text-amber-500" />
+                        <Award className="w-4 h-4 text-[#B8873A]" />
                         Team Sixth Sense (SIH Roster)
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-200">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FBF2E4] text-[#8A611E] font-semibold border border-[#D4B87A]">
                         SIH 2026
                       </span>
                     </Link>
@@ -335,22 +350,25 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                         setProfileOpen(false);
                         setSettingsOpen(true);
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors text-left"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
                     >
                       <span className="flex items-center gap-2.5">
-                        <Settings className="w-4 h-4 text-slate-400" />
+                        <Settings className="w-4 h-4 text-[#7A8599]" />
                         Platform Settings &amp; HUD Config
                       </span>
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                      <span
+                        className="text-[10px] text-[#7A8599] bg-[#E8E2D4] px-1.5 py-0.5 rounded border border-[#D8D0C4]"
+                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                      >
                         ⌘,
                       </span>
                     </button>
                   </div>
 
                   {/* Footer */}
-                  <div className="px-4 py-2.5 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="px-4 py-2.5 flex items-center justify-between text-[11px] text-[#7A8599]" style={{ background: '#F7F3EA' }}>
                     <span>Problem Statement: SIH26069</span>
-                    <span className="font-semibold text-slate-700">Team Sixth Sense</span>
+                    <span className="font-semibold text-[#4A5568]">Team Sixth Sense</span>
                   </div>
                 </motion.div>
               )}
@@ -360,7 +378,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
       </div>
     </motion.header>
 
-    {/* Quick Slide-Over Settings Drawer */}
+    {/* Settings Drawer */}
     <SettingsDrawer
       isOpen={settingsOpen}
       onClose={() => setSettingsOpen(false)}

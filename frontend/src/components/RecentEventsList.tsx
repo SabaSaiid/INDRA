@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   recentEvents,
   severityConfig,
@@ -13,7 +12,15 @@ import {
 } from '@/lib/mock-data';
 import { fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import { getRelativeTime } from '@/lib/utils';
-import { ArrowRight, MapPin, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+
+// Spine color per severity (Low Pressure palette)
+const spineColor: Record<string, string> = {
+  critical: '#8C2F26',
+  high:     '#B8873A',
+  moderate: '#4A6670',
+  low:      '#9CA3AF',
+};
 
 export default function RecentEventsList({
   onSelectEvent,
@@ -48,10 +55,14 @@ export default function RecentEventsList({
     >
       <Card hover={false} className="h-full">
         <CardHeader
-          title="Recent Weather Events"
+          title={
+            <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              Recent Events
+            </span>
+          }
           action={
-            <button className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-hover transition-colors">
-              View All
+            <button className="flex items-center gap-1 text-xs font-medium text-[#7A8599] hover:text-ink transition-colors">
+              View all
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           }
@@ -61,68 +72,66 @@ export default function RecentEventsList({
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="space-y-1 custom-scrollbar overflow-y-auto"
+          className="space-y-0 custom-scrollbar overflow-y-auto"
           style={{ maxHeight: '380px' }}
         >
-          {events.map((event, index) => {
+          {events.map((event) => {
             const severity = severityConfig[event.severity] || severityConfig.moderate;
             const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
             const isSelected = selectedEventId === event.id;
+            const spine = spineColor[event.severity] ?? '#9CA3AF';
 
             return (
               <motion.div
                 key={event.id}
                 variants={listItemSlideIn}
                 onClick={() => onSelectEvent?.(event)}
-                className={`flex items-center gap-3 py-3 border-b border-slate-50 last:border-0 rounded-xl px-2 transition-all cursor-pointer ${
+                className={`flex items-start gap-3 py-3 border-b border-[#F0EBE0] last:border-0 pl-3 pr-2 rounded-md transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-blue-50/80 ring-1 ring-blue-400/50 shadow-xs'
-                    : 'hover:bg-slate-50/80'
+                    ? 'bg-[#F0EBE0]'
+                    : 'hover:bg-[#F7F3EA]'
                 }`}
+                style={{
+                  borderLeft: `3px solid ${spine}`,
+                }}
               >
-                {/* Thumbnail */}
-                <div
-                  className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center"
-                  style={{ background: event.imageGradient }}
-                >
-                  <MapPin className="w-5 h-5 text-white/80" />
-                </div>
-
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-semibold text-text-primary truncate">
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    {/* Place name in Fraunces */}
+                    <p
+                      className="text-sm font-medium text-ink truncate"
+                      style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                    >
                       {event.city}, {event.state}
                     </p>
-                    <Badge variant={event.severity} animated={index === 0}>
-                      {severity.label}
-                    </Badge>
+                    {/* Verification word — no pill */}
+                    <span
+                      className="text-[10px] font-medium flex-shrink-0"
+                      style={{ color: verification.color }}
+                    >
+                      {verification.label}
+                    </span>
                   </div>
-                  <p className="text-xs text-text-secondary">{event.eventType}</p>
+
+                  <p className="text-xs text-[#7A8599]">{event.eventType}</p>
+
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[10px] text-text-muted flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                    {/* Severity word label */}
+                    <span
+                      className="text-[10px] font-semibold"
+                      style={{ color: severity.color }}
+                    >
+                      {severity.label}
+                    </span>
+                    {/* Time in JetBrains Mono */}
+                    <span
+                      className="text-[10px] text-[#B0A898]"
+                      style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                    >
                       {getRelativeTime(event.timestamp)}
                     </span>
                   </div>
-                </div>
-
-                {/* Verification */}
-                <div className="flex-shrink-0">
-                  <span
-                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: verification.bg,
-                      color: verification.textColor,
-                    }}
-                  >
-                    {event.verification === 'verified' ? (
-                      <CheckCircle2 className="w-3 h-3" />
-                    ) : (
-                      <Clock className="w-3 h-3" />
-                    )}
-                    {verification.label}
-                  </span>
                 </div>
               </motion.div>
             );

@@ -2,27 +2,12 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { fadeSlideUp } from '@/lib/motion';
-import { cn, formatNumber } from '@/lib/utils';
+import { formatNumber } from '@/lib/utils';
 import { KpiItem } from '@/lib/mock-data';
-import {
-  FileBarChart2,
-  ShieldCheck,
-  AlertTriangle,
-  Users,
-  ArrowUpRight,
-} from 'lucide-react';
 
-const iconMap = {
-  reports: FileBarChart2,
-  verified: ShieldCheck,
-  critical: AlertTriangle,
-  citizens: Users,
-};
+// ─── Animated counter hook ────────────────────────────────────────────────────
 
-// ─── Animated counter hook ───────────────────────────────────────────────────
-
-function useCountUp(target: number, duration: number = 800) {
+function useCountUp(target: number, duration: number = 900) {
   const [count, setCount] = useState(0);
   const startRef = useRef<number | null>(null);
   const frameRef = useRef<number>(0);
@@ -55,64 +40,62 @@ function useCountUp(target: number, duration: number = 800) {
   return count;
 }
 
-// ─── KPI Card Component ─────────────────────────────────────────────────────
+// ─── Single reading in the strip ─────────────────────────────────────────────
+
+interface ReadingProps {
+  item: KpiItem;
+  index: number;
+}
+
+function Reading({ item, index }: ReadingProps) {
+  const animatedValue = useCountUp(item.value, 900 + index * 80);
+  const isPositive = item.delta > 0;
+
+  return (
+    <motion.div
+      className="instrument-reading"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06, duration: 0.35, ease: 'easeOut' }}
+    >
+      {/* Instrument value */}
+      <p
+        className="text-2xl font-semibold text-ink tabular-nums leading-none"
+        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+      >
+        {formatNumber(animatedValue)}
+      </p>
+
+      {/* Label */}
+      <p className="text-xs text-[#7A8599] mt-1 leading-tight">
+        {item.label}
+      </p>
+
+      {/* Delta */}
+      <p className="text-[10px] tabular-nums mt-1.5" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+        <span
+          className={isPositive ? 'text-[#4C7A5B]' : 'text-[#8C2F26]'}
+        >
+          {isPositive ? '↑' : '↓'}{Math.abs(item.delta)}%
+        </span>
+        <span className="text-[#B0A898] ml-1">{item.deltaLabel}</span>
+      </p>
+    </motion.div>
+  );
+}
+
+// ─── Instrument Strip ─────────────────────────────────────────────────────────
 
 interface KpiCardProps {
   item: KpiItem;
   index: number;
 }
 
+/**
+ * KpiCard is kept for API compatibility but renders as part of the
+ * InstrumentStrip layout via CSS grid (`.instrument-strip` class on the
+ * parent in page.tsx). Each KpiCard IS one instrument reading cell.
+ */
 export default function KpiCard({ item, index }: KpiCardProps) {
-  const Icon = iconMap[item.icon];
-  const animatedValue = useCountUp(item.value, 800 + index * 100);
-
-  return (
-    <motion.div
-      variants={fadeSlideUp}
-      initial="hidden"
-      animate="visible"
-      transition={{ delay: index * 0.07 }}
-      whileHover={{
-        y: -4,
-        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04)',
-        transition: { duration: 0.25, ease: 'easeOut' },
-      }}
-      className="bg-white rounded-2xl border border-slate-100 shadow-card p-5 cursor-default"
-    >
-      <div className="flex items-start gap-3">
-        {/* Icon chip */}
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: item.bgColor }}
-        >
-          <span style={{ color: item.color }}>
-            <Icon className="w-5 h-5" />
-          </span>
-        </div>
-
-        {/* Value + label */}
-        <div className="flex-1 min-w-0">
-          <p className="text-2xl font-bold text-text-primary tabular-nums leading-none">
-            {formatNumber(animatedValue)}
-          </p>
-          <p className="text-xs text-text-secondary mt-1.5">{item.label}</p>
-        </div>
-
-        {/* Delta badge */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 + index * 0.07, duration: 0.3 }}
-          className={cn(
-            'flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium',
-            item.delta > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-          )}
-        >
-          <ArrowUpRight className="w-3 h-3" />
-          <span>{item.delta}%</span>
-        </motion.div>
-      </div>
-      <p className="text-[10px] text-text-muted mt-1 text-right">({item.deltaLabel})</p>
-    </motion.div>
-  );
+  return <Reading item={item} index={index} />;
 }

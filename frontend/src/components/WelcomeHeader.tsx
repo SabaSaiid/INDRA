@@ -14,7 +14,7 @@ export default function WelcomeHeader() {
       const timeStr = now.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
-        second: undefined,
+        second: '2-digit',
         timeZone: 'Asia/Kolkata',
         hour12: false,
       });
@@ -25,7 +25,7 @@ export default function WelcomeHeader() {
         year: 'numeric',
         timeZone: 'Asia/Kolkata',
       });
-      setCurrentTime(timeStr + ' IST');
+      setCurrentTime(timeStr);
       setCurrentDate(dateStr);
     };
 
@@ -39,33 +39,38 @@ export default function WelcomeHeader() {
       variants={fadeSlideUp}
       initial="hidden"
       animate="visible"
-      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+      className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 pb-4 border-b border-[#E8E2D4]"
     >
-      {/* Left */}
+      {/* Left — Situation heading */}
       <div>
-        <h2 className="text-2xl font-bold text-text-primary">
-          Welcome to INDRA
-        </h2>
-        <p className="text-sm text-text-secondary mt-0.5">
-          Real-time insights. Verified information. A safer India.
+        <p className="text-[11px] font-medium text-[#7A8599] uppercase tracking-[0.1em] mb-1">
+          National Weather Intelligence
         </p>
+        <h2
+          className="text-3xl font-semibold text-ink leading-tight"
+          style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+        >
+          Situation Overview
+        </h2>
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-4">
-        {/* System Online pill */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
+      {/* Right — Quiet status strip */}
+      <div className="flex items-center gap-5">
+        {/* Live indicator */}
+        <div className="flex items-center gap-1.5">
           <span className="status-dot" />
-          <span className="text-xs font-medium text-emerald-700">System Online</span>
+          <span className="text-xs font-medium text-[#4C7A5B]">Grid live</span>
         </div>
 
-        {/* Clock */}
+        {/* Date + IST clock */}
         <div className="text-right hidden sm:block">
-          <p className="text-sm font-medium text-text-primary tabular-nums">
-            {currentDate}
-          </p>
-          <p className="text-xs text-text-muted tabular-nums">
-            {currentTime}
+          <p className="text-xs text-[#7A8599]">{currentDate}</p>
+          <p
+            className="text-sm font-medium text-ink tabular-nums"
+            style={{ fontFamily: 'JetBrains Mono, monospace' }}
+            suppressHydrationWarning
+          >
+            {currentTime} <span className="text-[10px] text-[#7A8599]">IST</span>
           </p>
         </div>
       </div>

@@ -51,7 +51,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-paper">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -84,12 +84,8 @@ export default function Home() {
                 {/* Skeleton header */}
                 <div className="h-16 mb-6" />
 
-                {/* Skeleton KPIs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-                  {[...Array(4)].map((_, i) => (
-                    <KpiCardSkeleton key={i} />
-                  ))}
-                </div>
+                {/* Skeleton KPIs — single instrument strip */}
+                <KpiCardSkeleton />
 
                 {/* Skeleton map + list */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
@@ -118,17 +114,12 @@ export default function Home() {
                 {/* Welcome Header */}
                 <WelcomeHeader />
 
-                {/* KPI Row */}
-                <motion.div
-                  variants={staggerContainer}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6"
-                >
+                {/* Instrument Strip — connected 4-reading bar */}
+                <div className="instrument-strip">
                   {liveKpiData.map((item, index) => (
                     <KpiCard key={item.id} item={item} index={index} />
                   ))}
-                </motion.div>
+                </div>
 
                 {/* Map + Recent Events */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">

@@ -14,14 +14,15 @@ interface BadgeProps {
   animated?: boolean;
 }
 
+// Low Pressure palette — muted, not neon
 const variantStyles: Record<BadgeVariant, string> = {
-  critical: 'bg-red-50 text-red-700 border-red-200',
-  high: 'bg-amber-50 text-amber-700 border-amber-200',
-  moderate: 'bg-blue-50 text-blue-700 border-blue-200',
-  low: 'bg-slate-100 text-slate-600 border-slate-200',
-  verified: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'under-review': 'bg-amber-50 text-amber-600 border-amber-200',
-  default: 'bg-slate-100 text-slate-600 border-slate-200',
+  critical:       'bg-[#F5E8E7] text-[#8C2F26] border-[#D4A9A6]',
+  high:           'bg-[#FBF2E4] text-[#8A611E] border-[#D4B87A]',
+  moderate:       'bg-[#E6EFF1] text-[#4A6670] border-[#A4BDC5]',
+  low:            'bg-[#F3F4F6] text-[#4B5563] border-[#D1D5DB]',
+  verified:       'bg-[#E7F2EC] text-[#3A5E46] border-[#9EC4AE]',
+  'under-review': 'bg-[#FBF2E4] text-[#8A611E] border-[#D4B87A]',
+  default:        'bg-[#F3F4F6] text-[#4B5563] border-[#D1D5DB]',
 };
 
 export function Badge({ variant = 'default', children, className, animated = true }: BadgeProps) {
@@ -34,7 +35,7 @@ export function Badge({ variant = 'default', children, className, animated = tru
     <Component
       {...animationProps}
       className={cn(
-        'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border',
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border',
         variantStyles[variant],
         className
       )}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,22 +6,61 @@
 
 @layer base {
   :root {
-    --background: #F8FAFC;
-    --card: #FFFFFF;
-    --sidebar-bg: #0B1220;
-    --sidebar-bg-light: #101A2E;
-    --primary: #2563EB;
-    --primary-hover: #1D4ED8;
-    --critical: #EF4444;
-    --high: #F59E0B;
-    --moderate: #3B82F6;
-    --low: #64748B;
-    --verified: #10B981;
-    --text-primary: #0F172A;
-    --text-secondary: #64748B;
-    --text-muted: #94A3B8;
-    --border: #E2E8F0;
-    --radius: 1rem;
+    /* ── Ground & Surface ─────────────────────────────── */
+    --paper:        #F7F3EA;   /* warm paper ground          */
+    --paper-2:      #F0EBE0;   /* slightly deeper warm tint  */
+    --paper-3:      #E8E2D4;   /* card border / dividers     */
+
+    /* ── Sidebar Rail ────────────────────────────────── */
+    --slate:        #26314A;   /* storm-slate rail bg        */
+    --slate-2:      #2E3D56;   /* rail border / hover        */
+    --slate-3:      #374D6A;   /* active item lift           */
+    --slate-text:   rgba(255,255,255,0.72);
+    --slate-text-2: rgba(255,255,255,0.48);
+    --slate-text-3: rgba(255,255,255,0.30);
+
+    /* ── Ink (typography) ────────────────────────────── */
+    --ink:   #1E2A3B;   /* primary body text  */
+    --ink-2: #4A5568;   /* secondary text     */
+    --ink-3: #7A8599;   /* muted / meta text  */
+
+    /* ── Accent — used sparingly ─────────────────────── */
+    --terracotta:       #B5482E;
+    --terracotta-light: rgba(181, 72, 46, 0.12);
+
+    /* ── Semantic Status (muted, not neon) ───────────── */
+    --s-critical:       #8C2F26;
+    --s-critical-bg:    #F5E8E7;
+    --s-high:           #B8873A;
+    --s-high-bg:        #FBF2E4;
+    --s-moderate:       #4A6670;
+    --s-moderate-bg:    #E6EFF1;
+    --s-low:            #6B7280;
+    --s-low-bg:         #F3F4F6;
+    --s-verified:       #4C7A5B;
+    --s-verified-bg:    #E7F2EC;
+    --s-review:         #B8873A;
+    --s-review-bg:      #FBF2E4;
+
+    /* ── Legacy vars (mapped to new tokens for compat) ── */
+    --background:     var(--paper);
+    --card:           #FDFAF5;
+    --primary:        var(--terracotta);
+    --primary-hover:  #A03D25;
+    --critical:       var(--s-critical);
+    --high:           var(--s-high);
+    --moderate:       var(--s-moderate);
+    --low:            var(--s-low);
+    --verified:       var(--s-verified);
+    --text-primary:   var(--ink);
+    --text-secondary: var(--ink-2);
+    --text-muted:     var(--ink-3);
+    --border:         var(--paper-3);
+    --radius:         0.5rem;
+
+    /* ── Sidebar legacy for Sidebar.tsx refs ───────────  */
+    --sidebar-bg:       var(--slate);
+    --sidebar-bg-light: var(--slate-2);
   }
 
   * {
@@ -37,434 +76,364 @@
   }
 
   body {
-    background-color: var(--background);
-    color: var(--text-primary);
-    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: 'Public Sans', system-ui, sans-serif;
   }
 }
 
 @layer components {
+  /* ── Type utilities ──────────────────────────────────── */
+
+  /* Fraunces for headlines and place names */
+  .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+
+  /* JetBrains Mono for instrument readings — numbers, times, IDs */
+  .font-instrument {
+    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  }
+
   /* Tabular numbers for KPI displays */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Skeleton shimmer */
+  /* ── Skeleton shimmer ────────────────────────────────── */
   .skeleton {
     position: relative;
     overflow: hidden;
-    background-color: #E2E8F0;
+    background-color: var(--paper-2);
     border-radius: var(--radius);
   }
 
   .skeleton::after {
     content: '';
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     transform: translateX(-100%);
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0.5),
       transparent
     );
     animation: shimmer 2s infinite;
   }
 
-  /* Pulsing ring for critical map markers */
+  /* ── Pulsing ring for critical map markers ───────────── */
   .pulse-ring {
     position: absolute;
     border-radius: 50%;
     animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
   }
 
-  .pulse-ring-critical {
-    background-color: rgba(239, 68, 68, 0.3);
-  }
+  .pulse-ring-critical { background-color: rgba(140, 47, 38, 0.25); }
+  .pulse-ring-high     { background-color: rgba(184, 135, 58, 0.25); }
 
-  .pulse-ring-high {
-    background-color: rgba(245, 158, 11, 0.3);
-  }
-
-  /* Scrollbar styling */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  /* ── Scrollbar styling ───────────────────────────────── */
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #CBD5E1;
+    background-color: var(--paper-3);
     border-radius: 20px;
   }
-
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #94A3B8;
+    background-color: var(--ink-3);
   }
 
-  /* Map container */
+  /* ── Map containers ──────────────────────────────────── */
   .leaflet-container {
     border-radius: var(--radius);
     z-index: 1;
   }
 
-  /* MapLibre Tactical HUD Popup */
-  .indra-tactical-popup .maplibregl-popup-content {
-    background: transparent !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border-radius: 12px !important;
-  }
-  .indra-tactical-popup .maplibregl-popup-tip {
-    border-top-color: rgba(10, 15, 28, 0.96) !important;
-  }
-
-  /* Status dot pulse */
+  /* ── Status dot pulse ────────────────────────────────── */
   .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: var(--verified);
+    background-color: var(--s-verified);
     animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  /* Highlight flash for new feed items */
+  /* ── Live feed incoming flash (terracotta wash) ──────── */
   .highlight-flash {
-    animation: highlight 1.5s ease-out;
+    animation: highlight 1.8s ease-out;
+  }
+
+  /* ── Severity spine bars (for event list rows) ───────── */
+  .spine-critical { border-left: 3px solid var(--s-critical); }
+  .spine-high     { border-left: 3px solid var(--s-high); }
+  .spine-moderate { border-left: 3px solid var(--s-moderate); }
+  .spine-low      { border-left: 3px solid var(--s-low); }
+
+  /* ── Instrument Strip ────────────────────────────────── */
+  .instrument-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background-color: #FDFAF5;
+    border: 1px solid var(--paper-3);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(30, 42, 59, 0.06);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+
+  .instrument-reading {
+    position: relative;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .instrument-reading + .instrument-reading::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 1px;
+    background-color: var(--paper-3);
+  }
+
+  @media (max-width: 767px) {
+    .instrument-strip {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .instrument-reading:nth-child(3)::before,
+    .instrument-reading:nth-child(2)::before {
+      display: none;
+    }
+    .instrument-reading:nth-child(3),
+    .instrument-reading:nth-child(4) {
+      border-top: 1px solid var(--paper-3);
+    }
+  }
+
+  @media (max-width: 479px) {
+    .instrument-strip { grid-template-columns: 1fr 1fr; }
   }
 }
 
+/* ── Keyframes ─────────────────────────────────────────── */
+
 @keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
+  100% { transform: translateX(100%); }
 }
 
 @keyframes pulse-ring {
-  0% {
-    transform: scale(0.8);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 @keyframes pulse-dot {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
 }
 
 @keyframes highlight {
-  0% {
-    background-color: rgba(37, 99, 235, 0.1);
-  }
-  100% {
-    background-color: transparent;
-  }
+  0%   { background-color: rgba(181, 72, 46, 0.07); }
+  100% { background-color: transparent; }
 }
 
-/* Reduced motion */
+/* ── Reduced motion ────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-
-  .pulse-ring {
-    animation: none !important;
-  }
-
-  .status-dot {
-    animation: none !important;
-  }
-
-  .skeleton::after {
-    animation: none !important;
-  }
+  .pulse-ring, .status-dot, .skeleton::after { animation: none !important; }
 }
 
-/* Leaflet popup overrides */
+/* ── Leaflet popup overrides ───────────────────────────── */
 .leaflet-popup-content-wrapper {
-  border-radius: 12px !important;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(30, 42, 59, 0.12) !important;
   padding: 0 !important;
 }
 
 .leaflet-popup-content {
   margin: 12px 16px !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Public Sans', sans-serif !important;
   font-size: 13px !important;
   line-height: 1.5 !important;
 }
 
-.leaflet-popup-tip {
-  box-shadow: none !important;
-}
+.leaflet-popup-tip { box-shadow: none !important; }
 
-/* MapLibre GL 3D Globe & Popup overrides */
-.maplibregl-canvas-container {
-  width: 100%;
-  height: 100%;
-}
-
-.maplibregl-popup {
-  z-index: 1000;
-}
+/* ── MapLibre GL overrides ─────────────────────────────── */
+.maplibregl-canvas-container { width: 100%; height: 100%; }
+.maplibregl-popup { z-index: 1000; }
 
 .maplibregl-popup-content {
-  border-radius: 14px !important;
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 20px rgba(30, 42, 59, 0.14) !important;
   padding: 12px 16px !important;
-  background: rgba(255, 255, 255, 0.98) !important;
-  backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(226, 232, 240, 0.9) !important;
-  font-family: inherit !important;
+  background: rgba(247, 243, 234, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--paper-3) !important;
+  font-family: 'Public Sans', sans-serif !important;
 }
 
 .maplibregl-popup-close-button {
-  font-size: 18px !important;
-  color: #64748b !important;
+  font-size: 16px !important;
+  color: var(--ink-3) !important;
   padding: 4px 8px !important;
-  border-radius: 6px !important;
+  border-radius: 4px !important;
   outline: none !important;
 }
 .maplibregl-popup-close-button:hover {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
+  background-color: var(--paper-2) !important;
+  color: var(--ink) !important;
 }
 
 .maplibregl-popup-tip {
-  border-top-color: rgba(255, 255, 255, 0.98) !important;
+  border-top-color: rgba(247, 243, 234, 0.98) !important;
 }
 
 .maplibregl-ctrl-group {
-  border-radius: 10px !important;
+  border-radius: 6px !important;
   overflow: hidden;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
-  border: 1px solid #e2e8f0 !important;
-  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 2px 8px rgba(30, 42, 59, 0.10) !important;
+  border: 1px solid var(--paper-3) !important;
+  background: rgba(247, 243, 234, 0.95) !important;
   backdrop-filter: blur(8px) !important;
 }
 
-/* Space starfield background for Globe mode */
+/* ── Globe space background (unchanged — dark layer for 3D globe) */
 .globe-space-bg {
   background: radial-gradient(ellipse at center, #0a1128 0%, #030712 70%, #000000 100%);
 }
 
-/* Tactical Glassmorphic MapLibre HUD Popup */
+/* ── Tactical HUD Popup (map — dark layer stays dark) ────── */
 .indra-tactical-popup .maplibregl-popup-content {
-  background: rgba(15, 23, 42, 0.92) !important;
+  background: rgba(30, 42, 59, 0.95) !important;
   backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.2) !important;
+  border: 1px solid rgba(181, 72, 46, 0.3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
   padding: 8px 12px !important;
-  color: #f8fafc !important;
+  color: #F7F3EA !important;
   max-width: 250px;
 }
 
 .indra-tactical-popup .maplibregl-popup-tip {
-  border-top-color: rgba(15, 23, 42, 0.92) !important;
+  border-top-color: rgba(30, 42, 59, 0.95) !important;
 }
 
-.indra-hud-popup {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.indra-hud-popup { display: flex; flex-direction: column; gap: 4px; }
 
 .indra-hud-popup .hud-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
 
 .indra-hud-popup .hud-badge {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  padding: 1px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+  padding: 1px 6px; border-radius: 3px; text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .indra-hud-popup .hud-critical {
-  background: rgba(239, 68, 68, 0.25);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.5);
+  background: rgba(140, 47, 38, 0.3); color: #E07060;
+  border: 1px solid rgba(140, 47, 38, 0.5);
 }
-
 .indra-hud-popup .hud-high {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.5);
+  background: rgba(184, 135, 58, 0.3); color: #D4A855;
+  border: 1px solid rgba(184, 135, 58, 0.5);
 }
-
 .indra-hud-popup .hud-moderate {
-  background: rgba(59, 130, 246, 0.25);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.5);
+  background: rgba(74, 102, 112, 0.3); color: #82AABA;
+  border: 1px solid rgba(74, 102, 112, 0.5);
 }
-
 .indra-hud-popup .hud-low {
-  background: rgba(100, 116, 139, 0.25);
-  color: #94a3b8;
-  border: 1px solid rgba(100, 116, 139, 0.5);
+  background: rgba(107, 114, 128, 0.2); color: #9CA3AF;
+  border: 1px solid rgba(107, 114, 128, 0.4);
 }
 
 .indra-hud-popup .hud-time {
-  font-size: 10px;
-  color: #94a3b8;
+  font-size: 10px; color: rgba(247,243,234,0.5);
+  font-family: 'JetBrains Mono', monospace;
 }
-
 .indra-hud-popup .hud-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #ffffff;
-  margin-top: 2px;
-  line-height: 1.3;
+  font-size: 12px; font-weight: 600; color: #F7F3EA;
+  margin-top: 2px; line-height: 1.3;
+  font-family: 'Fraunces', serif;
 }
-
 .indra-hud-popup .hud-location {
-  font-size: 11px;
-  color: #cbd5e1;
+  font-size: 11px; color: rgba(247,243,234,0.65);
 }
-
 .indra-hud-popup .hud-action {
-  font-size: 10px;
-  color: #38bdf8;
-  margin-top: 2px;
-  background: rgba(56, 189, 248, 0.1);
-  padding: 3px 6px;
-  border-radius: 4px;
-  border-left: 2px solid #38bdf8;
+  font-size: 10px; color: #D4A855; margin-top: 2px;
+  background: rgba(184, 135, 58, 0.12); padding: 3px 6px;
+  border-radius: 3px; border-left: 2px solid #D4A855;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* ==========================================================================
-   Tactical GIS Map Engine: Layer Stacking, LOD Scaling & Cluster Badges
-   ========================================================================== */
+/* ── Tactical GIS Map Engine (unchanged for map layer) ───── */
+.indra-map-isolated { isolation: isolate; position: relative; z-index: 0; }
 
-/* Isolated Map Stacking Context (guarantees zero z-index leaks to outer layout) */
-.indra-map-isolated {
-  isolation: isolate;
-  position: relative;
-  z-index: 0;
-}
-
-/* Base Tactical Marker Container */
 .indra-tactical-marker {
-  cursor: pointer;
-  user-select: none;
-  pointer-events: auto;
-  will-change: transform, opacity;
-  transition: opacity 0.2s ease;
+  cursor: pointer; user-select: none; pointer-events: auto;
+  will-change: transform, opacity; transition: opacity 0.2s ease;
 }
 
-/* Marker Inner Container */
 .indra-marker-inner {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform-origin: bottom center;
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; transform-origin: bottom center;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Tier 1: Micro-Radar Pip (Zoom < 2.4 — Space Orbit) */
 .indra-marker-pip {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid #ffffff;
-  box-shadow: 0 0 8px currentColor, 0 1px 4px rgba(0, 0, 0, 0.8);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  position: relative;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 1.5px solid rgba(247, 243, 234, 0.9);
+  box-shadow: 0 0 6px currentColor, 0 1px 4px rgba(0, 0, 0, 0.6);
+  transition: transform 0.18s ease, box-shadow 0.18s ease; position: relative;
 }
-
 .indra-marker-pip:hover {
   transform: scale(1.6);
-  box-shadow: 0 0 14px currentColor, 0 2px 8px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 0 12px currentColor, 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 
-/* Proximity Cluster Badge */
 .indra-marker-cluster {
-  display: flex;
-  align-items: center;
-  gap: 4.5px;
-  padding: 3px 8px 3px 6px;
-  border-radius: 9999px;
-  background: rgba(15, 23, 42, 0.94);
-  backdrop-filter: blur(10px);
-  border: 1.5px solid;
-  color: #ffffff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 800;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 14px currentColor;
-  cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  display: flex; align-items: center; gap: 4.5px;
+  padding: 3px 8px 3px 6px; border-radius: 9999px;
+  background: rgba(30, 42, 59, 0.96); backdrop-filter: blur(8px);
+  border: 1.5px solid; color: #F7F3EA;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 12px currentColor;
+  cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
 }
-
 .indra-marker-cluster:hover {
-  transform: scale(1.15) translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75), 0 0 20px currentColor;
+  transform: scale(1.12) translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 18px currentColor;
 }
 
 .indra-marker-cluster-pulse {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  animation: pulse-dot 1.2s infinite;
+  width: 6px; height: 6px; border-radius: 50%; animation: pulse-dot 1.2s infinite;
 }
 
-/* Smart City Label Pill */
 .indra-city-pill {
-  margin-top: 3px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background-color: rgba(15, 23, 42, 0.92);
-  backdrop-filter: blur(6px);
-  color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
-  pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  margin-top: 3px; padding: 1px 6px; border-radius: 3px;
+  background-color: rgba(30, 42, 59, 0.95); backdrop-filter: blur(6px);
+  color: #F7F3EA; border: 1px solid rgba(247, 243, 234, 0.15);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+  font-family: 'Public Sans', sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); white-space: nowrap;
+  pointer-events: none; transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .indra-city-pill-hidden {
-  opacity: 0 !important;
-  pointer-events: none;
-  visibility: hidden;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
+  opacity: 0 !important; pointer-events: none; visibility: hidden;
+  height: 0 !important; margin: 0 !important; padding: 0 !important; border: none !important;
 }
 
-/* When parent marker is hovered, force reveal the hidden pill smoothly */
 .indra-tactical-marker:hover .indra-city-pill-hidden {
-  opacity: 1 !important;
-  visibility: visible !important;
-  height: auto !important;
-  margin-top: 3px !important;
-  padding: 1px 6px !important;
-  border: 1px solid rgba(56, 189, 248, 0.6) !important;
+  opacity: 1 !important; visibility: visible !important; height: auto !important;
+  margin-top: 3px !important; padding: 1px 6px !important;
+  border: 1px solid rgba(181, 72, 46, 0.5) !important;
 }
-
