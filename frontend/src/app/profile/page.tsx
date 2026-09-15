@@ -124,7 +124,7 @@ export default function ProfilePage() {
 
       <div
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[260px]'
+          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[280px]'
         }`}
       >
         <Topbar onMobileMenuOpen={openMobile} />
@@ -294,7 +294,7 @@ export default function ProfilePage() {
                     <div>
                       <span className="text-slate-400 block text-[11px]">Radio Callsign</span>
                       <span className="font-mono font-bold text-slate-800">
-                        {profile.callsign || 'EAGLE-LEADER'}
+                        {profile.callsign || 'NDRF-CMD-09'}
                       </span>
                     </div>
                   </div>

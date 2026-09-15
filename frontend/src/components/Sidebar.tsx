@@ -8,19 +8,18 @@ import { cn } from '@/lib/utils';
 import {
   navItems,
   navSections,
-  mockUserProfile,
   dutyStatusConfig,
   type NavItem,
   type DutyStatus,
 } from '@/lib/mock-data';
+import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import {
   CloudLightning,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   ExternalLink,
-  Command,
-  Radio,
   Sparkles,
 } from 'lucide-react';
 
@@ -31,6 +30,12 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
+const sectionActionableBadges: Record<string, { label: string; variant: 'live' | 'critical' | 'neutral' }> = {
+  tactical: { label: '18 ACTIVE', variant: 'live' },
+  intelligence: { label: '4 CRIT', variant: 'critical' },
+  command: { label: 'ON DUTY', variant: 'neutral' },
+};
+
 export default function Sidebar({
   collapsed,
   onToggle,
@@ -38,7 +43,33 @@ export default function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const { profile } = useOperatorProfile();
+
+  // Collapsible section state initialized from localStorage
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved: Record<string, boolean> = {};
+      ['tactical', 'intelligence', 'command'].forEach((id) => {
+        saved[id] = localStorage.getItem(`indra_nav_section_${id}`) === 'true';
+      });
+      return saved;
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleSection = (sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const nextVal = !prev[sectionId];
+      try {
+        localStorage.setItem(`indra_nav_section_${sectionId}`, String(nextVal));
+      } catch {
+        // ignore storage errors
+      }
+      return { ...prev, [sectionId]: nextVal };
+    });
+  };
 
   // Active status matching (exact match for root '/', prefix for others)
   const isItemActive = (item: NavItem) => {
@@ -49,7 +80,7 @@ export default function Sidebar({
   };
 
   const activeStatusCfg =
-    dutyStatusConfig[mockUserProfile.duty_status as DutyStatus] ||
+    dutyStatusConfig[profile.duty_status as DutyStatus] ||
     dutyStatusConfig.ON_DUTY;
 
   // Render a navigation item (used in both desktop and mobile drawer)
@@ -63,8 +94,7 @@ export default function Sidebar({
         <Link
           href={item.href}
           onClick={isMobile ? onMobileClose : undefined}
-          onMouseEnter={() => setHoveredItemId(item.id)}
-          onMouseLeave={() => setHoveredItemId(null)}
+          title={item.label}
           className={cn(
             'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 outline-none',
             isCollapsedState ? 'justify-center px-2' : 'justify-between',
@@ -107,18 +137,22 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* Label (hidden in collapsed mode) */}
+            {/* Label (hidden in collapsed mode) — with robust truncation */}
             {!isCollapsedState && (
-              <span className="truncate text-[13px] font-medium tracking-wide">
+              <span
+                title={item.label}
+                className="truncate block text-[13px] font-medium tracking-wide"
+              >
                 {item.label}
               </span>
             )}
           </div>
 
-          {/* Right section (Expanded only): Badges & Shortcuts */}
+          {/* Right section (Expanded only): EXACTLY ONE Trailing Element */}
           {!isCollapsedState && (
             <div className="flex items-center gap-1.5 flex-shrink-0 z-10 ml-auto pl-1">
               {item.badge ? (
+                /* Priority 1: Status Badge */
                 <span
                   className={cn(
                     'text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 leading-none shadow-sm',
@@ -138,7 +172,8 @@ export default function Sidebar({
                   {item.badge.text}
                 </span>
               ) : item.shortcut ? (
-                <span className="hidden xl:inline-block text-[10px] font-mono text-slate-500 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800">
+                /* Priority 2: Dimmed Shortcut on Row Hover */
+                <span className="text-[10px] font-mono text-slate-500 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800/80 opacity-50 group-hover:opacity-100 group-hover:text-slate-300 transition-opacity">
                   {item.shortcut}
                 </span>
               ) : null}
@@ -157,7 +192,6 @@ export default function Sidebar({
             )}
           >
             <div className="bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 rounded-xl p-3 shadow-2xl min-w-[210px] max-w-[260px] relative">
-              {/* Caret arrow pointing left */}
               <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-slate-900 border-l border-b border-slate-700/80 transform rotate-45" />
 
               <div className="relative z-10 space-y-1.5">
@@ -215,16 +249,16 @@ export default function Sidebar({
 
     return (
       <div className="flex flex-col h-full select-none">
-        {/* Brand Header */}
+        {/* Brand Header — Aligned tightly with Topbar (h-16) */}
         <div
           className={cn(
-            'flex items-center gap-3 px-4 pt-5 pb-4 border-b border-slate-850/80 flex-shrink-0',
+            'flex items-center justify-between px-3.5 h-16 border-b border-slate-850/80 flex-shrink-0',
             isCollapsedState && 'justify-center px-2'
           )}
         >
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400/30 group-hover:scale-105 transition-transform duration-200">
-              <CloudLightning className="w-5 h-5 text-white animate-pulse" />
+          <Link href="/" className="flex items-center gap-3 group min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400/30 group-hover:scale-105 transition-transform duration-200">
+              <CloudLightning className="w-4.5 h-4.5 text-white animate-pulse" />
             </div>
 
             <AnimatePresence mode="wait">
@@ -234,10 +268,10 @@ export default function Sidebar({
                   animate={{ opacity: 1, width: 'auto' }}
                   exit={{ opacity: 0, width: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="overflow-hidden whitespace-nowrap"
+                  className="overflow-hidden whitespace-nowrap min-w-0"
                 >
                   <div className="flex items-center gap-2">
-                    <h1 className="text-white font-black text-lg tracking-wider font-mono">
+                    <h1 className="text-white font-black text-base tracking-wider font-mono">
                       INDRA
                     </h1>
                     <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
@@ -254,14 +288,42 @@ export default function Sidebar({
               )}
             </AnimatePresence>
           </Link>
+
+          {/* Anchored Sidebar Collapse Toggle (Desktop Header) */}
+          {!isMobile && (
+            <button
+              onClick={onToggle}
+              className={cn(
+                'flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 border border-slate-800/80 transition-colors p-1.5',
+                isCollapsedState ? 'hidden' : 'block'
+              )}
+              title="Collapse sidebar ( [ or ⌘B )"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
         </div>
+
+        {/* Collapsed Expand Toggle Anchor */}
+        {isCollapsedState && !isMobile && (
+          <div className="pt-2 pb-1 px-2 flex justify-center flex-shrink-0">
+            <button
+              onClick={onToggle}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 border border-slate-800 transition-colors"
+              title="Expand sidebar ( [ or ⌘B )"
+              aria-label="Expand sidebar"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Quick Command shortcut trigger button */}
         {!isCollapsedState && (
-          <div className="px-3 pt-3 flex-shrink-0">
+          <div className="px-3 pt-2.5 pb-1 flex-shrink-0">
             <button
               onClick={() => {
-                // Focus search or trigger palette
                 const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
                 if (searchInput) searchInput.focus();
               }}
@@ -278,13 +340,13 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Grouped Navigation */}
+        {/* Grouped Navigation — Independent Scrollable Region */}
         <div
           className={cn(
-            'flex-1 px-3 py-3 space-y-4',
+            'min-h-0 flex-1 px-3 py-2 space-y-3',
             isCollapsedState
               ? 'overflow-visible'
-              : 'overflow-y-auto overflow-x-hidden scrollbar-none'
+              : 'overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent'
           )}
         >
           {navSections.map((section) => {
@@ -293,36 +355,85 @@ export default function Sidebar({
             );
             if (sectionItems.length === 0) return null;
 
+            const isSectionCollapsed = !!collapsedSections[section.id];
+            const badgeCfg = sectionActionableBadges[section.id];
+
             return (
               <div key={section.id} className="space-y-1">
-                {/* Section Header */}
+                {/* Section Header with Collapsible Toggle & Actionable Badges */}
                 {!isCollapsedState ? (
-                  <div className="px-2 pt-2 pb-1 flex items-center justify-between text-[10px] font-mono tracking-widest text-slate-500 uppercase font-semibold">
-                    <span>{section.label}</span>
-                    <span className="text-[9px] text-slate-600">
-                      {sectionItems.length}
-                    </span>
-                  </div>
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full px-2 pt-2 pb-1 flex items-center justify-between text-[10px] font-mono tracking-widest text-slate-500 uppercase font-semibold hover:text-slate-300 transition-colors group/sec text-left"
+                    title={isSectionCollapsed ? `Expand ${section.label}` : `Collapse ${section.label}`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <ChevronDown
+                        className={cn(
+                          'w-3 h-3 text-slate-500 transition-transform duration-200 group-hover/sec:text-slate-300',
+                          isSectionCollapsed && '-rotate-90'
+                        )}
+                      />
+                      <span>{section.label}</span>
+                    </div>
+                    {badgeCfg && (
+                      <span
+                        className={cn(
+                          'text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full border leading-none',
+                          badgeCfg.variant === 'live' &&
+                            'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                          badgeCfg.variant === 'critical' &&
+                            'bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse',
+                          badgeCfg.variant === 'neutral' &&
+                            'bg-slate-800 text-slate-400 border-slate-700'
+                        )}
+                      >
+                        {badgeCfg.label}
+                      </span>
+                    )}
+                  </button>
                 ) : (
                   <div className="h-[1px] bg-slate-800/70 mx-2 my-2" />
                 )}
 
                 {/* Section Items */}
-                <div className="space-y-1">
-                  {sectionItems.map((item) => renderNavItem(item, isMobile))}
-                </div>
+                <AnimatePresence initial={false}>
+                  {(!isSectionCollapsed || isCollapsedState) && (
+                    <motion.div
+                      initial={isCollapsedState ? false : { opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="space-y-1 overflow-hidden"
+                    >
+                      {sectionItems.map((item) => renderNavItem(item, isMobile))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}
         </div>
 
-        {/* Tactical Footer: Operator Identity & Threat Readiness */}
+        {/* Tactical Footer: Operator Identity & Readiness */}
         <div
           className={cn(
             'p-3 border-t border-slate-850/85 bg-slate-950/60 mt-auto flex-shrink-0',
             isCollapsedState && 'px-2'
           )}
         >
+          {/* Sector Command Context Label */}
+          {!isCollapsedState && (
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <span className="text-[9px] font-mono font-semibold tracking-wider text-slate-500 uppercase">
+                Sector Command
+              </span>
+              <span className="text-[9px] font-mono text-cyan-400">
+                {profile.callsign}
+              </span>
+            </div>
+          )}
+
           {/* Operator Profile Card */}
           <div className="relative group">
             <Link
@@ -337,7 +448,7 @@ export default function Sidebar({
               {/* Operator Avatar with Duty Dot */}
               <div className="relative flex-shrink-0">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-cyan-600 text-white font-bold text-xs flex items-center justify-center shadow-md">
-                  {mockUserProfile.avatar_initials}
+                  {profile.avatar_initials}
                 </div>
                 <span
                   className={cn(
@@ -351,17 +462,15 @@ export default function Sidebar({
               {!isCollapsedState && (
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-white truncate">
-                      {mockUserProfile.full_name.split(' ')[0]} {mockUserProfile.full_name.split(' ').slice(-1)[0]}
+                    <p className="text-xs font-semibold text-white truncate" title={profile.full_name}>
+                      {profile.full_name}
                     </p>
-                    <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400 transition-colors" />
+                    <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400 transition-colors shrink-0 ml-1" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                    <span className="font-mono text-cyan-400">
-                      {mockUserProfile.callsign}
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 truncate">
+                    <span className="truncate">
+                      {profile.team_name ? profile.team_name.split('—')[0].trim() : profile.agency}
                     </span>
-                    <span>•</span>
-                    <span className="truncate">{mockUserProfile.agency}</span>
                   </div>
                 </div>
               )}
@@ -381,17 +490,17 @@ export default function Sidebar({
                   <div className="relative z-10 space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-xs text-white">
-                        {mockUserProfile.full_name}
+                        {profile.full_name}
                       </span>
                       <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {mockUserProfile.duty_status.replace('_', ' ')}
+                        {profile.duty_status.replace('_', ' ')}
                       </span>
                     </div>
                     <p className="text-[10px] font-mono text-cyan-400">
-                      Callsign: {mockUserProfile.callsign}
+                      Callsign: {profile.callsign}
                     </p>
                     <p className="text-[10px] text-slate-400">
-                      {mockUserProfile.team_name}
+                      {profile.team_name}
                     </p>
                     <div className="pt-1.5 border-t border-slate-800 text-[10px] text-blue-400 font-medium flex items-center gap-1">
                       <span>Click to open operator dossier</span>
@@ -403,14 +512,14 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* Threat Readiness Bar */}
+          {/* Operational Status Bar — Sober Disaster-Ops Phrasing */}
           {!isCollapsedState && (
-            <div className="mt-2.5 pt-2 border-t border-slate-850 flex items-center justify-between text-[10px] font-mono text-slate-500">
-              <span className="flex items-center gap-1 text-amber-400">
+            <div className="mt-2.5 pt-2 border-t border-slate-850 flex items-center justify-between text-[10px] font-mono text-slate-400">
+              <span className="flex items-center gap-1.5 text-amber-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                DEFCON 2 WATCH
+                Sector Status: Active
               </span>
-              <span className="text-slate-600">SIH26 • IMD</span>
+              <span className="text-slate-500">IMD • NDRF</span>
             </div>
           )}
         </div>
@@ -420,10 +529,10 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Desktop Persistent Tactical Sidebar */}
+      {/* Desktop Persistent Tactical Sidebar (280px expanded for ample breathing room) */}
       <motion.aside
         initial={false}
-        animate={{ width: collapsed ? 72 : 260 }}
+        animate={{ width: collapsed ? 72 : 280 }}
         transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
         className={cn(
           'fixed left-0 top-0 h-screen z-40',
@@ -433,28 +542,6 @@ export default function Sidebar({
       >
         {/* Subtle Right Edge Illumination Accent */}
         <div className="pointer-events-none absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-blue-500/0 via-blue-500/25 to-blue-500/0" />
-
-        {/* Sleek Tactical Toggle Button */}
-        <button
-          id="sidebar-toggle-btn"
-          onClick={onToggle}
-          className={cn(
-            'absolute -right-3.5 top-20 z-50 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer',
-            'bg-slate-900/95 border border-slate-700/90 text-slate-400 hover:text-white hover:border-blue-400/90',
-            'shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-md group'
-          )}
-          title={collapsed ? 'Expand sidebar ( [ or ⌘B )' : 'Collapse sidebar ( [ or ⌘B )'}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <div
-            className={cn(
-              'transition-transform duration-200',
-              collapsed ? 'rotate-180' : 'rotate-0'
-            )}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </div>
-        </button>
 
         {sidebarBody(false)}
       </motion.aside>

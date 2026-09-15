@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -9,6 +10,7 @@ import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { mapMarkers, severityConfig, type MapMarker } from '@/lib/mock-data';
 import { fetchEvents, apiEventsToMapMarkers } from '@/lib/api';
 import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
+import { cn } from '@/lib/utils';
 import {
   Globe,
   Map as MapIcon,
@@ -248,9 +250,11 @@ const ndrfBasesGeoJSON: GeoJSON.FeatureCollection = {
 export default function GlobeEventMap({
   selectedEventId,
   onEventSelect,
+  variant = 'full',
 }: {
   selectedEventId?: string;
   onEventSelect?: (marker: MapMarker | null) => void;
+  variant?: 'full' | 'preview';
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -1133,10 +1137,18 @@ export default function GlobeEventMap({
           title={
             <div className="flex items-center gap-2">
               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>3D Planetary Weather Command — Earth Orbit</span>
+              <span>
+                {variant === 'preview'
+                  ? 'National Weather Radar & Geospatial Overview'
+                  : '3D National Weather Intelligence & Geospatial Radar'}
+              </span>
             </div>
           }
-          subtitle="Real-time multi-spectral GIS with seamless 3D spherical globe morphing"
+          subtitle={
+            variant === 'preview'
+              ? 'Live satellite telemetry & incident hotspot tracking across India'
+              : 'Multi-spectral GIS telemetry with 3D Earth globe projection & cyclone tracks'
+          }
           action={
             <div className="flex items-center gap-2 flex-wrap justify-end">
               {/* Projection Switcher */}
@@ -1153,116 +1165,157 @@ export default function GlobeEventMap({
                 <span>{isGlobe ? '3D Globe' : '2D Flat'}</span>
               </button>
 
-              {/* Basemap Switcher (Satellite, Topo Survey, Dark, Terrain) */}
-              <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
-                <button
-                  onClick={() => handleBasemapChange('satellite')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                    basemap === 'satellite'
-                      ? 'bg-primary text-white font-semibold shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Photorealistic Satellite Earth"
+              {/* Preview Mode Link vs Full Mode Controls */}
+              {variant === 'preview' ? (
+                <Link
+                  href="/live-map"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white shadow-sm transition-all group shrink-0"
+                  title="Open dedicated Live Tactical Map"
                 >
-                  <Satellite className="w-3 h-3" />
-                  <span className="hidden sm:inline">Satellite</span>
-                </button>
-                <button
-                  onClick={() => handleBasemapChange('topo')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                    basemap === 'topo'
-                      ? 'bg-primary text-white font-semibold shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Accurate 2D National Survey / Topographic Map"
-                >
-                  <FileSpreadsheet className="w-3 h-3" />
-                  <span className="hidden sm:inline">2D Topo</span>
-                </button>
-                <button
-                  onClick={() => handleBasemapChange('dark')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                    basemap === 'dark'
-                      ? 'bg-primary text-white font-semibold shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Dark Tactical Mode"
-                >
-                  <Moon className="w-3 h-3" />
-                  <span className="hidden sm:inline">Dark</span>
-                </button>
-                <button
-                  onClick={() => handleBasemapChange('street')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                    basemap === 'street'
-                      ? 'bg-primary text-white font-semibold shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Vector Street / Terrain"
-                >
-                  <Layers className="w-3 h-3" />
-                  <span className="hidden sm:inline">Street</span>
-                </button>
-              </div>
+                  <span>Open Live Tactical Map</span>
+                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              ) : (
+                <>
+                  {/* Basemap Switcher (Satellite, Topo Survey, Dark, Terrain) */}
+                  <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
+                    <button
+                      onClick={() => handleBasemapChange('satellite')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                        basemap === 'satellite'
+                          ? 'bg-primary text-white font-semibold shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="Photorealistic Satellite Earth"
+                    >
+                      <Satellite className="w-3 h-3" />
+                      <span className="hidden sm:inline">Satellite</span>
+                    </button>
+                    <button
+                      onClick={() => handleBasemapChange('topo')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                        basemap === 'topo'
+                          ? 'bg-primary text-white font-semibold shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="Accurate 2D National Survey / Topographic Map"
+                    >
+                      <FileSpreadsheet className="w-3 h-3" />
+                      <span className="hidden sm:inline">2D Topo</span>
+                    </button>
+                    <button
+                      onClick={() => handleBasemapChange('dark')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                        basemap === 'dark'
+                          ? 'bg-primary text-white font-semibold shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="Dark Tactical Mode"
+                    >
+                      <Moon className="w-3 h-3" />
+                      <span className="hidden sm:inline">Dark</span>
+                    </button>
+                    <button
+                      onClick={() => handleBasemapChange('street')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                        basemap === 'street'
+                          ? 'bg-primary text-white font-semibold shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="Vector Street / Terrain"
+                    >
+                      <Layers className="w-3 h-3" />
+                      <span className="hidden sm:inline">Street</span>
+                    </button>
+                  </div>
 
-              {/* Time Range Filter */}
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                aria-label="Time range"
-              >
-                <option value="24h">Past 24h</option>
-                <option value="48h">Past 48h</option>
-                <option value="7d">Past 7d</option>
-              </select>
+                  {/* Time Range Filter */}
+                  <select
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    aria-label="Time range"
+                  >
+                    <option value="24h">Past 24h</option>
+                    <option value="48h">Past 48h</option>
+                    <option value="7d">Past 7d</option>
+                  </select>
 
-              {/* Fullscreen Button */}
-              <button
-                onClick={toggleFullscreen}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
-                title={isFullscreen ? 'Exit Fullscreen' : 'Command Center Fullscreen'}
-              >
-                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              </button>
+                  {/* Fullscreen Button */}
+                  <button
+                    onClick={toggleFullscreen}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                    title={isFullscreen ? 'Exit Fullscreen' : 'Command Center Fullscreen'}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+                </>
+              )}
             </div>
           }
         />
 
         {/* Quick Hotspot & Layer Toggles Ribbon */}
         <div className="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50/95 border-y border-slate-100 overflow-x-auto text-xs scrollbar-none">
-          {/* Left Hotspots */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1 shrink-0 mr-1">
-              <Compass className="w-3 h-3 text-primary" /> Sector Orbit:
-            </span>
-            <button
-              onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1"
-            >
-              <span>🇮🇳</span> All India Focus
-            </button>
-            <button
-              onClick={() => flyToHotspot([80.0, 15.0], 1.6, 0, 0, 3000)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3 text-indigo-500" /> Space Orbit
-            </button>
-            <button
-              onClick={() => flyToHotspot([88.0, 17.5], 5.8, 45, -15)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-amber-500/50 hover:bg-amber-50/50 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1"
-            >
-              <span className="text-amber-500">🌀</span> Cyclone DANA
-            </button>
-            <button
-              onClick={() => flyToHotspot([74.5, 14.5], 6.2, 45, 10)}
-              className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-blue-500/50 hover:bg-blue-50/50 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1"
-            >
-              <Waves className="w-3 h-3 text-blue-500" /> Western Ghats
-            </button>
+          {/* Left: View Controls & Dynamic Active Incidents */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            {/* Group 1: View Scope */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1 shrink-0">
+                <Compass className="w-3 h-3 text-primary" /> View:
+              </span>
+              <button
+                onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
+                className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1 text-[11px]"
+                title="Focus view on Indian subcontinent"
+              >
+                <span>🇮🇳</span> India Focus
+              </button>
+              <button
+                onClick={() => flyToHotspot([80.0, 15.0], 1.6, 0, 0, 3000)}
+                className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1 text-[11px]"
+                title="Zoom out to Global Earth view"
+              >
+                <Globe className="w-3 h-3 text-indigo-500" /> Global View
+              </button>
+            </div>
+
+            {/* Group 2: Jump to Active Event (Dynamically extracted from live alerts) */}
+            <div className="flex items-center gap-1.5 shrink-0 pl-2.5 border-l border-slate-200">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                Active Incidents:
+              </span>
+              {markers
+                .filter((m) => m.severity === 'critical' || m.severity === 'high')
+                .slice(0, 3)
+                .map((marker) => {
+                  const isSelected = selectedEventId === marker.id;
+                  return (
+                    <button
+                      key={marker.id}
+                      onClick={() => {
+                        handleSelectIncident(marker);
+                      }}
+                      className={cn(
+                        'px-2.5 py-1 rounded-md border text-[11px] font-medium shrink-0 transition-all flex items-center gap-1.5',
+                        isSelected
+                          ? 'bg-rose-50 border-rose-300 text-rose-800 font-semibold shadow-xs'
+                          : marker.severity === 'critical'
+                          ? 'bg-white border-rose-200 hover:border-rose-400 hover:bg-rose-50/50 text-slate-700'
+                          : 'bg-white border-amber-200 hover:border-amber-400 hover:bg-amber-50/50 text-slate-700'
+                      )}
+                      title={`Jump to ${marker.title || marker.city} (${marker.city}, ${marker.state})`}
+                    >
+                      <span>{eventTypeEmojis[marker.eventType] || '⚠️'}</span>
+                      <span className="truncate max-w-[120px]">{(marker.title || marker.city).split('—')[0].trim()}</span>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
 
-          {/* Right Layer Toggles */}
+          {/* Right: Layer & Navigation Toggles */}
           <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-slate-200">
             <button
               onClick={() => setShowEventsLayer(!showEventsLayer)}
@@ -1342,9 +1395,14 @@ export default function GlobeEventMap({
 
         {/* Map Canvas & Overlays */}
         <div
-          className={`relative w-full overflow-hidden globe-space-bg ${
-            isFullscreen ? 'flex-1 min-h-[520px]' : 'h-[460px]'
-          }`}
+          className={cn(
+            'relative w-full overflow-hidden globe-space-bg',
+            isFullscreen
+              ? 'flex-1 min-h-[520px]'
+              : variant === 'preview'
+              ? 'h-[320px] max-h-[42vh]'
+              : 'h-[500px] lg:h-[560px]'
+          )}
         >
           <div ref={mapContainerRef} className="w-full h-full" />
 
