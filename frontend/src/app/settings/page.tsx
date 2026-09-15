@@ -114,7 +114,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-[#F7F3EA] text-[#1E2A3B]">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
@@ -137,44 +137,50 @@ export default function SettingsPage() {
                 initial={{ opacity: 0, y: -10, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                className="fixed top-20 right-6 z-50 bg-emerald-500 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-mono font-semibold"
+                className="fixed top-20 right-6 z-50 bg-[#182235] text-white border border-white/15 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-mono font-semibold"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-4 h-4 text-emerald-400" />
                 <span>{toastMessage}</span>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Header Banner */}
+          {/* Header Banner — Tactical Command Console Bar */}
           <motion.div
             variants={fadeIn}
             initial="hidden"
             animate="visible"
-            className="bg-slate-900 text-white p-5 lg:p-6 rounded-2xl border border-slate-800 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4"
+            className="text-white p-5 lg:p-6 rounded-xl border border-white/10 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+            style={{ background: 'linear-gradient(135deg, #182235 0%, #111827 100%)' }}
           >
             <div>
-              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <Settings className="w-5 h-5 text-cyan-400" />
-                <h1 className="text-xl font-bold font-mono tracking-tight">
-                  MISSION PREFERENCES &amp; SYSTEM CONFIGURATION
+              <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                <div className="w-8 h-8 rounded-lg bg-[#B5482E]/25 border border-[#B5482E]/50 flex items-center justify-center text-[#F97316]">
+                  <Settings className="w-4 h-4 animate-spin-slow" />
+                </div>
+                <h1
+                  className="text-lg lg:text-xl font-bold tracking-tight text-white"
+                  style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                >
+                  Mission Preferences &amp; Platform Configuration
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  SIH26069 • TEAM SIXTH SENSE
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-white/10 text-slate-300 border border-white/15">
+                  SIH26069 • SIXTH SENSE
                 </span>
               </div>
-              <p className="text-xs text-slate-400 max-w-3xl">
+              <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
                 Calibrate tactical 3D geospatial rendering, audio emergency sirens, telemetry unit standards, outdoor field HUD display modes, and satellite data bandwidth limits.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-mono text-emerald-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] border border-white/15 text-xs font-mono text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
                 LIVE SYNC ACTIVE
               </div>
               <button
                 onClick={handleExportJson}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold font-mono transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#B5482E] hover:bg-[#A03D25] text-white text-xs font-semibold font-mono transition-all shadow-sm"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export JSON
@@ -197,10 +203,10 @@ export default function SettingsPage() {
                 key={cat.id}
                 onClick={() => setActiveSection(cat.id as any)}
                 className={cn(
-                  'px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all',
+                  'px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all',
                   activeSection === cat.id
-                    ? 'bg-slate-900 text-white font-semibold shadow-sm border border-slate-800'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    ? 'bg-[#182235] text-white font-semibold shadow-sm border border-white/10'
+                    : 'bg-[#F0EBE0] text-[#4A5568] hover:text-[#1E2A3B] hover:bg-[#E8E2D4] border border-[#E8E2D4]'
                 )}
               >
                 {cat.label}
@@ -215,32 +221,34 @@ export default function SettingsPage() {
                 variants={fadeIn}
                 initial="hidden"
                 animate="visible"
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-primary flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center font-bold">
                       <Globe className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900">Tactical Geospatial &amp; Map Defaults</h2>
-                      <p className="text-[11px] text-slate-500">Projection curvature, Doppler radar, and basemap layers</p>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Tactical Geospatial &amp; Map Defaults
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Projection curvature, Doppler radar, and basemap layers</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-100">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
                     GIS CONSOLE
                   </span>
                 </div>
 
                 {/* Projection Mode */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Default Tactical Projection
                   </label>
                   <div className="grid grid-cols-2 gap-2.5">
                     {[
-                      { id: 'globe', label: '3D Spherical Earth', desc: 'Subcontinental orbital curvature & space-grade atmosphere', icon: Globe },
-                      { id: 'mercator', label: '2D Planar Mercator', desc: 'High-speed flat grid for low-latency tablet operations', icon: MapIcon },
+                      { id: 'globe', label: '3D Spherical Earth', desc: 'Subcontinental orbital curvature & atmosphere', icon: Globe },
+                      { id: 'mercator', label: '2D Planar Mercator', desc: 'High-speed flat grid for low-latency ops', icon: MapIcon },
                     ].map((proj) => {
                       const isSelected = settings.mapProjection === proj.id;
                       const Icon = proj.icon;
@@ -251,16 +259,16 @@ export default function SettingsPage() {
                           className={cn(
                             'p-3 rounded-xl border text-left transition-all',
                             isSelected
-                              ? 'bg-blue-50 border-primary text-slate-900 ring-2 ring-primary/20 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] ring-2 ring-[#B5482E]/20 shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0] hover:border-[#D8D0C0]'
                           )}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <Icon className={cn('w-4 h-4', isSelected ? 'text-primary' : 'text-slate-500')} />
-                            {isSelected && <Check className="w-4 h-4 text-primary" />}
+                            <Icon className={cn('w-4 h-4', isSelected ? 'text-[#B5482E]' : 'text-[#7A8599]')} />
+                            {isSelected && <Check className="w-4 h-4 text-[#B5482E]" />}
                           </div>
-                          <p className="text-xs font-bold text-slate-900">{proj.label}</p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">{proj.desc}</p>
+                          <p className="text-xs font-bold text-[#1E2A3B]">{proj.label}</p>
+                          <p className="text-[10px] text-[#7A8599] mt-0.5">{proj.desc}</p>
                         </button>
                       );
                     })}
@@ -269,7 +277,7 @@ export default function SettingsPage() {
 
                 {/* Basemap Presets */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Default Basemap Style
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -287,15 +295,15 @@ export default function SettingsPage() {
                           className={cn(
                             'p-2.5 rounded-xl border text-left transition-all',
                             isSelected
-                              ? 'bg-blue-50 border-primary text-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0] hover:border-[#D8D0C0]'
                           )}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-800">{base.label}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                            <span className="text-xs font-semibold text-[#1E2A3B]">{base.label}</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-[#B5482E]" />}
                           </div>
-                          <span className="text-[10px] font-mono text-slate-400 mt-0.5 block">{base.source}</span>
+                          <span className="text-[10px] font-mono text-[#7A8599] mt-0.5 block">{base.source}</span>
                         </button>
                       );
                     })}
@@ -304,10 +312,10 @@ export default function SettingsPage() {
 
                 {/* Layer Overlays */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Default Tactical Overlays
                   </label>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl divide-y divide-slate-200">
+                  <div className="bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl divide-y divide-[#E8E2D4]">
                     {[
                       { key: 'showDopplerOverlay' as const, label: 'Doppler Weather Radar Heatmap', desc: 'Precipitation reflectivity overlay' },
                       { key: 'showCycloneVectors' as const, label: 'Cyclone Track & Velocity Vectors', desc: 'Cone of uncertainty and gale radii' },
@@ -316,14 +324,14 @@ export default function SettingsPage() {
                     ].map((item) => (
                       <div key={item.key} className="p-3 flex items-center justify-between">
                         <div>
-                          <p className="text-xs font-semibold text-slate-800">{item.label}</p>
-                          <p className="text-[10px] text-slate-500">{item.desc}</p>
+                          <p className="text-xs font-semibold text-[#1E2A3B]">{item.label}</p>
+                          <p className="text-[10px] text-[#7A8599]">{item.desc}</p>
                         </div>
                         <button
                           onClick={() => updateSettings({ [item.key]: !settings[item.key] })}
                           className={cn(
                             'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                            settings[item.key] ? 'bg-primary' : 'bg-slate-300'
+                            settings[item.key] ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
                           )}
                         >
                           <span
@@ -339,16 +347,16 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Auto Rotation */}
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                <div className="p-3 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-slate-800">Globe Idle Auto-Orbit</p>
-                    <p className="text-[10px] text-slate-500">Slow atmospheric rotation when map interaction is idle</p>
+                    <p className="text-xs font-semibold text-[#1E2A3B]">Globe Idle Auto-Orbit</p>
+                    <p className="text-[10px] text-[#7A8599]">Slow atmospheric rotation when map interaction is idle</p>
                   </div>
                   <button
                     onClick={() => updateSettings({ globeAutoRotate: !settings.globeAutoRotate })}
                     className={cn(
                       'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                      settings.globeAutoRotate ? 'bg-primary' : 'bg-slate-300'
+                      settings.globeAutoRotate ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
                     )}
                   >
                     <span
@@ -368,44 +376,46 @@ export default function SettingsPage() {
                 variants={fadeIn}
                 initial="hidden"
                 animate="visible"
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center font-bold">
                       <Volume2 className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900">Audio Sirens &amp; Early Warning</h2>
-                      <p className="text-[11px] text-slate-500">Synthesized audio beacons and hazard dispatch filters</p>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Audio Sirens &amp; Early Warning
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Synthesized audio beacons and hazard dispatch filters</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-semibold border border-rose-100">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
                     WEB AUDIO API
                   </span>
                 </div>
 
                 {/* Master Audio Toggle */}
-                <div className="p-4 bg-gradient-to-r from-rose-50 to-orange-50/40 rounded-xl border border-rose-100 flex items-center justify-between">
+                <div className="p-4 bg-[#FBF2E4] rounded-xl border border-[#E8C0B5] flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-md">
+                    <div className="w-9 h-9 rounded-xl bg-[#B5482E] text-white flex items-center justify-center shadow-sm">
                       <Volume2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-900">Emergency Audio Beacon</p>
-                      <p className="text-[10px] text-slate-600">Zero-latency synthesized alarm for critical flash flood alerts</p>
+                      <p className="text-xs font-bold text-[#1E2A3B]">Emergency Audio Beacon</p>
+                      <p className="text-[10px] text-[#4A5568]">Zero-latency synthesized alarm for critical flash flood alerts</p>
                     </div>
                   </div>
                   <button
                     onClick={() => updateSettings({ audioAlertsEnabled: !settings.audioAlertsEnabled })}
                     className={cn(
                       'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                      settings.audioAlertsEnabled ? 'bg-rose-600' : 'bg-slate-300'
+                      settings.audioAlertsEnabled ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
                     )}
                   >
                     <span
                       className={cn(
-                        'inline-block h-5 w-5 transform rounded-full bg-white transition shadow-md',
+                        'inline-block h-5 w-5 transform rounded-full bg-white transition shadow-sm',
                         settings.audioAlertsEnabled ? 'translate-x-5' : 'translate-x-0'
                       )}
                     />
@@ -413,10 +423,10 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Volume Slider & Test Sound */}
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-700">
+                <div className="p-3.5 bg-[#F0EBE0]/70 rounded-xl border border-[#E8E2D4] space-y-3">
+                  <div className="flex items-center justify-between text-xs font-mono text-[#1E2A3B]">
                     <span className="font-semibold">Siren Output Volume</span>
-                    <span className="font-bold text-rose-600">{Math.round(settings.alertVolume * 100)}%</span>
+                    <span className="font-bold text-[#B5482E]">{Math.round(settings.alertVolume * 100)}%</span>
                   </div>
                   <input
                     type="range"
@@ -426,18 +436,18 @@ export default function SettingsPage() {
                     disabled={!settings.audioAlertsEnabled}
                     value={settings.alertVolume}
                     onChange={(e) => updateSettings({ alertVolume: parseFloat(e.target.value) })}
-                    className="w-full accent-rose-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer disabled:opacity-40"
+                    className="w-full accent-[#B5482E] h-1.5 bg-[#D8D0C0] rounded-lg cursor-pointer disabled:opacity-40"
                   />
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                    <span className="text-[11px] text-slate-500">Audio Hardware Synthesizer</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E8E2D4]">
+                    <span className="text-[11px] text-[#7A8599]">Hardware Synthesizer Test</span>
                     <button
                       onClick={() => handleTestAudio()}
                       disabled={!settings.audioAlertsEnabled || isPlayingAudio}
                       className={cn(
                         'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all',
                         isPlayingAudio
-                          ? 'bg-rose-600 text-white animate-pulse'
-                          : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                          ? 'bg-[#B5482E] text-white animate-pulse'
+                          : 'bg-[#B5482E]/15 text-[#B5482E] hover:bg-[#B5482E]/25 border border-[#B5482E]/30'
                       )}
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
@@ -448,7 +458,7 @@ export default function SettingsPage() {
 
                 {/* Siren Pattern */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Audio Siren Pattern
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -469,15 +479,15 @@ export default function SettingsPage() {
                           className={cn(
                             'p-2.5 rounded-xl border text-left transition-all',
                             isSelected
-                              ? 'bg-rose-50 border-rose-500 text-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0] hover:border-[#D8D0C0]'
                           )}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-800">{pat.label}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-rose-600" />}
+                            <span className="text-xs font-semibold text-[#1E2A3B]">{pat.label}</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-[#B5482E]" />}
                           </div>
-                          <span className="text-[10px] text-slate-500 mt-0.5 block">{pat.desc}</span>
+                          <span className="text-[10px] text-[#7A8599] mt-0.5 block">{pat.desc}</span>
                         </button>
                       );
                     })}
@@ -486,7 +496,7 @@ export default function SettingsPage() {
 
                 {/* Polling Interval */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Telemetry Refresh Frequency
                   </label>
                   <div className="grid grid-cols-4 gap-1.5 font-mono text-xs">
@@ -504,8 +514,8 @@ export default function SettingsPage() {
                           className={cn(
                             'py-2 px-1 text-center rounded-xl border transition-all',
                             isSelected
-                              ? 'bg-slate-900 text-white font-bold border-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              ? 'bg-[#182235] text-white font-bold border-[#182235] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
                           )}
                         >
                           {rate.label}
@@ -523,52 +533,57 @@ export default function SettingsPage() {
                 variants={fadeIn}
                 initial="hidden"
                 animate="visible"
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center font-bold">
                       <Gauge className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900">Telemetry Units &amp; Standards</h2>
-                      <p className="text-[11px] text-slate-500">Meteorological scale conversion &amp; coordinate format</p>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Telemetry Units &amp; Standards
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Meteorological scale conversion &amp; coordinate format</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
                     CALIBRATION
                   </span>
                 </div>
 
-                {/* Live Preview Box */}
-                <div className="p-4 rounded-xl bg-slate-900 text-white space-y-2.5">
+                {/* Live Preview Box — Tactical Monitor styling */}
+                <div
+                  className="p-4 rounded-xl text-white space-y-2.5 border border-white/10 shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #182235 0%, #111827 100%)' }}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase text-indigo-300 font-bold">
+                    <span className="text-[10px] font-mono uppercase text-[#F97316] font-bold">
                       Calculated Weather Station Output
                     </span>
                     <span className="text-[10px] font-mono text-slate-400">Patna Station #04</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 font-mono text-center">
-                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                    <div className="bg-white/[0.08] p-2 rounded-lg border border-white/10">
                       <span className="text-[9px] text-slate-400 block">Temperature</span>
                       <span className="text-sm font-bold text-amber-400">
                         {formatTemperature(32.4, settings.tempUnit)}
                       </span>
                     </div>
-                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                    <div className="bg-white/[0.08] p-2 rounded-lg border border-white/10">
                       <span className="text-[9px] text-slate-400 block">Wind Gust</span>
-                      <span className="text-sm font-bold text-cyan-400">
+                      <span className="text-sm font-bold text-sky-400">
                         {formatWindSpeed(68, settings.windUnit)}
                       </span>
                     </div>
-                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                    <div className="bg-white/[0.08] p-2 rounded-lg border border-white/10">
                       <span className="text-[9px] text-slate-400 block">Precipitation</span>
                       <span className="text-sm font-bold text-blue-400">
                         {formatRainfall(85.5, settings.rainUnit)}
                       </span>
                     </div>
                   </div>
-                  <p className="text-center font-mono text-[11px] text-slate-400">
+                  <p className="text-center font-mono text-[11px] text-slate-300">
                     Coordinates: <span className="text-emerald-400 font-semibold">{formatCoordinates(25.5941, 85.1376, settings.coordFormat)}</span>
                   </p>
                 </div>
@@ -576,7 +591,7 @@ export default function SettingsPage() {
                 {/* Temperature & Wind Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                    <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                       Temperature
                     </label>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -590,8 +605,8 @@ export default function SettingsPage() {
                           className={cn(
                             'py-2 px-1 text-center rounded-xl border text-xs font-medium transition-all',
                             settings.tempUnit === t.id
-                              ? 'bg-blue-50 border-primary text-primary font-bold shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#B5482E] font-bold shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
                           )}
                         >
                           {t.label}
@@ -601,7 +616,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                    <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                       Wind Speed
                     </label>
                     <div className="grid grid-cols-3 gap-1">
@@ -616,8 +631,8 @@ export default function SettingsPage() {
                           className={cn(
                             'py-2 px-1 text-center rounded-xl border text-xs font-mono font-medium transition-all',
                             settings.windUnit === w.id
-                              ? 'bg-blue-50 border-primary text-primary font-bold shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#B5482E] font-bold shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
                           )}
                         >
                           {w.label}
@@ -629,7 +644,7 @@ export default function SettingsPage() {
 
                 {/* Coordinate System */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Geospatial Coordinate Notation
                   </label>
                   <div className="space-y-1.5">
@@ -646,15 +661,15 @@ export default function SettingsPage() {
                           className={cn(
                             'w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all',
                             isSelected
-                              ? 'bg-blue-50 border-primary text-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:border-[#D8D0C0]'
                           )}
                         >
                           <div>
-                            <p className="text-xs font-semibold text-slate-800">{cf.label}</p>
-                            <p className="text-[10px] font-mono text-slate-400">{cf.sample}</p>
+                            <p className="text-xs font-semibold text-[#1E2A3B]">{cf.label}</p>
+                            <p className="text-[10px] font-mono text-[#7A8599]">{cf.sample}</p>
                           </div>
-                          {isSelected && <Check className="w-4 h-4 text-primary" />}
+                          {isSelected && <Check className="w-4 h-4 text-[#B5482E]" />}
                         </button>
                       );
                     })}
@@ -663,7 +678,7 @@ export default function SettingsPage() {
 
                 {/* Timezone */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Operational Timezone Display
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -679,12 +694,12 @@ export default function SettingsPage() {
                           className={cn(
                             'p-2.5 rounded-xl border text-left transition-all',
                             isSelected
-                              ? 'bg-blue-50 border-primary text-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:border-[#D8D0C0]'
                           )}
                         >
-                          <p className="text-xs font-semibold text-slate-800">{tz.label}</p>
-                          <p className="text-[10px] text-slate-500">{tz.desc}</p>
+                          <p className="text-xs font-semibold text-[#1E2A3B]">{tz.label}</p>
+                          <p className="text-[10px] text-[#7A8599]">{tz.desc}</p>
                         </button>
                       );
                     })}
@@ -699,26 +714,28 @@ export default function SettingsPage() {
                 variants={fadeIn}
                 initial="hidden"
                 animate="visible"
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center font-bold">
                       <Sliders className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900">Command HUD &amp; Theme Engine</h2>
-                      <p className="text-[11px] text-slate-500">Outdoor glare contrast, layout density &amp; visual performance</p>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Command HUD &amp; Theme Engine
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Outdoor glare contrast, layout density &amp; visual performance</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-100">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
                     APPEARANCE
                   </span>
                 </div>
 
                 {/* Theme Mode */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Interface Theme Mode
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -735,12 +752,12 @@ export default function SettingsPage() {
                           className={cn(
                             'p-3 rounded-xl border text-center transition-all',
                             isSelected
-                              ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              ? 'bg-[#182235] text-white border-[#182235] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
                           )}
                         >
                           <p className="text-xs font-bold">{th.label}</p>
-                          <p className="text-[9px] text-slate-400 mt-0.5">{th.desc}</p>
+                          <p className="text-[9px] text-[#7A8599] mt-0.5">{th.desc}</p>
                         </button>
                       );
                     })}
@@ -749,7 +766,7 @@ export default function SettingsPage() {
 
                 {/* UI Density */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Display Density
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -765,12 +782,12 @@ export default function SettingsPage() {
                           className={cn(
                             'p-2.5 rounded-xl border text-left transition-all',
                             isSelected
-                              ? 'bg-blue-50 border-primary text-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:border-[#D8D0C0]'
                           )}
                         >
-                          <p className="text-xs font-semibold text-slate-800">{d.label}</p>
-                          <p className="text-[10px] text-slate-500">{d.desc}</p>
+                          <p className="text-xs font-semibold text-[#1E2A3B]">{d.label}</p>
+                          <p className="text-[10px] text-[#7A8599]">{d.desc}</p>
                         </button>
                       );
                     })}
@@ -778,17 +795,17 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Effects Switches */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl divide-y divide-slate-200">
+                <div className="bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl divide-y divide-[#E8E2D4]">
                   <div className="p-3 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-slate-800">Glassmorphism &amp; Glow Filters</p>
-                      <p className="text-[10px] text-slate-500">Translucent navigation headers and backdrop blurs</p>
+                      <p className="text-xs font-semibold text-[#1E2A3B]">Glassmorphism &amp; Glow Filters</p>
+                      <p className="text-[10px] text-[#7A8599]">Translucent navigation headers and backdrop blurs</p>
                     </div>
                     <button
                       onClick={() => updateSettings({ glassmorphismEffects: !settings.glassmorphismEffects })}
                       className={cn(
                         'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                        settings.glassmorphismEffects ? 'bg-primary' : 'bg-slate-300'
+                        settings.glassmorphismEffects ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
                       )}
                     >
                       <span
@@ -802,14 +819,14 @@ export default function SettingsPage() {
 
                   <div className="p-3 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-slate-800">Reduced Motion Mode</p>
-                      <p className="text-[10px] text-slate-500">Disable complex spring animations for ruggedized field hardware</p>
+                      <p className="text-xs font-semibold text-[#1E2A3B]">Reduced Motion Mode</p>
+                      <p className="text-[10px] text-[#7A8599]">Disable complex spring animations for ruggedized field hardware</p>
                     </div>
                     <button
                       onClick={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
                       className={cn(
                         'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                        settings.reducedMotion ? 'bg-primary' : 'bg-slate-300'
+                        settings.reducedMotion ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
                       )}
                     >
                       <span
@@ -830,31 +847,33 @@ export default function SettingsPage() {
                 variants={fadeIn}
                 initial="hidden"
                 animate="visible"
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center font-bold">
                       <Wifi className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900">Field Satellite &amp; Network Bandwidth</h2>
-                      <p className="text-[11px] text-slate-500">Data compression for 2G/3G emergency field stations</p>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Field Satellite &amp; Network Bandwidth
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Data compression for 2G/3G emergency field stations</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-50 text-cyan-700 font-semibold border border-cyan-100">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
                     BANDWIDTH SAVER
                   </span>
                 </div>
 
                 {/* Low Bandwidth Toggle */}
-                <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100/50 rounded-xl border border-amber-200 flex items-start justify-between gap-3">
+                <div className="p-4 bg-[#FBF2E4] rounded-xl border border-[#E8C0B5] flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <WifiOff className="w-4 h-4 text-amber-700" />
-                      <p className="text-xs font-bold text-amber-950">Field Satellite Low-Bandwidth Mode</p>
+                      <WifiOff className="w-4 h-4 text-[#B5482E]" />
+                      <p className="text-xs font-bold text-[#1E2A3B]">Field Satellite Low-Bandwidth Mode</p>
                     </div>
-                    <p className="text-[11px] text-amber-900/80 leading-relaxed">
+                    <p className="text-[11px] text-[#4A5568] leading-relaxed">
                       Optimizes performance on Inmarsat or 2G connections by compressing GIS radar GeoTIFFs and halting live animations.
                     </p>
                   </div>
@@ -862,12 +881,12 @@ export default function SettingsPage() {
                     onClick={() => updateSettings({ lowBandwidthDataSaver: !settings.lowBandwidthDataSaver })}
                     className={cn(
                       'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-1',
-                      settings.lowBandwidthDataSaver ? 'bg-amber-600' : 'bg-slate-300'
+                      settings.lowBandwidthDataSaver ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
                     )}
                   >
                     <span
                       className={cn(
-                        'inline-block h-5 w-5 transform rounded-full bg-white transition shadow-md',
+                        'inline-block h-5 w-5 transform rounded-full bg-white transition shadow-sm',
                         settings.lowBandwidthDataSaver ? 'translate-x-5' : 'translate-x-0'
                       )}
                     />
@@ -875,19 +894,19 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Local Cache Meter */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="p-3.5 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-700">Offline GIS Radar Tile Cache</span>
-                    <span className="font-mono text-primary font-bold">~6.4 MB used</span>
+                    <span className="font-semibold text-[#1E2A3B]">Offline GIS Radar Tile Cache</span>
+                    <span className="font-mono text-[#B5482E] font-bold">~6.4 MB used</span>
                   </div>
-                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full w-[14%]" />
+                  <div className="w-full h-2 bg-[#D8D0C0] rounded-full overflow-hidden">
+                    <div className="h-full bg-[#B5482E] rounded-full w-[14%]" />
                   </div>
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] text-slate-400">IndexedDB Local Storage</span>
+                    <span className="text-[10px] text-[#7A8599]">IndexedDB Local Storage</span>
                     <button
                       onClick={() => showToast('Local offline GIS tile cache purged')}
-                      className="text-xs text-rose-600 hover:text-rose-700 font-medium hover:underline"
+                      className="text-xs text-[#B5482E] hover:text-[#A03D25] font-medium hover:underline"
                     >
                       Purge Offline Cache
                     </button>
@@ -896,7 +915,7 @@ export default function SettingsPage() {
 
                 {/* Data Source Mode */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Backend Telemetry Cluster
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -912,12 +931,12 @@ export default function SettingsPage() {
                           className={cn(
                             'p-2.5 rounded-xl border text-left transition-all',
                             isSelected
-                              ? 'bg-blue-50 border-primary text-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:border-[#D8D0C0]'
                           )}
                         >
-                          <p className="text-xs font-semibold text-slate-800">{src.label}</p>
-                          <p className="text-[10px] text-slate-500">{src.desc}</p>
+                          <p className="text-xs font-semibold text-[#1E2A3B]">{src.label}</p>
+                          <p className="text-[10px] text-[#7A8599]">{src.desc}</p>
                         </button>
                       );
                     })}
@@ -932,59 +951,61 @@ export default function SettingsPage() {
                 variants={fadeIn}
                 initial="hidden"
                 animate="visible"
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center font-bold">
                       <Shield className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900">Backup, Diagnostics &amp; Recovery</h2>
-                      <p className="text-[11px] text-slate-500">Configuration JSON exports and factory reset</p>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Backup, Diagnostics &amp; Recovery
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Configuration JSON exports and factory reset</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
                     DIAGNOSTICS
                   </span>
                 </div>
 
                 {/* Node Diagnostic Pings */}
                 <div className="space-y-2">
-                  <span className="text-xs font-semibold text-slate-700 block">
+                  <span className="text-xs font-semibold text-[#1E2A3B] block">
                     Telemetry Cluster Health Status
                   </span>
                   <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block">FastAPI Backend</span>
-                      <span className="text-emerald-600 font-bold">12ms • ONLINE</span>
+                    <div className="p-2.5 rounded-xl bg-[#F0EBE0]/70 border border-[#E8E2D4]">
+                      <span className="text-[10px] text-[#7A8599] block">FastAPI Backend</span>
+                      <span className="text-[#4C7A5B] font-bold">12ms • ONLINE</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block">BigQuery GIS</span>
-                      <span className="text-blue-600 font-bold">CONNECTED</span>
+                    <div className="p-2.5 rounded-xl bg-[#F0EBE0]/70 border border-[#E8E2D4]">
+                      <span className="text-[10px] text-[#7A8599] block">BigQuery GIS</span>
+                      <span className="text-[#4C7A5B] font-bold">CONNECTED</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block">INSAT-3DR Stream</span>
-                      <span className="text-purple-600 font-bold">ACTIVE</span>
+                    <div className="p-2.5 rounded-xl bg-[#F0EBE0]/70 border border-[#E8E2D4]">
+                      <span className="text-[10px] text-[#7A8599] block">INSAT-3DR Stream</span>
+                      <span className="text-[#4C7A5B] font-bold">ACTIVE</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Export / Import */}
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
-                  <p className="text-xs font-semibold text-slate-800">Configuration JSON Profile</p>
-                  <p className="text-[11px] text-slate-500">
+                <div className="p-4 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl space-y-2.5">
+                  <p className="text-xs font-semibold text-[#1E2A3B]">Configuration JSON Profile</p>
+                  <p className="text-[11px] text-[#7A8599]">
                     Save your operational settings to a portable configuration file or load presets from another command node.
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={handleExportJson}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold font-mono transition-colors shadow-sm"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#182235] hover:bg-[#111827] text-white text-xs font-semibold font-mono transition-all shadow-sm"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Export JSON
                     </button>
-                    <label className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-semibold font-mono cursor-pointer transition-colors">
+                    <label className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#FDFAF5] hover:bg-[#F0EBE0] border border-[#E8E2D4] text-[#1E2A3B] text-xs font-semibold font-mono cursor-pointer transition-colors shadow-sm">
                       <Upload className="w-3.5 h-3.5" />
                       Import JSON
                       <input
@@ -998,19 +1019,19 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Factory Reset */}
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
-                  <div className="flex items-center gap-2 text-rose-700 font-bold text-xs">
+                <div className="p-4 bg-[#FBF2E4] border border-[#E8C0B5] rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-[#8C2F26] font-bold text-xs">
                     <AlertTriangle className="w-4 h-4" />
                     RESET TO FACTORY DEFAULTS
                   </div>
-                  <p className="text-[11px] text-rose-900/80">
+                  <p className="text-[11px] text-[#4A5568]">
                     Restores initial INDRA mission control defaults across all map projections, audio sirens, and telemetry units.
                   </p>
                   <div className="pt-1">
                     {!showResetConfirm ? (
                       <button
                         onClick={() => setShowResetConfirm(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold font-mono transition-colors shadow-sm"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8C2F26] hover:bg-[#70241C] text-white text-xs font-semibold font-mono transition-colors shadow-sm"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         Reset All Settings
@@ -1023,13 +1044,13 @@ export default function SettingsPage() {
                             setShowResetConfirm(false);
                             showToast('All settings reset to operational defaults');
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold font-mono shadow-sm"
+                          className="px-3 py-1.5 rounded-lg bg-[#8C2F26] hover:bg-[#70241C] text-white text-xs font-bold font-mono shadow-sm"
                         >
                           Confirm Reset
                         </button>
                         <button
                           onClick={() => setShowResetConfirm(false)}
-                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50"
+                          className="px-3 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#1E2A3B] text-xs font-medium hover:bg-[#F0EBE0]"
                         >
                           Cancel
                         </button>

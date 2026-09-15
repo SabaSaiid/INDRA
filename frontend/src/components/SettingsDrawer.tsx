@@ -136,26 +136,33 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
 
-          {/* Slide-over Drawer */}
+          {/* Slide-over Drawer — Tactical Command Dark Theme */}
           <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-screen w-full sm:w-[480px] lg:w-[520px] bg-slate-950 text-slate-100 z-50 shadow-2xl border-l border-slate-800/90 flex flex-col overflow-hidden"
+            style={{
+              background: 'linear-gradient(180deg, #182235 0%, #111827 100%)',
+              borderColor: 'rgba(255, 255, 255, 0.10)',
+            }}
+            className="fixed right-0 top-0 h-screen w-full sm:w-[480px] lg:w-[520px] text-slate-100 z-50 border-l flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-850 bg-slate-900/80 flex items-center justify-between shrink-0">
+            <div className="p-4 sm:p-5 border-b border-white/10 bg-black/30 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                  <Settings className="w-5 h-5 animate-spin-slow" />
+                <div className="w-9 h-9 rounded-xl bg-[#B5482E]/25 border border-[#B5482E]/50 flex items-center justify-center text-[#F97316]">
+                  <Settings className="w-4 h-4 animate-spin-slow" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold tracking-wide text-white uppercase font-mono">
+                    <h2
+                      className="text-sm font-bold tracking-wide text-white uppercase"
+                      style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                    >
                       Platform Settings
                     </h2>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       SYNC ACTIVE
                     </span>
                   </div>
@@ -166,12 +173,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="hidden sm:inline-block text-[10px] font-mono text-slate-400 bg-slate-800/70 px-2 py-0.5 rounded border border-slate-700/60">
+                <span className="hidden sm:inline-block text-[10px] font-mono text-slate-400 bg-white/[0.06] px-2 py-0.5 rounded border border-white/10">
                   ESC
                 </span>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-850 transition-colors"
+                  className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
                   aria-label="Close settings drawer"
                 >
                   <X className="w-4 h-4" />
@@ -180,7 +187,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             </div>
 
             {/* Navigation Tabs Bar */}
-            <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-850 bg-slate-900/40 overflow-x-auto no-scrollbar shrink-0">
+            <div className="flex items-center gap-1 px-3 py-2 border-b border-white/10 bg-black/20 overflow-x-auto no-scrollbar shrink-0">
               {tabs.map((t) => {
                 const Icon = t.icon;
                 const isActive = activeTab === t.key;
@@ -191,8 +198,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all',
                       isActive
-                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                        ? 'bg-white/[0.12] text-white font-semibold border border-white/15 shadow-sm'
+                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
                     )}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -224,7 +231,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2 flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-cyan-400" />
+                      <Globe className="w-4 h-4 text-[#F97316]" />
                       Default Map Projection
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
@@ -241,13 +248,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-3 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/15 border-blue-500 text-white shadow-[0_0_12px_rgba(37,99,235,0.2)]'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-[0_0_12px_rgba(181,72,46,0.25)]'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white hover:bg-white/[0.08]'
                             )}
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <Icon className={cn('w-4 h-4', isSelected ? 'text-cyan-400' : 'text-slate-400')} />
-                              {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                              <Icon className={cn('w-4 h-4', isSelected ? 'text-[#F97316]' : 'text-slate-400')} />
+                              {isSelected && <Check className="w-3.5 h-3.5 text-[#F97316]" />}
                             </div>
                             <p className="text-xs font-semibold text-white">{proj.label}</p>
                             <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{proj.desc}</p>
@@ -259,7 +266,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
                   <div>
                     <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2 flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-cyan-400" />
+                      <Layers className="w-4 h-4 text-[#F97316]" />
                       Default Basemap Style
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
@@ -277,13 +284,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2.5 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-[0_0_12px_rgba(181,72,46,0.25)]'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white hover:bg-white/[0.08]'
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium text-white">{base.label}</span>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                              {isSelected && <Check className="w-3.5 h-3.5 text-[#F97316]" />}
                             </div>
                             <span className="text-[9px] font-mono text-slate-400 mt-1 block">{base.badge}</span>
                           </button>
@@ -297,7 +304,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
                       Default Tactical Overlays
                     </h3>
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl divide-y divide-slate-800">
+                    <div className="bg-white/[0.04] border border-white/10 rounded-xl divide-y divide-white/10">
                       {[
                         {
                           key: 'showDopplerOverlay' as const,
@@ -329,7 +336,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             onClick={() => updateSettings({ [item.key]: !settings[item.key] })}
                             className={cn(
                               'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
-                              settings[item.key] ? 'bg-blue-600' : 'bg-slate-700'
+                              settings[item.key] ? 'bg-[#B5482E]' : 'bg-slate-700'
                             )}
                           >
                             <span
@@ -345,7 +352,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   </div>
 
                   {/* Globe Auto-Rotation */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold text-white">Globe Ambient Orbit</p>
                       <p className="text-[10px] text-slate-400">Slow auto-rotation when tactical map is idle</p>
@@ -354,7 +361,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       onClick={() => updateSettings({ globeAutoRotate: !settings.globeAutoRotate })}
                       className={cn(
                         'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                        settings.globeAutoRotate ? 'bg-blue-600' : 'bg-slate-700'
+                        settings.globeAutoRotate ? 'bg-[#B5482E]' : 'bg-slate-700'
                       )}
                     >
                       <span
@@ -371,16 +378,16 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {/* TAB 2: ALERTS & SIREN AUDIO */}
               {activeTab === 'alerts' && (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-rose-950/30 to-slate-900/70 border border-rose-900/40">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-[#B5482E]/15 to-white/[0.02] border border-[#B5482E]/30">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Volume2 className="w-5 h-5 text-rose-400" />
+                      <div className="flex items-center gap-2.5">
+                        <Volume2 className="w-5 h-5 text-[#F97316]" />
                         <div>
                           <h4 className="text-xs font-bold text-white uppercase font-mono">
                             Emergency Siren Audio
                           </h4>
                           <p className="text-[10px] text-slate-400">
-                            In-browser synthesized tone for critical flash flood & cyclone events
+                            Synthesized tone for critical flash flood &amp; cyclone events
                           </p>
                         </div>
                       </div>
@@ -388,7 +395,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         onClick={() => updateSettings({ audioAlertsEnabled: !settings.audioAlertsEnabled })}
                         className={cn(
                           'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                          settings.audioAlertsEnabled ? 'bg-rose-600' : 'bg-slate-700'
+                          settings.audioAlertsEnabled ? 'bg-[#B5482E]' : 'bg-slate-700'
                         )}
                       >
                         <span
@@ -404,7 +411,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     <div className="space-y-1.5 mt-2">
                       <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
                         <span>Audio Siren Volume</span>
-                        <span>{Math.round(settings.alertVolume * 100)}%</span>
+                        <span className="font-bold text-[#F97316]">{Math.round(settings.alertVolume * 100)}%</span>
                       </div>
                       <input
                         type="range"
@@ -414,12 +421,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         disabled={!settings.audioAlertsEnabled}
                         value={settings.alertVolume}
                         onChange={(e) => updateSettings({ alertVolume: parseFloat(e.target.value) })}
-                        className="w-full accent-rose-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
+                        className="w-full accent-[#E05D38] h-1.5 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
                       />
                     </div>
 
                     {/* Test Audio Button */}
-                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-rose-900/30">
+                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-white/10">
                       <span className="text-[11px] text-slate-400 font-mono">Synthesizer Test</span>
                       <button
                         onClick={() => handleTestAudio()}
@@ -427,8 +434,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         className={cn(
                           'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all',
                           isPlayingAudio
-                            ? 'bg-rose-500 text-white animate-pulse'
-                            : 'bg-rose-600/30 hover:bg-rose-600 text-rose-200 border border-rose-500/40'
+                            ? 'bg-[#B5482E] text-white animate-pulse'
+                            : 'bg-[#B5482E]/20 hover:bg-[#B5482E]/35 text-white border border-[#B5482E]/50'
                         )}
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
@@ -460,13 +467,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2.5 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-[0_0_12px_rgba(181,72,46,0.25)]'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white hover:bg-white/[0.08]'
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium text-white">{pat.label}</span>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                              {isSelected && <Check className="w-3.5 h-3.5 text-[#F97316]" />}
                             </div>
                             <span className="text-[10px] text-slate-400 mt-0.5 block">{pat.desc}</span>
                           </button>
@@ -495,8 +502,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white hover:bg-white/[0.08]'
                             )}
                           >
                             <p className="text-xs font-medium text-white">{sev.label}</p>
@@ -527,8 +534,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'py-2 px-1 text-center rounded-lg border transition-all',
                               isSelected
-                                ? 'bg-blue-600 text-white border-blue-400 font-bold'
-                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                                ? 'bg-[#B5482E] text-white border-[#B5482E] font-bold shadow-sm'
+                                : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]'
                             )}
                           >
                             {rate.label}
@@ -544,24 +551,24 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {activeTab === 'units' && (
                 <div className="space-y-4">
                   {/* Live Conversion Preview Card */}
-                  <div className="p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/50">
-                    <p className="text-[10px] font-mono uppercase text-blue-300 font-bold mb-2">
+                  <div className="p-3.5 rounded-xl bg-white/[0.05] border border-white/10">
+                    <p className="text-[10px] font-mono uppercase text-[#F97316] font-bold mb-2">
                       Live Telemetry Output Sample
                     </p>
                     <div className="grid grid-cols-3 gap-2 font-mono text-center">
-                      <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                      <div className="bg-black/30 p-2 rounded-lg border border-white/10">
                         <span className="text-[9px] text-slate-400 block">Temperature</span>
-                        <span className="text-sm font-bold text-white">
+                        <span className="text-sm font-bold text-amber-400">
                           {formatTemperature(32.4, settings.tempUnit)}
                         </span>
                       </div>
-                      <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                      <div className="bg-black/30 p-2 rounded-lg border border-white/10">
                         <span className="text-[9px] text-slate-400 block">Wind Velocity</span>
-                        <span className="text-sm font-bold text-cyan-400">
+                        <span className="text-sm font-bold text-sky-400">
                           {formatWindSpeed(68, settings.windUnit)}
                         </span>
                       </div>
-                      <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                      <div className="bg-black/30 p-2 rounded-lg border border-white/10">
                         <span className="text-[9px] text-slate-400 block">Precipitation</span>
                         <span className="text-sm font-bold text-blue-400">
                           {formatRainfall(85.5, settings.rainUnit)}
@@ -569,7 +576,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </div>
                     </div>
                     <div className="mt-2 text-center text-[10px] font-mono text-slate-400">
-                      Coordinates: <span className="text-white font-semibold">{formatCoordinates(25.5941, 85.1376, settings.coordFormat)}</span>
+                      Coordinates: <span className="text-emerald-400 font-semibold">{formatCoordinates(25.5941, 85.1376, settings.coordFormat)}</span>
                     </div>
                   </div>
 
@@ -591,8 +598,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2.5 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-sm'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
                             )}
                           >
                             <p className="text-xs font-semibold text-white">{u.label}</p>
@@ -622,8 +629,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2 rounded-xl border text-center transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white font-semibold'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/25 border-[#B5482E] text-white font-semibold'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
                             )}
                           >
                             <p className="text-xs font-mono">{u.label}</p>
@@ -653,15 +660,15 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-sm'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
                             )}
                           >
                             <div>
                               <p className="text-xs font-medium text-white">{cf.label}</p>
                               <p className="text-[10px] font-mono text-slate-400">{cf.sample}</p>
                             </div>
-                            {isSelected && <Check className="w-4 h-4 text-cyan-400" />}
+                            {isSelected && <Check className="w-4 h-4 text-[#F97316]" />}
                           </button>
                         );
                       })}
@@ -686,8 +693,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2.5 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
                             )}
                           >
                             <p className="text-xs font-semibold text-white">{tz.label}</p>
@@ -721,12 +728,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2.5 rounded-xl border text-center transition-all',
                               isSelected
-                                ? 'bg-blue-600/25 border-blue-400 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/25 border-[#B5482E] text-white font-semibold'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
                             )}
                           >
                             <p className="text-xs font-semibold">{m.label}</p>
-                            <p className="text-[9px] text-slate-500 mt-0.5">{m.desc}</p>
+                            <p className="text-[9px] text-slate-400 mt-0.5">{m.desc}</p>
                           </button>
                         );
                       })}
@@ -751,8 +758,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2.5 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-sm'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
                             )}
                           >
                             <p className="text-xs font-semibold text-white">{d.label}</p>
@@ -768,7 +775,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400">
                       Performance &amp; Visual Effects
                     </h3>
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl divide-y divide-slate-800">
+                    <div className="bg-white/[0.04] border border-white/10 rounded-xl divide-y divide-white/10">
                       <div className="p-3 flex items-center justify-between">
                         <div>
                           <p className="text-xs font-semibold text-white">Glassmorphism &amp; Glow Filters</p>
@@ -778,7 +785,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           onClick={() => updateSettings({ glassmorphismEffects: !settings.glassmorphismEffects })}
                           className={cn(
                             'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                            settings.glassmorphismEffects ? 'bg-blue-600' : 'bg-slate-700'
+                            settings.glassmorphismEffects ? 'bg-[#B5482E]' : 'bg-slate-700'
                           )}
                         >
                           <span
@@ -799,7 +806,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           onClick={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
                           className={cn(
                             'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                            settings.reducedMotion ? 'bg-blue-600' : 'bg-slate-700'
+                            settings.reducedMotion ? 'bg-[#B5482E]' : 'bg-slate-700'
                           )}
                         >
                           <span
@@ -819,11 +826,11 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {activeTab === 'network' && (
                 <div className="space-y-4">
                   {/* Low Bandwidth Satellite Mode */}
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/40 to-slate-900 border border-amber-800/40">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-[#B5482E]/15 to-white/[0.02] border border-[#B5482E]/30">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <WifiOff className="w-4 h-4 text-amber-400" />
+                          <WifiOff className="w-4 h-4 text-[#F97316]" />
                           <h4 className="text-xs font-bold text-white uppercase font-mono">
                             Field Satellite Data Saver
                           </h4>
@@ -839,12 +846,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         onClick={() => updateSettings({ lowBandwidthDataSaver: !settings.lowBandwidthDataSaver })}
                         className={cn(
                           'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-1',
-                          settings.lowBandwidthDataSaver ? 'bg-amber-600' : 'bg-slate-700'
+                          settings.lowBandwidthDataSaver ? 'bg-[#B5482E]' : 'bg-slate-700'
                         )}
                       >
                         <span
                           className={cn(
-                            'inline-block h-4 w-4 transform rounded-full bg-white transition',
+                            'inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm',
                             settings.lowBandwidthDataSaver ? 'translate-x-4' : 'translate-x-0'
                           )}
                         />
@@ -853,17 +860,17 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   </div>
 
                   {/* Offline Cache Storage */}
-                  <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                  <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-white">Local GIS &amp; Tile Cache</span>
-                      <span className="text-xs font-mono text-cyan-400">~6.4 MB</span>
+                      <span className="text-xs font-mono text-[#F97316]">~6.4 MB</span>
                     </div>
                     <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-3">
-                      <div className="h-full bg-cyan-500 rounded-full w-[14%]" />
+                      <div className="h-full bg-[#B5482E] rounded-full w-[14%]" />
                     </div>
                     <button
                       onClick={() => showToast('Local offline GIS cache cleared')}
-                      className="w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white text-xs font-medium border border-slate-700 transition-colors"
+                      className="w-full py-1.5 px-3 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white text-xs font-medium border border-white/10 transition-colors"
                     >
                       Purge Local Tile Cache
                     </button>
@@ -887,8 +894,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             className={cn(
                               'p-2.5 rounded-xl border text-left transition-all',
                               isSelected
-                                ? 'bg-blue-600/20 border-blue-500 text-white'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-sm'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
                             )}
                           >
                             <p className="text-xs font-semibold text-white">{src.label}</p>
@@ -905,7 +912,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {activeTab === 'system' && (
                 <div className="space-y-4">
                   {/* Export / Import JSON */}
-                  <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 space-y-3">
                     <h4 className="text-xs font-bold text-white uppercase font-mono">
                       Operator Preferences Backup
                     </h4>
@@ -915,13 +922,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         onClick={handleExportJson}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm"
+                        className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#B5482E] hover:bg-[#A03D25] text-white text-xs font-semibold font-mono transition-all shadow-sm"
                       >
                         <Download className="w-3.5 h-3.5" />
                         Export Config (JSON)
                       </button>
 
-                      <label className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium cursor-pointer transition-colors">
+                      <label className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/15 text-slate-200 text-xs font-semibold font-mono cursor-pointer transition-all shadow-sm">
                         <Upload className="w-3.5 h-3.5" />
                         Import Config
                         <input
@@ -935,7 +942,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   </div>
 
                   {/* Reset to Factory Defaults */}
-                  <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-900/30 space-y-2">
+                  <div className="p-4 rounded-xl bg-[#8C2F26]/15 border border-[#8C2F26]/30 space-y-2">
                     <div className="flex items-center gap-2 text-rose-400 text-xs font-bold font-mono">
                       <AlertTriangle className="w-4 h-4" />
                       FACTORY DEFAULTS RESET
@@ -948,7 +955,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         resetSettings();
                         showToast('All settings reset to factory defaults');
                       }}
-                      className="mt-2 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-900/30 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 text-xs font-mono font-semibold transition-colors"
+                      className="mt-2 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#8C2F26]/30 hover:bg-[#8C2F26]/60 text-rose-200 border border-[#8C2F26]/50 text-xs font-mono font-semibold transition-colors shadow-sm"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       Reset to Defaults
@@ -959,14 +966,14 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             </div>
 
             {/* Footer Quick Action */}
-            <div className="p-3 border-t border-slate-850 bg-slate-900/90 flex items-center justify-between text-xs shrink-0">
+            <div className="p-3 border-t border-white/10 bg-black/30 flex items-center justify-between text-xs shrink-0">
               <span className="text-[11px] text-slate-400 font-mono">
                 Auto-saved to local memory
               </span>
               <Link
                 href="/settings"
                 onClick={onClose}
-                className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 font-medium hover:underline"
+                className="flex items-center gap-1.5 text-[#F97316] hover:text-[#FFA07A] font-medium transition-colors"
               >
                 <span>Open Full Page Settings</span>
                 <ExternalLink className="w-3.5 h-3.5" />
