@@ -18,6 +18,7 @@ import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { fadeIn } from '@/lib/motion';
+import { useSidebar } from '@/lib/useSidebar';
 
 const GlobeEventMap = dynamic(() => import('@/components/GlobeEventMap'), {
   ssr: false,
@@ -25,43 +26,31 @@ const GlobeEventMap = dynamic(() => import('@/components/GlobeEventMap'), {
 });
 
 export default function LiveMapPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Auto-collapse sidebar on medium screens
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024 && window.innerWidth >= 768) {
-        setSidebarCollapsed(true);
-      } else if (window.innerWidth >= 1280) {
-        setSidebarCollapsed(false);
-      }
-      if (window.innerWidth >= 768) {
-        setMobileMenuOpen(false);
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const {
+    collapsed: sidebarCollapsed,
+    toggle: toggleSidebar,
+    mobileOpen: mobileMenuOpen,
+    openMobile,
+    closeMobile,
+  } = useSidebar();
 
   return (
     <div className="min-h-screen bg-surface">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggle={toggleSidebar}
         mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
+        onMobileClose={closeMobile}
       />
 
       {/* Main Content Area */}
       <div
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[256px]'
+          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[260px]'
         }`}
       >
-        <Topbar onMobileMenuOpen={() => setMobileMenuOpen(true)} />
+        <Topbar onMobileMenuOpen={openMobile} />
 
         <main className="p-4 lg:p-6 max-w-[1700px] mx-auto space-y-4">
           {/* Header Banner */}

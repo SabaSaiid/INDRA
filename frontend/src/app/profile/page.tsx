@@ -33,10 +33,16 @@ import {
 } from '@/lib/mock-data';
 import { fetchUserProfile, updateUserProfile } from '@/lib/api';
 import { fadeIn } from '@/lib/motion';
+import { useSidebar } from '@/lib/useSidebar';
 
 export default function ProfilePage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const {
+    collapsed: sidebarCollapsed,
+    toggle: toggleSidebar,
+    mobileOpen: mobileMenuOpen,
+    openMobile,
+    closeMobile,
+  } = useSidebar();
   const [profile, setProfile] = useState<UserProfile>(mockUserProfile);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -50,23 +56,6 @@ export default function ProfilePage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
-
-  // Auto-collapse sidebar on medium screens
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024 && window.innerWidth >= 768) {
-        setSidebarCollapsed(true);
-      } else if (window.innerWidth >= 1280) {
-        setSidebarCollapsed(false);
-      }
-      if (window.innerWidth >= 768) {
-        setMobileMenuOpen(false);
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Fetch current user profile
   useEffect(() => {
@@ -128,17 +117,17 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-surface">
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggle={toggleSidebar}
         mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
+        onMobileClose={closeMobile}
       />
 
       <div
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[256px]'
+          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[260px]'
         }`}
       >
-        <Topbar onMobileMenuOpen={() => setMobileMenuOpen(true)} />
+        <Topbar onMobileMenuOpen={openMobile} />
 
         <main className="p-4 lg:p-6 max-w-[1400px] mx-auto space-y-6">
           {/* Header */}

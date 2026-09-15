@@ -8,28 +8,132 @@ import {
   Database,
   Shield,
   Users,
+  User,
   type LucideIcon,
 } from 'lucide-react';
 
 // ─── Navigation Items ────────────────────────────────────────────────────────
+
+export interface NavBadge {
+  text: string;
+  variant: 'critical' | 'warning' | 'live' | 'neutral';
+}
 
 export interface NavItem {
   id: string;
   label: string;
   icon: LucideIcon;
   href: string;
+  section: 'tactical' | 'intelligence' | 'command';
+  badge?: NavBadge;
+  shortcut?: string;
+  description?: string;
 }
 
+export const navSections = [
+  { id: 'tactical', label: 'Tactical Operations' },
+  { id: 'intelligence', label: 'Intelligence & Feeds' },
+  { id: 'command', label: 'Command & Roster' },
+] as const;
+
 export const navItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },
-  { id: 'teams', label: 'Teams Hub', icon: Users, href: '/teams' },
-  { id: 'live-map', label: 'Live Map', icon: Map, href: '/live-map' },
-  { id: 'events', label: 'Events', icon: CalendarClock, href: '/events' },
-  { id: 'reports', label: 'Reports', icon: FileText, href: '/reports' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-  { id: 'alerts', label: 'Alerts', icon: Bell, href: '/alerts' },
-  { id: 'datasets', label: 'Datasets', icon: Database, href: '/datasets' },
-  { id: 'admin', label: 'Admin Panel', icon: Shield, href: '/admin' },
+  // Tactical Operations
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    href: '/',
+    section: 'tactical',
+    shortcut: '⌘1',
+    description: 'National overview & key telemetry metrics',
+  },
+  {
+    id: 'live-map',
+    label: 'Live Tactical Map',
+    icon: Map,
+    href: '/live-map',
+    section: 'tactical',
+    badge: { text: 'LIVE', variant: 'live' },
+    shortcut: '⌘2',
+    description: '3D interactive globe & Doppler radar feeds',
+  },
+  {
+    id: 'events',
+    label: 'Incident Events',
+    icon: CalendarClock,
+    href: '/events',
+    section: 'tactical',
+    badge: { text: '18', variant: 'warning' },
+    shortcut: '⌘3',
+    description: 'Active severe weather alerts & emergency timeline',
+  },
+
+  // Intelligence & Feeds
+  {
+    id: 'alerts',
+    label: 'Early Warnings',
+    icon: Bell,
+    href: '/alerts',
+    section: 'intelligence',
+    badge: { text: '4 CRIT', variant: 'critical' },
+    shortcut: '⌘4',
+    description: 'Flash flood, cyclone & IMD hazard bulletins',
+  },
+  {
+    id: 'reports',
+    label: 'Field Reports',
+    icon: FileText,
+    href: '/reports',
+    section: 'intelligence',
+    shortcut: '⌘5',
+    description: 'Citizen ground truth & verified field intelligence',
+  },
+  {
+    id: 'analytics',
+    label: 'Telemetry Analytics',
+    icon: BarChart3,
+    href: '/analytics',
+    section: 'intelligence',
+    shortcut: '⌘6',
+    description: 'BigQuery trend models & multi-source correlations',
+  },
+  {
+    id: 'datasets',
+    label: 'Geospatial Feeds',
+    icon: Database,
+    href: '/datasets',
+    section: 'intelligence',
+    shortcut: '⌘7',
+    description: 'IMD raster data, satellite imagery & GIS archives',
+  },
+
+  // Command & Roster
+  {
+    id: 'teams',
+    label: 'Teams Hub',
+    icon: Users,
+    href: '/teams',
+    section: 'command',
+    shortcut: '⌘8',
+    description: 'Disaster response battalions & command units',
+  },
+  {
+    id: 'profile',
+    label: 'Operator Profile',
+    icon: User,
+    href: '/profile',
+    section: 'command',
+    shortcut: '⌘9',
+    description: 'Credentials, security clearance & duty roster',
+  },
+  {
+    id: 'admin',
+    label: 'Admin Command',
+    icon: Shield,
+    href: '/admin',
+    section: 'command',
+    description: 'System governance, RBAC permissions & node telemetry',
+  },
 ];
 
 

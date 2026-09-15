@@ -9,10 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Clarity theme
         surface: '#F8FAFC',
         'card-bg': '#FFFFFF',
-        // Sidebar
+        // Sidebar & Slate extensions
+        'slate-850': '#111c30',
         'navy-dark': '#0B1220',
         'navy-light': '#101A2E',
         'navy-mid': '#162036',

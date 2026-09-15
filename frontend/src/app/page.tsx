@@ -20,12 +20,18 @@ import {
   ChartCardSkeleton,
 } from '@/components/ui/skeleton';
 import { staggerContainer } from '@/lib/motion';
+import { useSidebar } from '@/lib/useSidebar';
 
-export default function DashboardPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+export default function Home() {
+  const {
+    collapsed: sidebarCollapsed,
+    toggle: toggleSidebar,
+    mobileOpen: mobileMenuOpen,
+    openMobile,
+    closeMobile,
+  } = useSidebar();
   const [liveKpiData, setLiveKpiData] = useState<KpiItem[]>(kpiData);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>(undefined);
 
   // Fetch live KPI data from API, fall back to mock
@@ -44,34 +50,14 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Auto-collapse sidebar on medium screens
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024 && window.innerWidth >= 768) {
-        setSidebarCollapsed(true);
-      } else if (window.innerWidth >= 1280) {
-        setSidebarCollapsed(false);
-      }
-
-      // Close mobile menu on resize up
-      if (window.innerWidth >= 768) {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   return (
     <div className="min-h-screen bg-surface">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggle={toggleSidebar}
         mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
+        onMobileClose={closeMobile}
       />
 
       {/* Main content area */}
@@ -79,11 +65,11 @@ export default function DashboardPage() {
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
           sidebarCollapsed
             ? 'md:ml-[72px]'
-            : 'md:ml-[256px]'
+            : 'md:ml-[260px]'
         }`}
       >
         {/* Topbar */}
-        <Topbar onMobileMenuOpen={() => setMobileMenuOpen(true)} />
+        <Topbar onMobileMenuOpen={openMobile} />
 
         {/* Dashboard content */}
         <main className="p-4 lg:p-6 max-w-[1600px] mx-auto">
