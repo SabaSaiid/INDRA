@@ -209,11 +209,17 @@ export interface MapMarker {
   severity: SeverityLevel;
   verification: VerificationStatus;
   description: string;
+  title?: string;
+  impact?: string;
+  action?: string;
+  timeAgo?: string;
+  confidence?: number;
+  verified?: boolean;
 }
 
 export const mapMarkers: MapMarker[] = [
   {
-    id: 'mk-1',
+    id: 'ev-1',
     lat: 25.6093,
     lng: 85.1376,
     city: 'Patna',
@@ -224,7 +230,7 @@ export const mapMarkers: MapMarker[] = [
     verification: 'verified',
   },
   {
-    id: 'mk-2',
+    id: 'ev-2',
     lat: 26.1445,
     lng: 91.7362,
     city: 'Guwahati',
@@ -235,8 +241,8 @@ export const mapMarkers: MapMarker[] = [
     verification: 'under-review',
   },
   {
-    id: 'mk-3',
-    lat: 19.076,
+    id: 'ev-3',
+    lat: 19.0760,
     lng: 72.8777,
     city: 'Mumbai',
     state: 'Maharashtra',
@@ -246,9 +252,9 @@ export const mapMarkers: MapMarker[] = [
     verification: 'verified',
   },
   {
-    id: 'mk-4',
+    id: 'ev-4',
     lat: 28.6139,
-    lng: 77.209,
+    lng: 77.2090,
     city: 'New Delhi',
     state: 'Delhi',
     eventType: 'Fog',
@@ -257,7 +263,7 @@ export const mapMarkers: MapMarker[] = [
     verification: 'verified',
   },
   {
-    id: 'mk-5',
+    id: 'ev-5',
     lat: 13.0827,
     lng: 80.2707,
     city: 'Chennai',
@@ -268,7 +274,7 @@ export const mapMarkers: MapMarker[] = [
     verification: 'under-review',
   },
   {
-    id: 'mk-6',
+    id: 'ev-6',
     lat: 22.5726,
     lng: 88.3639,
     city: 'Kolkata',
@@ -279,7 +285,7 @@ export const mapMarkers: MapMarker[] = [
     verification: 'verified',
   },
   {
-    id: 'mk-7',
+    id: 'ev-7',
     lat: 26.9124,
     lng: 75.7873,
     city: 'Jaipur',
@@ -290,7 +296,7 @@ export const mapMarkers: MapMarker[] = [
     verification: 'verified',
   },
   {
-    id: 'mk-8',
+    id: 'ev-8',
     lat: 12.9716,
     lng: 77.5946,
     city: 'Bengaluru',
@@ -301,7 +307,7 @@ export const mapMarkers: MapMarker[] = [
     verification: 'under-review',
   },
   {
-    id: 'mk-9',
+    id: 'ev-9',
     lat: 26.8467,
     lng: 80.9462,
     city: 'Lucknow',
@@ -312,7 +318,7 @@ export const mapMarkers: MapMarker[] = [
     verification: 'verified',
   },
   {
-    id: 'mk-10',
+    id: 'ev-10',
     lat: 23.0225,
     lng: 72.5714,
     city: 'Ahmedabad',

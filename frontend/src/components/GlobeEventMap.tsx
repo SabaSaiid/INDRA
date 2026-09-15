@@ -8,6 +8,7 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { mapMarkers, severityConfig, type MapMarker } from '@/lib/mock-data';
 import { fetchEvents, apiEventsToMapMarkers } from '@/lib/api';
+import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import {
   Globe,
   Map as MapIcon,
@@ -43,11 +44,12 @@ import {
 
 export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
 
-// Basemap Styles with Globe Projection & Atmospheric Sky
+// Basemap Styles with Globe Projection, Glyphs & Atmospheric Sky
 const BASEMAP_STYLES: Record<BasemapMode, any> = {
   satellite: {
     version: 8,
     projection: { type: 'globe' },
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       esri_satellite: {
         type: 'raster',
@@ -80,6 +82,7 @@ const BASEMAP_STYLES: Record<BasemapMode, any> = {
   topo: {
     version: 8,
     projection: { type: 'globe' },
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       esri_topo: {
         type: 'raster',
@@ -112,6 +115,7 @@ const BASEMAP_STYLES: Record<BasemapMode, any> = {
   dark: {
     version: 8,
     projection: { type: 'globe' },
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       carto_dark: {
         type: 'raster',
@@ -146,6 +150,7 @@ const BASEMAP_STYLES: Record<BasemapMode, any> = {
   street: {
     version: 8,
     projection: { type: 'globe' },
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       carto_voyager: {
         type: 'raster',
@@ -232,13 +237,6 @@ const ndrfBasesGeoJSON: GeoJSON.FeatureCollection = {
   ],
 };
 
-interface MarkerEntry {
-  marker: maplibregl.Marker;
-  el: HTMLElement;
-  lng: number;
-  lat: number;
-}
-
 export default function GlobeEventMap({
   selectedEventId,
   onEventSelect,
@@ -248,12 +246,14 @@ export default function GlobeEventMap({
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<MarkerEntry[]>([]);
+  const markersRef = useRef<Array<{ id: string; marker: maplibregl.Marker; el: HTMLElement; lng: number; lat: number }>>([]);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
   const autoOrbitAnimRef = useRef<number | null>(null);
 
   const [mounted, setMounted] = useState(false);
   const [webGLSupported, setWebGLSupported] = useState(true);
   const [isGlobe, setIsGlobe] = useState(true);
+  const isGlobeRef = useRef(true);
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
   const [timeRange, setTimeRange] = useState('24h');
   const [markers, setMarkers] = useState<MapMarker[]>(mapMarkers);
@@ -275,6 +275,12 @@ export default function GlobeEventMap({
     pitch: 30,
     bearing: 0,
   });
+
+
+
+  useEffect(() => {
+    isGlobeRef.current = isGlobe;
+  }, [isGlobe]);
 
   useEffect(() => {
     setMounted(true);
@@ -302,6 +308,34 @@ export default function GlobeEventMap({
     };
   }, [timeRange]);
 
+  // Select an incident
+  const handleSelectIncident = useCallback(
+    (marker: MapMarker) => {
+      setSelectedMarker(marker);
+      if (onEventSelect) onEventSelect(marker);
+
+      const sanitized = sanitizeIncidentCoordinate({
+        lat: marker.lat,
+        lng: marker.lng,
+        city: marker.city,
+        state: marker.state,
+      });
+
+      const map = mapRef.current;
+      if (map) {
+        map.flyTo({
+          center: [sanitized.lng, sanitized.lat],
+          zoom: 6.8,
+          pitch: 45,
+          bearing: 15,
+          essential: true,
+          duration: 2000,
+        });
+      }
+    },
+    [onEventSelect]
+  );
+
   // Sync external selectedEventId
   useEffect(() => {
     if (selectedEventId) {
@@ -310,167 +344,9 @@ export default function GlobeEventMap({
         handleSelectIncident(match);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEventId, markers]);
+  }, [selectedEventId, markers, handleSelectIncident]);
 
-  // Spherical Horizon Occlusion Update Algorithm
-  // Mathematically checks if coordinates lie on the visible hemisphere of the 3D globe
-  const updateMarkerOcclusion = useCallback(
-    (map: maplibregl.Map, globeMode: boolean) => {
-      if (!globeMode) {
-        markersRef.current.forEach(({ el }) => {
-          el.style.display = showEventsLayer ? 'block' : 'none';
-          el.style.opacity = '1';
-        });
-        return;
-      }
-
-      if (!showEventsLayer) {
-        markersRef.current.forEach(({ el }) => {
-          el.style.display = 'none';
-        });
-        return;
-      }
-
-      const center = map.getCenter();
-      const toRad = Math.PI / 180;
-      const phi2 = center.lat * toRad;
-      const lambda2 = center.lng * toRad;
-
-      markersRef.current.forEach(({ el, lng, lat }) => {
-        const phi1 = lat * toRad;
-        const lambda1 = lng * toRad;
-        const deltaLambda = lambda1 - lambda2;
-
-        // Spherical dot product (cosine of angular distance)
-        const cosTheta = Math.sin(phi1) * Math.sin(phi2) + Math.cos(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
-
-        // Hide marker if on the occluded far hemisphere
-        if (cosTheta < 0.08) {
-          el.style.display = 'none';
-        } else {
-          el.style.display = 'block';
-          const opacity = Math.min(1, Math.max(0, (cosTheta - 0.08) / 0.22));
-          el.style.opacity = opacity.toFixed(2);
-        }
-      });
-    },
-    [showEventsLayer]
-  );
-
-  // Render Prominent Tactical Disaster Pins
-  const renderProminentPins = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    // Clear existing markers
-    markersRef.current.forEach(({ marker }) => marker.remove());
-    markersRef.current = [];
-
-    markers.forEach((marker) => {
-      const color = severityColors[marker.severity] || '#64748B';
-      const isPulsing = marker.severity === 'critical' || marker.severity === 'high';
-      const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
-      const isSelected = selectedMarker?.id === marker.id;
-
-      // Pin container
-      const el = document.createElement('div');
-      el.className = 'tactical-pin-container cursor-pointer select-none';
-      el.style.position = 'relative';
-      el.style.display = 'flex';
-      el.style.flexDirection = 'column';
-      el.style.alignItems = 'center';
-      el.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      el.style.transform = isSelected ? 'scale(1.25) translateY(-8px)' : 'scale(1) translateY(0)';
-      el.style.zIndex = isSelected ? '50' : marker.severity === 'critical' ? '40' : '30';
-
-      // Pulse ring
-      if (isPulsing) {
-        const pulse = document.createElement('div');
-        pulse.className = `pulse-ring pulse-ring-${marker.severity}`;
-        pulse.style.width = '38px';
-        pulse.style.height = '38px';
-        pulse.style.top = '-5px';
-        pulse.style.left = '50%';
-        pulse.style.transform = 'translateX(-50%)';
-        el.appendChild(pulse);
-      }
-
-      // Pin Head
-      const pinHead = document.createElement('div');
-      pinHead.style.width = '26px';
-      pinHead.style.height = '26px';
-      pinHead.style.borderRadius = '50%';
-      pinHead.style.backgroundColor = color;
-      pinHead.style.border = '2.5px solid #ffffff';
-      pinHead.style.boxShadow = '0 3px 10px rgba(0,0,0,0.4), 0 0 12px ' + color + '80';
-      pinHead.style.display = 'flex';
-      pinHead.style.alignItems = 'center';
-      pinHead.style.justifyContent = 'center';
-      pinHead.style.fontSize = '12px';
-      pinHead.style.position = 'relative';
-      pinHead.style.zIndex = '2';
-      pinHead.innerHTML = `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
-      el.appendChild(pinHead);
-
-      // Sleek Floating Tooltip (shown on hover or selection only)
-      const tooltip = document.createElement('div');
-      tooltip.style.position = 'absolute';
-      tooltip.style.bottom = '100%';
-      tooltip.style.left = '50%';
-      tooltip.style.transform = isSelected ? 'translateX(-50%) translateY(-6px)' : 'translateX(-50%) translateY(0)';
-      tooltip.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
-      tooltip.style.color = '#ffffff';
-      tooltip.style.fontSize = '10px';
-      tooltip.style.fontWeight = '700';
-      tooltip.style.padding = '3px 8px';
-      tooltip.style.borderRadius = '7px';
-      tooltip.style.boxShadow = '0 4px 14px rgba(0,0,0,0.4)';
-      tooltip.style.border = '1px solid rgba(255,255,255,0.2)';
-      tooltip.style.whiteSpace = 'nowrap';
-      tooltip.style.pointerEvents = 'none';
-      tooltip.style.opacity = isSelected ? '1' : '0';
-      tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-      tooltip.innerHTML = `<span>${marker.city}</span> <span style="opacity:0.65;font-weight:500;margin-left:4px;">${marker.eventType}</span>`;
-      el.appendChild(tooltip);
-
-      // Hover animation
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.25) translateY(-4px)';
-        tooltip.style.opacity = '1';
-        tooltip.style.transform = 'translateX(-50%) translateY(-6px)';
-      });
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1) translateY(0)';
-        if (!isSelected) {
-          tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateX(-50%) translateY(0)';
-        }
-      });
-
-      // Click event
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        handleSelectIncident(marker);
-      });
-
-      const m = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([marker.lng, marker.lat])
-        .addTo(map);
-
-      markersRef.current.push({
-        marker: m,
-        el,
-        lng: marker.lng,
-        lat: marker.lat,
-      });
-    });
-
-    updateMarkerOcclusion(map, isGlobe);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [markers, isGlobe, selectedMarker, updateMarkerOcclusion]);
-
-  // Sync Vector Layers (Cyclone & NDRF)
+  // Sync Vector Layers (Cyclone DANA & NDRF Bases)
   const syncVectorLayers = useCallback((map: maplibregl.Map) => {
     // Cyclone DANA Trajectory
     if (!map.getSource('cyclone-track-source')) {
@@ -523,6 +399,202 @@ export default function GlobeEventMap({
     }
   }, []);
 
+  // Update Horizon Occlusion for Markers on 3D Globe
+  const updateMarkerOcclusion = useCallback(
+    (map: maplibregl.Map, globeMode: boolean) => {
+      if (!showEventsLayer) {
+        markersRef.current.forEach(({ el }) => {
+          el.style.display = 'none';
+        });
+        return;
+      }
+
+      if (!globeMode) {
+        markersRef.current.forEach(({ el }) => {
+          el.style.display = 'block';
+          el.style.opacity = '1';
+        });
+        return;
+      }
+
+      const center = map.getCenter();
+      const toRad = Math.PI / 180;
+      const phi2 = center.lat * toRad;
+      const lambda2 = center.lng * toRad;
+
+      markersRef.current.forEach(({ el, lng, lat }) => {
+        const phi1 = lat * toRad;
+        const lambda1 = lng * toRad;
+        const deltaLambda = lambda1 - lambda2;
+
+        // Spherical angular distance (cosine of angle between camera center and marker)
+        const cosTheta = Math.sin(phi1) * Math.sin(phi2) + Math.cos(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+
+        // In 3D Globe mode, points on the far side of the planet (over horizon) are hidden
+        if (cosTheta < 0.05) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'block';
+          const opacity = Math.min(1, Math.max(0, (cosTheta - 0.05) / 0.25));
+          el.style.opacity = opacity.toFixed(2);
+        }
+      });
+    },
+    [showEventsLayer]
+  );
+
+  // Render Prominent Tactical Pins via Clean DOM Markers (MapLibre 60fps Native Matrix)
+  const renderProminentPins = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear existing markers cleanly
+    markersRef.current.forEach(({ marker }) => marker.remove());
+    markersRef.current = [];
+
+    markers.forEach((marker) => {
+      // 1. Mathematically validate & sanitize WGS-84 coordinate
+      const coords = sanitizeIncidentCoordinate({
+        lat: marker.lat,
+        lng: marker.lng,
+        city: marker.city,
+        state: marker.state,
+        title: marker.title,
+        eventType: marker.eventType,
+      });
+
+      const color = severityColors[marker.severity] || '#64748B';
+      const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
+      const isSelected = selectedMarker?.id === marker.id;
+      const isPulsing = marker.severity === 'critical' || marker.severity === 'high' || isSelected;
+
+      // 2. MapLibre Marker Container (NO CSS transitions on transform, NEVER override style.transform)
+      const markerEl = document.createElement('div');
+      markerEl.className = 'indra-tactical-marker select-none';
+      markerEl.style.cursor = 'pointer';
+      markerEl.style.zIndex = isSelected ? '50' : marker.severity === 'critical' ? '40' : marker.severity === 'high' ? '35' : '20';
+
+      // 3. Inner Container (Holds scaling, pulse, badge, and city pill)
+      const innerEl = document.createElement('div');
+      innerEl.className = 'indra-marker-inner';
+      innerEl.style.position = 'relative';
+      innerEl.style.display = 'flex';
+      innerEl.style.flexDirection = 'column';
+      innerEl.style.alignItems = 'center';
+      innerEl.style.transformOrigin = 'bottom center';
+      innerEl.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      innerEl.style.transform = isSelected ? 'scale(1.22) translateY(-4px)' : 'scale(1) translateY(0)';
+      markerEl.appendChild(innerEl);
+
+      // 4. Radar Pulse Ping
+      if (isPulsing) {
+        const pulse = document.createElement('div');
+        pulse.className = `pulse-ring pulse-ring-${marker.severity}`;
+        pulse.style.width = '38px';
+        pulse.style.height = '38px';
+        pulse.style.top = '-5px';
+        pulse.style.left = '50%';
+        pulse.style.transform = 'translateX(-50%)';
+        pulse.style.pointerEvents = 'none';
+        innerEl.appendChild(pulse);
+      }
+
+      // 5. Tactical Pin Head (Circular badge with emoji)
+      const pinHead = document.createElement('div');
+      pinHead.style.width = '28px';
+      pinHead.style.height = '28px';
+      pinHead.style.borderRadius = '50%';
+      pinHead.style.backgroundColor = color;
+      pinHead.style.border = isSelected ? '2.5px solid #38bdf8' : '2px solid #ffffff';
+      pinHead.style.boxShadow = isSelected
+        ? '0 0 16px #38bdf8, 0 4px 12px rgba(0,0,0,0.6)'
+        : `0 3px 10px rgba(0,0,0,0.5), 0 0 10px ${color}90`;
+      pinHead.style.display = 'flex';
+      pinHead.style.alignItems = 'center';
+      pinHead.style.justifyContent = 'center';
+      pinHead.style.fontSize = '13px';
+      pinHead.style.position = 'relative';
+      pinHead.style.zIndex = '2';
+      pinHead.innerHTML = `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
+      innerEl.appendChild(pinHead);
+
+      // 6. Tactical City Name Pill
+      const cityPill = document.createElement('div');
+      cityPill.style.marginTop = '3px';
+      cityPill.style.padding = '1px 6px';
+      cityPill.style.borderRadius = '4px';
+      cityPill.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+      cityPill.style.color = isSelected ? '#38bdf8' : '#f8fafc';
+      cityPill.style.border = isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.25)';
+      cityPill.style.fontSize = '10px';
+      cityPill.style.fontWeight = '700';
+      cityPill.style.letterSpacing = '0.02em';
+      cityPill.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
+      cityPill.style.whiteSpace = 'nowrap';
+      cityPill.style.pointerEvents = 'none';
+      cityPill.innerText = marker.city;
+      innerEl.appendChild(cityPill);
+
+      // 7. Interactive Tactical Hover HUD Tooltip
+      const tooltip = document.createElement('div');
+      tooltip.className = 'indra-hud-popup';
+      tooltip.style.position = 'absolute';
+      tooltip.style.bottom = '100%';
+      tooltip.style.left = '50%';
+      tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+      tooltip.style.opacity = '0';
+      tooltip.style.pointerEvents = 'none';
+      tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+      tooltip.style.zIndex = '100';
+      tooltip.style.width = '210px';
+      tooltip.innerHTML = `
+        <div class="hud-header">
+          <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
+          <span class="hud-time">${marker.timeAgo || 'Active'}</span>
+        </div>
+        <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
+        <div class="hud-location">📍 ${marker.city}, ${marker.state}</div>
+        ${marker.action ? `<div class="hud-action">⚡ ${marker.action}</div>` : ''}
+      `;
+      innerEl.appendChild(tooltip);
+
+      // 8. Hover Interactions (modifying innerEl and tooltip, NEVER markerEl.style.transform!)
+      markerEl.addEventListener('mouseenter', () => {
+        innerEl.style.transform = 'scale(1.22) translateY(-4px)';
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
+        markerEl.style.zIndex = '60';
+      });
+
+      markerEl.addEventListener('mouseleave', () => {
+        innerEl.style.transform = isSelected ? 'scale(1.22) translateY(-4px)' : 'scale(1) translateY(0)';
+        tooltip.style.opacity = '0';
+        tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+        markerEl.style.zIndex = isSelected ? '50' : marker.severity === 'critical' ? '40' : marker.severity === 'high' ? '35' : '20';
+      });
+
+      markerEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleSelectIncident(marker);
+      });
+
+      // 9. Add to MapLibre at exact WGS-84 coordinates
+      const mapMarker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' })
+        .setLngLat([coords.lng, coords.lat])
+        .addTo(map);
+
+      markersRef.current.push({
+        id: marker.id,
+        marker: mapMarker,
+        el: markerEl,
+        lng: coords.lng,
+        lat: coords.lat,
+      });
+    });
+
+    updateMarkerOcclusion(map, isGlobeRef.current);
+  }, [markers, selectedMarker, handleSelectIncident, updateMarkerOcclusion]);
+
   // Initialize MapLibre GL
   useEffect(() => {
     if (!mounted || !mapContainerRef.current || mapRef.current) return;
@@ -542,11 +614,22 @@ export default function GlobeEventMap({
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-    map.on('load', () => {
-      map.setProjection({ type: isGlobe ? 'globe' : 'mercator' });
-      syncVectorLayers(map);
-      renderProminentPins();
-    });
+    const onStyleReady = () => {
+      try {
+        map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
+        syncVectorLayers(map);
+        renderProminentPins();
+      } catch (err) {
+        console.error('[INDRA] onStyleReady error:', err);
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      onStyleReady();
+    } else {
+      map.once('load', onStyleReady);
+      map.once('style.load', onStyleReady);
+    }
 
     map.on('move', () => {
       const center = map.getCenter();
@@ -557,10 +640,13 @@ export default function GlobeEventMap({
         pitch: Math.round(map.getPitch()),
         bearing: Math.round(map.getBearing()),
       });
-      updateMarkerOcclusion(map, isGlobe);
+      updateMarkerOcclusion(map, isGlobeRef.current);
     });
 
     mapRef.current = map;
+    if (typeof window !== 'undefined') {
+      (window as any).__indraMap = map;
+    }
 
     return () => {
       if (autoOrbitAnimRef.current) {
@@ -568,6 +654,10 @@ export default function GlobeEventMap({
       }
       markersRef.current.forEach(({ marker }) => marker.remove());
       markersRef.current = [];
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
       map.remove();
       mapRef.current = null;
     };
@@ -579,7 +669,7 @@ export default function GlobeEventMap({
     if (mapRef.current && mapRef.current.isStyleLoaded()) {
       renderProminentPins();
     }
-  }, [renderProminentPins]);
+  }, [markers, selectedMarker, renderProminentPins]);
 
   // Layer visibility toggles
   useEffect(() => {
@@ -596,8 +686,8 @@ export default function GlobeEventMap({
       map.setLayoutProperty('ndrf-bases-layer', 'visibility', showNdrfLayer ? 'visible' : 'none');
     }
 
-    updateMarkerOcclusion(map, isGlobe);
-  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, isGlobe, updateMarkerOcclusion]);
+    updateMarkerOcclusion(map, isGlobeRef.current);
+  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, updateMarkerOcclusion]);
 
   // Switch basemap style
   const handleBasemapChange = (newBasemap: BasemapMode) => {
@@ -607,7 +697,7 @@ export default function GlobeEventMap({
 
     map.setStyle(BASEMAP_STYLES[newBasemap]);
     map.once('style.load', () => {
-      map.setProjection({ type: isGlobe ? 'globe' : 'mercator' });
+      map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
       syncVectorLayers(map);
       renderProminentPins();
     });
@@ -617,36 +707,17 @@ export default function GlobeEventMap({
   const toggleProjection = () => {
     const nextGlobe = !isGlobe;
     setIsGlobe(nextGlobe);
+    isGlobeRef.current = nextGlobe;
     const map = mapRef.current;
     if (map) {
       map.setProjection({ type: nextGlobe ? 'globe' : 'mercator' });
-      // If switching to 2D flat, automatically switch to high-accuracy Survey Topo if satellite was active
       if (!nextGlobe && basemap === 'satellite') {
         handleBasemapChange('topo');
       } else if (nextGlobe && basemap === 'topo') {
         handleBasemapChange('satellite');
-      }
-      setTimeout(() => {
+      } else {
         updateMarkerOcclusion(map, nextGlobe);
-      }, 50);
-    }
-  };
-
-  // Select an incident
-  const handleSelectIncident = (marker: MapMarker) => {
-    setSelectedMarker(marker);
-    if (onEventSelect) onEventSelect(marker);
-
-    const map = mapRef.current;
-    if (map) {
-      map.flyTo({
-        center: [marker.lng, marker.lat],
-        zoom: 6.8,
-        pitch: 45,
-        bearing: 15,
-        essential: true,
-        duration: 2000,
-      });
+      }
     }
   };
 
@@ -1155,7 +1226,7 @@ export default function GlobeEventMap({
             )}
           </div>
 
-          {/* Smooth Globe Zoom Hint Banner */}
+          {/* Tactical Geo-Anchor Status Banner */}
           <div className="absolute bottom-3 right-3 sm:right-auto sm:left-[430px] z-10 pointer-events-none bg-slate-900/80 text-slate-300 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-800 text-[10px] font-mono flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <span>Horizon Occlusion Active (Pins Hide On Far Side)</span>

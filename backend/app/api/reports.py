@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.config import get_settings
+from app.services.geocoding import sanitize_coordinates
 
 logger = logging.getLogger("indra.api.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
@@ -81,10 +82,15 @@ async def submit_report(
     """
     report_id = uuid.uuid4()
 
+    # Sanitize & normalize coordinates against Indian bounds
+    valid_lat, valid_lng, resolved_city, resolved_state = sanitize_coordinates(
+        report.latitude, report.longitude, text_hint=report.text
+    )
+
     # Compute geom_point and H3 cell
     try:
         import h3
-        h3_cell = h3.latlng_to_cell(report.latitude, report.longitude, settings.H3_HEX_RESOLUTION)
+        h3_cell = h3.latlng_to_cell(valid_lat, valid_lng, settings.H3_HEX_RESOLUTION)
     except Exception:
         h3_cell = None
 
@@ -102,8 +108,8 @@ async def submit_report(
         await db.execute(insert_query, {
             "id": str(report_id),
             "raw_text": report.text,
-            "lat": report.latitude,
-            "lng": report.longitude,
+            "lat": valid_lat,
+            "lng": valid_lng,
             "h3_cell": h3_cell,
             "media_url": report.media_url,
         })

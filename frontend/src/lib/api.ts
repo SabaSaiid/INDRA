@@ -24,7 +24,7 @@ import {
   type UserProfile,
   type HackathonTeamData,
 } from './mock-data';
-
+import { sanitizeIncidentCoordinate } from './geo-resolver';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -138,17 +138,27 @@ export async function fetchEvents(
 }
 
 export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
-  return events.map((ev) => ({
-    id: ev.id,
-    lat: ev.lat,
-    lng: ev.lng,
-    city: ev.city,
-    state: ev.state,
-    eventType: ev.eventType as any,
-    severity: ev.severity as any,
-    description: `${ev.eventType} — ${ev.quadrant}`,
-    verification: ev.verification as any,
-  }));
+  return events.map((ev, idx) => {
+    const sanitized = sanitizeIncidentCoordinate(
+      ev.lat,
+      ev.lng,
+      ev.city,
+      ev.state,
+      ev.eventType,
+      idx
+    );
+    return {
+      id: ev.id,
+      lat: sanitized.lat,
+      lng: sanitized.lng,
+      city: sanitized.city || ev.city,
+      state: sanitized.state || ev.state,
+      eventType: ev.eventType as any,
+      severity: ev.severity as any,
+      description: `${ev.eventType} — ${ev.quadrant}`,
+      verification: ev.verification as any,
+    };
+  });
 }
 
 export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
