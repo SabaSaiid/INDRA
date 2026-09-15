@@ -9,6 +9,7 @@ import {
   Shield,
   Users,
   User,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -134,6 +135,15 @@ export const navItems: NavItem[] = [
     section: 'command',
     shortcut: '⌘0',
     description: 'System governance, RBAC permissions & node telemetry',
+  },
+  {
+    id: 'settings',
+    label: 'Platform Settings',
+    icon: Settings,
+    href: '/settings',
+    section: 'command',
+    shortcut: '⌘,',
+    description: 'Tactical GIS, alert siren audio, units & HUD preferences',
   },
 ];
 

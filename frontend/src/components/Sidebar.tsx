@@ -21,6 +21,7 @@ import {
   X,
   ExternalLink,
   Sparkles,
+  Settings,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -517,9 +518,17 @@ export default function Sidebar({
             <div className="mt-2.5 pt-2 border-t border-slate-850 flex items-center justify-between text-[10px] font-mono text-slate-400">
               <span className="flex items-center gap-1.5 text-amber-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Sector Status: Active
+                Sector Active
               </span>
-              <span className="text-slate-500">IMD • NDRF</span>
+              <Link
+                href="/settings"
+                onClick={isMobile ? onMobileClose : undefined}
+                className="hover:text-cyan-300 transition-colors flex items-center gap-1 text-slate-400"
+                title="Platform Settings (⌘,)"
+              >
+                <Settings className="w-3 h-3 hover:rotate-45 transition-transform" />
+                <span>Settings</span>
+              </Link>
             </div>
           )}
         </div>

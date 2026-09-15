@@ -332,3 +332,43 @@ async def list_operators(
         pass
 
     return list(DEMO_PROFILES.values())
+
+
+# ── Operator Platform Preferences Store ───────────────────────────────────────
+DEMO_PREFERENCES: dict = {}
+
+@router.get("/preferences")
+async def get_operator_preferences(
+    user: Optional[str] = Query("commander"),
+):
+    """Retrieve saved mission preferences for operator."""
+    username = user or "commander"
+    return DEMO_PREFERENCES.get(username, {
+        "mapProjection": "globe",
+        "defaultBasemap": "satellite",
+        "audioAlertsEnabled": True,
+        "alertVolume": 0.75,
+        "sirenPattern": "warble_fast",
+        "tempUnit": "celsius",
+        "windUnit": "kmh",
+        "rainUnit": "mm",
+        "coordFormat": "dd",
+        "timezone": "ist",
+        "themeMode": "dark",
+        "uiDensity": "standard",
+        "lowBandwidthDataSaver": False,
+    })
+
+
+@router.patch("/preferences")
+async def update_operator_preferences(
+    preferences: dict,
+    user: Optional[str] = Query("commander"),
+):
+    """Update mission preferences for operator."""
+    username = user or "commander"
+    existing = DEMO_PREFERENCES.get(username, {})
+    existing.update(preferences)
+    DEMO_PREFERENCES[username] = existing
+    return {"status": "success", "username": username, "preferences": existing}
+

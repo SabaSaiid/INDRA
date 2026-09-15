@@ -12,6 +12,7 @@ import {
   Award,
   Radio,
   Check,
+  Settings,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -21,6 +22,7 @@ import {
   dutyStatusConfig,
 } from '@/lib/mock-data';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import SettingsDrawer from './SettingsDrawer';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -28,6 +30,7 @@ interface TopbarProps {
 
 export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     profile: currentProfile,
     selectedRole,
@@ -48,6 +51,18 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Keyboard shortcut listener: Cmd+, or Ctrl+, for quick settings HUD
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        setSettingsOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleDutyChange = async (newStatus: DutyStatus) => {
     updateDuty(newStatus);
   };
@@ -55,6 +70,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const activeStatusCfg = dutyStatusConfig[currentProfile.duty_status as DutyStatus] || dutyStatusConfig.ON_DUTY;
 
   return (
+    <>
     <motion.header
       variants={fadeIn}
       initial="hidden"
@@ -100,6 +116,16 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             <Bell className="w-5 h-5 text-slate-500" />
             {/* Red dot badge */}
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-critical" />
+          </button>
+
+          {/* Settings Trigger Button */}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="relative p-2 rounded-xl hover:bg-slate-50 transition-colors text-slate-500 hover:text-slate-800 group"
+            aria-label="Platform Settings"
+            title="System Settings & HUD Preferences (⌘,)"
+          >
+            <Settings className="w-5 h-5 transition-transform duration-300 group-hover:rotate-45" />
           </button>
 
           {/* Interactive User & Team Profile Menu */}
@@ -303,6 +329,22 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                         SIH 2026
                       </span>
                     </Link>
+
+                    <button
+                      onClick={() => {
+                        setProfileOpen(false);
+                        setSettingsOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors text-left"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Settings className="w-4 h-4 text-slate-400" />
+                        Platform Settings &amp; HUD Config
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        ⌘,
+                      </span>
+                    </button>
                   </div>
 
                   {/* Footer */}
@@ -317,5 +359,12 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
         </div>
       </div>
     </motion.header>
+
+    {/* Quick Slide-Over Settings Drawer */}
+    <SettingsDrawer
+      isOpen={settingsOpen}
+      onClose={() => setSettingsOpen(false)}
+    />
+    </>
   );
 }
