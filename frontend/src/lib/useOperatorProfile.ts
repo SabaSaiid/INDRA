@@ -25,13 +25,13 @@ export interface OperatorPersonaOption {
 export const AVAILABLE_OPERATOR_PERSONAS: OperatorPersonaOption[] = [
   {
     id: 'commander',
-    label: 'Incident Commander',
-    name: 'Commandant Rajesh K. Verma',
-    agency: 'SDMA Bihar / NDRF',
-    badge: 'NDRF-PAT-091',
+    label: 'Operations Director',
+    name: 'Rajesh K. Verma',
+    agency: 'SEOC Bihar / NDMA',
+    badge: 'SEOC-PAT-091',
     role: 'COMMANDER',
     avatar: 'RV',
-    tagline: 'Tactical field command & quick response dispatches',
+    tagline: 'Emergency operations leadership & disaster response coordination',
   },
   {
     id: 'analyst',

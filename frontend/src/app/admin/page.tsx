@@ -54,7 +54,7 @@ export default function AdminPage() {
                   ADMIN COMMAND &amp; GOVERNANCE CONSOLE
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  CLEARANCE: LEVEL 5 (COMMANDER)
+                  CLEARANCE: LEVEL 5 (OPERATIONS LEAD)
                 </span>
               </div>
               <p className="text-xs text-slate-400">
@@ -95,7 +95,7 @@ export default function AdminPage() {
                 <span>Active Operator Sessions</span>
                 <Users className="w-4 h-4 text-indigo-500" />
               </div>
-              <div className="text-lg font-bold text-slate-900 font-mono">12 Commanders</div>
+              <div className="text-lg font-bold text-slate-900 font-mono">12 Operations Leads</div>
               <p className="text-[11px] text-indigo-600 font-medium mt-1">NDRF, SDRF &amp; IMD Leads</p>
             </div>
 
@@ -119,7 +119,7 @@ export default function AdminPage() {
               <div className="flex items-center gap-2">
                 <span className="text-slate-400">[2026-09-14 20:45:12 UTC]</span>
                 <span className="text-blue-600 font-semibold">AUTH_SUCCESS</span>
-                <span>Commander R.K. Verma authenticated via PKI smartcard</span>
+                <span>Director R.K. Verma authenticated via PKI smartcard</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-slate-400">[2026-09-14 21:02:44 UTC]</span>

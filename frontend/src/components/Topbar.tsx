@@ -163,7 +163,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                   {currentProfile.full_name}
                 </p>
                 <p className="text-[10px] text-[#7A8599]" suppressHydrationWarning>
-                  {currentProfile.role}
+                  {currentProfile.team_role || (currentProfile.role === 'COMMANDER' ? 'Operations Director' : currentProfile.role)}
                 </p>
               </div>
 
@@ -281,7 +281,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     </div>
                     <div className="grid grid-cols-4 gap-1">
                       {[
-                        { id: 'commander', label: 'Cmdr'  },
+                        { id: 'commander', label: 'Ops Lead' },
                         { id: 'analyst',   label: 'Analyst' },
                         { id: 'admin',     label: 'Admin'  },
                         { id: 'citizen',   label: 'Citizen' },

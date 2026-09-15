@@ -549,11 +549,11 @@ export default function ProfilePage() {
                     </span>
                   </div>
                   <h4 className="text-lg font-bold text-text-primary">
-                    {profile.team_name || 'NDRF 9th Battalion — Flood Rescue Unit'}
+                    {profile.team_name || 'State Emergency Operations Centre — Bihar / NDMA'}
                   </h4>
                   <p className="text-xs text-text-secondary">
-                    Unit Code: <strong className="font-mono text-slate-800">{profile.team_code || 'TEAM-NDRF-09'}</strong> •
-                    Command Role: <strong className="text-slate-800">{profile.team_role || 'Incident Commander'}</strong>
+                    Unit Code: <strong className="font-mono text-slate-800">{profile.team_code || 'TEAM-SEOC-01'}</strong> •
+                    Operational Role: <strong className="text-slate-800">{profile.team_role || 'Operations Director'}</strong>
                   </p>
                 </div>
 

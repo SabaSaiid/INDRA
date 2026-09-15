@@ -269,7 +269,7 @@ function TeamsContent() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by team, commander, or city..."
+                    placeholder="Search by team, lead officer, or city..."
                     className="w-full h-10 pl-10 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-text-primary placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   />
                 </div>
@@ -389,7 +389,7 @@ function TeamsContent() {
 
                           <div className="flex items-center justify-between">
                             <span className="flex items-center gap-1.5 text-slate-400">
-                              <Shield className="w-3.5 h-3.5" /> Team Commander:
+                              <Shield className="w-3.5 h-3.5" /> Team Lead:
                             </span>
                             <span className="font-medium text-slate-700 truncate max-w-[170px]">
                               {team.lead_name}
@@ -619,7 +619,7 @@ function TeamsContent() {
                       {selectedTeam.specialization || 'General Emergency Disaster Operations'}
                     </p>
                     <p>
-                      <strong>Commander in Charge:</strong> {selectedTeam.lead_name} ({selectedTeam.lead_phone || 'Radio Dispatch'})
+                      <strong>Team Lead / In-Charge:</strong> {selectedTeam.lead_name} ({selectedTeam.lead_phone || 'Radio Dispatch'})
                     </p>
                     <p>
                       <strong>Radio Frequency / Callsign:</strong>{' '}
@@ -635,7 +635,7 @@ function TeamsContent() {
                   </h4>
                   <div className="space-y-2">
                     {(selectedTeam.members || [
-                      { id: 'm1', full_name: selectedTeam.lead_name, team_role: 'Unit Commander', duty_status: selectedTeam.status, callsign: selectedTeam.radio_callsign, badge_number: `${selectedTeam.agency}-001` },
+                      { id: 'm1', full_name: selectedTeam.lead_name, team_role: 'Operations Lead', duty_status: selectedTeam.status, callsign: selectedTeam.radio_callsign, badge_number: `${selectedTeam.agency}-001` },
                       { id: 'm2', full_name: 'Sub-Inspector Ankit Kumar', team_role: 'Tactical GIS Officer', duty_status: selectedTeam.status, callsign: 'TACT-02', badge_number: `${selectedTeam.agency}-004` },
                       { id: 'm3', full_name: 'Inspector Meera Sen', team_role: 'Medical Liaison', duty_status: selectedTeam.status, callsign: 'MEDIC-01', badge_number: `${selectedTeam.agency}-007` },
                       { id: 'm4', full_name: 'Specialist Rahul Das', team_role: 'Dewatering Operator', duty_status: selectedTeam.status, callsign: 'PUMP-03', badge_number: `${selectedTeam.agency}-012` },
