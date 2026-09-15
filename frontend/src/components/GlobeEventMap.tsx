@@ -191,6 +191,14 @@ const severityColors: Record<string, string> = {
   low: '#64748B',
 };
 
+// Severity priority ranking for collision avoidance
+const severityRank: Record<string, number> = {
+  critical: 4,
+  high: 3,
+  moderate: 2,
+  low: 1,
+};
+
 // Event type emojis
 const eventTypeEmojis: Record<string, string> = {
   'Severe Rainfall': '🌧️',
@@ -249,6 +257,7 @@ export default function GlobeEventMap({
   const markersRef = useRef<Array<{ id: string; marker: maplibregl.Marker; el: HTMLElement; lng: number; lat: number }>>([]);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const autoOrbitAnimRef = useRef<number | null>(null);
+  const renderProminentPinsRef = useRef<() => void>(() => {});
 
   const [mounted, setMounted] = useState(false);
   const [webGLSupported, setWebGLSupported] = useState(true);
@@ -261,6 +270,7 @@ export default function GlobeEventMap({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoOrbiting, setIsAutoOrbiting] = useState(false);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
+  const [smartDeclutter, setSmartDeclutter] = useState(true);
 
   // Layer toggles
   const [showEventsLayer, setShowEventsLayer] = useState(true);
@@ -454,7 +464,8 @@ export default function GlobeEventMap({
     [showEventsLayer]
   );
 
-  // Render Prominent Tactical Pins via Clean DOM Markers (MapLibre 60fps Native Matrix)
+
+  // Render Adaptive Tactical Pins via MapLibre DOM Matrix with LOD & Collision Avoidance
   const renderProminentPins = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -463,148 +474,413 @@ export default function GlobeEventMap({
     markersRef.current.forEach(({ marker }) => marker.remove());
     markersRef.current = [];
 
-    markers.forEach((marker) => {
-      // 1. Mathematically validate & sanitize WGS-84 coordinate
+    if (!showEventsLayer) return;
+
+    const zoom = map.getZoom();
+    const isSpaceZoom = zoom < 2.4;
+    const isCompactZoom = zoom >= 2.4 && zoom < 4.2;
+    const isDetailZoom = zoom >= 6.2;
+
+    // 1. Process and sanitize all marker coordinates
+    const sanitizedMarkers = markers.map((m) => {
       const coords = sanitizeIncidentCoordinate({
-        lat: marker.lat,
-        lng: marker.lng,
-        city: marker.city,
-        state: marker.state,
-        title: marker.title,
-        eventType: marker.eventType,
+        lat: m.lat,
+        lng: m.lng,
+        city: m.city,
+        state: m.state,
+        title: m.title,
+        eventType: m.eventType,
+      });
+      return {
+        marker: m,
+        coords,
+      };
+    });
+
+    // 2. Spatial Clustering & Screen-space Collision Detection
+    interface ClusterGroup {
+      isCluster: boolean;
+      items: Array<{ marker: MapMarker; coords: { lng: number; lat: number } }>;
+      center: { lng: number; lat: number };
+      maxSeverity: string;
+      screenPos?: { x: number; y: number };
+      hideLabel?: boolean;
+    }
+
+    let itemsToRender: ClusterGroup[] = [];
+
+    if (isSpaceZoom) {
+      // Tier 1: Space Orbit (zoom < 2.4) — All markers render as micro-radar pips without text labels
+      itemsToRender = sanitizedMarkers.map((sm) => ({
+        isCluster: false,
+        items: [sm],
+        center: sm.coords,
+        maxSeverity: sm.marker.severity,
+        hideLabel: true,
+      }));
+    } else if (isCompactZoom && smartDeclutter) {
+      // Tier 2: Subcontinental Overview (2.4 <= zoom < 4.2) with Smart Declutter
+      // Project to screen space
+      const projected = sanitizedMarkers.map((sm) => {
+        const pt = map.project([sm.coords.lng, sm.coords.lat]);
+        return {
+          ...sm,
+          x: pt.x,
+          y: pt.y,
+          assigned: false,
+        };
       });
 
-      const color = severityColors[marker.severity] || '#64748B';
-      const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
-      const isSelected = selectedMarker?.id === marker.id;
-      const isPulsing = marker.severity === 'critical' || marker.severity === 'high' || isSelected;
+      const CLUSTER_RADIUS = 44; // pixels
 
-      // 2. MapLibre Marker Container (NO CSS transitions on transform, NEVER override style.transform)
-      const markerEl = document.createElement('div');
-      markerEl.className = 'indra-tactical-marker select-none';
-      markerEl.style.cursor = 'pointer';
-      markerEl.style.zIndex = isSelected ? '50' : marker.severity === 'critical' ? '40' : marker.severity === 'high' ? '35' : '20';
+      for (let i = 0; i < projected.length; i++) {
+        if (projected[i].assigned) continue;
 
-      // 3. Inner Container (Holds scaling, pulse, badge, and city pill)
-      const innerEl = document.createElement('div');
-      innerEl.className = 'indra-marker-inner';
-      innerEl.style.position = 'relative';
-      innerEl.style.display = 'flex';
-      innerEl.style.flexDirection = 'column';
-      innerEl.style.alignItems = 'center';
-      innerEl.style.transformOrigin = 'bottom center';
-      innerEl.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      innerEl.style.transform = isSelected ? 'scale(1.22) translateY(-4px)' : 'scale(1) translateY(0)';
-      markerEl.appendChild(innerEl);
+        // Never cluster selected marker so user always sees their active selection
+        const isSelected = selectedMarker?.id === projected[i].marker.id;
+        if (isSelected) {
+          projected[i].assigned = true;
+          itemsToRender.push({
+            isCluster: false,
+            items: [projected[i]],
+            center: projected[i].coords,
+            maxSeverity: projected[i].marker.severity,
+            screenPos: { x: projected[i].x, y: projected[i].y },
+            hideLabel: false,
+          });
+          continue;
+        }
 
-      // 4. Radar Pulse Ping
-      if (isPulsing) {
-        const pulse = document.createElement('div');
-        pulse.className = `pulse-ring pulse-ring-${marker.severity}`;
-        pulse.style.width = '38px';
-        pulse.style.height = '38px';
-        pulse.style.top = '-5px';
-        pulse.style.left = '50%';
-        pulse.style.transform = 'translateX(-50%)';
-        pulse.style.pointerEvents = 'none';
-        innerEl.appendChild(pulse);
+        const group = [projected[i]];
+        projected[i].assigned = true;
+
+        for (let j = i + 1; j < projected.length; j++) {
+          if (projected[j].assigned) continue;
+          if (selectedMarker?.id === projected[j].marker.id) continue;
+
+          const dx = projected[i].x - projected[j].x;
+          const dy = projected[i].y - projected[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < CLUSTER_RADIUS) {
+            group.push(projected[j]);
+            projected[j].assigned = true;
+          }
+        }
+
+        if (group.length > 1) {
+          let sumLng = 0;
+          let sumLat = 0;
+          let highestRank = 0;
+          let maxSev = 'low';
+
+          group.forEach((g) => {
+            sumLng += g.coords.lng;
+            sumLat += g.coords.lat;
+            const rank = severityRank[g.marker.severity] || 1;
+            if (rank > highestRank) {
+              highestRank = rank;
+              maxSev = g.marker.severity;
+            }
+          });
+
+          itemsToRender.push({
+            isCluster: true,
+            items: group,
+            center: { lng: sumLng / group.length, lat: sumLat / group.length },
+            maxSeverity: maxSev,
+            screenPos: { x: projected[i].x, y: projected[i].y },
+          });
+        } else {
+          itemsToRender.push({
+            isCluster: false,
+            items: [projected[i]],
+            center: projected[i].coords,
+            maxSeverity: projected[i].marker.severity,
+            screenPos: { x: projected[i].x, y: projected[i].y },
+            hideLabel: false,
+          });
+        }
       }
 
-      // 5. Tactical Pin Head (Circular badge with emoji)
-      const pinHead = document.createElement('div');
-      pinHead.style.width = '28px';
-      pinHead.style.height = '28px';
-      pinHead.style.borderRadius = '50%';
-      pinHead.style.backgroundColor = color;
-      pinHead.style.border = isSelected ? '2.5px solid #38bdf8' : '2px solid #ffffff';
-      pinHead.style.boxShadow = isSelected
-        ? '0 0 16px #38bdf8, 0 4px 12px rgba(0,0,0,0.6)'
-        : `0 3px 10px rgba(0,0,0,0.5), 0 0 10px ${color}90`;
-      pinHead.style.display = 'flex';
-      pinHead.style.alignItems = 'center';
-      pinHead.style.justifyContent = 'center';
-      pinHead.style.fontSize = '13px';
-      pinHead.style.position = 'relative';
-      pinHead.style.zIndex = '2';
-      pinHead.innerHTML = `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
-      innerEl.appendChild(pinHead);
-
-      // 6. Tactical City Name Pill
-      const cityPill = document.createElement('div');
-      cityPill.style.marginTop = '3px';
-      cityPill.style.padding = '1px 6px';
-      cityPill.style.borderRadius = '4px';
-      cityPill.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
-      cityPill.style.color = isSelected ? '#38bdf8' : '#f8fafc';
-      cityPill.style.border = isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.25)';
-      cityPill.style.fontSize = '10px';
-      cityPill.style.fontWeight = '700';
-      cityPill.style.letterSpacing = '0.02em';
-      cityPill.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
-      cityPill.style.whiteSpace = 'nowrap';
-      cityPill.style.pointerEvents = 'none';
-      cityPill.innerText = marker.city;
-      innerEl.appendChild(cityPill);
-
-      // 7. Interactive Tactical Hover HUD Tooltip
-      const tooltip = document.createElement('div');
-      tooltip.className = 'indra-hud-popup';
-      tooltip.style.position = 'absolute';
-      tooltip.style.bottom = '100%';
-      tooltip.style.left = '50%';
-      tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
-      tooltip.style.opacity = '0';
-      tooltip.style.pointerEvents = 'none';
-      tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-      tooltip.style.zIndex = '100';
-      tooltip.style.width = '210px';
-      tooltip.innerHTML = `
-        <div class="hud-header">
-          <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
-          <span class="hud-time">${marker.timeAgo || 'Active'}</span>
-        </div>
-        <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
-        <div class="hud-location">📍 ${marker.city}, ${marker.state}</div>
-        ${marker.action ? `<div class="hud-action">⚡ ${marker.action}</div>` : ''}
-      `;
-      innerEl.appendChild(tooltip);
-
-      // 8. Hover Interactions (modifying innerEl and tooltip, NEVER markerEl.style.transform!)
-      markerEl.addEventListener('mouseenter', () => {
-        innerEl.style.transform = 'scale(1.22) translateY(-4px)';
-        tooltip.style.opacity = '1';
-        tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
-        markerEl.style.zIndex = '60';
+      // Label collision suppression for unclustered pins in Tier 2
+      const singlePins = itemsToRender.filter((c) => !c.isCluster);
+      singlePins.sort((a, b) => {
+        if (a.items[0].marker.id === selectedMarker?.id) return -1;
+        if (b.items[0].marker.id === selectedMarker?.id) return 1;
+        return (severityRank[b.maxSeverity] || 1) - (severityRank[a.maxSeverity] || 1);
       });
 
-      markerEl.addEventListener('mouseleave', () => {
-        innerEl.style.transform = isSelected ? 'scale(1.22) translateY(-4px)' : 'scale(1) translateY(0)';
-        tooltip.style.opacity = '0';
+      const LABEL_COLLISION_X = 68; // pixels
+      const LABEL_COLLISION_Y = 24; // pixels
+
+      for (let i = 0; i < singlePins.length; i++) {
+        if (singlePins[i].hideLabel) continue;
+        const posA = singlePins[i].screenPos;
+        if (!posA) continue;
+
+        for (let j = i + 1; j < singlePins.length; j++) {
+          if (singlePins[j].hideLabel) continue;
+          const posB = singlePins[j].screenPos;
+          if (!posB) continue;
+
+          const dx = Math.abs(posA.x - posB.x);
+          const dy = Math.abs(posA.y - posB.y);
+
+          if (dx < LABEL_COLLISION_X && dy < LABEL_COLLISION_Y) {
+            singlePins[j].hideLabel = true;
+          }
+        }
+      }
+    } else {
+      // Tier 3 & 4: Regional / Detail (zoom >= 4.2) or Raw density mode
+      itemsToRender = sanitizedMarkers.map((sm) => ({
+        isCluster: false,
+        items: [sm],
+        center: sm.coords,
+        maxSeverity: sm.marker.severity,
+        hideLabel: false,
+      }));
+    }
+
+    // 3. Render DOM Elements for each item
+    itemsToRender.forEach((item) => {
+      if (item.isCluster) {
+        // --- RENDER TACTICAL CLUSTER ---
+        const clusterEl = document.createElement('div');
+        clusterEl.className = 'indra-tactical-marker select-none';
+        clusterEl.style.cursor = 'pointer';
+        clusterEl.style.zIndex = '12';
+
+        const innerEl = document.createElement('div');
+        innerEl.className = 'indra-marker-inner';
+        clusterEl.appendChild(innerEl);
+
+        const color = severityColors[item.maxSeverity] || '#EF4444';
+        const dominantEmoji = eventTypeEmojis[item.items[0].marker.eventType] || '⚠️';
+
+        const clusterBadge = document.createElement('div');
+        clusterBadge.className = 'indra-marker-cluster';
+        clusterBadge.style.borderColor = color;
+        clusterBadge.style.boxShadow = `0 4px 14px rgba(0,0,0,0.6), 0 0 12px ${color}80`;
+        clusterBadge.innerHTML = `
+          <span class="indra-marker-cluster-pulse" style="background-color: ${color};"></span>
+          <span style="font-size: 11px;">${dominantEmoji}</span>
+          <span style="font-size: 11px; font-weight: 800; color: #ffffff; margin-left: 2px;">${item.items.length}</span>
+        `;
+        innerEl.appendChild(clusterBadge);
+
+        // Cluster Tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'indra-hud-popup';
+        tooltip.style.position = 'absolute';
+        tooltip.style.bottom = '100%';
+        tooltip.style.left = '50%';
         tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
-        markerEl.style.zIndex = isSelected ? '50' : marker.severity === 'critical' ? '40' : marker.severity === 'high' ? '35' : '20';
-      });
+        tooltip.style.opacity = '0';
+        tooltip.style.pointerEvents = 'none';
+        tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+        tooltip.style.zIndex = '25';
+        tooltip.style.width = '220px';
+        tooltip.innerHTML = `
+          <div class="hud-header">
+            <span class="hud-badge hud-${item.maxSeverity}">${item.maxSeverity} CLUSTER</span>
+            <span class="hud-time">${item.items.length} Incidents</span>
+          </div>
+          <div class="hud-title" style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
+            ${item.items.map(m => `<div>${eventTypeEmojis[m.marker.eventType] || '⚠️'} <strong>${m.marker.city}</strong>: ${m.marker.eventType}</div>`).join('')}
+          </div>
+          <div class="hud-action" style="margin-top: 6px;">⚡ Click to expand cluster</div>
+        `;
+        innerEl.appendChild(tooltip);
 
-      markerEl.addEventListener('click', (e) => {
-        e.stopPropagation();
-        handleSelectIncident(marker);
-      });
+        clusterEl.addEventListener('mouseenter', () => {
+          innerEl.style.transform = 'scale(1.15) translateY(-2px)';
+          tooltip.style.opacity = '1';
+          tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
+          clusterEl.style.zIndex = '18';
+        });
 
-      // 9. Add to MapLibre at exact WGS-84 coordinates
-      const mapMarker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' })
-        .setLngLat([coords.lng, coords.lat])
-        .addTo(map);
+        clusterEl.addEventListener('mouseleave', () => {
+          innerEl.style.transform = 'scale(1) translateY(0)';
+          tooltip.style.opacity = '0';
+          tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+          clusterEl.style.zIndex = '12';
+        });
 
-      markersRef.current.push({
-        id: marker.id,
-        marker: mapMarker,
-        el: markerEl,
-        lng: coords.lng,
-        lat: coords.lat,
-      });
+        clusterEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          map.flyTo({
+            center: [item.center.lng, item.center.lat],
+            zoom: Math.min(map.getZoom() + 1.8, 6.8),
+            duration: 1500,
+            essential: true,
+          });
+        });
+
+        const mapMarker = new maplibregl.Marker({ element: clusterEl, anchor: 'center' })
+          .setLngLat([item.center.lng, item.center.lat])
+          .addTo(map);
+
+        markersRef.current.push({
+          id: `cluster-${item.items.map(m => m.marker.id).join('-')}`,
+          marker: mapMarker,
+          el: clusterEl,
+          lng: item.center.lng,
+          lat: item.center.lat,
+        });
+      } else {
+        // --- RENDER SINGLE PIN ---
+        const { marker, coords } = item.items[0];
+        const color = severityColors[marker.severity] || '#64748B';
+        const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
+        const isSelected = selectedMarker?.id === marker.id;
+        const isPulsing = marker.severity === 'critical' || marker.severity === 'high' || isSelected;
+
+        const markerEl = document.createElement('div');
+        markerEl.className = 'indra-tactical-marker select-none';
+        markerEl.style.cursor = 'pointer';
+        markerEl.style.zIndex = isSelected ? '15' : marker.severity === 'critical' ? '10' : marker.severity === 'high' ? '8' : '5';
+
+        const innerEl = document.createElement('div');
+        innerEl.className = 'indra-marker-inner';
+        innerEl.style.position = 'relative';
+        innerEl.style.display = 'flex';
+        innerEl.style.flexDirection = 'column';
+        innerEl.style.alignItems = 'center';
+        innerEl.style.transformOrigin = 'bottom center';
+        innerEl.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        innerEl.style.transform = isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1) translateY(0)';
+        markerEl.appendChild(innerEl);
+
+        if (isSpaceZoom) {
+          // --- Tier 1: Micro-Radar Pip for Space Orbit ---
+          const pip = document.createElement('div');
+          pip.className = 'indra-marker-pip';
+          pip.style.backgroundColor = color;
+          pip.style.borderColor = isSelected ? '#38bdf8' : '#ffffff';
+          pip.style.boxShadow = isSelected
+            ? '0 0 14px #38bdf8, 0 1px 4px rgba(0,0,0,0.8)'
+            : `0 0 10px ${color}, 0 1px 4px rgba(0,0,0,0.8)`;
+          innerEl.appendChild(pip);
+
+          if (isPulsing) {
+            const microPulse = document.createElement('div');
+            microPulse.className = `pulse-ring pulse-ring-${marker.severity}`;
+            microPulse.style.width = '18px';
+            microPulse.style.height = '18px';
+            microPulse.style.top = '-5px';
+            microPulse.style.left = '50%';
+            microPulse.style.transform = 'translateX(-50%)';
+            microPulse.style.pointerEvents = 'none';
+            innerEl.appendChild(microPulse);
+          }
+        } else {
+          // --- Tier 2, 3, 4: Tactical Pin Head with Emoji ---
+          const headSize = isCompactZoom ? 20 : isDetailZoom ? 30 : 24;
+          const fontSize = isCompactZoom ? 10 : isDetailZoom ? 14 : 12;
+
+          if (isPulsing) {
+            const pulse = document.createElement('div');
+            pulse.className = `pulse-ring pulse-ring-${marker.severity}`;
+            pulse.style.width = `${headSize + 10}px`;
+            pulse.style.height = `${headSize + 10}px`;
+            pulse.style.top = '-5px';
+            pulse.style.left = '50%';
+            pulse.style.transform = 'translateX(-50%)';
+            pulse.style.pointerEvents = 'none';
+            innerEl.appendChild(pulse);
+          }
+
+          const pinHead = document.createElement('div');
+          pinHead.style.width = `${headSize}px`;
+          pinHead.style.height = `${headSize}px`;
+          pinHead.style.borderRadius = '50%';
+          pinHead.style.backgroundColor = color;
+          pinHead.style.border = isSelected ? '2.5px solid #38bdf8' : '2px solid #ffffff';
+          pinHead.style.boxShadow = isSelected
+            ? '0 0 16px #38bdf8, 0 4px 12px rgba(0,0,0,0.6)'
+            : `0 3px 10px rgba(0,0,0,0.5), 0 0 10px ${color}90`;
+          pinHead.style.display = 'flex';
+          pinHead.style.alignItems = 'center';
+          pinHead.style.justifyContent = 'center';
+          pinHead.style.fontSize = `${fontSize}px`;
+          pinHead.style.position = 'relative';
+          pinHead.style.zIndex = '2';
+          pinHead.innerHTML = `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
+          innerEl.appendChild(pinHead);
+
+          // City Pill (with smart collision suppression)
+          const cityPill = document.createElement('div');
+          cityPill.className = item.hideLabel ? 'indra-city-pill indra-city-pill-hidden' : 'indra-city-pill';
+          cityPill.style.color = isSelected ? '#38bdf8' : '#f8fafc';
+          cityPill.style.border = isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.25)';
+          cityPill.innerText = marker.city;
+          innerEl.appendChild(cityPill);
+        }
+
+        // Tactical Hover HUD Tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'indra-hud-popup';
+        tooltip.style.position = 'absolute';
+        tooltip.style.bottom = '100%';
+        tooltip.style.left = '50%';
+        tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+        tooltip.style.opacity = '0';
+        tooltip.style.pointerEvents = 'none';
+        tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+        tooltip.style.zIndex = '25';
+        tooltip.style.width = '210px';
+        tooltip.innerHTML = `
+          <div class="hud-header">
+            <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
+            <span class="hud-time">${marker.timeAgo || 'Active'}</span>
+          </div>
+          <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
+          <div class="hud-location">📍 ${marker.city}, ${marker.state}</div>
+          ${marker.action ? `<div class="hud-action">⚡ ${marker.action}</div>` : ''}
+        `;
+        innerEl.appendChild(tooltip);
+
+        markerEl.addEventListener('mouseenter', () => {
+          innerEl.style.transform = 'scale(1.22) translateY(-4px)';
+          tooltip.style.opacity = '1';
+          tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
+          markerEl.style.zIndex = '18';
+        });
+
+        markerEl.addEventListener('mouseleave', () => {
+          innerEl.style.transform = isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1) translateY(0)';
+          tooltip.style.opacity = '0';
+          tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+          markerEl.style.zIndex = isSelected ? '15' : marker.severity === 'critical' ? '10' : marker.severity === 'high' ? '8' : '5';
+        });
+
+        markerEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleSelectIncident(marker);
+        });
+
+        const mapMarker = new maplibregl.Marker({ element: markerEl, anchor: isSpaceZoom ? 'center' : 'bottom' })
+          .setLngLat([coords.lng, coords.lat])
+          .addTo(map);
+
+        markersRef.current.push({
+          id: marker.id,
+          marker: mapMarker,
+          el: markerEl,
+          lng: coords.lng,
+          lat: coords.lat,
+        });
+      }
     });
 
     updateMarkerOcclusion(map, isGlobeRef.current);
-  }, [markers, selectedMarker, handleSelectIncident, updateMarkerOcclusion]);
+  }, [markers, selectedMarker, handleSelectIncident, updateMarkerOcclusion, showEventsLayer, smartDeclutter]);
+
+  useEffect(() => {
+    renderProminentPinsRef.current = renderProminentPins;
+  }, [renderProminentPins]);
 
   // Initialize MapLibre GL
   useEffect(() => {
@@ -654,12 +930,44 @@ export default function GlobeEventMap({
       updateMarkerOcclusion(map, isGlobeRef.current);
     });
 
+    let lastRenderedZoom = map.getZoom();
+    let zoomAnimFrame: number | null = null;
+
+    const checkLODUpdate = () => {
+      const currentZoom = map.getZoom();
+      const crossedThreshold =
+        (lastRenderedZoom < 2.4 && currentZoom >= 2.4) ||
+        (lastRenderedZoom >= 2.4 && currentZoom < 2.4) ||
+        (lastRenderedZoom < 4.2 && currentZoom >= 4.2) ||
+        (lastRenderedZoom >= 4.2 && currentZoom < 4.2) ||
+        (lastRenderedZoom < 6.2 && currentZoom >= 6.2) ||
+        (lastRenderedZoom >= 6.2 && currentZoom < 6.2);
+
+      if (crossedThreshold || Math.abs(currentZoom - lastRenderedZoom) > 0.3) {
+        lastRenderedZoom = currentZoom;
+        renderProminentPinsRef.current();
+      }
+    };
+
+    map.on('zoom', () => {
+      if (zoomAnimFrame) cancelAnimationFrame(zoomAnimFrame);
+      zoomAnimFrame = requestAnimationFrame(checkLODUpdate);
+    });
+
+    map.on('moveend', () => {
+      lastRenderedZoom = map.getZoom();
+      renderProminentPinsRef.current();
+    });
+
     mapRef.current = map;
     if (typeof window !== 'undefined') {
       (window as any).__indraMap = map;
     }
 
     return () => {
+      if (zoomAnimFrame) {
+        cancelAnimationFrame(zoomAnimFrame);
+      }
       if (autoOrbitAnimRef.current) {
         cancelAnimationFrame(autoOrbitAnimRef.current);
       }
@@ -675,12 +983,12 @@ export default function GlobeEventMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
-  // Re-render pins when markers, globe mode, or selection changes
+  // Re-render pins when markers, globe mode, smart declutter, or selection changes
   useEffect(() => {
     if (mapRef.current && mapRef.current.isStyleLoaded()) {
       renderProminentPins();
     }
-  }, [markers, selectedMarker, renderProminentPins]);
+  }, [markers, selectedMarker, smartDeclutter, renderProminentPins]);
 
   // Layer visibility toggles
   useEffect(() => {
@@ -819,7 +1127,7 @@ export default function GlobeEventMap({
 
   return (
     <div className={isFullscreen ? 'fixed inset-0 z-50 p-3 sm:p-6 bg-slate-950/90 backdrop-blur-md flex flex-col' : 'relative'}>
-      <Card hover={false} className={`overflow-hidden border border-slate-200/80 shadow-card flex flex-col ${isFullscreen ? 'flex-1 h-full' : ''}`}>
+      <Card hover={false} className={`overflow-hidden border border-slate-200/80 shadow-card flex flex-col indra-map-isolated isolate relative z-0 ${isFullscreen ? 'flex-1 h-full' : ''}`}>
         {/* Header Bar */}
         <CardHeader
           title={
@@ -993,6 +1301,20 @@ export default function GlobeEventMap({
               <span>NDRF Bases</span>
             </button>
 
+            {/* Smart Declutter & Collision Avoidance Toggle */}
+            <button
+              onClick={() => setSmartDeclutter(!smartDeclutter)}
+              className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-all flex items-center gap-1 ${
+                smartDeclutter
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold shadow-xs'
+                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+              }`}
+              title="Toggle intelligent marker collision avoidance and spatial clustering"
+            >
+              <Layers className="w-3 h-3 text-emerald-600" />
+              <span>Smart Pins: {smartDeclutter ? 'ON' : 'OFF'}</span>
+            </button>
+
             {/* Auto-Orbit Button */}
             <button
               onClick={() => setIsAutoOrbiting(!isAutoOrbiting)}
@@ -1034,7 +1356,7 @@ export default function GlobeEventMap({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -20, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute top-3 left-3 z-30 w-80 max-w-[calc(100%-24px)] bg-slate-900/95 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4"
+                className="absolute top-3 left-3 z-35 w-80 max-w-[calc(100%-24px)] bg-slate-900/95 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-2">
@@ -1134,7 +1456,7 @@ export default function GlobeEventMap({
           </AnimatePresence>
 
           {/* Collapsible Incident Roster HUD (Positioned to the left of MapLibre zoom controls) */}
-          <div className="absolute top-3 right-14 z-20 flex flex-col items-end">
+          <div className="absolute top-3 right-14 z-30 flex flex-col items-end">
             {!isRosterOpen ? (
               <button
                 onClick={() => setIsRosterOpen(true)}

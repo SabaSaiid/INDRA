@@ -84,7 +84,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
       variants={fadeIn}
       initial="hidden"
       animate="visible"
-      className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-100"
+      className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100"
     >
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Mobile menu button */}
