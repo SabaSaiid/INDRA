@@ -537,12 +537,9 @@ export default function Sidebar({
         className={cn(
           'fixed left-0 top-0 h-screen z-40',
           'hidden md:flex flex-col',
-          'bg-slate-950/95 backdrop-blur-xl border-r border-slate-850 shadow-[4px_0_24px_rgba(0,0,0,0.45)]'
+          'bg-slate-950/95 backdrop-blur-xl border-r border-slate-850'
         )}
       >
-        {/* Subtle Right Edge Illumination Accent */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-blue-500/0 via-blue-500/25 to-blue-500/0" />
-
         {sidebarBody(false)}
       </motion.aside>
 
