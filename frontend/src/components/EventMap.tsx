@@ -6,7 +6,7 @@ import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { type MapMarker } from '@/lib/mock-data';
 
 // Dynamically import 3D Globe Event Map without SSR
-const GlobeEventMap = dynamic(() => import('@/components/GlobeEventMap'), {
+const GlobeEventMap = dynamic(() => import('@/components/client-only/GlobeEventMap'), {
   ssr: false,
   loading: () => <MapCardSkeleton />,
 });

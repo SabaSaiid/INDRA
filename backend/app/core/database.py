@@ -51,4 +51,11 @@ async def init_db() -> None:
             await conn.execute(text("SELECT PostGIS_Version()"))
         logger.info("✓ PostGIS extension verified and database connected.")
     except Exception as e:
-        logger.warning(f"⚠ Database connection failed (non-fatal): {e}")
+        err_type = type(e).__name__
+        err_msg = str(e).split('\n')[0].strip()
+        if "ConnectionRefusedError" in str(e) or "Connect call failed" in str(e) or "Operation not permitted" in str(e):
+            logger.warning(
+                f"⚠ Database connection failed (non-fatal): PostgreSQL at {settings.POSTGRES_HOST}:{settings.POSTGRES_PORT} unreachable ({err_msg})"
+            )
+        else:
+            logger.warning(f"⚠ Database connection failed (non-fatal): {err_type} - {err_msg}")

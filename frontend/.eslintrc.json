@@ -1,3 +1,75 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "maplibre-gl",
+            "message": "Direct import of 'maplibre-gl' is restricted outside src/components/client-only/. Move WebGL/browser components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          },
+          {
+            "name": "maplibre-gl/dist/maplibre-gl.css",
+            "message": "Direct import of 'maplibre-gl' CSS is restricted outside src/components/client-only/."
+          },
+          {
+            "name": "leaflet",
+            "message": "Direct import of 'leaflet' is restricted outside src/components/client-only/. Move DOM/browser components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          },
+          {
+            "name": "react-leaflet",
+            "message": "Direct import of 'react-leaflet' is restricted outside src/components/client-only/. Move DOM/browser components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          },
+          {
+            "name": "leaflet/dist/leaflet.css",
+            "message": "Direct import of 'leaflet' CSS is restricted outside src/components/client-only/."
+          },
+          {
+            "name": "three",
+            "message": "Direct import of 'three' is restricted outside src/components/client-only/. Move WebGL components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          },
+          {
+            "name": "@react-three/fiber",
+            "message": "Direct import of '@react-three/fiber' is restricted outside src/components/client-only/. Move WebGL components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          },
+          {
+            "name": "globe.gl",
+            "message": "Direct import of 'globe.gl' is restricted outside src/components/client-only/. Move WebGL components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          },
+          {
+            "name": "react-globe.gl",
+            "message": "Direct import of 'react-globe.gl' is restricted outside src/components/client-only/. Move WebGL components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          },
+          {
+            "name": "cesium",
+            "message": "Direct import of 'cesium' is restricted outside src/components/client-only/. Move WebGL components to src/components/client-only/ and load with next/dynamic({ ssr: false })."
+          }
+        ],
+        "patterns": [
+          {
+            "group": [
+              "maplibre-gl/*",
+              "leaflet/*",
+              "react-leaflet/*",
+              "three/*",
+              "@react-three/*",
+              "globe.gl/*",
+              "react-globe.gl/*",
+              "cesium/*"
+            ],
+            "message": "Browser-only / WebGL / DOM libraries may only be imported inside src/components/client-only/."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/components/client-only/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }

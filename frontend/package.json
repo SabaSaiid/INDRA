@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf .next node_modules/.cache tsconfig.tsbuildinfo",
+    "postinstall": "npm run clean",
     "predev": "lsof -ti :3000 | xargs kill -9 2>/dev/null || true",
     "dev": "next dev",
     "prebuild": "npm run clean",
     "build": "next build",
     "start": "next start",
     "doctor": "bash scripts/doctor.sh",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify-build": "bash scripts/verify-build.sh"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.2",

@@ -68,7 +68,6 @@ async def start_report_consumer():
                 await asyncio.sleep(15)
                 continue
 
-            kafka_was_offline = False
             consumer = AIOKafkaConsumer(
                 settings.KAFKA_REPORTS_TOPIC,
                 bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
@@ -77,7 +76,12 @@ async def start_report_consumer():
                 value_deserializer=lambda m: json.loads(m.decode("utf-8")),
             )
             await consumer.start()
-            logger.info(f"✓ Report consumer connected to {settings.KAFKA_BOOTSTRAP_SERVERS}")
+            if kafka_was_offline:
+                logger.info(f"✓ Kafka/Redpanda broker reconnected. Report consumer active at {settings.KAFKA_BOOTSTRAP_SERVERS}")
+            else:
+                logger.info(f"✓ Report consumer connected to {settings.KAFKA_BOOTSTRAP_SERVERS}")
+            kafka_was_offline = False
+            retry_delay = 5
 
             async for msg in consumer:
                 try:
@@ -99,7 +103,12 @@ async def start_report_consumer():
             break
 
         except Exception as e:
-            logger.warning(f"Report consumer connection error: {e}. Retrying in {retry_delay}s...")
+            if not kafka_was_offline:
+                logger.info(
+                    f"ℹ Kafka/Redpanda broker offline at {settings.KAFKA_BOOTSTRAP_SERVERS}. "
+                    "Background report consumer waiting."
+                )
+                kafka_was_offline = True
             await asyncio.sleep(retry_delay)
             retry_delay = min(retry_delay * 2, 60)  # exponential backoff
 

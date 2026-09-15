@@ -20,7 +20,7 @@ import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { fadeIn } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
 
-const GlobeEventMap = dynamic(() => import('@/components/GlobeEventMap'), {
+const GlobeEventMap = dynamic(() => import('@/components/client-only/GlobeEventMap'), {
   ssr: false,
   loading: () => <MapCardSkeleton />,
 });
