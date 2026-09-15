@@ -138,7 +138,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             >
               {/* Avatar with live duty status ring */}
               <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center text-white text-xs font-bold shadow-sm" suppressHydrationWarning>
                   {currentProfile.avatar_initials || 'RV'}
                 </div>
                 <span
@@ -152,11 +152,11 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               <div className="hidden sm:block text-left">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Logged in</span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-primary border border-blue-100">
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-primary border border-blue-100" suppressHydrationWarning>
                     {currentProfile.role}
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-text-primary leading-tight truncate max-w-[140px]" title={currentProfile.full_name}>
+                <p className="text-xs font-semibold text-text-primary leading-tight truncate max-w-[140px]" title={currentProfile.full_name} suppressHydrationWarning>
                   {currentProfile.full_name}
                 </p>
               </div>

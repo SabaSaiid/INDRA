@@ -5,20 +5,22 @@ import { useState, useEffect, useCallback } from 'react';
 const STORAGE_KEY = 'indra_sidebar_collapsed';
 
 export function useSidebar() {
-  const [collapsed, setCollapsedState] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
+  const [collapsed, setCollapsedState] = useState<boolean>(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Sync stored sidebar collapsed preference after client mount to prevent SSR hydration mismatch
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored !== null) {
-        return stored === 'true';
+        setCollapsedState(stored === 'true');
+      } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setCollapsedState(true);
       }
-      return window.innerWidth < 1024;
     } catch {
-      return false;
+      // ignore
     }
-  });
-
-  const [mobileOpen, setMobileOpen] = useState(false);
+  }, []);
 
   // Set collapsed with localStorage sync & event dispatch
   const setCollapsed = useCallback((value: boolean | ((prev: boolean) => boolean)) => {

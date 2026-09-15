@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -46,19 +46,20 @@ export default function Sidebar({
   const pathname = usePathname();
   const { profile } = useOperatorProfile();
 
-  // Collapsible section state initialized from localStorage
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
-    if (typeof window === 'undefined') return {};
+  // Collapsible section state initialized consistently with SSR
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
     try {
       const saved: Record<string, boolean> = {};
       ['tactical', 'intelligence', 'command'].forEach((id) => {
         saved[id] = localStorage.getItem(`indra_nav_section_${id}`) === 'true';
       });
-      return saved;
+      setCollapsedSections(saved);
     } catch {
-      return {};
+      // ignore storage errors
     }
-  });
+  }, []);
 
   const toggleSection = (sectionId: string) => {
     setCollapsedSections((prev) => {
@@ -429,7 +430,7 @@ export default function Sidebar({
               <span className="text-[9px] font-mono font-semibold tracking-wider text-slate-500 uppercase">
                 Sector Command
               </span>
-              <span className="text-[9px] font-mono text-cyan-400">
+              <span className="text-[9px] font-mono text-cyan-400" suppressHydrationWarning>
                 {profile.callsign}
               </span>
             </div>
@@ -448,7 +449,10 @@ export default function Sidebar({
             >
               {/* Operator Avatar with Duty Dot */}
               <div className="relative flex-shrink-0">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-cyan-600 text-white font-bold text-xs flex items-center justify-center shadow-md">
+                <div
+                  className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-cyan-600 text-white font-bold text-xs flex items-center justify-center shadow-md"
+                  suppressHydrationWarning
+                >
                   {profile.avatar_initials}
                 </div>
                 <span
@@ -463,13 +467,17 @@ export default function Sidebar({
               {!isCollapsedState && (
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-white truncate" title={profile.full_name}>
+                    <p
+                      className="text-xs font-semibold text-white truncate"
+                      title={profile.full_name}
+                      suppressHydrationWarning
+                    >
                       {profile.full_name}
                     </p>
                     <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400 transition-colors shrink-0 ml-1" />
                   </div>
                   <div className="flex items-center gap-1.5 text-[10px] text-slate-400 truncate">
-                    <span className="truncate">
+                    <span className="truncate" suppressHydrationWarning>
                       {profile.team_name ? profile.team_name.split('—')[0].trim() : profile.agency}
                     </span>
                   </div>
@@ -490,17 +498,17 @@ export default function Sidebar({
                   <div className="absolute -left-1.5 bottom-3 w-3 h-3 bg-slate-900 border-l border-b border-slate-700/80 transform rotate-45" />
                   <div className="relative z-10 space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-white">
+                      <span className="font-semibold text-xs text-white" suppressHydrationWarning>
                         {profile.full_name}
                       </span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" suppressHydrationWarning>
                         {profile.duty_status.replace('_', ' ')}
                       </span>
                     </div>
-                    <p className="text-[10px] font-mono text-cyan-400">
+                    <p className="text-[10px] font-mono text-cyan-400" suppressHydrationWarning>
                       Callsign: {profile.callsign}
                     </p>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-slate-400" suppressHydrationWarning>
                       {profile.team_name}
                     </p>
                     <div className="pt-1.5 border-t border-slate-800 text-[10px] text-blue-400 font-medium flex items-center gap-1">

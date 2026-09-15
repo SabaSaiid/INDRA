@@ -66,23 +66,28 @@ export const AVAILABLE_OPERATOR_PERSONAS: OperatorPersonaOption[] = [
 ];
 
 export function useOperatorProfile() {
-  const [selectedRole, setSelectedRoleState] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'commander';
-    try {
-      return localStorage.getItem(OPERATOR_STORAGE_KEY) || 'commander';
-    } catch {
-      return 'commander';
-    }
-  });
-
-  const [profile, setProfile] = useState<UserProfile>(() => {
-    return mockProfilesMap[selectedRole] || mockUserProfile;
-  });
+  const [selectedRole, setSelectedRoleState] = useState<string>('commander');
+  const [profile, setProfile] = useState<UserProfile>(() => mockProfilesMap['commander'] || mockUserProfile);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Initial fetch on mount or role change
+  // Sync stored role from localStorage after initial client hydration to avoid hydration mismatch
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(OPERATOR_STORAGE_KEY);
+      if (stored && stored !== 'commander') {
+        setSelectedRoleState(stored);
+        if (mockProfilesMap[stored]) {
+          setProfile(mockProfilesMap[stored]);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Fetch profile data on mount or role change
   useEffect(() => {
     let cancelled = false;
     fetchUserProfile(selectedRole)
