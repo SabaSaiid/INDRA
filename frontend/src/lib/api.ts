@@ -13,6 +13,7 @@ import {
   liveFeedItems,
   mockTeams,
   mockUserProfile,
+  mockProfilesMap,
   mockSixthSenseTeam,
   type KpiItem,
   type MapMarker,
@@ -309,6 +310,9 @@ export async function fetchUserProfile(username?: string): Promise<UserProfile> 
     return await res.json();
   } catch (err) {
     console.warn('[INDRA] fetchUserProfile failed, using mock data:', err);
+    if (username && mockProfilesMap[username]) {
+      return mockProfilesMap[username];
+    }
     return mockUserProfile;
   }
 }
@@ -324,6 +328,10 @@ export async function updateUserProfile(data: Partial<UserProfile>, username: st
     return await res.json();
   } catch (err) {
     console.warn('[INDRA] updateUserProfile failed, updating local mock state:', err);
+    if (username && mockProfilesMap[username]) {
+      Object.assign(mockProfilesMap[username], data);
+      return mockProfilesMap[username];
+    }
     Object.assign(mockUserProfile, data);
     return mockUserProfile;
   }

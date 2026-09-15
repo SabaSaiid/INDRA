@@ -437,9 +437,9 @@ async def seed():
     # Seed User Profiles
     profiles_data = [
         ("commander", "Commandant Rajesh K. Verma", "rajesh.verma@sih-indra.gov.in", "+91 94311 02847", "COMMANDER", "SDMA_BIHAR", "OP-CMD-001", "NDRF-PAT-091", "EAGLE-LEADER", team_id_map.get("TEAM-NDRF-09"), "Incident Commander", "ON_DUTY", "National Disaster Response Force commander leading urban inundation and river flood operations."),
-        ("admin", "Dr. Ananya Sen", "ananya.sen@ndma.gov.in", "+91 98100 11982", "ADMIN", "NDMA", "OP-ADMIN-001", "NDMA-DIR-004", "CENTRAL-ONE", team_id_map.get("TEAM-NDMA-NAT01"), "Platform Administrator", "ON_DUTY", "National Disaster Management Authority chief data officer administering the INDRA big data platform."),
+        ("admin", "Saba Saeed", "sabasaid826@gmail.com", "+91 84347 08060", "ADMIN", "NDMA", "OP-ADMIN-001", "NDMA-DIR-001", "CENTRAL-LEADER", team_id_map.get("TEAM-NDMA-NAT01"), "Platform Administrator & Team Lead", "ON_DUTY", "Lead System Architect and NDMA Platform Administrator managing the INDRA national big data weather platform."),
         ("analyst", "Dr. Vikram Sethi", "vikram.sethi@imd.gov.in", "+91 98710 44210", "ANALYST", "IMD", "OP-ANL-001", "IMD-MET-552", "RADAR-HAWK", team_id_map.get("TEAM-IMD-NOW01"), "Lead Meteorological Analyst", "ON_DUTY", "IMD Nowcasting specialist focusing on Doppler weather radar echoes and cloudburst probability synthesis."),
-        ("citizen", "Aarav Sharma", "aarav.sharma@gmail.com", "+91 97112 88401", "CITIZEN", "PUBLIC", "OP-CIT-001", "CITIZEN-REP-88", "OBSERVER-IND", None, "Volunteer Observer", "ON_DUTY", "Registered citizen weather observer contributing geotagged ground reports and flooding photos in Patna."),
+        ("citizen", "Meenal Sinha", "meenal.sinha09@gmail.com", "+91 93541 18582", "CITIZEN", "PUBLIC", "OP-CIT-001", "CITIZEN-REP-06", "OBSERVER-MEENAL", None, "Volunteer Reporter", "ON_DUTY", "Registered citizen weather observer and ground-truth volunteer contributing geotagged ground reports and flooding photos."),
     ]
 
     try:
@@ -451,7 +451,9 @@ async def seed():
                      callsign, team_id, team_role, duty_status, bio, last_active_at, created_at)
                 VALUES ($1, $2, $3, $4, $5, $6::operator_role_enum, $7, $8, $9, $10, $11, $12, $13::duty_status_enum, $14, NOW(), NOW())
                 ON CONFLICT (username) DO UPDATE
-                SET full_name = EXCLUDED.full_name, duty_status = EXCLUDED.duty_status, team_id = EXCLUDED.team_id
+                SET full_name = EXCLUDED.full_name, email = EXCLUDED.email, phone = EXCLUDED.phone,
+                    badge_number = EXCLUDED.badge_number, callsign = EXCLUDED.callsign, team_role = EXCLUDED.team_role,
+                    duty_status = EXCLUDED.duty_status, team_id = EXCLUDED.team_id, bio = EXCLUDED.bio
             """, pid, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12])
         print(f"  ✓ Inserted {len(profiles_data)} operator profiles")
     except Exception as e:
