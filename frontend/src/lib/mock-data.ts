@@ -575,6 +575,7 @@ export interface UserProfile {
   operator_id: string;
   badge_number?: string;
   callsign?: string;
+  team_id?: string;
   team_name?: string;
   team_code?: string;
   team_role?: string;
@@ -585,6 +586,38 @@ export interface UserProfile {
   audits_logged?: number;
   accuracy_rate?: number;
   last_active_at?: string;
+}
+
+export interface OperatorActivity {
+  id: string;
+  action: string;
+  target: string;
+  time: string;
+  status: 'COMPLETED' | 'VERIFIED' | 'LOGGED' | 'ON DUTY' | 'DISPATCHED' | 'QUARANTINED' | 'SUBMITTED';
+}
+
+export interface RoleTelemetryItem {
+  label: string;
+  value: string | number;
+  sublabel?: string;
+  iconName: 'FileCheck' | 'Shield' | 'CheckCircle2' | 'Clock' | 'Radio' | 'Zap' | 'Activity' | 'Users' | 'Eye' | 'Satellite' | 'Server' | 'Award';
+  color: 'blue' | 'purple' | 'emerald' | 'amber';
+}
+
+export interface RolePermission {
+  key: string;
+  name: string;
+  description: string;
+  authorized: boolean;
+}
+
+export interface RoleSecurityProfile {
+  clearanceLevel: string;
+  clearanceCode: string;
+  clearanceColor: string;
+  tokenExpiry: string;
+  ledgerImmutability: string;
+  permissions: RolePermission[];
 }
 
 export interface HackathonMember {
@@ -842,6 +875,127 @@ export const mockProfilesMap: Record<string, UserProfile> = {
     audits_logged: 0,
     accuracy_rate: 92.4,
     last_active_at: '2026-09-15T10:45:00Z',
+  },
+};
+
+export const mockRoleActivities: Record<string, OperatorActivity[]> = {
+  commander: [
+    { id: 'act-c-1', action: 'Dispatched Quick Response Taskforce', target: 'WX-EV-28231827-A (Patna Urban Flood)', time: '18 mins ago', status: 'DISPATCHED' },
+    { id: 'act-c-2', action: 'High-Confidence Triage Signed', target: 'WX-EV-77291044-B (Mumbai Coastal Surge)', time: '2 hours ago', status: 'VERIFIED' },
+    { id: 'act-c-3', action: 'Manual Override Confirmation', target: 'SIG-10928 (River Gauge Anomaly)', time: '5 hours ago', status: 'LOGGED' },
+    { id: 'act-c-4', action: 'Shift Roll-Call & Tactical Inspection', target: 'Patna Regional Command Base', time: '11 hours ago', status: 'ON DUTY' },
+    { id: 'act-c-5', action: 'Evacuation Corridor Authorized', target: 'Sector 4 Embankment Zone', time: 'Yesterday', status: 'COMPLETED' },
+  ],
+  analyst: [
+    { id: 'act-a-1', action: 'Doppler Radar Echo Cross-Validation', target: 'DWR-PAT-02 (Cloudburst Echo Cluster)', time: '12 mins ago', status: 'VERIFIED' },
+    { id: 'act-a-2', action: 'Bayesian Prior Recalibration', target: 'AWS-BIH-104 (Rainfall Gauge Drift)', time: '1 hour ago', status: 'COMPLETED' },
+    { id: 'act-a-3', action: 'False Alarm Signal Quarantined', target: 'SIG-99120 (Acoustic Glitch Triage)', time: '4 hours ago', status: 'QUARANTINED' },
+    { id: 'act-a-4', action: 'Flash Flood Guidance Synthesis', target: 'South Bihar River Basins', time: '8 hours ago', status: 'LOGGED' },
+    { id: 'act-a-5', action: 'INSAT-3DR Rapid Scan Overlay', target: 'Eastern Himalayan Frontal Cloud', time: 'Yesterday', status: 'COMPLETED' },
+  ],
+  admin: [
+    { id: 'act-ad-1', action: 'Platform Security Audit & Integrity Check', target: 'Ledger Block #84920 (SHA-256 Validated)', time: '8 mins ago', status: 'VERIFIED' },
+    { id: 'act-ad-2', action: 'Taskforce Deployment Roster Reallocated', target: 'TEAM-NDRF-09 & TEAM-SDRF-02', time: '45 mins ago', status: 'COMPLETED' },
+    { id: 'act-ad-3', action: 'Activated Pan-India Multi-Hazard Gateway', target: 'NDMA Central Node 01', time: '3 hours ago', status: 'ON DUTY' },
+    { id: 'act-ad-4', action: 'RBAC Policy Matrix Synchronized', target: 'Field Responder Clearance Tier 2', time: '6 hours ago', status: 'LOGGED' },
+    { id: 'act-ad-5', action: 'PostgreSQL TimeScale Hypertables Reindexed', target: 'Station Readings Cluster (120M Rows)', time: 'Yesterday', status: 'COMPLETED' },
+  ],
+  citizen: [
+    { id: 'act-ct-1', action: 'Geotagged Waterlogging Report Submitted', target: 'Kankarbagh Main Road, Patna (0.8m Depth)', time: '25 mins ago', status: 'SUBMITTED' },
+    { id: 'act-ct-2', action: 'Local Drain Overflow Alert Logged', target: 'Ward 12 Municipal Inundation', time: '3 hours ago', status: 'VERIFIED' },
+    { id: 'act-ct-3', action: 'Community Warning Upvoted', target: 'WX-EV-28231827-A Flash Flood Warning', time: '5 hours ago', status: 'COMPLETED' },
+    { id: 'act-ct-4', action: 'Ground-Truth Station Reading Confirmed', target: 'Neighborhood Rain Gauge RG-04', time: '10 hours ago', status: 'LOGGED' },
+    { id: 'act-ct-5', action: 'Evacuation Route Feedback Shared', target: 'Boring Road Relief Shelter Path', time: 'Yesterday', status: 'SUBMITTED' },
+  ],
+};
+
+export const mockRoleTelemetry: Record<string, RoleTelemetryItem[]> = {
+  commander: [
+    { label: 'Events Triaged', value: 24, sublabel: 'Verified emergency ops', iconName: 'FileCheck', color: 'blue' },
+    { label: 'Audits Signed', value: 19, sublabel: 'Cryptographic sign-offs', iconName: 'Shield', color: 'purple' },
+    { label: 'Bayesian Accuracy', value: '96.8%', sublabel: 'Triage verification rate', iconName: 'CheckCircle2', color: 'emerald' },
+    { label: 'Avg Dispatch Response', value: '< 12 mins', sublabel: 'Target < 15 mins', iconName: 'Clock', color: 'amber' },
+  ],
+  analyst: [
+    { label: 'Radar Scans Analyzed', value: 142, sublabel: 'Doppler echo arrays', iconName: 'Activity', color: 'blue' },
+    { label: 'Priors Calibrated', value: 31, sublabel: 'Bayesian weighting nodes', iconName: 'Zap', color: 'purple' },
+    { label: 'Model Concordance', value: '94.5%', sublabel: 'Nowcast verification score', iconName: 'CheckCircle2', color: 'emerald' },
+    { label: 'Edge Inference Latency', value: '< 420 ms', sublabel: 'TensorRT pipeline', iconName: 'Clock', color: 'amber' },
+  ],
+  admin: [
+    { label: 'System Grid Uptime', value: '99.98%', sublabel: 'High availability SLA', iconName: 'Activity', color: 'blue' },
+    { label: 'Audits Verified', value: 42, sublabel: 'Master ledger blocks', iconName: 'Shield', color: 'purple' },
+    { label: 'Zero-Trust Hardening', value: '99.1%', sublabel: 'SOC2 compliant identity', iconName: 'CheckCircle2', color: 'emerald' },
+    { label: 'Active Ingestion Nodes', value: '8 Nodes', sublabel: 'CWC, IMD, Sensor feeds', iconName: 'Zap', color: 'amber' },
+  ],
+  citizen: [
+    { label: 'Ground Reports Logged', value: 14, sublabel: 'Geotagged observations', iconName: 'FileCheck', color: 'blue' },
+    { label: 'Community Upvotes', value: 48, sublabel: 'Civic trust endorsements', iconName: 'Users', color: 'purple' },
+    { label: 'Ground Accuracy', value: '92.4%', sublabel: 'Validated field photo score', iconName: 'CheckCircle2', color: 'emerald' },
+    { label: 'Civic Impact Rank', value: 'Top 5%', sublabel: 'Verified volunteer level', iconName: 'Award', color: 'amber' },
+  ],
+};
+
+export const mockRoleSecurity: Record<string, RoleSecurityProfile> = {
+  commander: {
+    clearanceLevel: 'Level 4 (Tactical Command & Dispatch)',
+    clearanceCode: 'LVL-4-TAC',
+    clearanceColor: 'text-emerald-600',
+    tokenExpiry: '8h (HS256 Bearer)',
+    ledgerImmutability: 'SHA-256 Armed & Validated',
+    permissions: [
+      { key: 'dispatch', name: 'Direct Taskforce Dispatch', description: 'Deploy NDRF/SDRF battalions to active events', authorized: true },
+      { key: 'override', name: 'Bayesian Manual Override', description: 'Elevate or suppress AI automated probability score', authorized: true },
+      { key: 'verify', name: 'Emergency Event Triage', description: 'Publish verified multi-hazard disaster warnings', authorized: true },
+      { key: 'sensors', name: 'Sensor Telemetry Config', description: 'Reconfigure hardware sensor reporting frequency', authorized: false },
+      { key: 'reports', name: 'Ground Truth Report Ingestion', description: 'Submit and validate field observations', authorized: true },
+      { key: 'admin', name: 'Platform Master Admin', description: 'Manage RBAC permissions and national node gateways', authorized: false },
+    ],
+  },
+  analyst: {
+    clearanceLevel: 'Level 3 (Scientific Analysis & IMD Nowcasting)',
+    clearanceCode: 'LVL-3-SCI',
+    clearanceColor: 'text-blue-600',
+    tokenExpiry: '12h (HS256 Bearer)',
+    ledgerImmutability: 'SHA-256 Armed & Validated',
+    permissions: [
+      { key: 'dispatch', name: 'Direct Taskforce Dispatch', description: 'Deploy NDRF/SDRF battalions to active events', authorized: false },
+      { key: 'override', name: 'Bayesian Manual Override', description: 'Elevate or suppress AI automated probability score', authorized: true },
+      { key: 'verify', name: 'Emergency Event Triage', description: 'Publish verified multi-hazard disaster warnings', authorized: true },
+      { key: 'sensors', name: 'Sensor Telemetry Config', description: 'Reconfigure hardware sensor reporting frequency', authorized: true },
+      { key: 'reports', name: 'Ground Truth Report Ingestion', description: 'Submit and validate field observations', authorized: true },
+      { key: 'admin', name: 'Platform Master Admin', description: 'Manage RBAC permissions and national node gateways', authorized: false },
+    ],
+  },
+  admin: {
+    clearanceLevel: 'Level 5 (NDMA Strategic Root Command)',
+    clearanceCode: 'LVL-5-ROOT',
+    clearanceColor: 'text-purple-600',
+    tokenExpiry: '4h (HS256 Bearer + 2FA)',
+    ledgerImmutability: 'SHA-256 Armed & Master Locked',
+    permissions: [
+      { key: 'dispatch', name: 'Direct Taskforce Dispatch', description: 'Deploy NDRF/SDRF battalions to active events', authorized: true },
+      { key: 'override', name: 'Bayesian Manual Override', description: 'Elevate or suppress AI automated probability score', authorized: true },
+      { key: 'verify', name: 'Emergency Event Triage', description: 'Publish verified multi-hazard disaster warnings', authorized: true },
+      { key: 'sensors', name: 'Sensor Telemetry Config', description: 'Reconfigure hardware sensor reporting frequency', authorized: true },
+      { key: 'reports', name: 'Ground Truth Report Ingestion', description: 'Submit and validate field observations', authorized: true },
+      { key: 'admin', name: 'Platform Master Admin', description: 'Manage RBAC permissions and national node gateways', authorized: true },
+    ],
+  },
+  citizen: {
+    clearanceLevel: 'Level 1 (Public Observation & Community Ground Truth)',
+    clearanceCode: 'LVL-1-PUB',
+    clearanceColor: 'text-amber-600',
+    tokenExpiry: '24h (Session Key)',
+    ledgerImmutability: 'SHA-256 Publicly Verifiable',
+    permissions: [
+      { key: 'dispatch', name: 'Direct Taskforce Dispatch', description: 'Deploy NDRF/SDRF battalions to active events', authorized: false },
+      { key: 'override', name: 'Bayesian Manual Override', description: 'Elevate or suppress AI automated probability score', authorized: false },
+      { key: 'verify', name: 'Emergency Event Triage', description: 'Publish verified multi-hazard disaster warnings', authorized: false },
+      { key: 'sensors', name: 'Sensor Telemetry Config', description: 'Reconfigure hardware sensor reporting frequency', authorized: false },
+      { key: 'reports', name: 'Ground Truth Report Ingestion', description: 'Submit and validate field observations', authorized: true },
+      { key: 'admin', name: 'Platform Master Admin', description: 'Manage RBAC permissions and national node gateways', authorized: false },
+    ],
   },
 };
 

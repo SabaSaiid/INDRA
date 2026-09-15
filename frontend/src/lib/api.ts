@@ -353,6 +353,15 @@ export async function updateUserProfile(data: Partial<UserProfile>, username: st
     return await res.json();
   } catch (err) {
     console.warn('[INDRA] updateUserProfile failed, updating local mock state:', err);
+    if (data.full_name) {
+      data.avatar_initials = data.full_name
+        .trim()
+        .split(/\s+/)
+        .map((p) => p[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+    }
     if (username && mockProfilesMap[username]) {
       Object.assign(mockProfilesMap[username], data);
       return mockProfilesMap[username];
