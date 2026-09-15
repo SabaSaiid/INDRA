@@ -23,11 +23,16 @@ if config.config_file_name is not None:
 
 # Import all models so their metadata is registered
 from app.core.database import Base
+from app.core.config import get_settings
 from app.models import (  # noqa: F401
     VerifiedEvent, RawReport, StationReading, AuditLog,
 )
 
+settings = get_settings()
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
 target_metadata = Base.metadata
+
 
 
 def run_migrations_offline() -> None:

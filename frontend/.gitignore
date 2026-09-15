@@ -25,6 +25,12 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+.env.*
+!.env.example
+
+# verification builds
+.next-verify/
 
 # typescript
 *.tsbuildinfo

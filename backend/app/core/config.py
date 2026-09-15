@@ -4,6 +4,7 @@ Loads all environment variables via pydantic-settings.
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
 
 
@@ -28,6 +29,16 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5433
     DATABASE_URL: str = "postgresql+asyncpg://indra_user:indra_password@localhost:5433/indra_db"
+
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def normalize_database_url(cls, v: str) -> str:
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgresql://") and not v.startswith("postgresql+asyncpg://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
 
     # ── Redis ──────────────────────────────────────────────────────────────
     REDIS_HOST: str = "localhost"

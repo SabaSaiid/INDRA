@@ -175,7 +175,9 @@ async def seed():
     print("🌱 INDRA National Seed Data Generator")
     print("=" * 60)
 
-    conn = await asyncpg.connect(DSN)
+    ssl_mode = "require" if ("localhost" not in DSN and "127.0.0.1" not in DSN) else None
+    conn = await asyncpg.connect(DSN, ssl=ssl_mode)
+
 
     # Check if data already exists
     existing = await conn.fetchval("SELECT COUNT(*) FROM verified_events")

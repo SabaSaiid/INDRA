@@ -414,17 +414,26 @@ export const recentEvents: RecentEvent[] = [
 export interface DistributionItem {
   name: string;
   value: number;
+  count?: number;
   color: string;
 }
 
 export const eventDistribution: DistributionItem[] = [
-  { name: 'Rainfall', value: 14, color: '#3B82F6' },
-  { name: 'Flood', value: 8, color: '#F59E0B' },
-  { name: 'Thunderstorm', value: 6, color: '#8B5CF6' },
-  { name: 'Strong Winds', value: 5, color: '#2563EB' },
-  { name: 'Fog', value: 3, color: '#64748B' },
-  { name: 'Others', value: 1, color: '#94A3B8' },
+  { name: 'Rainfall', value: 14, count: 14, color: '#3B82F6' },
+  { name: 'Flood', value: 8, count: 8, color: '#F59E0B' },
+  { name: 'Thunderstorm', value: 6, count: 6, color: '#8B5CF6' },
+  { name: 'Strong Winds', value: 5, count: 5, color: '#2563EB' },
+  { name: 'Fog', value: 3, count: 3, color: '#64748B' },
+  { name: 'Others', value: 1, count: 1, color: '#94A3B8' },
 ];
+
+export const eventSeverityDistribution: DistributionItem[] = [
+  { name: 'Critical', value: 4, count: 4, color: '#EF4444' },
+  { name: 'High', value: 8, count: 8, color: '#F59E0B' },
+  { name: 'Moderate', value: 15, count: 15, color: '#3B82F6' },
+  { name: 'Advisory', value: 10, count: 10, color: '#10B981' },
+];
+
 
 // ─── Reports Trend (Line Chart — 7 days) ─────────────────────────────────────
 

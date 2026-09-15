@@ -45,16 +45,22 @@ else
   exit 1
 fi
 
-# 3. Clean prior build caches
-echo -e "${CYAN}→ Purging build cache (.next & node_modules/.cache)...${RESET}"
-npm run clean
+# 3. Clean prior verification cache
+VERIFY_DIR=".next-verify"
+echo -e "${CYAN}→ Preparing isolated verification target (${VERIFY_DIR})...${RESET}"
+rm -rf "$VERIFY_DIR"
 
-# 4. Run Next.js production build
+# 4. Run Next.js production build into isolated directory
 echo -e "${CYAN}→ Running next build to verify chunk manifest and CSS integrity...${RESET}"
-if npm run build; then
+if NEXT_DIST_DIR="$VERIFY_DIR" npx next build; then
   echo -e "\n${GREEN}${BOLD}✓ Frontend build verified successfully! Chunk graph is intact.${RESET}\n"
+  rm -rf "$VERIFY_DIR"
+  git checkout tsconfig.json 2>/dev/null || true
   exit 0
 else
   echo -e "\n${RED}${BOLD}✘ Frontend build failed! Broken chunk graph or SSR module error detected.${RESET}\n"
+  rm -rf "$VERIFY_DIR"
+  git checkout tsconfig.json 2>/dev/null || true
   exit 1
 fi
+

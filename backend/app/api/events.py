@@ -187,12 +187,21 @@ DEMO_EVENTS: List[Dict[str, Any]] = [
 ]
 
 DEMO_DISTRIBUTION: List[Dict[str, Any]] = [
-    {"name": "Rainfall", "count": 142, "color": "#3B82F6"},
-    {"name": "Flood", "count": 98, "color": "#F59E0B"},
-    {"name": "Thunderstorm", "count": 64, "color": "#8B5CF6"},
-    {"name": "Strong Winds", "count": 38, "color": "#2563EB"},
-    {"name": "Fog", "count": 19, "color": "#64748B"},
+    {"name": "Rainfall", "count": 142, "value": 142, "color": "#3B82F6"},
+    {"name": "Flood", "count": 98, "value": 98, "color": "#F59E0B"},
+    {"name": "Thunderstorm", "count": 64, "value": 64, "color": "#8B5CF6"},
+    {"name": "Strong Winds", "count": 38, "value": 38, "color": "#2563EB"},
+    {"name": "Fog", "count": 19, "value": 19, "color": "#64748B"},
+    {"name": "Landslide", "count": 11, "value": 11, "color": "#E11D48"},
 ]
+
+DEMO_SEVERITY_DISTRIBUTION: List[Dict[str, Any]] = [
+    {"name": "Critical", "count": 42, "value": 42, "color": "#EF4444"},
+    {"name": "High", "count": 86, "value": 86, "color": "#F59E0B"},
+    {"name": "Moderate", "count": 154, "value": 154, "color": "#3B82F6"},
+    {"name": "Advisory", "count": 79, "value": 79, "color": "#10B981"},
+]
+
 
 
 @router.get("")
@@ -291,47 +300,87 @@ async def list_events(
 
 
 @router.get("/distribution")
-async def event_distribution(db: AsyncSession = Depends(get_db)):
+async def event_distribution(
+    by: Optional[str] = Query("hazard", description="Grouping: hazard or severity"),
+    time_range: Optional[str] = Query("7d", description="Time range: 24h, 48h, 7d, all"),
+    db: AsyncSession = Depends(get_db),
+):
     """
-    Counts grouped by display event_type for the donut chart.
-    Maps DB types to: Rainfall, Flood, Thunderstorm, Strong Winds, Fog, Others
+    Counts grouped by display event_type or severity for the donut chart.
+    Returns both 'count' and 'value' fields for chart compatibility.
     """
-    query = text("""
-        SELECT
-            verification_receipt->>'event_type_display' as display_type,
-            COUNT(*) as count
-        FROM verified_events
-        WHERE review_status != 'REJECTED'
-        GROUP BY verification_receipt->>'event_type_display'
-        ORDER BY count DESC
-    """)
+    group_by_severity = bool(by and by.lower() == "severity")
+
+    time_clause = ""
+    params: Dict[str, Any] = {}
+    if time_range and time_range != "all":
+        hours = 24 if time_range == "24h" else (48 if time_range == "48h" else 168)
+        time_clause = f"AND created_at >= NOW() - INTERVAL '{hours} hours'"
+
+    if group_by_severity:
+        query = text(f"""
+            SELECT
+                severity,
+                COUNT(*) as count
+            FROM verified_events
+            WHERE review_status != 'REJECTED' {time_clause}
+            GROUP BY severity
+            ORDER BY count DESC
+        """)
+        color_map = {
+            "CRITICAL": "#EF4444",
+            "Critical": "#EF4444",
+            "HIGH": "#F59E0B",
+            "High": "#F59E0B",
+            "MODERATE": "#3B82F6",
+            "Moderate": "#3B82F6",
+            "ADVISORY": "#10B981",
+            "Advisory": "#10B981",
+        }
+    else:
+        query = text(f"""
+            SELECT
+                COALESCE(verification_receipt->>'event_type_display', event_type) as display_type,
+                COUNT(*) as count
+            FROM verified_events
+            WHERE review_status != 'REJECTED' {time_clause}
+            GROUP BY COALESCE(verification_receipt->>'event_type_display', event_type)
+            ORDER BY count DESC
+        """)
+        color_map = {
+            "Rainfall": "#3B82F6",
+            "Flood": "#F59E0B",
+            "Thunderstorm": "#8B5CF6",
+            "Strong Winds": "#2563EB",
+            "Cyclone": "#2563EB",
+            "Fog": "#64748B",
+            "Landslide": "#E11D48",
+            "Cloudburst": "#0EA5E9",
+            "Others": "#94A3B8",
+        }
 
     try:
-        result = await db.execute(query)
+        result = await db.execute(query, params)
         rows = result.fetchall()
 
         if rows:
-            color_map = {
-                "Rainfall": "#3B82F6",
-                "Flood": "#F59E0B",
-                "Thunderstorm": "#8B5CF6",
-                "Strong Winds": "#2563EB",
-                "Fog": "#64748B",
-            }
-
             distribution = []
             for row in rows:
-                name = row[0] or "Others"
+                raw_name = row[0] or ("Advisory" if group_by_severity else "Others")
+                name = raw_name.capitalize() if group_by_severity else raw_name
+                cnt = int(row[1])
                 distribution.append({
                     "name": name,
-                    "count": row[1],
-                    "color": color_map.get(name, "#94A3B8"),
+                    "count": cnt,
+                    "value": cnt,
+                    "color": color_map.get(raw_name, color_map.get(name, "#94A3B8")),
                 })
             return distribution
     except Exception as e:
         logger.warning(f"Database query failed in event_distribution (falling back to demo distribution): {e}")
 
-    return DEMO_DISTRIBUTION
+    return DEMO_SEVERITY_DISTRIBUTION if group_by_severity else DEMO_DISTRIBUTION
+
 
 
 @router.get("/{event_id}")

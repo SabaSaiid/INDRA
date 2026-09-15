@@ -36,9 +36,24 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   return null;
 }
 
-export default function ReportsTrendChart() {
+interface ReportsTrendChartProps {
+  variant?: 'card' | 'embedded';
+  title?: string;
+  className?: string;
+}
+
+export default function ReportsTrendChart({
+  variant = 'card',
+  title = 'Reports Trend',
+  className,
+}: ReportsTrendChartProps = {}) {
+  const [mounted, setMounted] = useState(false);
   const [dateRange, setDateRange] = useState('7d');
   const [trendData, setTrendData] = useState<TrendDataPoint[]>(reportsTrend);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch live trend data and re-fetch when range changes
   useEffect(() => {
@@ -56,32 +71,25 @@ export default function ReportsTrendChart() {
     return () => { cancelled = true; };
   }, [dateRange]);
 
-  return (
-    <motion.div
-      variants={fadeSlideUp}
-      initial="hidden"
-      animate="visible"
-      transition={{ delay: 0.55 }}
-    >
-      <Card hover={false} className="h-full">
-        <CardHeader
-          title="Reports Trend"
-          action={
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-              aria-label="Date range"
-            >
-              <option value="7d">Last 7 days</option>
-              <option value="14d">Last 14 days</option>
-              <option value="30d">Last 30 days</option>
-            </select>
-          }
-        />
+  const chartContent = (
+    <div className={className}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs text-text-secondary font-medium">Incident & Sensor Volume</span>
+        <select
+          value={dateRange}
+          onChange={(e) => setDateRange(e.target.value)}
+          className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-xs"
+          aria-label="Date range"
+        >
+          <option value="7d">Last 7 days</option>
+          <option value="14d">Last 14 days</option>
+          <option value="30d">Last 30 days</option>
+        </select>
+      </div>
 
-        <div className="h-[200px] -ml-2">
-          <ResponsiveContainer width="100%" height="100%">
+      <div className="h-[200px] min-h-[200px] -ml-2">
+        {mounted && (
+          <ResponsiveContainer width="100%" height="100%" minWidth={250} minHeight={200}>
             <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="reportGradient" x1="0" y1="0" x2="0" y2="1">
@@ -121,14 +129,34 @@ export default function ReportsTrendChart() {
                   stroke: '#2563EB',
                   fill: 'white',
                 }}
-                animationBegin={300}
-                animationDuration={1500}
+                animationBegin={100}
+                animationDuration={1000}
                 animationEasing="ease-out"
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (variant === 'embedded') {
+    return chartContent;
+  }
+
+  return (
+    <motion.div
+      variants={fadeSlideUp}
+      initial="hidden"
+      animate="visible"
+      transition={{ delay: 0.55 }}
+      className="h-full"
+    >
+      <Card hover={false} className="h-full flex flex-col p-5">
+        <CardHeader title={title} className="p-0 pb-3 mb-1" />
+        {chartContent}
       </Card>
     </motion.div>
   );
 }
+

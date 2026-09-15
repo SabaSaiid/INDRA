@@ -9,6 +9,7 @@ import {
   mapMarkers,
   recentEvents,
   eventDistribution,
+  eventSeverityDistribution,
   reportsTrend,
   liveFeedItems,
   mockTeams,
@@ -202,18 +203,32 @@ export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
 
 // ─── Event Distribution (Donut Chart) ────────────────────────────────────────
 
-export async function fetchEventDistribution(): Promise<DistributionItem[]> {
+export async function fetchEventDistribution(
+  groupBy: 'hazard' | 'severity' = 'hazard',
+  timeRange: string = '7d'
+): Promise<DistributionItem[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/events/distribution`, {
-      cache: 'no-store',
-    });
+    const res = await fetch(
+      `${API_BASE}/api/events/distribution?by=${groupBy}&time_range=${timeRange}`,
+      {
+        cache: 'no-store',
+      }
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (!data || data.length === 0) throw new Error('Empty distribution');
-    return data;
+    if (!data || !Array.isArray(data) || data.length === 0) throw new Error('Empty distribution');
+    return data.map((item: any) => {
+      const val = Number(item.value ?? item.count ?? 0);
+      return {
+        name: String(item.name || 'Unknown'),
+        value: val,
+        count: Number(item.count ?? val),
+        color: item.color || '#94A3B8',
+      };
+    });
   } catch (err) {
     console.warn('[INDRA] fetchEventDistribution failed, using mock data:', err);
-    return eventDistribution;
+    return groupBy === 'severity' ? eventSeverityDistribution : eventDistribution;
   }
 }
 

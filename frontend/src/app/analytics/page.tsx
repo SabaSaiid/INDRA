@@ -119,20 +119,20 @@ export default function AnalyticsPage() {
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+              <h2 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-blue-600" />
                 Hourly Incident &amp; Telemetry Volume
               </h2>
-              <ReportsTrendChart />
+              <ReportsTrendChart variant="embedded" />
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+              <h2 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600" />
-                Meteorological Hazard Distribution
+                Meteorological Hazard &amp; Severity Distribution
               </h2>
-              <EventDistributionChart />
+              <EventDistributionChart variant="embedded" />
             </div>
           </div>
         </main>

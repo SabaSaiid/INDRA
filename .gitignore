@@ -42,8 +42,12 @@ coverage.xml
 .pytest_cache/
 cover/
 
-# Virtual Environments
+# Virtual Environments & Secrets
 .env
+.env.*
+.env*.local
+*.env
+!.env.example
 .venv
 env/
 venv/
@@ -54,6 +58,7 @@ venv.bak/
 # Node & Frontend
 node_modules/
 .next/
+.next-verify/
 out/
 npm-debug.log*
 yarn-debug.log*
