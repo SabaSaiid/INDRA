@@ -272,7 +272,7 @@ start_frontend_bg() {
 
     echo "${BOLD}▶ Starting INDRA Next.js Frontend Dashboard (port $FRONTEND_PORT)...${RESET}"
     cd "$FRONTEND_DIR" || return 1
-    nohup npx next dev -p "$FRONTEND_PORT" > "$FRONTEND_LOG_FILE" 2>&1 &
+    nohup npm run dev -- -p "$FRONTEND_PORT" > "$FRONTEND_LOG_FILE" 2>&1 &
     local fpid=$!
     echo "$fpid" > "$FRONTEND_PID_FILE"
     cd "$ROOT_DIR" || return 1
@@ -467,7 +467,7 @@ cmd_frontend() {
     ensure_frontend_deps || exit 1
     cd "$FRONTEND_DIR" || exit 1
     open_browser "http://localhost:$FRONTEND_PORT" "$FRONTEND_PORT"
-    npx next dev -p "$FRONTEND_PORT"
+    npm run dev -- -p "$FRONTEND_PORT"
 }
 
 # --- Subcommand: backend ---
@@ -839,6 +839,12 @@ cmd_doctor() {
         echo "  ${YELLOW}● Port $PORT:${RESET}             Occupied by PID(s): $port_pids"
     else
         echo "  ${GREEN}✓ Port $PORT:${RESET}             Available"
+    fi
+
+    # 8. Frontend Health & Hygiene Check
+    if [[ -f "$FRONTEND_DIR/scripts/doctor.sh" ]]; then
+        echo ""
+        (cd "$FRONTEND_DIR" && bash "$FRONTEND_DIR/scripts/doctor.sh")
     fi
 
     echo ""

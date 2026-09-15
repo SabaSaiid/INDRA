@@ -284,8 +284,19 @@ export default function GlobeEventMap({
 
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined' && typeof (maplibregl as any).supported === 'function' && !(maplibregl as any).supported()) {
-      setWebGLSupported(false);
+    if (typeof window !== 'undefined') {
+      try {
+        const canvas = document.createElement('canvas');
+        const isSupported = !!(
+          window.WebGLRenderingContext &&
+          (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+        );
+        if (!isSupported) {
+          setWebGLSupported(false);
+        }
+      } catch {
+        setWebGLSupported(false);
+      }
     }
   }, []);
 

@@ -16,6 +16,7 @@
 # misc
 .DS_Store
 *.pem
+*.nosync
 
 # debug
 npm-debug.log*
