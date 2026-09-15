@@ -409,11 +409,11 @@ async def seed():
     # ── 6. Generate teams and user profiles ────────────────────────────────
     print("\n🛡️ Generating disaster response teams and operator profiles...")
     teams_data = [
-        ("TEAM-NDRF-09", "NDRF 9th Battalion - Flood Rescue Unit", "NDRF", "Patna", "Bihar", "Commandant R. K. Verma", "+91 94311 02847", "HAWK-ONE", "Urban Flood & Deep Water Evacuation", "DEPLOYED", 18, events[0]["id"] if len(events) > 0 else None),
+        ("TEAM-NDMA-BIH01", "State Emergency Operations Centre — Bihar / NDMA", "NDMA", "Patna", "Bihar", "Rajesh K. Verma", "+91 94311 02847", "SEOC-DIR-01", "Urban Flood & Emergency Operations Leadership", "DEPLOYED", 18, events[0]["id"] if len(events) > 0 else None),
         ("TEAM-SDRF-MH01", "SDRF Coastal Quick Response Team", "SDRF", "Mumbai", "Maharashtra", "Inspector Sanjay Deshmukh", "+91 98220 54198", "SEA-HAWK-4", "Coastal Inundation & High Tide Evacuation", "DEPLOYED", 14, events[1]["id"] if len(events) > 1 else None),
         ("TEAM-IMD-NOW01", "IMD Severe Weather Nowcasting Cell", "IMD", "New Delhi", "Delhi", "Dr. Sunita Raman", "+91 98110 77312", "DOPPLER-BASE", "Doppler Radar Analysis & Microburst Tracking", "AVAILABLE", 8, None),
         ("TEAM-CWC-HYDRO04", "CWC Brahmaputra Basin Hydrology Unit", "CWC", "Guwahati", "Assam", "Chief Hydrologist B. K. Sarma", "+91 94350 18273", "RIVER-GUARD-2", "River Embankment & Inundation Modeling", "DEPLOYED", 12, events[2]["id"] if len(events) > 2 else None),
-        ("TEAM-NDRF-04", "NDRF 4th Battalion - Cyclone Action Team", "NDRF", "Chennai", "Tamil Nadu", "Deputy Commandant S. Karthik", "+91 94440 99821", "COROMANDEL-ONE", "Severe Cyclonic Storm Response & Heavy Debris Clearing", "STANDBY", 22, None),
+        ("TEAM-NDRF-04", "NDRF 4th Battalion - Cyclone Action Team", "NDRF", "Chennai", "Tamil Nadu", "Assistant Director S. Karthik", "+91 94440 99821", "COROMANDEL-ONE", "Severe Cyclonic Storm Response & Heavy Debris Clearing", "STANDBY", 22, None),
         ("TEAM-BBMP-URB02", "BBMP Disaster Rapid Drainage Taskforce", "MUNICIPAL", "Bengaluru", "Karnataka", "Executive Engineer K. Shivakumar", "+91 98450 33124", "RAPID-PUMP-8", "Stormwater Drain Cleansing & High-Volume Dewatering", "AVAILABLE", 16, None),
         ("TEAM-GHMC-HYD01", "GHMC Monsoon Emergency Action Team", "MUNICIPAL", "Hyderabad", "Telangana", "Superintendent P. Anji Reddy", "+91 98490 12099", "DECCAN-SHIELD-3", "Urban Flash Flood Control & Road Clearing", "STANDBY", 15, None),
         ("TEAM-NDMA-NAT01", "NDMA National Aerial Reconnaissance Wing", "NDMA", "New Delhi", "Delhi", "Group Captain V. Nair", "+91 99100 44552", "GARUDA-CENTRAL", "UAV Disaster Surveillance & Thermal Flood Mapping", "AVAILABLE", 10, None),
@@ -438,7 +438,7 @@ async def seed():
 
     # Seed User Profiles
     profiles_data = [
-        ("commander", "Commandant Rajesh K. Verma", "rajesh.verma@sih-indra.gov.in", "+91 94311 02847", "COMMANDER", "SDMA_BIHAR", "OP-CMD-001", "NDRF-PAT-091", "EAGLE-LEADER", team_id_map.get("TEAM-NDRF-09"), "Incident Commander", "ON_DUTY", "National Disaster Response Force commander leading urban inundation and river flood operations."),
+        ("commander", "Rajesh K. Verma", "rajesh.verma@sih-indra.gov.in", "+91 94311 02847", "COMMANDER", "SDMA_BIHAR", "OP-EOC-001", "SEOC-PAT-091", "SEOC-DIR-01", team_id_map.get("TEAM-NDMA-BIH01"), "Operations Director", "ON_DUTY", "State Emergency Operations Director coordinating multi-agency disaster response, flood mitigation, and resource dispatch across Eastern India."),
         ("admin", "Saba Saeed", "sabasaid826@gmail.com", "+91 84347 08060", "ADMIN", "NDMA", "OP-ADMIN-001", "NDMA-DIR-001", "CENTRAL-LEADER", team_id_map.get("TEAM-NDMA-NAT01"), "Platform Administrator & Team Lead", "ON_DUTY", "Lead System Architect and NDMA Platform Administrator managing the INDRA national big data weather platform."),
         ("analyst", "Dr. Vikram Sethi", "vikram.sethi@imd.gov.in", "+91 98710 44210", "ANALYST", "IMD", "OP-ANL-001", "IMD-MET-552", "RADAR-HAWK", team_id_map.get("TEAM-IMD-NOW01"), "Lead Meteorological Analyst", "ON_DUTY", "IMD Nowcasting specialist focusing on Doppler weather radar echoes and cloudburst probability synthesis."),
         ("citizen", "Meenal Sinha", "meenal.sinha09@gmail.com", "+91 93541 18582", "CITIZEN", "PUBLIC", "OP-CIT-001", "CITIZEN-REP-06", "OBSERVER-MEENAL", None, "Volunteer Reporter", "ON_DUTY", "Registered citizen weather observer and ground-truth volunteer contributing geotagged ground reports and flooding photos."),
