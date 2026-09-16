@@ -13,7 +13,11 @@ backend/app/
 ├── core/
 │   ├── config.py            pydantic-settings — reads .env (DATABASE_URL, KAFKA_*, DBSCAN_*, H3_HEX_RESOLUTION, thresholds).
 │   ├── database.py           async SQLAlchemy engine + get_db() dependency + init_db().
-│   └── security.py            not yet read in depth — check before relying on it (see backend-status.md).
+│   └── security.py            REAL and complete: bcrypt hash/verify, HS256 JWT create/verify (8h expiry,
+│                              claims {sub, role, agency, iat, exp}), get_current_operator() dependency,
+│                              require_roles(*roles) guard factory, 4 demo users.
+│                              Catch: require_roles and get_current_operator have ZERO callers —
+│                              no endpoint is actually guarded.
 ├── api/                     one router per domain, all prefixed /api/<domain>, all imported via api/__init__.py
 │   ├── dashboard.py           prefix /api/dashboard — GET /summary
 │   ├── events.py               prefix /api/events   — GET "", GET /distribution, GET /{event_id}
@@ -75,7 +79,8 @@ Two things worth internalizing from this:
 
 ## Auth
 
-- `POST /api/auth/token` — only endpoint in `auth.py` (49 lines total). Not yet verified whether it issues real JWTs validated elsewhere, or is a demo stub. Check `core/security.py` and whether any router actually depends on an auth check before treating any endpoint as access-controlled.
+- `POST /api/auth/token` — only endpoint in `auth.py` (49 lines total). **Form-encoded** (OAuth2 password flow, not JSON): `username`, `password`. Returns `200 {access_token, token_type: "bearer", role, agency}` — a real HS256 JWT, 8h expiry, claims `{sub, role, agency, iat, exp}`. `401` on bad credentials. Demo users: `admin`/`admin123` (ADMIN, NDMA), `commander`/`commander123` (COMMANDER, SDMA_BIHAR), `analyst`/`analyst123` (ANALYST, IMD), `citizen`/`citizen123` (CITIZEN, PUBLIC).
+- **The auth machinery is real and correct — and it guards nothing.** `core/security.py` provides `get_current_operator()` and `require_roles(*allowed_roles)`, and grep finds zero callers outside `security.py`. **Every endpoint listed above is currently unauthenticated**, including team and profile mutations. Note also that `security.py::ROLES` lists 4 roles while `models/enums.py::OperatorRole` has 5 (it adds `FIELD_RESPONDER`) — reconcile when the guards go on.
 
 ## Config surface (`core/config.py` / `.env`)
 
