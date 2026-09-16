@@ -386,6 +386,11 @@ async def event_distribution(
 @router.get("/{event_id}")
 async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
     """Full event detail including verification_receipt breakdown."""
+    # Accepts either a UUID or an event_code. The two comparisons need separate
+    # parameters: with one shared parameter Postgres infers its type as uuid
+    # from `id = :event_id` and then fails the varchar comparison with
+    # "operator does not exist: character varying = uuid", which sent every
+    # lookup — valid ones included — down to the demo fallback below.
     query = text("""
         SELECT
             id, event_code, event_type, severity, confidence_score,
@@ -394,11 +399,21 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
             ST_AsGeoJSON(boundary_polygon) as boundary_geojson,
             verification_receipt, verified_at
         FROM verified_events
-        WHERE id = :event_id OR event_code = :event_id
+        WHERE event_code = :event_code
+           OR id = CAST(:event_uuid AS uuid)
     """)
 
+    # NULL when the path segment isn't a UUID; `id = CAST(NULL AS uuid)` is
+    # simply never true, so the event_code branch decides on its own.
     try:
-        result = await db.execute(query, {"event_id": str(event_id)})
+        event_uuid = str(UUID(str(event_id)))
+    except (ValueError, AttributeError, TypeError):
+        event_uuid = None
+
+    try:
+        result = await db.execute(
+            query, {"event_code": str(event_id), "event_uuid": event_uuid}
+        )
         row = result.fetchone()
 
         if row:
