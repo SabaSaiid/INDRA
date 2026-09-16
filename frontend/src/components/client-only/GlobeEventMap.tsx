@@ -1132,131 +1132,107 @@ export default function GlobeEventMap({
   return (
     <div className={isFullscreen ? 'fixed inset-0 z-50 p-3 sm:p-6 bg-slate-950/90 backdrop-blur-md flex flex-col' : 'relative'}>
       <Card hover={false} className={`overflow-hidden border border-slate-200/80 shadow-card flex flex-col indra-map-isolated isolate relative z-0 ${isFullscreen ? 'flex-1 h-full' : ''}`}>
-        {/* Header Bar */}
-        <CardHeader
-          title={
-            <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>
-                {variant === 'preview'
-                  ? 'National Weather Radar & Geospatial Overview'
-                  : '3D National Weather Intelligence & Geospatial Radar'}
+        {/* Compact Single-Line Header Bar */}
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-b border-slate-200/80 bg-[#FDFAF5]">
+          {/* Left: Live dot + Title + Incident chip */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex-shrink-0 h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-sm font-semibold text-slate-800 truncate">
+              {variant === 'preview' ? 'Tactical Geospatial Grid' : '3D Weather Intelligence Grid'}
+            </span>
+            {/* Active incident count pill */}
+            {markers.filter(m => m.severity === 'critical' || m.severity === 'high').length > 0 && (
+              <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
+                {markers.filter(m => m.severity === 'critical' || m.severity === 'high').length} Active
               </span>
-            </div>
-          }
-          subtitle={
-            variant === 'preview'
-              ? 'Live satellite telemetry & incident hotspot tracking across India'
-              : 'Multi-spectral GIS telemetry with 3D Earth globe projection & cyclone tracks'
-          }
-          action={
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              {/* Projection Switcher */}
-              <button
-                onClick={toggleProjection}
-                className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-all ${
-                  isGlobe
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                }`}
-                title="Toggle 3D Earth Globe vs 2D Flat Mercator"
+            )}
+          </div>
+
+          {/* Right: compact controls */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Globe / 2D toggle */}
+            <button
+              onClick={toggleProjection}
+              className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border font-medium transition-all ${
+                isGlobe
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+              title="Toggle 3D Globe / 2D Flat Map"
+            >
+              {isGlobe ? <Globe className="w-3 h-3" /> : <MapIcon className="w-3 h-3" />}
+              <span className="hidden sm:inline">{isGlobe ? '3D Globe' : '2D Flat'}</span>
+            </button>
+
+            {/* Quick jump: India Focus */}
+            <button
+              onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
+              className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
+              title="Focus on Indian Subcontinent"
+            >
+              <span>🇮🇳</span>
+              <span>India</span>
+            </button>
+
+            {/* Quick jump: Global View */}
+            <button
+              onClick={() => flyToHotspot([80.0, 15.0], 1.6, 0, 0, 3000)}
+              className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
+              title="Zoom out to Global View"
+            >
+              <Globe className="w-3 h-3 text-indigo-500" />
+              <span>Global</span>
+            </button>
+
+            {/* Auto-orbit toggle */}
+            <button
+              onClick={() => setIsAutoOrbiting(!isAutoOrbiting)}
+              className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border font-medium transition-all ${
+                isAutoOrbiting
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+              title="Toggle Auto-Orbit"
+            >
+              {isAutoOrbiting ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              <span className="hidden sm:inline">Orbit</span>
+            </button>
+
+            {/* North reset */}
+            <button
+              onClick={resetToNorth}
+              className="p-1 rounded-md border border-slate-200 bg-white text-slate-600 hover:text-primary hover:bg-slate-50"
+              title="Reset to True North"
+            >
+              <Navigation className="w-3 h-3 transform -rotate-45" />
+            </button>
+
+            {/* Open full map link (preview mode) OR fullscreen (full mode) */}
+            {variant === 'preview' ? (
+              <Link
+                href="/live-map"
+                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-primary hover:bg-primary-hover text-white transition-all"
+                title="Open Live Tactical Map"
               >
-                {isGlobe ? <Globe className="w-3.5 h-3.5" /> : <MapIcon className="w-3.5 h-3.5" />}
-                <span>{isGlobe ? '3D Globe' : '2D Flat'}</span>
+                <span className="hidden sm:inline">Live Map</span>
+                <ChevronRight className="w-3 h-3" />
+              </Link>
+            ) : (
+              <button
+                onClick={toggleFullscreen}
+                className="p-1.5 rounded-md border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
               </button>
+            )}
+          </div>
+        </div>
 
-              {/* Preview Mode Link vs Full Mode Controls */}
-              {variant === 'preview' ? (
-                <Link
-                  href="/live-map"
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white shadow-sm transition-all group shrink-0"
-                  title="Open dedicated Live Tactical Map"
-                >
-                  <span>Open Live Tactical Map</span>
-                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-              ) : (
-                <>
-                  {/* Basemap Switcher (Satellite, Topo Survey, Dark, Terrain) */}
-                  <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
-                    <button
-                      onClick={() => handleBasemapChange('satellite')}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                        basemap === 'satellite'
-                          ? 'bg-primary text-white font-semibold shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Photorealistic Satellite Earth"
-                    >
-                      <Satellite className="w-3 h-3" />
-                      <span className="hidden sm:inline">Satellite</span>
-                    </button>
-                    <button
-                      onClick={() => handleBasemapChange('topo')}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                        basemap === 'topo'
-                          ? 'bg-primary text-white font-semibold shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Accurate 2D National Survey / Topographic Map"
-                    >
-                      <FileSpreadsheet className="w-3 h-3" />
-                      <span className="hidden sm:inline">2D Topo</span>
-                    </button>
-                    <button
-                      onClick={() => handleBasemapChange('dark')}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                        basemap === 'dark'
-                          ? 'bg-primary text-white font-semibold shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Dark Tactical Mode"
-                    >
-                      <Moon className="w-3 h-3" />
-                      <span className="hidden sm:inline">Dark</span>
-                    </button>
-                    <button
-                      onClick={() => handleBasemapChange('street')}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                        basemap === 'street'
-                          ? 'bg-primary text-white font-semibold shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Vector Street / Terrain"
-                    >
-                      <Layers className="w-3 h-3" />
-                      <span className="hidden sm:inline">Street</span>
-                    </button>
-                  </div>
-
-                  {/* Time Range Filter */}
-                  <select
-                    value={timeRange}
-                    onChange={(e) => setTimeRange(e.target.value)}
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                    aria-label="Time range"
-                  >
-                    <option value="24h">Past 24h</option>
-                    <option value="48h">Past 48h</option>
-                    <option value="7d">Past 7d</option>
-                  </select>
-
-                  {/* Fullscreen Button */}
-                  <button
-                    onClick={toggleFullscreen}
-                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
-                    title={isFullscreen ? 'Exit Fullscreen' : 'Command Center Fullscreen'}
-                  >
-                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                  </button>
-                </>
-              )}
-            </div>
-          }
-        />
-
-        {/* Quick Hotspot & Layer Toggles Ribbon */}
-        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50/95 border-y border-slate-100 overflow-x-auto text-xs scrollbar-none">
+        {/* Controls Ribbon — condensed into header above, kept only for full variant */}
+        {variant !== 'preview' && (
+        <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-slate-50/95 border-b border-slate-100 overflow-x-auto text-xs scrollbar-none">
           {/* Left: View Controls & Dynamic Active Incidents */}
           <div className="flex items-center gap-2.5 shrink-0">
             {/* Group 1: View Scope */}
@@ -1392,6 +1368,7 @@ export default function GlobeEventMap({
             </button>
           </div>
         </div>
+        )} {/* end variant !== 'preview' controls ribbon */}
 
         {/* Map Canvas & Overlays */}
         <div
@@ -1400,7 +1377,7 @@ export default function GlobeEventMap({
             isFullscreen
               ? 'flex-1 min-h-[520px]'
               : variant === 'preview'
-              ? 'h-[320px] max-h-[42vh]'
+              ? 'h-[275px]'
               : 'h-[500px] lg:h-[560px]'
           )}
         >

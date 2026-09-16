@@ -178,30 +178,97 @@
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(30, 42, 59, 0.06);
     overflow: hidden;
-    margin-bottom: 1.5rem;
+    /* COMPACT: reduced from mb-6 (1.5rem) to mb-2.5 */
+    margin-bottom: 0.625rem;
   }
 
   .instrument-reading {
     position: relative;
-    padding: 1.25rem 1.5rem;
+    /* COMPACT: reduced from 1.25rem 1.5rem → 0.5rem 0.875rem */
+    padding: 0.5rem 0.875rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  /* Left column: main value + label stacked */
+  .instrument-reading-values {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Right column: delta badge */
+  .instrument-reading-delta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+    flex-shrink: 0;
   }
 
   .instrument-reading + .instrument-reading::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 20%;
-    bottom: 20%;
+    top: 15%;
+    bottom: 15%;
     width: 1px;
     background-color: var(--paper-3);
+  }
+
+  /* ── Compact Card Density ────────────────────────────── */
+  .compact-card {
+    padding: 0.875rem !important;  /* p-3.5 */
+  }
+
+  .compact-card-header {
+    margin-bottom: 0.5rem !important;  /* mb-2 */
+  }
+
+  /* ── Dense Row Gaps ──────────────────────────────────── */
+  .dense-row {
+    gap: 0.625rem;   /* gap-2.5 */
+    margin-bottom: 0.625rem;  /* mb-2.5 */
+  }
+
+  /* ── Viewport Fit (prevents OS scroll on dashboard) ─── */
+  .viewport-dashboard {
+    display: flex;
+    flex-direction: column;
+    /* Fill available height below topbar, using dvh for accuracy */
+    height: calc(100dvh - 50px);
+    overflow: hidden;
+  }
+
+  .viewport-dashboard-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* On screens shorter than 680px, fall back to natural scroll */
+  @media (max-height: 680px) {
+    .viewport-dashboard {
+      height: auto;
+      overflow: visible;
+    }
+    .viewport-dashboard-content {
+      overflow: visible;
+    }
   }
 
   @media (max-width: 767px) {
     .instrument-strip {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .instrument-reading {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.15rem;
     }
     .instrument-reading:nth-child(3)::before,
     .instrument-reading:nth-child(2)::before {

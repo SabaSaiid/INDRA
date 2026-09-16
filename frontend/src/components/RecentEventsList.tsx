@@ -53,17 +53,18 @@ export default function RecentEventsList({
       animate="visible"
       transition={{ delay: 0.4 }}
     >
-      <Card hover={false} className="h-full">
+      <Card hover={false} className="h-full" density="compact">
         <CardHeader
+          density="compact"
           title={
             <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
               Recent Events
             </span>
           }
           action={
-            <button className="flex items-center gap-1 text-xs font-medium text-[#7A8599] hover:text-ink transition-colors">
+            <button className="flex items-center gap-1 text-[10px] font-medium text-[#7A8599] hover:text-ink transition-colors">
               View all
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3 h-3" />
             </button>
           }
         />
@@ -73,7 +74,7 @@ export default function RecentEventsList({
           initial="hidden"
           animate="visible"
           className="space-y-0 custom-scrollbar overflow-y-auto"
-          style={{ maxHeight: '380px' }}
+          style={{ maxHeight: '310px' }}
         >
           {events.map((event) => {
             const severity = severityConfig[event.severity] || severityConfig.moderate;
@@ -86,7 +87,7 @@ export default function RecentEventsList({
                 key={event.id}
                 variants={listItemSlideIn}
                 onClick={() => onSelectEvent?.(event)}
-                className={`flex items-start gap-3 py-3 border-b border-[#F0EBE0] last:border-0 pl-3 pr-2 rounded-md transition-all cursor-pointer ${
+                className={`flex items-start gap-2 py-1.5 border-b border-[#F0EBE0] last:border-0 pl-2.5 pr-1.5 rounded-sm transition-all cursor-pointer ${
                   isSelected
                     ? 'bg-[#F0EBE0]'
                     : 'hover:bg-[#F7F3EA]'
@@ -97,36 +98,32 @@ export default function RecentEventsList({
               >
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    {/* Place name in Fraunces */}
+                  <div className="flex items-center justify-between gap-1.5">
+                    {/* Place name */}
                     <p
-                      className="text-sm font-medium text-ink truncate"
+                      className="text-xs font-medium text-ink truncate"
                       style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                     >
                       {event.city}, {event.state}
                     </p>
-                    {/* Verification word — no pill */}
                     <span
-                      className="text-[10px] font-medium flex-shrink-0"
+                      className="text-[9px] font-medium flex-shrink-0"
                       style={{ color: verification.color }}
                     >
                       {verification.label}
                     </span>
                   </div>
 
-                  <p className="text-xs text-[#7A8599]">{event.eventType}</p>
-
-                  <div className="flex items-center gap-3 mt-1">
-                    {/* Severity word label */}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] text-[#7A8599] truncate">{event.eventType}</span>
                     <span
-                      className="text-[10px] font-semibold"
+                      className="text-[9px] font-semibold flex-shrink-0"
                       style={{ color: severity.color }}
                     >
                       {severity.label}
                     </span>
-                    {/* Time in JetBrains Mono */}
                     <span
-                      className="text-[10px] text-[#B0A898]"
+                      className="text-[9px] text-[#B0A898] flex-shrink-0"
                       style={{ fontFamily: 'JetBrains Mono, monospace' }}
                     >
                       {getRelativeTime(event.timestamp)}

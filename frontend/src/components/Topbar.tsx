@@ -78,7 +78,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
       className="sticky top-0 z-40 border-b border-[#E8E2D4]"
       style={{ background: 'rgba(247, 243, 234, 0.95)', backdropFilter: 'blur(16px)' }}
     >
-      <div className="flex items-center justify-between h-16 px-4 lg:px-6">
+      <div className="flex items-center justify-between h-[50px] px-4 lg:px-6">
         {/* Mobile menu button */}
         <button
           onClick={onMobileMenuOpen}
@@ -95,7 +95,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             <input
               type="text"
               placeholder="Search location, event or report…"
-              className="w-full h-10 pl-10 pr-4 rounded-md bg-[#F0EBE0] border border-[#E8E2D4] text-sm text-ink placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all"
+              className="w-full h-8 pl-10 pr-4 rounded-md bg-[#F0EBE0] border border-[#E8E2D4] text-sm text-ink placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all"
               aria-label="Search"
             />
           </div>
@@ -103,11 +103,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
 
         {/* Right section */}
         <div className="flex items-center gap-3">
-          {/* Grid status — quiet */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E7F2EC] border border-[#C5DECE]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4C7A5B] animate-pulse" />
-            <span className="text-xs font-medium text-[#3A5E46]">Grid live</span>
-          </div>
+          {/* Grid status moved to WelcomeHeader executive strip — removed duplicate here */}
 
           {/* Notifications */}
           <button
