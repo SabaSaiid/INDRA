@@ -5,25 +5,32 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { cardHover } from '@/lib/motion';
 
+/** density="compact" → p-3.5 / mb-2; "normal" → p-5 / mb-4 (default) */
+type CardDensity = 'compact' | 'normal';
+
 interface CardProps {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
   padding?: boolean;
+  density?: CardDensity;
 }
 
-export function Card({ children, className, hover = true, padding = true }: CardProps) {
+export function Card({ children, className, hover = true, padding = true, density = 'normal' }: CardProps) {
+  const paddingClass = padding ? (density === 'compact' ? 'p-3.5' : 'p-5') : '';
+  const baseClass = cn(
+    'bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card',
+    paddingClass,
+    className
+  );
+
   if (hover) {
     return (
       <motion.div
         initial="rest"
         whileHover="hover"
         variants={cardHover}
-        className={cn(
-          'bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card',
-          padding && 'p-5',
-          className
-        )}
+        className={baseClass}
       >
         {children}
       </motion.div>
@@ -31,13 +38,7 @@ export function Card({ children, className, hover = true, padding = true }: Card
   }
 
   return (
-    <div
-      className={cn(
-        'bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card',
-        padding && 'p-5',
-        className
-      )}
-    >
+    <div className={baseClass}>
       {children}
     </div>
   );
@@ -48,11 +49,13 @@ interface CardHeaderProps {
   subtitle?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
+  density?: CardDensity;
 }
 
-export function CardHeader({ title, subtitle, action, className }: CardHeaderProps) {
+export function CardHeader({ title, subtitle, action, className, density = 'normal' }: CardHeaderProps) {
+  const marginClass = density === 'compact' ? 'mb-2' : 'mb-4';
   return (
-    <div className={cn('flex items-center justify-between mb-4', className)}>
+    <div className={cn('flex items-center justify-between', marginClass, className)}>
       <div>
         <h3 className="text-sm font-semibold text-ink">{title}</h3>
         {subtitle && (
@@ -63,3 +66,4 @@ export function CardHeader({ title, subtitle, action, className }: CardHeaderPro
     </div>
   );
 }
+
