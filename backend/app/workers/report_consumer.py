@@ -88,12 +88,41 @@ async def start_report_consumer():
                     report_data = msg.value
                     logger.info(f"Received report: {report_data.get('id', 'unknown')}")
 
-                    # Broadcast to WebSocket clients
+                    # NEW_REPORT is broadcast for every message, unchanged, so the
+                    # live feed keeps moving and the existing frontend contract is
+                    # untouched. VERIFIED_EVENT is additive on top of it.
                     if _ws_manager:
                         await _ws_manager.broadcast({
                             "type": "NEW_REPORT",
                             "report": report_data,
                         })
+
+                    # Run the verification pipeline. The worker lives outside
+                    # FastAPI's dependency injection, so it takes a session from
+                    # the sessionmaker directly rather than via Depends(get_db).
+                    event = None
+                    try:
+                        from app.core.database import async_session
+                        from app.services.pipeline import process_report
+
+                        async with async_session() as db:
+                            event = await process_report(db, report_data)
+                    except Exception as e:
+                        # process_report already fails soft; this guards the
+                        # session/import layer around it.
+                        logger.error(f"Pipeline invocation failed: {e}")
+
+                    # None is a normal outcome — a duplicate, or a report with
+                    # too little corroboration to be an event yet.
+                    if event and _ws_manager:
+                        await _ws_manager.broadcast({
+                            "type": "VERIFIED_EVENT",
+                            "event": event,
+                        })
+                        logger.info(
+                            f"Broadcast VERIFIED_EVENT {event.get('event_code')} "
+                            f"to {len(getattr(_ws_manager, 'active_connections', []))} client(s)"
+                        )
 
                 except Exception as e:
                     logger.error(f"Error processing report message: {e}")
