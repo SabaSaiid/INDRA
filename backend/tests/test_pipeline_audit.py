@@ -1,0 +1,233 @@
+"""
+T3 + T4 (Day 3) — the pipeline's audit rows, and merges that respect human decisions.
+
+Weather is pinned at 0.35 / 15.6 mm as in test_pipeline.py. With that pin,
+streaming CLUSTER_TEXTS one report at a time scores (measured 17 Sep):
+
+    2 reports 0.4314 → 3: 0.4522 → 4: 0.4697 → 5: 0.4842
+
+all QUARANTINED at the default thresholds.
+"""
+
+import pytest
+import pytest_asyncio
+from sqlalchemy import text
+
+from app.core.database import async_session
+from app.services import audit, pipeline
+from app.services.pipeline import process_report
+from tests.conftest import wipe_event_tables
+from tests.test_pipeline import CLUSTER_TEXTS, PATNA_LAT, PATNA_LNG, insert_report
+
+pytestmark = pytest.mark.integration
+
+
+@pytest.fixture(autouse=True)
+def fixed_weather(monkeypatch):
+    async def _weather(lat, lng):
+        return 0.35, 15.6
+
+    monkeypatch.setattr(pipeline, "weather_score", _weather)
+
+
+@pytest_asyncio.fixture
+async def db():
+    async with async_session() as session:
+        await wipe_event_tables(session)
+        try:
+            yield session
+        finally:
+            await session.rollback()
+            await wipe_event_tables(session)
+
+
+async def stream(db, texts):
+    results = []
+    for lat, lng, body in texts:
+        rid = await insert_report(db, lat, lng, body)
+        results.append(await process_report(db, {"id": str(rid)}))
+    return results
+
+
+async def audit_rows(db):
+    return await audit.fetch_rows(db)
+
+
+async def event_row(db, event_id):
+    return (
+        await db.execute(
+            text("""
+                SELECT review_status, severity, quadrant, confidence_score,
+                       verification_receipt
+                FROM verified_events WHERE id = CAST(:e AS uuid)
+            """),
+            {"e": event_id},
+        )
+    ).fetchone()
+
+
+# ── T3: the pipeline writes one audit row per decision ─────────────────────────
+
+async def test_default_thresholds_write_exactly_one_quarantine_row(db):
+    results = await stream(db, CLUSTER_TEXTS)
+
+    rows = await audit_rows(db)
+    assert len(rows) == 1
+    [row] = rows
+    assert row["action_taken"] == "QUARANTINE"
+    assert row["operator_id"] == "SYSTEM-PIPELINE"
+    assert row["event_id"] == results[-1]["id"]
+    assert row["details"]["from_status"] is None
+    assert row["details"]["to_status"] == "QUARANTINED"
+    assert row["details"]["report_count"] == 2
+    assert row["details"]["confidence_score"] == pytest.approx(0.4314, abs=1e-4)
+
+
+async def test_a_status_change_on_merge_writes_a_second_row(db, monkeypatch):
+    monkeypatch.setattr(pipeline.settings, "HUMAN_REVIEW_THRESHOLD", 0.45)
+
+    await stream(db, CLUSTER_TEXTS)
+
+    rows = await audit_rows(db)
+    assert [r["action_taken"] for r in rows] == ["QUARANTINE", "ESCALATE"]
+
+    first, second = rows
+    assert first["details"]["report_count"] == 2
+    assert first["details"]["confidence_score"] == pytest.approx(0.4314, abs=1e-4)
+    assert second["details"]["report_count"] == 3
+    assert second["details"]["confidence_score"] == pytest.approx(0.4522, abs=1e-4)
+    assert second["details"]["from_status"] == "QUARANTINED"
+    assert second["details"]["to_status"] == "PENDING_HUMAN_REVIEW"
+
+    assert await audit.verify_chain(db) == {"valid": True, "checked": 2, "broken_at_seq": None}
+
+
+async def test_duplicate_report_writes_no_row(db):
+    await insert_report(db, PATNA_LAT, PATNA_LNG, CLUSTER_TEXTS[0][2])
+    dupe = await insert_report(db, PATNA_LAT + 0.0027, PATNA_LNG, CLUSTER_TEXTS[0][2])
+
+    assert await process_report(db, {"id": str(dupe)}) is None
+    assert await audit_rows(db) == []
+
+
+async def test_lone_report_writes_no_row(db):
+    rid = await insert_report(db, PATNA_LAT, PATNA_LNG, "Some water on the road here")
+
+    assert await process_report(db, {"id": str(rid)}) is None
+    assert await audit_rows(db) == []
+
+
+async def test_failed_audit_write_rolls_back_the_event(db, monkeypatch):
+    """An event without its audit row must be impossible."""
+
+    async def broken_record(*args, **kwargs):
+        raise RuntimeError("audit store unavailable")
+
+    monkeypatch.setattr(audit, "record", broken_record)
+
+    results = await stream(db, CLUSTER_TEXTS[:2])
+
+    assert results == [None, None]
+    assert (await db.execute(text("SELECT COUNT(*) FROM verified_events"))).scalar() == 0
+    assert (
+        await db.execute(text("SELECT COUNT(*) FROM raw_reports WHERE event_id IS NOT NULL"))
+    ).scalar() == 0
+
+
+# ── T4: merges never overwrite a human decision ────────────────────────────────
+
+async def _event_from_first_two(db):
+    results = await stream(db, CLUSTER_TEXTS[:2])
+    event = results[-1]
+    assert event is not None and event["report_count"] == 2
+    return event["id"]
+
+
+async def test_merges_keep_a_human_approval(db):
+    event_id = await _event_from_first_two(db)
+    await db.execute(
+        text("UPDATE verified_events SET review_status = 'HUMAN_APPROVED' WHERE id = CAST(:e AS uuid)"),
+        {"e": event_id},
+    )
+    await db.commit()
+
+    results = await stream(db, CLUSTER_TEXTS[2:])
+
+    assert [r["review_status"] for r in results] == ["HUMAN_APPROVED"] * 3
+    assert results[-1]["report_count"] == 5
+
+    status, severity, quadrant, score, _ = await event_row(db, event_id)
+    assert status == "HUMAN_APPROVED"
+    assert quadrant == "Confirmed Minor Event"
+    assert score == pytest.approx(0.4842, abs=1e-4)
+
+
+async def test_merges_keep_a_severity_override(db):
+    event_id = await _event_from_first_two(db)
+    await db.execute(
+        text("""
+            UPDATE verified_events SET
+                review_status = 'HUMAN_APPROVED',
+                severity = 'HIGH',
+                verification_receipt = jsonb_set(
+                    verification_receipt, '{human_review}',
+                    '{"action": "override_severity", "operator_id": "OP-CMD-001",
+                      "reason": "test", "severity_override": "HIGH"}'::jsonb)
+            WHERE id = CAST(:e AS uuid)
+        """),
+        {"e": event_id},
+    )
+    await db.commit()
+
+    await stream(db, CLUSTER_TEXTS[2:])
+
+    status, severity, quadrant, _, receipt = await event_row(db, event_id)
+    assert status == "HUMAN_APPROVED"
+    assert severity == "HIGH"  # the heuristic alone would say MODERATE at 5 reports
+    assert quadrant == "Critical Verified Event"
+    # Carried forward, or the next merge would lose it.
+    assert receipt["human_review"]["severity_override"] == "HIGH"
+    assert receipt["provenance"]["severity"] == "human_override"
+
+
+async def test_without_a_human_decision_status_is_recomputed(db):
+    event_id = await _event_from_first_two(db)
+
+    results = await stream(db, CLUSTER_TEXTS[2:])
+
+    assert [r["review_status"] for r in results] == ["QUARANTINED"] * 3
+    status, severity, *_ = await event_row(db, event_id)
+    assert (status, severity) == ("QUARANTINED", "MODERATE")
+
+
+async def test_rejected_event_is_untouched_and_new_reports_form_a_new_event(db):
+    event_id = await _event_from_first_two(db)
+    await db.execute(
+        text("UPDATE verified_events SET review_status = 'REJECTED' WHERE id = CAST(:e AS uuid)"),
+        {"e": event_id},
+    )
+    await db.commit()
+    before = await event_row(db, event_id)
+
+    results = await stream(db, CLUSTER_TEXTS[2:4])
+
+    assert await event_row(db, event_id) == before
+    new = results[-1]
+    assert new is not None
+    assert new["id"] != event_id
+    assert new["report_count"] == 2
+    assert (await db.execute(text("SELECT COUNT(*) FROM verified_events"))).scalar() == 2
+
+
+async def test_preserved_human_status_writes_no_merge_rows(db):
+    event_id = await _event_from_first_two(db)
+    await db.execute(
+        text("UPDATE verified_events SET review_status = 'HUMAN_APPROVED' WHERE id = CAST(:e AS uuid)"),
+        {"e": event_id},
+    )
+    await db.commit()
+    assert len(await audit_rows(db)) == 1
+
+    await stream(db, CLUSTER_TEXTS[2:])
+
+    assert len(await audit_rows(db)) == 1

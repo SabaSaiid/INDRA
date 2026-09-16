@@ -3,18 +3,26 @@ INDRA Platform — Events API
 GET /api/events — list with filters
 GET /api/events/distribution — counts by event_type for donut chart
 GET /api/events/{event_id} — full event detail
+PATCH /api/events/{event_id}/review — commander/admin approve, reject, re-grade
+GET /api/events/{event_id}/provenance — contributing reports + audit chain
 """
 
+import json
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Literal, Optional, List, Dict, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, HTTPException
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.demo import demo_fallback
+from app.core.security import DEMO_USERS, TokenData, require_roles
+from app.models.enums import AuditAction, ReviewStatus, Severity
+from app.services import audit
+from app.services.fusion_engine import FusionEngine
 
 logger = logging.getLogger("indra.api.events")
 router = APIRouter(prefix="/api/events", tags=["Events"])
@@ -40,6 +48,7 @@ REVIEW_STATUS_LABELS = {
     "PENDING_HUMAN_REVIEW": "under-review",
     "QUARANTINED": "under-review",
     "REJECTED": "rejected",
+    "HUMAN_APPROVED": "verified",
 }
 
 # Gradient styles per event type for the thumbnail
@@ -514,3 +523,297 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
 
     return demo_fallback(f"GET /api/events/{event_id}", _demo_detail, _not_found, db_error)
+
+
+# ── Human review ───────────────────────────────────────────────────────────────
+
+class ReviewRequest(BaseModel):
+    action: Literal["approve", "reject", "override_severity"]
+    reason: str = Field(min_length=5, max_length=1000)
+    new_severity: Optional[Severity] = None
+
+    @model_validator(mode="after")
+    def _severity_required_for_override(self):
+        if self.action == "override_severity" and self.new_severity is None:
+            raise ValueError("new_severity is required for override_severity")
+        return self
+
+
+# action → (statuses it may start from, audit action). None = any except REJECTED.
+REVIEW_TRANSITIONS = {
+    "approve": (
+        {ReviewStatus.QUARANTINED.value, ReviewStatus.PENDING_HUMAN_REVIEW.value},
+        AuditAction.HUMAN_APPROVE,
+    ),
+    "reject": (None, AuditAction.HUMAN_REJECT),
+    "override_severity": (None, AuditAction.MANUAL_OVERRIDE),
+}
+
+
+def _event_uuid_or_404(event_id: str) -> str:
+    try:
+        return str(UUID(str(event_id)))
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=404, detail="Event not found")
+
+
+@router.patch("/{event_id}/review")
+async def review_event(
+    event_id: str,
+    body: ReviewRequest,
+    operator: TokenData = Depends(require_roles("COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    A commander's decision on an event.
+
+    | action            | allowed from                      | result                     |
+    |-------------------|-----------------------------------|----------------------------|
+    | approve           | QUARANTINED, PENDING_HUMAN_REVIEW | HUMAN_APPROVED             |
+    | reject            | anything but REJECTED             | REJECTED                   |
+    | override_severity | anything but REJECTED             | severity = new_severity    |
+
+    Any other starting status is a 409 and writes nothing.
+
+    * **Quadrant.** assign_quadrant() is score-based, so an approved 0.43 event
+      would still read "Noise" — contradicting the approval. An approved event's
+      quadrant follows its severity instead: HIGH/CRITICAL → "Critical Verified
+      Event", otherwise "Confirmed Minor Event".
+    * **confidence_score is never touched.** The machine's number stays the
+      machine's number; the human decision is recorded beside it, in
+      verification_receipt.human_review and in the audit chain.
+    * **Serialised.** The row is locked FOR UPDATE, so two commanders reviewing
+      at once get one 200 and one 409. The pipeline's merge takes the same lock
+      and preserves HUMAN_APPROVED and severity_override (pipeline.py step 7).
+    * The status change and its audit row commit together; EVENT_REVIEWED is
+      broadcast only after the commit.
+    """
+    event_uuid = _event_uuid_or_404(event_id)
+    operator_id = DEMO_USERS.get(operator.sub, {}).get("operator_id", operator.sub)
+
+    try:
+        row = (
+            await db.execute(
+                text("""
+                    SELECT id, event_code, review_status, severity, quadrant,
+                           confidence_score, verification_receipt
+                    FROM verified_events
+                    WHERE id = CAST(:id AS uuid)
+                    FOR UPDATE
+                """),
+                {"id": event_uuid},
+            )
+        ).fetchone()
+    except Exception as e:
+        logger.warning(f"Database query failed in review_event: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    if row is None:
+        await db.rollback()
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    _, event_code, status, severity, quadrant, confidence, receipt = row
+    receipt = receipt or {}
+    allowed_from, audit_action = REVIEW_TRANSITIONS[body.action]
+    if status == ReviewStatus.REJECTED.value or (
+        allowed_from is not None and status not in allowed_from
+    ):
+        await db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot {body.action} an event that is {status}",
+        )
+
+    new_status, new_severity = status, severity
+    if body.action == "approve":
+        new_status = ReviewStatus.HUMAN_APPROVED.value
+    elif body.action == "reject":
+        new_status = ReviewStatus.REJECTED.value
+    else:
+        new_severity = body.new_severity.value
+
+    new_quadrant = quadrant
+    if new_status == ReviewStatus.HUMAN_APPROVED.value:
+        new_quadrant = FusionEngine.human_approved_quadrant(Severity(new_severity)).value
+    elif body.action == "override_severity":
+        new_quadrant = FusionEngine().assign_quadrant(Severity(new_severity), confidence).value
+
+    try:
+        entry = await audit.record(
+            db,
+            event_id=event_uuid,
+            operator_id=operator_id,
+            action=audit_action,
+            reason=body.reason,
+            details={
+                "review_action": body.action,
+                "from_status": status,
+                "to_status": new_status,
+                "from_severity": severity,
+                "to_severity": new_severity,
+                "confidence_score": confidence,
+            },
+        )
+
+        human_review = {
+            "action": body.action,
+            "operator_id": operator_id,
+            "reason": body.reason,
+            "at": entry["logged_at"].isoformat(),
+        }
+        severity_override = (
+            new_severity if body.action == "override_severity"
+            else (receipt.get("human_review") or {}).get("severity_override")
+        )
+        if severity_override:
+            human_review["severity_override"] = severity_override
+        receipt["human_review"] = human_review
+
+        await db.execute(
+            text("""
+                UPDATE verified_events SET
+                    review_status = CAST(:status AS review_status_enum),
+                    severity = CAST(:sev AS severity_enum),
+                    quadrant = CAST(:quad AS quadrant_enum),
+                    verification_receipt = CAST(:receipt AS jsonb)
+                WHERE id = CAST(:id AS uuid)
+            """),
+            {
+                "id": event_uuid,
+                "status": new_status,
+                "sev": new_severity,
+                "quad": new_quadrant,
+                "receipt": json.dumps(receipt),
+            },
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"review_event failed for {event_uuid}: {e}", exc_info=True)
+        raise HTTPException(status_code=503, detail="Review could not be recorded")
+
+    logger.info(
+        f"Review: {operator_id} {body.action} {event_code} "
+        f"{status} -> {new_status}, severity {severity} -> {new_severity}"
+    )
+
+    try:
+        from app.main import ws_manager
+
+        await ws_manager.broadcast({
+            "type": "EVENT_REVIEWED",
+            "event": {
+                "id": event_uuid,
+                "event_code": event_code,
+                "review_status": new_status,
+                "severity": new_severity,
+                "quadrant": new_quadrant,
+                "confidence_score": confidence,
+            },
+            "review": {
+                "action": body.action,
+                "operator_id": operator_id,
+                "reason": body.reason,
+                "at": human_review["at"],
+            },
+        })
+    except Exception as e:
+        # The decision is committed; a failed broadcast must not report it as failed.
+        logger.error(f"EVENT_REVIEWED broadcast failed for {event_code}: {e}")
+
+    return await get_event_detail(event_uuid, db)
+
+
+# ── Provenance ─────────────────────────────────────────────────────────────────
+
+@router.get("/{event_id}/provenance")
+async def event_provenance(
+    event_id: str,
+    operator: TokenData = Depends(require_roles("ANALYST", "COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Where an event came from: every contributing report (oldest first), every
+    decision taken on it (in chain order), and a check of the audit chain.
+
+    `chain` verifies the **whole ledger** from genesis, not only this event's
+    rows — a deleted or rewritten row anywhere would break the links this
+    event's rows depend on, so a per-event check alone would prove less.
+    `chain.checked` is therefore the ledger's row count.
+
+    Citizens are refused: this exposes other people's raw report text. There is
+    no demo fallback — provenance that isn't real is worse than a 503.
+    """
+    event_uuid = _event_uuid_or_404(event_id)
+
+    try:
+        event = (
+            await db.execute(
+                text("""
+                    SELECT id, event_code, review_status, severity,
+                           confidence_score, verification_receipt
+                    FROM verified_events WHERE id = CAST(:id AS uuid)
+                """),
+                {"id": event_uuid},
+            )
+        ).fetchone()
+        if event is None:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        reports = (
+            await db.execute(
+                text("""
+                    SELECT id, source_type, raw_text, latitude, longitude,
+                           credibility_score, created_at
+                    FROM raw_reports
+                    WHERE event_id = CAST(:id AS uuid)
+                    ORDER BY created_at, id
+                """),
+                {"id": event_uuid},
+            )
+        ).fetchall()
+
+        audit_rows = await audit.fetch_rows(db, event_uuid)
+        chain = await audit.verify_chain(db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Database query failed in event_provenance: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    return {
+        "event": {
+            "id": str(event[0]),
+            "event_code": event[1],
+            "review_status": event[2],
+            "severity": event[3],
+            "confidence_score": event[4],
+            "verification_receipt": event[5] or {},
+        },
+        "reports": [
+            {
+                "id": str(r[0]),
+                "source_type": r[1],
+                "raw_text": r[2],
+                "latitude": r[3],
+                "longitude": r[4],
+                "credibility_score": r[5],
+                "created_at": r[6].isoformat() if r[6] else None,
+            }
+            for r in reports
+        ],
+        "audit": [
+            {
+                "seq": a["seq"],
+                "action_taken": a["action_taken"],
+                "operator_id": a["operator_id"],
+                "reason": a["reason"],
+                "details": a["details"],
+                "logged_at": a["logged_at"].isoformat(),
+                "sha256_hash": a["sha256_hash"],
+                "prev_hash": a["prev_hash"],
+            }
+            for a in audit_rows
+        ],
+        "chain": chain,
+    }

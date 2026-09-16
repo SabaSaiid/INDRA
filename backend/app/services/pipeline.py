@@ -35,7 +35,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.models.enums import EventType, Severity
+from app.models.enums import AuditAction, EventType, ReviewStatus, Severity
+from app.services import audit
 from app.services.dedup import DedupService
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
@@ -60,6 +61,14 @@ DEDUP_RADIUS_METRES = 1000
 # So a new cluster that lands on top of a recent event joins it and raises its
 # corroboration instead of competing with it.
 MERGE_WINDOW_MINUTES = 120
+
+# The pipeline's audit action for each status it can decide on its own.
+# HUMAN_APPROVED and REJECTED are never machine decisions.
+PIPELINE_AUDIT_ACTIONS = {
+    ReviewStatus.AUTO_PUBLISHED: AuditAction.AUTO_VERIFY,
+    ReviewStatus.PENDING_HUMAN_REVIEW: AuditAction.ESCALATE,
+    ReviewStatus.QUARANTINED: AuditAction.QUARANTINE,
+}
 
 
 def _derive_severity(cluster_size: int) -> Severity:
@@ -479,7 +488,9 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
 
         # ── 5a. Merge into a recent overlapping event, if there is one ──────
         # Decided before scoring, because a merge scores over the union of both
-        # report sets rather than over this cluster alone.
+        # report sets rather than over this cluster alone. Nothing is committed
+        # until step 7: the report links, the event write and its audit row
+        # land together or not at all.
         existing = await _find_mergeable_event(
             db, stats["centroid_lat"], stats["centroid_lng"]
         )
@@ -487,11 +498,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         if existing is not None:
             event_id = existing["id"]
             event_code = existing["event_code"]
-            linked = await geo.assign_reports_to_event(cluster["report_ids"], event_id)
+            linked = await geo.assign_reports_to_event(
+                cluster["report_ids"], event_id, commit=False
+            )
             all_report_ids = await _event_report_ids(db, event_id)
             stats = await geo.get_cluster_stats(all_report_ids)
             logger.info(
-                f"Pipeline: merged {linked} reports into existing {event_code} "
+                f"Pipeline: merging {linked} reports into existing {event_code} "
                 f"— now {stats['count']} reports"
             )
         else:
@@ -514,8 +527,52 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         quadrant = scored["quadrant"]
         review_status = scored["review_status"]
 
-        # ── 7. Persist ──────────────────────────────────────────────────────
+        # ── 7. Persist, with the decision's audit row, in one transaction ───
         impact_radius = max(stats["radius_km"], 0.5)
+        prior_status: Optional[str] = None
+
+        if existing is not None:
+            # Lock the event against a concurrent review (PATCH .../review takes
+            # the same row lock), then honour whatever a human decided since.
+            current = (
+                await db.execute(
+                    text("""
+                        SELECT review_status, verification_receipt->'human_review'
+                        FROM verified_events
+                        WHERE id = CAST(:id AS uuid)
+                        FOR UPDATE
+                    """),
+                    {"id": str(event_id)},
+                )
+            ).fetchone()
+            prior_status = str(current[0])
+            human_review = current[1] or None
+
+            if prior_status == ReviewStatus.REJECTED.value:
+                # Rejected between _find_mergeable_event and the lock. Leave the
+                # event alone; the reports stay unlinked.
+                await db.rollback()
+                logger.info(
+                    f"Pipeline: {event_code} was rejected while report {report_id} "
+                    "was being processed — not merging"
+                )
+                return None
+
+            # The machine keeps re-scoring as evidence accumulates, but it never
+            # overwrites a human decision: an approval keeps its status, and a
+            # severity override keeps its severity. confidence_score, the
+            # factors and the footprint still update — the evidence is real.
+            if human_review and human_review.get("severity_override"):
+                severity = Severity(human_review["severity_override"])
+                receipt["provenance"]["severity"] = "human_override"
+            if prior_status == ReviewStatus.HUMAN_APPROVED.value:
+                review_status = ReviewStatus.HUMAN_APPROVED
+                quadrant = FusionEngine.human_approved_quadrant(severity)
+            else:
+                quadrant = FusionEngine().assign_quadrant(severity, confidence)
+            if human_review:
+                receipt["human_review"] = human_review
+
         common = {
             "id": str(event_id),
             "sev": severity.value,
@@ -529,10 +586,6 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         }
 
         if existing is not None:
-            # Re-score the event over its enlarged report set. review_status is
-            # recomputed too, so corroboration can lift an event out of review —
-            # but an operator's REJECTED decision is never overwritten, because
-            # _find_mergeable_event refuses to match rejected events at all.
             await db.execute(
                 text("""
                     UPDATE verified_events SET
@@ -547,7 +600,6 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 """),
                 common,
             )
-            await db.commit()
             action = "updated"
         else:
             event_code = await _next_event_code(db)
@@ -570,10 +622,10 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 """),
                 {**common, "code": event_code, "etype": EventType.URBAN_FLOOD.value},
             )
-            await db.commit()
-
             # Link only after the event row exists — event_id is an FK.
-            linked = await geo.assign_reports_to_event(cluster["report_ids"], event_id)
+            linked = await geo.assign_reports_to_event(
+                cluster["report_ids"], event_id, commit=False
+            )
             action = "created"
 
         report_count = (
@@ -582,6 +634,29 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 {"e": str(event_id)},
             )
         ).scalar() or linked
+
+        # The audit trail records decisions, not traffic: one row when an event
+        # is created, one when a merge changes its status, none otherwise.
+        if review_status.value != prior_status:
+            await audit.record(
+                db,
+                event_id=event_id,
+                operator_id=audit.SYSTEM_PIPELINE_OPERATOR,
+                action=PIPELINE_AUDIT_ACTIONS[review_status],
+                reason=(
+                    f"{event_code} {action}: confidence {confidence} over "
+                    f"{report_count} reports -> {review_status.value}"
+                ),
+                details={
+                    "from_status": prior_status,
+                    "to_status": review_status.value,
+                    "confidence_score": confidence,
+                    "report_count": report_count,
+                    "severity": severity.value,
+                },
+            )
+
+        await db.commit()
 
         logger.info(
             f"Pipeline: {action} {event_code} ({event_id}) with {report_count} reports — "

@@ -16,6 +16,8 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import text
 
+from tests.conftest import wipe_event_tables
+
 from app.core.database import async_session
 from app.services.geo_clustering import GeoClusteringService
 
@@ -42,15 +44,11 @@ OUTLIERS = [
 async def db():
     """A session against the live database, cleaned before and after."""
     async with async_session() as session:
-        await session.execute(text("DELETE FROM raw_reports"))
-        await session.execute(text("DELETE FROM verified_events"))
-        await session.commit()
+        await wipe_event_tables(session)
         try:
             yield session
         finally:
-            await session.execute(text("DELETE FROM raw_reports"))
-            await session.execute(text("DELETE FROM verified_events"))
-            await session.commit()
+            await wipe_event_tables(session)
 
 
 async def seed(db, points):

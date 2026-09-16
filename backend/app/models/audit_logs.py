@@ -1,12 +1,14 @@
 """
 INDRA Platform — AuditLog ORM Model (Immutable Ledger)
 The BEFORE UPDATE OR DELETE trigger is created via Alembic migration.
+Rows form one global SHA-256 hash chain ordered by `seq`; see
+app/services/audit.py for how rows are written and verified.
 """
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, Enum, DateTime, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import BigInteger, Column, String, Text, Enum, DateTime, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -28,6 +30,12 @@ class AuditLog(Base):
     )
     reason = Column(Text, nullable=True)
     sha256_hash = Column(String(64), nullable=False)
+    # Chain order (BIGSERIAL in migration 0003) — logged_at alone can tie.
+    seq = Column(BigInteger, nullable=False, unique=True, autoincrement=True)
+    # The predecessor's sha256_hash; "0" * 64 for the genesis row.
+    prev_hash = Column(String(64), nullable=True)
+    # Structured record of the decision: from/to status, score, severity.
+    details = Column(JSONB, nullable=True)
     logged_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

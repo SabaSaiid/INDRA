@@ -19,6 +19,8 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import text
 
+from tests.conftest import wipe_event_tables
+
 from app.core.database import async_session
 
 pytestmark = pytest.mark.integration
@@ -37,8 +39,7 @@ async def seeded_event():
     )
 
     async with async_session() as db:
-        await db.execute(text("DELETE FROM raw_reports"))
-        await db.execute(text("DELETE FROM verified_events"))
+        await wipe_event_tables(db)
         await db.execute(
             text("""
                 INSERT INTO verified_events
@@ -56,9 +57,7 @@ async def seeded_event():
         try:
             yield str(event_id), event_code
         finally:
-            await db.execute(text("DELETE FROM raw_reports"))
-            await db.execute(text("DELETE FROM verified_events"))
-            await db.commit()
+            await wipe_event_tables(db)
 
 
 @pytest_asyncio.fixture
