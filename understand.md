@@ -391,6 +391,35 @@ The system can be explained as six layers.
 
 Later, for larger deployments, we can add ClickHouse and Iceberg for analytics and large-scale storage.
 
+## The same thing, in the official nine layers
+
+The six layers above are a teaching simplification. The team's **official system-architecture
+diagram** splits the same system into nine layers, and that is the version to use when
+talking to anyone outside the team. Here it is, with an honest mark on each one showing
+whether it is actually built yet.
+
+Legend: ✅ built · 🟡 partly built · ⬜ designed, not built yet
+
+| # | Layer | What it does | Built? |
+|---|---|---|---|
+| 1 | **Data Sources** | Where information comes from: IMD/Govt APIs, weather APIs, public datasets, social media, citizen reports, images/videos | 🟡 **Citizen reports only.** Nothing fetches from any outside API yet. |
+| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | ✅ Fully working. |
+| 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | 🟡 Deduplication and geocoding work; cleaning and metadata extraction don't exist. |
+| 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | ⬜ **Only duplicate matching.** No classifier, no image analysis, no anomaly detection. |
+| 5 | **Geo-Analytics** | Everything about *where*: location mapping, spatial clustering, heatmaps, event boundaries, risk zones, time-space trends | ✅ Clustering and mapping are real; heatmaps and risk zones aren't built. |
+| 6 | **Event Fusion Engine** | The heart: correlate observations, merge duplicates, calculate confidence, determine severity, build the weather event | ✅ Working. But 4 of the 6 confidence factors are still placeholders. |
+| 7 | **Data Platform** | The memory: PostgreSQL+PostGIS, Redis, object storage, historical datasets | 🟡 The database is real. Redis runs but nothing uses it; object storage isn't deployed. |
+| 8a | **Real-Time API** | Serving it out: FastAPI, WebSocket, REST | ✅ Working (but currently with no login required). |
+| 8b | **Alert Engine** | Telling people: critical events, SMS/email, dashboard alerts | ⬜ **Does not exist at all.** |
+| 9 | **IMD Command Center** | The control room humans look at | 🟡 The dashboard is built; risk zones and critical alerts have nothing behind them. |
+
+**If you remember one thing from this section:** the middle of the system — ingestion,
+clustering, fusion, and serving — genuinely works. A citizen report really does travel all
+the way through and come out as a verified event. What is missing is at the two ends: we
+don't yet *pull in* outside data (layer 1), and we don't yet *send alerts out* (layer 8b).
+And the "AI" layer is thinner than its name suggests — it matches duplicates, and that is
+all it does so far.
+
 ---
 
 # 9. What is a frontend?
