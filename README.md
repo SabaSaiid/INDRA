@@ -12,7 +12,7 @@
 
 ---
 
-**FastAPI** • **PostgreSQL + PostGIS** • **Uber H3** • **Redpanda / Kafka** • **Redis** • **PyTorch / NLP** • **Next.js**
+**FastAPI** • **PostgreSQL + PostGIS** • **Uber H3** • **Redpanda / Kafka** • **Redis** • **Sentence-Transformers** • **Next.js**
 
 </div>
 
@@ -84,6 +84,14 @@ Disaster response demands separating **how dangerous an event is** (Severity) fr
 | **Pulls fragmented reports into one stream** | **Extracts multi-modal intelligence, not just keywords** | **Confirms an event only when independent sources agree** |
 | • Open-Meteo (Primary API) <br>• OpenWeather (Secondary API) <br>• Citizen Mobile PWA (GPS + Camera) <br>• Social media & `#IMD` posts <br>• CWC River Gauges & IMD AWS | • BERT / Sentence Transformers NLP <br>• Coordinate validation & Geocoding <br>• PostGIS `ST_ClusterDBSCAN` <br>• Uber H3 Hexagonal Spatial Indexing <br>• PyTorch/OpenCV image flood checks <br>• Isolation Forest anomaly detector | • **The Verification Receipt (100 pts)** <br>• $\ge 2$ independent source consensus <br>• Weather station agreement <br>• Spatio-temporal proximity (GPS + Time) <br>• Unalterable SHA-256 audit trail <br>• Human-in-the-loop review queue |
 
+> **Built vs. designed in the table above.** **COLLECT:** only the Citizen Mobile PWA is live —
+> no external API or social feed is polled. **UNDERSTAND:** coordinate validation, geocoding,
+> `ST_ClusterDBSCAN` and H3 indexing are real; Sentence-Transformers runs **for duplicate
+> matching only**, and the PyTorch/OpenCV and Isolation Forest components are not implemented.
+> **VERIFY:** the Verification Receipt, multi-source consensus and spatio-temporal proximity
+> are real; the SHA-256 audit trail is schema-and-trigger only with **no writer yet**, and the
+> human review queue has no endpoint to act on it. See the Implementation Status ledger below.
+
 ---
 
 ## 🧾 The Verification Receipt
@@ -107,9 +115,45 @@ $$\text{Confidence} = 25\% (\text{Weather}) + 20\% (\text{Reports}) + 20\% (\tex
 ```
 
 ### Review Thresholds
-- **$> 90\%$ (Auto-Verified)**: Auto-published to Command Center and emergency responders.
-- **$60\% - 90\%$ (Probable)**: Flagged for Emergency Analyst review with pre-compiled evidence.
-- **$< 60\%$ (Suspicious)**: Quarantined in buffer; escalated if Severity is Critical.
+- **$\ge 90\%$ (Auto-Verified)**: Auto-published to Command Center and emergency responders.
+- **$70\% - 90\%$ (Probable)**: Flagged for Emergency Analyst review with pre-compiled evidence.
+- **$< 70\%$ (Suspicious)**: Quarantined in buffer; escalated if Severity is Critical.
+
+> These match the code: `AUTO_PUBLISH_THRESHOLD=0.90` and `HUMAN_REVIEW_THRESHOLD=0.70` in
+> `.env`, applied by `fusion_engine.determine_review_status()`. Earlier revisions of this
+> README quoted a 60% lower bound, which the implementation never used.
+
+---
+
+## 📊 Implementation Status — What Is Built Today
+
+Everything above describes the **designed** system. This section is the honest ledger of what
+actually runs, verified against code on **16 Sep 2026**. Keep the two separate: the design is
+the ambition, this is the state. The full per-layer breakdown lives in
+[`docs/ARCHITECTURE.md` §0](docs/ARCHITECTURE.md).
+
+Legend: ✅ built · 🟡 partial · ⬜ designed, not built
+
+| # | Architecture Layer | Status | Reality |
+| :-: | :--- | :-: | :--- |
+| 1 | **Data Sources** | 🟡 1/6 | Citizen reports are live. **No external API is polled** — there is no HTTP client in the backend, and the IMD / OpenWeather / Open-Meteo / Twitter keys sit unread in `.env`. |
+| 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming + batch seeding. Fully working. |
+| 3 | **Data Processing** | 🟡 2/6 | Deduplication and coordinate normalization are real. Cleaning, timestamp processing and metadata extraction are not implemented. |
+| 4 | **AI / ML Layer** | ⬜ 1/6 | Sentence-Transformers runs, **for duplicate matching only**. No NLP classifier, no PyTorch/OpenCV vision, no anomaly detection. |
+| 5 | **Geo-Analytics** | ✅ | PostGIS `ST_ClusterDBSCAN` clustering and Uber H3 res-8 indexing are real. Heatmaps and risk zones are not built. |
+| 6 | **Event Fusion Engine** | ✅ | Correlation, duplicate merging, confidence scoring and event construction all run end-to-end. **2 of the 6 confidence factors carry real evidence**; the other 4 are labelled placeholders. |
+| 7 | **Data Platform** | 🟡 | PostgreSQL + PostGIS fully real. Redis runs but **no code connects to it**. Object storage is configured but not deployed. |
+| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. Note **endpoints are currently unauthenticated**. |
+| 8b | **Alert Engine** | ⬜ | **Not implemented.** No SMS, email, or dispatch integration exists. |
+| 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is built; risk zones and critical alerts have no backend behind them yet. |
+
+**The honest one-liner:** the spine works — *a citizen report travels REST → Kafka → dedup →
+spatial clustering → weighted confidence scoring → a persisted verified event → live
+WebSocket push*, and that path is covered by 71 automated tests. What is **not** built is most
+of the perception layer, all external feed ingestion, and the entire alerting tier. Where a
+confidence factor has no real signal behind it, the Verification Receipt prints
+`"Telemetry factor offline"` rather than inventing a number — **stating that a signal is
+absent is treated as strictly better than faking it.**
 
 ---
 
@@ -149,6 +193,54 @@ flowchart TD
     T4A & T4B --> T4D --> T4E
 ```
 
+### The Canonical 9-Layer View
+
+The four tiers above are the engineering grouping. The **canonical SIH26069 layer stack** —
+the one on the team's system-architecture diagram — expands them into nine layers. Where any
+two diagrams in this repo disagree, this is the reference. Build status is carried inline so
+the picture and the ledger can never drift apart.
+
+```mermaid
+flowchart TD
+    L1["<b>1. DATA SOURCES</b><br/>⬜ IMD / Govt APIs · ⬜ Weather APIs · 🟡 Public datasets<br/>⬜ Social media · ✅ Citizen reports · 🟡 Images / Videos"]
+    L2["<b>2. DATA INGESTION</b><br/>✅ REST API / Webhooks · ✅ Kafka / Redpanda<br/>✅ Batch ingestion · ✅ Stream ingestion"]
+    L3["<b>3. DATA PROCESSING LAYER</b><br/>⬜ Cleaning · 🟡 Normalization · ✅ Deduplication<br/>⬜ Timestamp processing · 🟡 Geocoding · ⬜ Metadata extraction"]
+    L4["<b>4. AI / ML LAYER</b><br/>⬜ NLP classifier · ⬜ Event detection · ⬜ Fake detection<br/>✅ Duplicate matching · ⬜ Image analysis · ⬜ Anomaly detection"]
+    L5["<b>5. GEO-ANALYTICS</b><br/>✅ Location mapping · ✅ Spatial clustering · 🟡 Heatmaps<br/>🟡 Event boundaries · ⬜ Risk zones · 🟡 Time-space trends"]
+    L6["<b>6. EVENT FUSION ENGINE</b><br/>✅ Correlate observations · ✅ Merge duplicate reports<br/>🟡 Calculate confidence · 🟡 Determine severity · ✅ Build weather event"]
+    L7["<b>7. DATA PLATFORM</b><br/>✅ PostgreSQL + PostGIS · 🟡 Redis<br/>⬜ Object Storage (S3/MinIO) · 🟡 Historical datasets"]
+    L8A["<b>8a. REAL-TIME API</b><br/>✅ FastAPI<br/>✅ WebSocket<br/>✅ REST APIs"]
+    L8B["<b>8b. ALERT ENGINE</b><br/>⬜ Critical events<br/>⬜ SMS / Email<br/>⬜ Dashboard alerts"]
+    L9["<b>9. IMD COMMAND CENTER</b><br/>✅ India Weather Map · ✅ Real-time Analytics · ✅ Weather Events<br/>⬜ Risk Zones · ✅ Verification Status · 🟡 Historical Trends<br/>⬜ Critical Alerts · 🟡 Report Investigation"]
+
+    L1 --> L2 --> L3
+    L3 --> L4
+    L3 --> L5
+    L4 --> L6
+    L5 --> L6
+    L6 --> L7
+    L7 --> L8A
+    L7 --> L8B
+    L8A --> L9
+    L8B --> L9
+
+    classDef built fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef partial fill:#fff8e1,stroke:#f9a825,stroke-width:2px;
+    classDef absent fill:#fbe9e7,stroke:#c62828,stroke-dasharray: 5 5,stroke-width:2px;
+
+    class L2,L5,L6,L8A built;
+    class L1,L3,L7,L9 partial;
+    class L4,L8B absent;
+```
+
+**The live path, end to end:**
+
+```
+Citizen report ──► REST ──► Redpanda ──► consumer ──► dedup ──► DBSCAN cluster
+                                                                      │
+   WebSocket ◄── verified_events row ◄── 6-factor receipt ◄── cluster stats
+```
+
 ---
 
 ## 🚀 Deployment Strategy: Modular Monolith
@@ -163,14 +255,19 @@ To avoid the anti-pattern of managing 15 microservices during a hackathon sprint
 
 ## 🎬 The SIH Demonstration Sequence (10 Scenes)
 
-| Scene | Phase | Description |
-| :---: | :--- | :--- |
-| **Scene 1** | **Baseline** | India map normal. Open-Meteo live API stream active. Zero false alerts. |
-| **Scene 3** | **The Spike** | `run_patna_demo.py` triggers a cloudburst surge. 127 reports enter via Kafka in seconds. |
-| **Scene 5** | **Fusion** | BERT detects flood; PostGIS + H3 merges 127 signals into 1 geographic event polygon. |
-| **Scene 7** | **Evidence** | PyTorch CV confirms waist-deep water; Open-Meteo confirms 92mm rainfall anomaly. |
-| **Scene 8** | **Intelligence** | INDRA calculates **94% Confidence** and prints the explainable Verification Receipt. |
-| **Scene 10** | **Action** | WebSocket pushes live red hazard zone to Next.js dashboard; auto-dispatches NDRF alert. |
+| Scene | Phase | Description | Live today? |
+| :---: | :--- | :--- | :-: |
+| **Scene 1** | **Baseline** | India map normal. Open-Meteo live API stream active. Zero false alerts. | 🟡 map real, **feed is not** |
+| **Scene 3** | **The Spike** | `run_patna_demo.py` triggers a cloudburst surge. 127 reports enter via Kafka in seconds. | 🟡 canned replay; the **live** surge path is `POST /api/reports/submit` |
+| **Scene 5** | **Fusion** | BERT detects flood; PostGIS + H3 merges 127 signals into 1 geographic event polygon. | ✅ **real** (clustering + merging; no BERT classification) |
+| **Scene 7** | **Evidence** | PyTorch CV confirms waist-deep water; Open-Meteo confirms 92mm rainfall anomaly. | ⬜ **narration — do not claim live** |
+| **Scene 8** | **Intelligence** | INDRA calculates **94% Confidence** and prints the explainable Verification Receipt. | 🟡 receipt real; 2 of 6 factors carry evidence |
+| **Scene 10** | **Action** | WebSocket pushes live red hazard zone to Next.js dashboard; auto-dispatches NDRF alert. | 🟡 WebSocket real; **no alert dispatch exists** |
+
+> **The defensible demo.** Submit a report live, watch several reports collapse into one
+> verified event, open the Verification Receipt, and point at which factors carry real
+> evidence and which read `"Telemetry factor offline"`. That story is entirely true and
+> survives follow-up questions. A walkthrough that claims Scenes 7 and 10 end-to-end does not.
 
 ---
 
@@ -183,14 +280,19 @@ INDRA/
 ├── LICENSE                         # MIT License
 ├── README.md                       # Master documentation & blueprint
 ├── docs/
-│   └── ARCHITECTURE.md             # Detailed engineering & mathematical specification
+│   ├── ARCHITECTURE.md             # Engineering & mathematical spec + §0 implementation ledger
+│   ├── backend-architecture.md     # Backend module map, request flow, config surface
+│   └── backend-todo.md             # Backend 5-day sprint plan (16–20 Sep)
 ├── backend/
 │   ├── app/
-│   │   ├── api/                    # REST routes (reports, events, ingestion, analytics)
-│   │   ├── core/                   # Configuration, security, database connectors
-│   │   ├── models/                 # SQLAlchemy & PostGIS schemas, Pydantic DTOs
-│   │   ├── services/               # Fusion engine, NLP deduplication, geospatial clustering
-│   │   └── workers/                # Kafka consumer workers & background tasks
+│   │   ├── api/                    # REST routes: dashboard, events, reports, feed, auth, teams, profile
+│   │   ├── core/                   # config (pydantic-settings), database (async SQLAlchemy), security (JWT/bcrypt)
+│   │   ├── models/                 # SQLAlchemy ORM + enums.py (all controlled vocabularies)
+│   │   ├── services/               # pipeline (orchestrator), fusion_engine, dedup, geo_clustering, geocoding
+│   │   └── workers/                # report_consumer — Kafka consumer driving the pipeline
+│   ├── alembic/                    # Database migrations (0001_initial, 0002_teams_and_profiles)
+│   ├── tests/                      # pytest suite — unit + integration (`-m integration` needs Docker)
+│   ├── pytest.ini                  # asyncio loop scope pinned to session
 │   └── requirements.txt            # Python dependencies
 ├── frontend/
 │   ├── package.json                # Next.js / React dependencies
@@ -202,7 +304,17 @@ INDRA/
 │   └── samples/
 │       └── patna_flood_scenario.json  # 127-report Patna flood verification dataset
 └── scripts/
-    └── run_patna_demo.py           # 10-Scene SIH demonstration simulation runner
+    ├── run_patna_demo.py           # 10-Scene SIH demonstration simulation runner
+    ├── seed_national_data.py       # Batch seeder: 37 events / ~1,200 reports across 10 cities
+    └── verify-build.sh             # Build verification checks
+```
+
+### Running the backend test suite
+
+```bash
+cd backend
+.venv/bin/pytest -m "not integration"   # unit tests, no Docker required
+.venv/bin/pytest                        # full suite — needs docker compose up
 ```
 
 ---
