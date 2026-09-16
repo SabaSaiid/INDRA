@@ -1,0 +1,484 @@
+"""
+INDRA Platform — Verification Pipeline Orchestrator
+
+Turns one incoming raw report into (at most) one verified event:
+
+    dedup → geo-cluster → cluster stats → fusion scoring → persist → link
+
+This lives in its own module rather than inside the Kafka consumer so that the
+consumer stays thin, the pipeline is unit-testable without a broker, and Day 4's
+reprocess endpoint can re-run it over existing rows.
+
+Design notes
+------------
+* **The message is a trigger, not a source of truth.** `api/reports.py` stores
+  the *sanitised* coordinates from `sanitize_coordinates()` but publishes the
+  *raw* ones to Kafka, so the two disagree whenever a report arrives from
+  outside India or with a glitched GPS fix. The pipeline therefore re-reads the
+  row from Postgres by id and uses the stored values for every spatial decision.
+* **Not every report becomes an event.** A duplicate, or a lone report that
+  DBSCAN treats as noise, correctly produces no event. That is the system
+  working, not failing.
+* **Fail soft.** Everything is wrapped so that one bad report cannot kill the
+  consumer loop, matching the convention in `api/reports.py::reports_trend`.
+"""
+
+import json
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+from uuid import UUID, uuid4
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import get_settings
+from app.models.enums import EventType, Severity
+from app.services.dedup import DedupService
+from app.services.fusion_engine import FusionEngine
+from app.services.geo_clustering import GeoClusteringService
+
+logger = logging.getLogger("indra.services.pipeline")
+settings = get_settings()
+
+# Severity thresholds by corroboration count. Crude and deliberately explicit —
+# this is a stand-in for the NLP severity classifier, and the receipt says so.
+SEVERITY_CRITICAL_REPORTS = 25
+SEVERITY_HIGH_REPORTS = 10
+
+# Dedup candidate window, mirroring DedupService's own gates.
+DEDUP_WINDOW_MINUTES = 15
+DEDUP_RADIUS_METRES = 1000
+
+# Reports arrive one at a time, so a cluster reaches DBSCAN_MIN_SAMPLES long
+# before every report about an incident has landed. Without merging, the first
+# two reports create one event and the next three create a rival event a few
+# hundred metres away — the exact fragmentation this platform exists to remove.
+# So a new cluster that lands on top of a recent event joins it and raises its
+# corroboration instead of competing with it.
+MERGE_WINDOW_MINUTES = 120
+
+
+def _derive_severity(cluster_size: int) -> Severity:
+    """Heuristic severity from corroboration count. Replaced on Day 2."""
+    if cluster_size >= SEVERITY_CRITICAL_REPORTS:
+        return Severity.CRITICAL
+    if cluster_size >= SEVERITY_HIGH_REPORTS:
+        return Severity.HIGH
+    return Severity.MODERATE
+
+
+def _density_score(cluster_size: int) -> float:
+    """
+    Report density as a real signal: how much corroboration exists, saturating
+    at the count that would justify HIGH severity on its own.
+    """
+    return max(0.0, min(1.0, cluster_size / SEVERITY_HIGH_REPORTS))
+
+
+def _coherence_score(max_pairwise_km: float) -> float:
+    """
+    Spatial coherence as a real signal: a tight cluster is more likely to be one
+    real event than a diffuse one. Scored against the DBSCAN search diameter, so
+    a cluster spanning the full 2*eps window scores 0.
+    """
+    span = max(settings.DBSCAN_EPS_KM * 2.0, 0.001)
+    return max(0.0, min(1.0, 1.0 - (max_pairwise_km / span)))
+
+
+async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, Any]]:
+    """Re-read the stored row — the authority on this report's coordinates."""
+    row = (
+        await db.execute(
+            text("""
+                SELECT id, raw_text, latitude, longitude, created_at, event_id
+                FROM raw_reports
+                WHERE id = CAST(:id AS uuid)
+            """),
+            {"id": str(report_id)},
+        )
+    ).fetchone()
+
+    if row is None:
+        return None
+
+    return {
+        "id": row[0],
+        "raw_text": row[1],
+        "latitude": float(row[2]),
+        "longitude": float(row[3]),
+        "created_at": row[4],
+        "event_id": row[5],
+    }
+
+
+async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
+    """
+    Recent nearby reports, with the spatial and temporal gates pushed into SQL.
+
+    Doing the filtering here rather than loading every recent report into Python
+    keeps the embedding model — the expensive part — to a handful of comparisons.
+    DedupService then applies the text-similarity gate over the survivors.
+    """
+    rows = (
+        await db.execute(
+            text("""
+                SELECT raw_text, latitude, longitude, created_at
+                FROM raw_reports
+                WHERE id <> CAST(:id AS uuid)
+                  AND created_at > CAST(:created_at AS timestamptz)
+                                   - make_interval(mins => CAST(:window AS int))
+                  AND created_at <= CAST(:created_at AS timestamptz)
+                  AND geom_point IS NOT NULL
+                  AND ST_DWithin(
+                        geom_point::geography,
+                        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                        :radius
+                      )
+            """),
+            {
+                "id": str(report["id"]),
+                "created_at": report["created_at"],
+                "window": DEDUP_WINDOW_MINUTES,
+                "lat": report["latitude"],
+                "lng": report["longitude"],
+                "radius": DEDUP_RADIUS_METRES,
+            },
+        )
+    ).fetchall()
+
+    return [(r[0], float(r[1]), float(r[2]), r[3]) for r in rows]
+
+
+async def _find_mergeable_event(
+    db: AsyncSession, lat: float, lng: float
+) -> Optional[Dict[str, Any]]:
+    """
+    The nearest recent event whose footprint already covers this location.
+
+    Matches within the event's own impact radius plus one DBSCAN eps, so a
+    cluster that DBSCAN would have merged had all the reports arrived together
+    is merged after the fact too. Rejected events are excluded — an operator
+    dismissing an event must not have it silently resurrected.
+    """
+    row = (
+        await db.execute(
+            text("""
+                SELECT id, event_code
+                FROM verified_events
+                WHERE verified_at > NOW() - make_interval(mins => CAST(:window AS int))
+                  AND review_status <> 'REJECTED'
+                  AND center_point IS NOT NULL
+                  AND ST_DWithin(
+                        center_point::geography,
+                        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                        (COALESCE(impact_radius_km, 0) + :eps) * 1000
+                      )
+                ORDER BY ST_Distance(
+                    center_point::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+                )
+                LIMIT 1
+            """),
+            {
+                "window": MERGE_WINDOW_MINUTES,
+                "lat": lat,
+                "lng": lng,
+                "eps": settings.DBSCAN_EPS_KM,
+            },
+        )
+    ).fetchone()
+
+    if row is None:
+        return None
+    return {"id": row[0], "event_code": row[1]}
+
+
+async def _event_report_ids(db: AsyncSession, event_id: UUID):
+    """Every report currently linked to an event."""
+    rows = (
+        await db.execute(
+            text("SELECT id FROM raw_reports WHERE event_id = CAST(:e AS uuid)"),
+            {"e": str(event_id)},
+        )
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
+async def _next_event_code(db: AsyncSession) -> str:
+    """
+    Sequential, human-readable code: INDRA-YYYYMMDD-NNN.
+
+    Derived from the count of events already created today. Two events created
+    in the same millisecond could collide; event_code is UNIQUE so the insert
+    would fail loudly rather than corrupt anything. Fine at demo volume.
+    """
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    count = (
+        await db.execute(
+            text("""
+                SELECT COUNT(*) FROM verified_events
+                WHERE event_code LIKE :prefix
+            """),
+            {"prefix": f"INDRA-{today}-%"},
+        )
+    ).scalar() or 0
+    return f"INDRA-{today}-{count + 1:03d}"
+
+
+async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
+    """
+    Run one report through the verification pipeline.
+
+    Returns the created event as a dict, or None when no event should be created
+    (duplicate, uncorroborated, or a handled error).
+    """
+    try:
+        raw_id = report.get("id")
+        if not raw_id:
+            logger.warning("Pipeline: message has no report id — skipping")
+            return None
+
+        try:
+            report_id = UUID(str(raw_id))
+        except (ValueError, AttributeError, TypeError):
+            logger.warning(f"Pipeline: malformed report id {raw_id!r} — skipping")
+            return None
+
+        # ── 1. Authority pass: use the stored row, not the message payload ──
+        stored = await _load_report(db, report_id)
+        if stored is None:
+            logger.warning(f"Pipeline: report {report_id} not found in DB — skipping")
+            return None
+
+        if stored["event_id"] is not None:
+            logger.info(f"Pipeline: report {report_id} already linked to an event — skipping")
+            return None
+
+        # ── 2. Deduplication ────────────────────────────────────────────────
+        candidates = await _dedup_candidates(db, stored)
+        if candidates:
+            is_dupe = DedupService().is_duplicate(
+                stored["raw_text"],
+                stored["latitude"],
+                stored["longitude"],
+                stored["created_at"],
+                candidates,
+            )
+            if is_dupe:
+                logger.info(
+                    f"Pipeline: report {report_id} suppressed as duplicate "
+                    f"({len(candidates)} nearby candidates)"
+                )
+                return None
+
+        # ── 3. Spatial preparation ──────────────────────────────────────────
+        geo = GeoClusteringService(db)
+        await geo.update_geom_points()
+        await geo.assign_h3_cells()
+
+        # ── 4. Clustering — find the cluster this report belongs to ─────────
+        clusters = await geo.cluster_unassigned_reports()
+        cluster = next(
+            (c for c in clusters if report_id in c["report_ids"]),
+            None,
+        )
+        if cluster is None:
+            # No cluster can mean two very different things.
+            #
+            # Once a burst of reports has been absorbed into an event, the next
+            # report about that same incident has no *unassigned* neighbours
+            # left to cluster with — every one of them already belongs to the
+            # event. Dropping it would silently discard corroboration for a
+            # confirmed incident, so if it lands inside a known event's
+            # footprint it joins that event on its own.
+            #
+            # Otherwise it really is a lone, uncorroborated report, and a single
+            # report is not yet an event.
+            nearby = await _find_mergeable_event(
+                db, stored["latitude"], stored["longitude"]
+            )
+            if nearby is None:
+                logger.info(
+                    f"Pipeline: report {report_id} is in no cluster and near no "
+                    "known event — a single uncorroborated report is not yet an event"
+                )
+                return None
+
+            logger.info(
+                f"Pipeline: lone report {report_id} joins existing {nearby['event_code']}"
+            )
+            cluster = {"cluster_id": -1, "report_ids": [report_id], "size": 1}
+
+        # ── 5. Cluster geometry ─────────────────────────────────────────────
+        stats = await geo.get_cluster_stats(cluster["report_ids"])
+        if not stats["count"] or stats["centroid_lat"] is None:
+            logger.warning(f"Pipeline: cluster for {report_id} has no usable geometry")
+            return None
+
+        # ── 5a. Merge into a recent overlapping event, if there is one ──────
+        # Decided before scoring, because a merge scores over the union of both
+        # report sets rather than over this cluster alone.
+        existing = await _find_mergeable_event(
+            db, stats["centroid_lat"], stats["centroid_lng"]
+        )
+
+        if existing is not None:
+            event_id = existing["id"]
+            event_code = existing["event_code"]
+            linked = await geo.assign_reports_to_event(cluster["report_ids"], event_id)
+            all_report_ids = await _event_report_ids(db, event_id)
+            stats = await geo.get_cluster_stats(all_report_ids)
+            logger.info(
+                f"Pipeline: merged {linked} reports into existing {event_code} "
+                f"— now {stats['count']} reports"
+            )
+        else:
+            event_id = uuid4()
+            event_code = None  # allocated at insert time
+            linked = 0
+
+        # ── 6. Scoring ──────────────────────────────────────────────────────
+        fusion = FusionEngine()
+        heuristics = fusion.generate_heuristic_scores()
+
+        # Two factors have real signal today; the rest are still placeholders.
+        density = _density_score(stats["count"])
+        coherence = _coherence_score(stats["max_pairwise_km"])
+
+        receipt = fusion.compute_receipt(
+            weather_score=heuristics["weather_score"],
+            report_density_score=density,
+            spatial_score=coherence,
+            vision_score=heuristics["vision_score"],
+            reliability_score=heuristics["reliability_score"],
+            anomaly_score=heuristics["anomaly_score"],
+        )
+        confidence = receipt["confidence_score"]
+
+        severity = _derive_severity(stats["count"])
+        quadrant = fusion.assign_quadrant(severity, confidence)
+        review_status = fusion.determine_review_status(
+            confidence,
+            settings.AUTO_PUBLISH_THRESHOLD,
+            settings.HUMAN_REVIEW_THRESHOLD,
+        )
+
+        # Be explicit in the stored receipt about what is real and what is not,
+        # so nobody downstream mistakes a placeholder for a measurement.
+        receipt["provenance"] = {
+            "report_density": "computed",
+            "spatial_coherence": "computed",
+            "weather_station": "heuristic_placeholder",
+            "vision_analysis": "heuristic_placeholder",
+            "source_reliability": "heuristic_placeholder",
+            "anomaly_detection": "heuristic_placeholder",
+            "severity": "heuristic_from_cluster_size",
+        }
+        receipt["cluster"] = {
+            "size": stats["count"],
+            "centroid_lat": stats["centroid_lat"],
+            "centroid_lng": stats["centroid_lng"],
+            "max_pairwise_km": stats["max_pairwise_km"],
+            "radius_km": stats["radius_km"],
+        }
+
+        # ── 7. Persist ──────────────────────────────────────────────────────
+        impact_radius = max(stats["radius_km"], 0.5)
+        common = {
+            "id": str(event_id),
+            "sev": severity.value,
+            "conf": confidence,
+            "status": review_status.value,
+            "quad": quadrant.value,
+            "radius": impact_radius,
+            "lat": stats["centroid_lat"],
+            "lng": stats["centroid_lng"],
+            "receipt": json.dumps(receipt),
+        }
+
+        if existing is not None:
+            # Re-score the event over its enlarged report set. review_status is
+            # recomputed too, so corroboration can lift an event out of review —
+            # but an operator's REJECTED decision is never overwritten, because
+            # _find_mergeable_event refuses to match rejected events at all.
+            await db.execute(
+                text("""
+                    UPDATE verified_events SET
+                        severity = CAST(:sev AS severity_enum),
+                        confidence_score = :conf,
+                        review_status = CAST(:status AS review_status_enum),
+                        quadrant = CAST(:quad AS quadrant_enum),
+                        impact_radius_km = :radius,
+                        center_point = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
+                        verification_receipt = CAST(:receipt AS jsonb)
+                    WHERE id = CAST(:id AS uuid)
+                """),
+                common,
+            )
+            await db.commit()
+            action = "updated"
+        else:
+            event_code = await _next_event_code(db)
+            await db.execute(
+                text("""
+                    INSERT INTO verified_events
+                        (id, event_code, event_type, severity, confidence_score,
+                         review_status, quadrant, impact_radius_km, center_point,
+                         verification_receipt)
+                    VALUES
+                        (CAST(:id AS uuid), :code,
+                         CAST(:etype AS event_type_enum),
+                         CAST(:sev AS severity_enum),
+                         :conf,
+                         CAST(:status AS review_status_enum),
+                         CAST(:quad AS quadrant_enum),
+                         :radius,
+                         ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
+                         CAST(:receipt AS jsonb))
+                """),
+                {**common, "code": event_code, "etype": EventType.URBAN_FLOOD.value},
+            )
+            await db.commit()
+
+            # Link only after the event row exists — event_id is an FK.
+            linked = await geo.assign_reports_to_event(cluster["report_ids"], event_id)
+            action = "created"
+
+        report_count = (
+            await db.execute(
+                text("SELECT COUNT(*) FROM raw_reports WHERE event_id = CAST(:e AS uuid)"),
+                {"e": str(event_id)},
+            )
+        ).scalar() or linked
+
+        logger.info(
+            f"Pipeline: {action} {event_code} ({event_id}) with {report_count} reports — "
+            f"severity={severity.value} confidence={confidence} status={review_status.value}"
+        )
+
+        return {
+            "id": str(event_id),
+            "event_code": event_code,
+            "event_type": EventType.URBAN_FLOOD.value,
+            "severity": severity.value,
+            "confidence_score": confidence,
+            "review_status": review_status.value,
+            "quadrant": quadrant.value,
+            "impact_radius_km": impact_radius,
+            "lat": stats["centroid_lat"],
+            "lng": stats["centroid_lng"],
+            "report_count": report_count,
+            "merged": existing is not None,
+            "verification_receipt": receipt,
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    except Exception as e:
+        # Fail soft: a pipeline crash must never kill the consumer loop.
+        logger.error(f"Pipeline failed for report {report.get('id', 'unknown')}: {e}", exc_info=True)
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        return None
