@@ -3,9 +3,18 @@ INDRA Platform — Core Configuration
 Loads all environment variables via pydantic-settings.
 """
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from functools import lru_cache
+
+# `.env` lives at the repo root, but uvicorn is started from `backend/` (see
+# start.sh), so a bare "env_file": ".env" resolved against the working directory
+# and never found it — every value came from the defaults below. Anchor both
+# locations to this file instead; a `backend/.env`, if present, wins.
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+_REPO_ROOT = _BACKEND_DIR.parent
 
 
 class Settings(BaseSettings):
@@ -58,11 +67,28 @@ class Settings(BaseSettings):
     H3_HEX_RESOLUTION: int = 8
     TIME_WINDOW_MINUTES: int = 120
 
+    # ── Coordinates ────────────────────────────────────────────────────────
+    # False (the default) rejects out-of-India coordinates with a 422. True
+    # restores the old behaviour of snapping them to a gazetteer match or the
+    # (22, 82) national centroid — which lets junk reports cluster into a fake
+    # event there, so only turn it on for a scripted demo that depends on it.
+    SNAP_OUT_OF_BOUNDS_COORDINATES: bool = False
+
+    # ── External signals ───────────────────────────────────────────────────
+    OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
+    WEATHER_TIMEOUT_SECONDS: float = 3.0
+
+    # ── Demo data ──────────────────────────────────────────────────────────
+    # When a read endpoint finds no rows (or the DB is unreachable), serve the
+    # hardcoded demo dataset instead of an empty result. Logged at WARNING
+    # either way, so demo data can never pass silently for real data.
+    DEMO_MODE: bool = False
+
     # ── Frontend ───────────────────────────────────────────────────────────
     FRONTEND_PORT: int = 3000
 
     model_config = {
-        "env_file": ".env",
+        "env_file": (str(_REPO_ROOT / ".env"), str(_BACKEND_DIR / ".env")),
         "env_file_encoding": "utf-8",
         "extra": "ignore",
     }

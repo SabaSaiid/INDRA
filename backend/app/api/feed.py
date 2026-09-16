@@ -11,6 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.demo import demo_fallback
 
 logger = logging.getLogger("indra.api.feed")
 router = APIRouter(prefix="/api/feed", tags=["Feed"])
@@ -83,6 +84,7 @@ async def get_recent_feed(
         LIMIT :limit
     """)
 
+    db_error = None
     try:
         result = await db.execute(query, {"limit": limit})
         rows = result.fetchall()
@@ -105,6 +107,7 @@ async def get_recent_feed(
                 })
             return feed_items
     except Exception as e:
-        logger.warning(f"Database query failed in get_recent_feed (falling back to demo feed): {e}")
+        logger.warning(f"Database query failed in get_recent_feed: {e}")
+        db_error = e
 
-    return DEMO_FEED[:limit]
+    return demo_fallback("GET /api/feed/recent", lambda: DEMO_FEED[:limit], list, db_error)

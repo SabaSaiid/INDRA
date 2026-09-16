@@ -38,6 +38,20 @@ CLUSTER_TEXTS = [
 ]
 
 
+@pytest.fixture(autouse=True)
+def fixed_weather(monkeypatch):
+    """
+    Pin the weather factor so these tests do not depend on the internet or on
+    today's rainfall in Patna. The live fetch has its own tests in test_weather.py.
+    """
+    from app.services import pipeline
+
+    async def _weather(lat, lng):
+        return 0.35, 15.6
+
+    monkeypatch.setattr(pipeline, "weather_score", _weather)
+
+
 @pytest_asyncio.fixture
 async def db():
     async with async_session() as session:
@@ -156,10 +170,15 @@ async def test_receipt_is_persisted_with_six_weighted_factors(db):
     assert receipt is not None
     assert len(receipt["factors"]) == 6
     assert sum(f["weight_pct"] for f in receipt["factors"]) == pytest.approx(100.0)
-    # The receipt must say which factors are real and which are placeholders.
+    # The receipt must say which factors are measured and which are offline.
     assert receipt["provenance"]["report_density"] == "computed"
-    assert receipt["provenance"]["weather_station"] == "heuristic_placeholder"
+    assert receipt["provenance"]["weather_station"] == "computed"
+    assert receipt["provenance"]["source_reliability"] == "computed"
+    assert receipt["provenance"]["vision_analysis"] == "offline"
+    assert receipt["provenance"]["anomaly_detection"] == "offline"
+    assert "heuristic_placeholder" not in str(receipt["provenance"])
     assert receipt["cluster"]["size"] == 5
+    assert receipt["cluster"]["source_types"] == ["CITIZEN_APP"]
 
 
 async def test_confidence_is_in_range_and_matches_the_receipt(db):

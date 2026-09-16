@@ -12,6 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.demo import demo_fallback
 
 router = APIRouter(prefix="/api/teams", tags=["Teams"])
 
@@ -263,6 +264,7 @@ async def list_teams(
     db: AsyncSession = Depends(get_db),
 ):
     """List all operational disaster response teams with assigned event details."""
+    db_error = None
     try:
         query_sql = """
             SELECT
@@ -329,18 +331,19 @@ async def list_teams(
                 })
             return results
     except Exception as e:
-        # Fall back gracefully to DEMO_TEAMS
-        pass
+        db_error = e
 
-    # Filter DEMO_TEAMS
-    filtered = DEMO_TEAMS
-    if agency:
-        filtered = [t for t in filtered if t["agency"].lower() == agency.lower()]
-    if status:
-        filtered = [t for t in filtered if t["status"].lower() == status.lower()]
-    if city:
-        filtered = [t for t in filtered if city.lower() in t["city"].lower()]
-    return filtered
+    def _demo_teams():
+        filtered = DEMO_TEAMS
+        if agency:
+            filtered = [t for t in filtered if t["agency"].lower() == agency.lower()]
+        if status:
+            filtered = [t for t in filtered if t["status"].lower() == status.lower()]
+        if city:
+            filtered = [t for t in filtered if city.lower() in t["city"].lower()]
+        return filtered
+
+    return demo_fallback("GET /api/teams", _demo_teams, list, db_error)
 
 
 @router.get("/hackathon/sixth-sense")
@@ -355,6 +358,7 @@ async def get_team(
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve full detail and member roster for a specific team."""
+    db_error = None
     try:
         try:
             tid_uuid = uuid.UUID(team_id)
@@ -409,28 +413,32 @@ async def get_team(
             data["created_at"] = data["created_at"].isoformat() if data["created_at"] else None
             data["members"] = members
             return data
-    except Exception:
-        pass
+    except Exception as e:
+        db_error = e
 
-    # Fallback to demo team
-    match = next((t for t in DEMO_TEAMS if t["id"] == team_id or t["team_code"] == team_id), None)
-    if match:
-        return {
-            **match,
-            "members": [
-                {
-                    "id": f"m-{i}",
-                    "full_name": f"{match['lead_name']} {i}" if i > 1 else match["lead_name"],
-                    "team_role": "Commander" if i == 1 else "Tactical Specialist",
-                    "duty_status": match["status"],
-                    "badge_number": f"{match['agency']}-{100 + i}",
-                    "callsign": f"{match['radio_callsign']}-{i}",
-                }
-                for i in range(1, 5)
-            ],
-        }
+    def _not_found():
+        raise HTTPException(status_code=404, detail="Team not found")
 
-    raise HTTPException(status_code=404, detail="Team not found")
+    def _demo_team():
+        match = next((t for t in DEMO_TEAMS if t["id"] == team_id or t["team_code"] == team_id), None)
+        if match:
+            return {
+                **match,
+                "members": [
+                    {
+                        "id": f"m-{i}",
+                        "full_name": f"{match['lead_name']} {i}" if i > 1 else match["lead_name"],
+                        "team_role": "Commander" if i == 1 else "Tactical Specialist",
+                        "duty_status": match["status"],
+                        "badge_number": f"{match['agency']}-{100 + i}",
+                        "callsign": f"{match['radio_callsign']}-{i}",
+                    }
+                    for i in range(1, 5)
+                ],
+            }
+        return _not_found()
+
+    return demo_fallback(f"GET /api/teams/{team_id}", _demo_team, _not_found, db_error)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

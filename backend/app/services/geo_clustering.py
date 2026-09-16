@@ -103,8 +103,8 @@ class GeoClusteringService:
         farthest any report sits from the centroid, which is what the event's
         impact_radius_km is derived from.
 
-        Day 2 uses this for the real report_density and spatial_coherence
-        factors, replacing two of the random.uniform() placeholders.
+        The pipeline scores the Report Density and Spatial Coherence factors
+        from count and max_pairwise_km.
         """
         ids = [str(rid) for rid in report_ids]
         if not ids:
