@@ -204,7 +204,7 @@ export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
 }
 
 export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
-  return events.slice(0, 5).map((ev) => ({
+  return events.slice(0, 10).map((ev) => ({
     id: ev.id,
     city: ev.city,
     state: ev.state,

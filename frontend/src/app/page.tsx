@@ -123,7 +123,7 @@ export default function Home() {
                 {/* Skeleton map + list */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5 mb-2.5">
                   <div className="lg:col-span-3"><MapCardSkeleton /></div>
-                  <div className="lg:col-span-2"><ListCardSkeleton /></div>
+                  <div className="lg:col-span-2 flex flex-col"><ListCardSkeleton /></div>
                 </div>
 
                 {/* Skeleton bottom row */}
@@ -169,7 +169,7 @@ export default function Home() {
                           onEventSelect={(ev) => setSelectedIncidentId(ev?.id)}
                         />
                       </div>
-                      <div className="lg:col-span-2">
+                      <div className="lg:col-span-2 flex flex-col">
                         <RecentEventsList
                           selectedEventId={selectedIncidentId}
                           onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
@@ -213,7 +213,7 @@ export default function Home() {
                 {viewMode === 'analytics-focus' && (
                   <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5">
                     {/* Narrow events list */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-2 flex flex-col h-full">
                       <RecentEventsList
                         selectedEventId={selectedIncidentId}
                         onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}

@@ -68,10 +68,12 @@ export default function RecentEventsList({
       initial="hidden"
       animate="visible"
       transition={{ delay: 0.4 }}
+      className="h-full max-h-[318px] flex flex-col min-h-0"
     >
-      <Card hover={false} className="h-full" density="compact">
+      <Card hover={false} className="h-full max-h-[318px] flex flex-col min-h-0 overflow-hidden" density="compact">
         <CardHeader
           density="compact"
+          className="flex-shrink-0"
           title={
             <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
               Recent Events
@@ -86,7 +88,7 @@ export default function RecentEventsList({
         />
 
         {isLoading ? (
-          <div className="space-y-0 custom-scrollbar overflow-y-auto" style={{ maxHeight: '310px' }}>
+          <div className="flex-1 min-h-0 space-y-0.5 custom-scrollbar overflow-y-auto pr-0.5">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center gap-2.5 py-1.5 border-b border-[#F0EBE0] last:border-0 pl-2 pr-1.5">
                 <div className="w-12 h-9 rounded-md bg-[#E8E2D4] animate-pulse flex-shrink-0" />
@@ -105,7 +107,7 @@ export default function RecentEventsList({
             ))}
           </div>
         ) : events.length === 0 ? (
-          <div className="flex items-center justify-center p-6 text-xs text-[#7A8599]" style={{ minHeight: '200px' }}>
+          <div className="flex-1 min-h-0 flex items-center justify-center p-6 text-xs text-[#7A8599]">
             No recent events recorded in this time range.
           </div>
         ) : (
@@ -113,8 +115,7 @@ export default function RecentEventsList({
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
-            className="space-y-0 custom-scrollbar overflow-y-auto"
-            style={{ maxHeight: '310px' }}
+            className="flex-1 min-h-0 space-y-0.5 custom-scrollbar overflow-y-auto scroll-smooth pr-1"
           >
             {events.map((event) => {
               const severity = severityConfig[event.severity] || severityConfig.moderate;
@@ -192,6 +193,24 @@ export default function RecentEventsList({
             })}
           </motion.div>
         )}
+
+        {/* Telemetry Status Footer */}
+        <div className="mt-auto pt-1.5 pb-0.5 border-t border-[#F0EBE0] flex items-center justify-between text-[10px] text-[#7A8599] font-mono flex-shrink-0">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{events.length} active incidents</span>
+          </span>
+          <span className="text-[9px] uppercase tracking-wider text-[#A0988A] flex items-center gap-1">
+            {events.length > 4 ? (
+              <>
+                <span>Scroll for more</span>
+                <span className="text-[10px]">↓</span>
+              </>
+            ) : (
+              'IMD • NDRF Synced'
+            )}
+          </span>
+        </div>
       </Card>
     </motion.div>
   );
