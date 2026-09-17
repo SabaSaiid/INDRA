@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import {
 } from '@/lib/mock-data';
 import { fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import { getRelativeTime } from '@/lib/utils';
+import { getWeatherMedia } from '@/lib/weather-media';
 import { ArrowRight } from 'lucide-react';
 
 // Spine color per severity (Low Pressure palette)
@@ -86,10 +88,10 @@ export default function RecentEventsList({
         {isLoading ? (
           <div className="space-y-0 custom-scrollbar overflow-y-auto" style={{ maxHeight: '310px' }}>
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-start gap-2.5 py-2 border-b border-[#F0EBE0] last:border-0 pl-2.5 pr-1.5">
-                <div className="w-0.5 h-7 rounded-full bg-[#E8E2D4] animate-pulse flex-shrink-0" />
+              <div key={i} className="flex items-center gap-2.5 py-1.5 border-b border-[#F0EBE0] last:border-0 pl-2 pr-1.5">
+                <div className="w-12 h-9 rounded-md bg-[#E8E2D4] animate-pulse flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
                     <div className="h-3 w-28 bg-[#E8E2D4] rounded animate-pulse" />
                     <div className="h-2.5 w-14 bg-[#E8E2D4] rounded animate-pulse" />
                   </div>
@@ -119,13 +121,14 @@ export default function RecentEventsList({
               const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
               const isSelected = selectedEventId === event.id;
               const spine = spineColor[event.severity] ?? '#9CA3AF';
+              const media = getWeatherMedia(event.eventType);
 
               return (
                 <motion.div
                   key={event.id}
                   variants={listItemSlideIn}
                   onClick={() => onSelectEvent?.(event)}
-                  className={`flex items-start gap-2 py-1.5 border-b border-[#F0EBE0] last:border-0 pl-2.5 pr-1.5 rounded-sm transition-all cursor-pointer ${
+                  className={`group flex items-center gap-2.5 py-1.5 border-b border-[#F0EBE0] last:border-0 pl-2 pr-1.5 rounded-sm transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[#F0EBE0]'
                       : 'hover:bg-[#F7F3EA]'
@@ -134,6 +137,26 @@ export default function RecentEventsList({
                     borderLeft: `3px solid ${spine}`,
                   }}
                 >
+                  {/* Weather Condition Photo */}
+                  <div
+                    className={`relative w-12 h-9 rounded-md overflow-hidden flex-shrink-0 bg-[#E8E2D4] border border-[#E8E2D4] shadow-2xs transition-all ${
+                      isSelected ? 'ring-1.5 ring-blue-500' : ''
+                    }`}
+                  >
+                    <Image
+                      src={media.src}
+                      alt={`${media.condition} in ${event.city}`}
+                      width={48}
+                      height={36}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      unoptimized
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+                    <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded text-[7px] font-bold text-white/95 bg-black/65 backdrop-blur-xs leading-none pointer-events-none uppercase tracking-wider">
+                      {media.condition}
+                    </span>
+                  </div>
+
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1.5">
@@ -153,7 +176,7 @@ export default function RecentEventsList({
                     </div>
 
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[9px] text-[#7A8599] truncate">{event.eventType}</span>
+                      <span className="text-[9px] text-[#7A8599] truncate font-medium">{event.eventType}</span>
                       <span
                         className="text-[9px] font-semibold flex-shrink-0"
                         style={{ color: severity.color }}
