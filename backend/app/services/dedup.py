@@ -34,7 +34,9 @@ def _get_embedding_model():
         return _model
     try:
         from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        # CPU, not MPS: MPS kernels are not bit-reproducible, and the event
+        # classifier reuses this instance and must give identical outputs.
+        _model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
         logger.info("✓ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup")
         return _model
     except Exception as e:

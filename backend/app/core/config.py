@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
     WEATHER_TIMEOUT_SECONDS: float = 3.0
 
+    # ── ML kill switches ───────────────────────────────────────────────────
+    # Off means the model is treated as offline (receipt says so), never a crash.
+    CLASSIFIER_ENABLED: bool = True
+
     # ── Demo data ──────────────────────────────────────────────────────────
     # When a read endpoint finds no rows (or the DB is unreachable), serve the
     # hardcoded demo dataset instead of an empty result. Logged at WARNING
