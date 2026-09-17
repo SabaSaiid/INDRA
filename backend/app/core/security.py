@@ -11,13 +11,16 @@ import bcrypt
 from pydantic import BaseModel
 
 from app.core.config import get_settings
+from app.models.enums import OperatorRole
 
 settings = get_settings()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
 
 
 # ── Roles ──────────────────────────────────────────────────────────────────────
-ROLES = {"CITIZEN", "ANALYST", "COMMANDER", "ADMIN"}
+# Derived from the enum so the two can't drift. FIELD_RESPONDER is a valid role
+# with no demo user yet.
+ROLES = {role.value for role in OperatorRole}
 
 
 def hash_password(password: str) -> str:

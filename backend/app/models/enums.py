@@ -32,6 +32,9 @@ class ReviewStatus(str, enum.Enum):
     PENDING_HUMAN_REVIEW = "PENDING_HUMAN_REVIEW"
     QUARANTINED = "QUARANTINED"
     REJECTED = "REJECTED"
+    # A commander or admin approved the event. Distinct from AUTO_PUBLISHED so
+    # the record never claims the machine published what a human decided.
+    HUMAN_APPROVED = "HUMAN_APPROVED"
 
 
 class Quadrant(str, enum.Enum):
@@ -52,6 +55,8 @@ class AuditAction(str, enum.Enum):
     MANUAL_OVERRIDE = "MANUAL_OVERRIDE"
     QUARANTINE = "QUARANTINE"
     ESCALATE = "ESCALATE"
+    HUMAN_APPROVE = "HUMAN_APPROVE"
+    HUMAN_REJECT = "HUMAN_REJECT"
 
 
 class TeamStatus(str, enum.Enum):

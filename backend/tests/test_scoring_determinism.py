@@ -142,6 +142,7 @@ async def test_pipeline_scores_the_same_seeded_cluster_identically_twice(monkeyp
 
     from app.core.database import async_session
     from app.services import pipeline
+    from tests.conftest import wipe_event_tables
     from tests.test_pipeline import CLUSTER_TEXTS, insert_report
 
     async def fixed_weather(lat, lng):
@@ -151,9 +152,7 @@ async def test_pipeline_scores_the_same_seeded_cluster_identically_twice(monkeyp
 
     async def run_once():
         async with async_session() as db:
-            await db.execute(text("DELETE FROM raw_reports"))
-            await db.execute(text("DELETE FROM verified_events"))
-            await db.commit()
+            await wipe_event_tables(db)
             try:
                 ids = [await insert_report(db, lat, lng, body) for lat, lng, body in CLUSTER_TEXTS]
                 result = await pipeline.process_report(db, {"id": str(ids[0])})
@@ -165,9 +164,7 @@ async def test_pipeline_scores_the_same_seeded_cluster_identically_twice(monkeyp
                 ).scalar()
                 return result["confidence_score"], stored, result["verification_receipt"]["factors"]
             finally:
-                await db.execute(text("DELETE FROM raw_reports"))
-                await db.execute(text("DELETE FROM verified_events"))
-                await db.commit()
+                await wipe_event_tables(db)
 
     first, second = await run_once(), await run_once()
 

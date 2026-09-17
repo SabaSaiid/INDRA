@@ -74,3 +74,24 @@ async def client():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+
+# ── Database cleanup ───────────────────────────────────────────────────────────
+
+async def wipe_event_tables(session) -> None:
+    """
+    Empty audit_logs, raw_reports and verified_events, then commit.
+
+    audit_logs has to go first and has to be a TRUNCATE: its rows reference
+    verified_events, and trg_audit_immutable is a row-level BEFORE DELETE
+    trigger, so `DELETE FROM audit_logs` raises. TRUNCATE fires no row triggers.
+    Neither the trigger nor the hash chain can stop or detect a table owner
+    emptying the ledger this way — see the "cannot prove" note in
+    app/services/audit.py. Fine for a disposable test database.
+    """
+    from sqlalchemy import text
+
+    await session.execute(text("TRUNCATE audit_logs"))
+    await session.execute(text("DELETE FROM raw_reports"))
+    await session.execute(text("DELETE FROM verified_events"))
+    await session.commit()

@@ -18,6 +18,8 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import text
 
+from tests.conftest import wipe_event_tables
+
 from app.core.database import async_session
 from app.models.enums import Severity
 from app.services.fusion_engine import FusionEngine
@@ -55,15 +57,11 @@ def fixed_weather(monkeypatch):
 @pytest_asyncio.fixture
 async def db():
     async with async_session() as session:
-        await session.execute(text("DELETE FROM raw_reports"))
-        await session.execute(text("DELETE FROM verified_events"))
-        await session.commit()
+        await wipe_event_tables(session)
         try:
             yield session
         finally:
-            await session.execute(text("DELETE FROM raw_reports"))
-            await session.execute(text("DELETE FROM verified_events"))
-            await session.commit()
+            await wipe_event_tables(session)
 
 
 async def insert_report(db, lat, lng, body, when=None) -> uuid.UUID:
@@ -360,3 +358,28 @@ async def test_processing_each_report_of_a_cluster_yields_one_event(db):
     created = [r for r in results if r is not None]
     assert len(created) == 1
     assert await event_count(db) == 1
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="Known bug found 18 Sep (Day 3 e2e), fix scheduled Day 4: a suppressed "
+    "duplicate stays unassigned, so DBSCAN pulls it into the next cluster and it is "
+    "counted as corroboration.",
+)
+async def test_suppressed_duplicate_is_not_absorbed_by_a_later_report(db):
+    results = []
+    for lat, lng, body in CLUSTER_TEXTS:
+        rid = await insert_report(db, lat, lng, body)
+        results.append(await process_report(db, {"id": str(rid)}))
+    event_id = results[-1]["id"]
+
+    dupe = await insert_report(db, PATNA_LAT, PATNA_LNG, CLUSTER_TEXTS[0][2])
+    assert await process_report(db, {"id": str(dupe)}) is None
+
+    extra = await insert_report(
+        db, 25.5968, 85.1376, "Auto stand near Rajendra Nagar flooded, rickshaws cannot move"
+    )
+    result = await process_report(db, {"id": str(extra)})
+
+    assert result["id"] == event_id
+    assert result["report_count"] == 6  # 5 + the new report; the duplicate stays out

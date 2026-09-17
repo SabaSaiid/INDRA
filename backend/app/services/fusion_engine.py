@@ -168,6 +168,19 @@ class FusionEngine:
         except Exception:
             return Quadrant.UNVERIFIED_THREAT
 
+    @staticmethod
+    def human_approved_quadrant(severity: Severity) -> Quadrant:
+        """
+        Quadrant for an event a commander has approved.
+
+        assign_quadrant() is score-based, so a human-approved 0.43 event would
+        still read "Noise" — contradicting the approval. Once a human has
+        verified the event, only its severity decides the quadrant.
+        """
+        if severity in {Severity.HIGH, Severity.CRITICAL}:
+            return Quadrant.CRITICAL_VERIFIED
+        return Quadrant.CONFIRMED_MINOR
+
     def determine_review_status(
         self, confidence: float, auto_threshold: float = 0.90, review_threshold: float = 0.70
     ) -> ReviewStatus:

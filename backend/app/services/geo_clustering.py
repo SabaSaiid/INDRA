@@ -160,13 +160,15 @@ class GeoClusteringService:
         }
 
     async def assign_reports_to_event(
-        self, report_ids: Sequence[UUID], event_id: UUID
+        self, report_ids: Sequence[UUID], event_id: UUID, commit: bool = True
     ) -> int:
         """
         Link a set of reports to the verified_event created from them.
 
         Returns the number of rows updated. Only unassigned reports are touched,
         so a concurrent run cannot steal reports already linked to another event.
+        The pipeline passes commit=False so the link, the event write and the
+        event's audit row land in one transaction.
         """
         ids = [str(rid) for rid in report_ids]
         if not ids:
@@ -181,7 +183,8 @@ class GeoClusteringService:
             """),
             {"ids": ids, "event_id": str(event_id)},
         )
-        await self.db.commit()
+        if commit:
+            await self.db.commit()
         count = result.rowcount or 0
         logger.info(f"Linked {count} reports to event {event_id}")
         return count
