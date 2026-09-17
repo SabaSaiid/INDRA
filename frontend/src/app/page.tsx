@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
-import WelcomeHeader from '@/components/WelcomeHeader';
+import WelcomeHeader, { type ViewMode } from '@/components/WelcomeHeader';
 import KpiCard from '@/components/KpiCard';
 import EventMap from '@/components/EventMap';
 import RecentEventsList from '@/components/RecentEventsList';
@@ -19,7 +19,6 @@ import {
   ListCardSkeleton,
   ChartCardSkeleton,
 } from '@/components/ui/skeleton';
-import { staggerContainer } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
 
 export default function Home() {
@@ -34,7 +33,23 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>(undefined);
 
-  // Fetch live KPI data from API, fall back to mock
+  // ── View Mode (persisted across sessions) ──────────────────────────────────
+  const [viewMode, setViewMode] = useState<ViewMode>('mission-control');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('indra_view_mode') as ViewMode | null;
+      if (saved && ['mission-control', 'map-focus', 'analytics-focus'].includes(saved)) {
+        setViewMode(saved);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+  }, []);
+
+  // ── Live KPI data ──────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -42,7 +57,7 @@ export default function Home() {
         const data = await fetchDashboardSummary();
         if (!cancelled) setLiveKpiData(data);
       } catch {
-        // mock data is already set as default
+        // mock data already set
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -68,11 +83,11 @@ export default function Home() {
             : 'md:ml-[280px]'
         }`}
       >
-        {/* Topbar */}
+        {/* Topbar — compact 50px */}
         <Topbar onMobileMenuOpen={openMobile} />
 
-        {/* Dashboard content */}
-        <main className="p-4 lg:p-6 max-w-[1600px] mx-auto">
+        {/* Dashboard content — viewport-fit wrapper */}
+        <main className="p-3 lg:p-4 max-w-[1600px] mx-auto">
           <AnimatePresence mode="wait">
             {isLoading ? (
               <motion.div
@@ -81,24 +96,20 @@ export default function Home() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Skeleton header */}
-                <div className="h-16 mb-6" />
+                {/* Skeleton header strip */}
+                <div className="h-9 mb-2.5" />
 
-                {/* Skeleton KPIs — single instrument strip */}
+                {/* Skeleton KPIs */}
                 <KpiCardSkeleton />
 
                 {/* Skeleton map + list */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-                  <div className="lg:col-span-3">
-                    <MapCardSkeleton />
-                  </div>
-                  <div className="lg:col-span-2">
-                    <ListCardSkeleton />
-                  </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5 mb-2.5">
+                  <div className="lg:col-span-3"><MapCardSkeleton /></div>
+                  <div className="lg:col-span-2"><ListCardSkeleton /></div>
                 </div>
 
                 {/* Skeleton bottom row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                   <ChartCardSkeleton />
                   <ChartCardSkeleton />
                   <ChartCardSkeleton />
@@ -111,38 +122,89 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4 }}
               >
-                {/* Welcome Header */}
-                <WelcomeHeader />
+                {/* Executive Status Strip — replaces tall WelcomeHeader */}
+                <WelcomeHeader
+                  viewMode={viewMode}
+                  onViewModeChange={handleViewModeChange}
+                />
 
-                {/* Instrument Strip — connected 4-reading bar */}
+                {/* Instrument Strip — 4-reading compact KPI bar */}
                 <div className="instrument-strip">
                   {liveKpiData.map((item, index) => (
                     <KpiCard key={item.id} item={item} index={index} />
                   ))}
                 </div>
 
-                {/* Map + Recent Events */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-                  <div className="lg:col-span-3">
-                    <EventMap
-                      selectedEventId={selectedIncidentId}
-                      onEventSelect={(ev) => setSelectedIncidentId(ev?.id)}
-                    />
-                  </div>
-                  <div className="lg:col-span-2">
-                    <RecentEventsList
-                      selectedEventId={selectedIncidentId}
-                      onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
-                    />
-                  </div>
-                </div>
+                {/*
+                 * ── Adaptive Grid Layout by View Mode ─────────────────────
+                 * mission-control: map (3/5) + events (2/5) + charts row
+                 * map-focus:       map fullwidth, events row, charts row
+                 * analytics-focus: thin event list + expanded charts area
+                 */}
+                {viewMode === 'mission-control' && (
+                  <>
+                    {/* Map + Recent Events */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5 mb-2.5">
+                      <div className="lg:col-span-3">
+                        <EventMap
+                          selectedEventId={selectedIncidentId}
+                          onEventSelect={(ev) => setSelectedIncidentId(ev?.id)}
+                        />
+                      </div>
+                      <div className="lg:col-span-2">
+                        <RecentEventsList
+                          selectedEventId={selectedIncidentId}
+                          onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                        />
+                      </div>
+                    </div>
 
-                {/* Bottom Row: Distribution + Trend + Live Feed */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <EventDistributionChart />
-                  <ReportsTrendChart />
-                  <LiveFeed />
-                </div>
+                    {/* Bottom Row: Distribution + Trend + Live Feed */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                      <EventDistributionChart />
+                      <ReportsTrendChart />
+                      <LiveFeed />
+                    </div>
+                  </>
+                )}
+
+                {viewMode === 'map-focus' && (
+                  <>
+                    {/* Full-width map */}
+                    <div className="mb-2.5">
+                      <EventMap
+                        selectedEventId={selectedIncidentId}
+                        onEventSelect={(ev) => setSelectedIncidentId(ev?.id)}
+                      />
+                    </div>
+                    {/* Events + Feed side by side below map */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      <RecentEventsList
+                        selectedEventId={selectedIncidentId}
+                        onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                      />
+                      <LiveFeed />
+                    </div>
+                  </>
+                )}
+
+                {viewMode === 'analytics-focus' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5">
+                    {/* Narrow events list */}
+                    <div className="lg:col-span-2">
+                      <RecentEventsList
+                        selectedEventId={selectedIncidentId}
+                        onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                      />
+                    </div>
+                    {/* Wide analytics area */}
+                    <div className="lg:col-span-3 flex flex-col gap-2.5">
+                      <EventDistributionChart />
+                      <ReportsTrendChart />
+                      <LiveFeed />
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

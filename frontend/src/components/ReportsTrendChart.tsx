@@ -73,23 +73,23 @@ export default function ReportsTrendChart({
 
   const chartContent = (
     <div className={className}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-text-secondary font-medium">Incident & Sensor Volume</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-text-secondary font-medium">Incident & Sensor Volume</span>
         <select
           value={dateRange}
           onChange={(e) => setDateRange(e.target.value)}
-          className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-xs"
+          className="text-[10px] px-2 py-0.5 rounded border border-slate-200 bg-white text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
           aria-label="Date range"
         >
-          <option value="7d">Last 7 days</option>
-          <option value="14d">Last 14 days</option>
-          <option value="30d">Last 30 days</option>
+          <option value="7d">7d</option>
+          <option value="14d">14d</option>
+          <option value="30d">30d</option>
         </select>
       </div>
 
-      <div className="h-[200px] min-h-[200px] -ml-2">
+      <div className="h-[145px] min-h-[145px] -ml-2">
         {mounted && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={250} minHeight={200}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={250} minHeight={145}>
             <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="reportGradient" x1="0" y1="0" x2="0" y2="1">
@@ -152,8 +152,8 @@ export default function ReportsTrendChart({
       transition={{ delay: 0.55 }}
       className="h-full"
     >
-      <Card hover={false} className="h-full flex flex-col p-5">
-        <CardHeader title={title} className="p-0 pb-3 mb-1" />
+      <Card hover={false} className="h-full flex flex-col p-3.5">
+        <CardHeader title={title} density="compact" className="p-0 pb-1 mb-0" />
         {chartContent}
       </Card>
     </motion.div>
