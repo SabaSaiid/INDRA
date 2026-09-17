@@ -92,20 +92,23 @@ class DedupService:
       - time_delta ≤ 15 min
     """
 
-    def is_duplicate(
+    def find_duplicate(
         self,
         new_text: str,
         new_lat: float,
         new_lng: float,
         new_time: datetime,
         existing_reports: List[Tuple[str, float, float, datetime]],
-    ) -> bool:
+    ) -> Optional[int]:
         """
         Check against a list of existing (text, lat, lng, created_at) tuples.
-        Returns True if any existing report is considered a duplicate.
+
+        Returns the index in `existing_reports` of the first report this one
+        duplicates, or None. Candidates are checked in the order given, so a
+        caller that passes them oldest first gets the earliest match.
         """
         if not existing_reports:
-            return False
+            return None
 
         model = _get_embedding_model()
         use_embeddings = model is not None
@@ -116,7 +119,7 @@ class DedupService:
             except Exception:
                 use_embeddings = False
 
-        for ex_text, ex_lat, ex_lng, ex_time in existing_reports:
+        for index, (ex_text, ex_lat, ex_lng, ex_time) in enumerate(existing_reports):
             # Time delta check (fastest, do first)
             if abs((new_time - ex_time).total_seconds()) > TIME_DELTA_MINUTES * 60:
                 continue
@@ -135,18 +138,32 @@ class DedupService:
                         logger.info(
                             f"Duplicate detected (cosine={sim:.3f}, dist={dist_km:.2f}km)"
                         )
-                        return True
+                        return index
                 except Exception:
                     # Fall through to Levenshtein
                     sim = _levenshtein_similarity(new_text, ex_text)
                     if sim >= LEVENSHTEIN_THRESHOLD:
-                        return True
+                        return index
             else:
                 sim = _levenshtein_similarity(new_text, ex_text)
                 if sim >= LEVENSHTEIN_THRESHOLD:
                     logger.info(
                         f"Duplicate detected (levenshtein={sim:.3f}, dist={dist_km:.2f}km)"
                     )
-                    return True
+                    return index
 
-        return False
+        return None
+
+    def is_duplicate(
+        self,
+        new_text: str,
+        new_lat: float,
+        new_lng: float,
+        new_time: datetime,
+        existing_reports: List[Tuple[str, float, float, datetime]],
+    ) -> bool:
+        """True if any existing report is considered a duplicate."""
+        return (
+            self.find_duplicate(new_text, new_lat, new_lng, new_time, existing_reports)
+            is not None
+        )

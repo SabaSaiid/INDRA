@@ -247,7 +247,8 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
     row = (
         await db.execute(
             text("""
-                SELECT id, raw_text, latitude, longitude, created_at, event_id
+                SELECT id, raw_text, latitude, longitude, created_at, event_id,
+                       duplicate_of
                 FROM raw_reports
                 WHERE id = CAST(:id AS uuid)
             """),
@@ -265,6 +266,7 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
         "longitude": float(row[3]),
         "created_at": row[4],
         "event_id": row[5],
+        "duplicate_of": row[6],
     }
 
 
@@ -275,11 +277,17 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
     Doing the filtering here rather than loading every recent report into Python
     keeps the embedding model — the expensive part — to a handful of comparisons.
     DedupService then applies the text-similarity gate over the survivors.
+
+    Returns (original_ids, candidates): candidates are the (text, lat, lng,
+    created_at) tuples DedupService takes, oldest first, and original_ids[i]
+    is the report candidate i stands for. Earlier duplicates stay candidates —
+    a third copy still matches — but they resolve to *their* original, so
+    duplicate_of always points at an original and never at another duplicate.
     """
     rows = (
         await db.execute(
             text("""
-                SELECT raw_text, latitude, longitude, created_at
+                SELECT COALESCE(duplicate_of, id), raw_text, latitude, longitude, created_at
                 FROM raw_reports
                 WHERE id <> CAST(:id AS uuid)
                   AND created_at > CAST(:created_at AS timestamptz)
@@ -291,6 +299,7 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
                         ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
                         :radius
                       )
+                ORDER BY created_at, id
             """),
             {
                 "id": str(report["id"]),
@@ -303,7 +312,9 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
         )
     ).fetchall()
 
-    return [(r[0], float(r[1]), float(r[2]), r[3]) for r in rows]
+    original_ids = [r[0] for r in rows]
+    candidates = [(r[1], float(r[2]), float(r[3]), r[4]) for r in rows]
+    return original_ids, candidates
 
 
 async def _find_mergeable_event(
@@ -425,19 +436,36 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             logger.info(f"Pipeline: report {report_id} already linked to an event — skipping")
             return None
 
+        if stored["duplicate_of"] is not None:
+            logger.info(f"Pipeline: report {report_id} already suppressed as a duplicate — skipping")
+            return None
+
         # ── 2. Deduplication ────────────────────────────────────────────────
-        candidates = await _dedup_candidates(db, stored)
+        # A suppressed report is marked, not just skipped: duplicate_of keeps it
+        # out of every later clustering run, so it is never counted as
+        # corroboration by the reports that arrive after it.
+        original_ids, candidates = await _dedup_candidates(db, stored)
         if candidates:
-            is_dupe = DedupService().is_duplicate(
+            match = DedupService().find_duplicate(
                 stored["raw_text"],
                 stored["latitude"],
                 stored["longitude"],
                 stored["created_at"],
                 candidates,
             )
-            if is_dupe:
+            if match is not None:
+                original_id = original_ids[match]
+                await db.execute(
+                    text("""
+                        UPDATE raw_reports
+                        SET duplicate_of = CAST(:original AS uuid)
+                        WHERE id = CAST(:id AS uuid)
+                    """),
+                    {"original": str(original_id), "id": str(report_id)},
+                )
+                await db.commit()
                 logger.info(
-                    f"Pipeline: report {report_id} suppressed as duplicate "
+                    f"Pipeline: report {report_id} suppressed as duplicate of {original_id} "
                     f"({len(candidates)} nearby candidates)"
                 )
                 return None

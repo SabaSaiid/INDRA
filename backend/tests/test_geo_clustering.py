@@ -242,3 +242,19 @@ async def test_update_geom_points_backfills_missing_geometry(db):
         )
     ).scalar()
     assert geom == "POINT(85.1376 25.5941)"
+
+
+async def test_suppressed_duplicates_are_not_clustered(db):
+    ids = await seed(db, TIGHT)
+    dupe = (await seed(db, [TIGHT[0]]))[0]
+    await db.execute(
+        text("UPDATE raw_reports SET duplicate_of = CAST(:o AS uuid) WHERE id = CAST(:id AS uuid)"),
+        {"o": str(ids[0]), "id": str(dupe)},
+    )
+    await db.commit()
+
+    clusters = await GeoClusteringService(db).cluster_unassigned_reports()
+
+    assert len(clusters) == 1
+    assert clusters[0]["size"] == 5
+    assert dupe not in clusters[0]["report_ids"]
