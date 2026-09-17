@@ -25,26 +25,40 @@ const spineColor: Record<string, string> = {
 export default function RecentEventsList({
   onSelectEvent,
   selectedEventId,
+  events: propEvents,
+  loading: propLoading,
 }: {
   onSelectEvent?: (event: RecentEvent) => void;
   selectedEventId?: string;
+  events?: RecentEvent[];
+  loading?: boolean;
 }) {
-  const [events, setEvents] = useState<RecentEvent[]>(recentEvents);
+  const [internalEvents, setInternalEvents] = useState<RecentEvent[]>([]);
+  const [internalLoading, setInternalLoading] = useState<boolean>(true);
+
+  const isControlled = propEvents !== undefined;
+  const events = isControlled ? propEvents : internalEvents;
+  const isLoading = propLoading !== undefined ? propLoading : (isControlled ? false : internalLoading);
 
   useEffect(() => {
+    if (isControlled) return;
     let cancelled = false;
     (async () => {
       try {
         const apiEvents = await fetchEvents({ time_range: '7d' });
         if (!cancelled && apiEvents.length > 0) {
-          setEvents(apiEventsToRecentEvents(apiEvents));
+          setInternalEvents(apiEventsToRecentEvents(apiEvents));
+        } else if (!cancelled) {
+          setInternalEvents(recentEvents);
         }
       } catch {
-        // mock data already set
+        if (!cancelled) setInternalEvents(recentEvents);
+      } finally {
+        if (!cancelled) setInternalLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [isControlled]);
 
   return (
     <motion.div
@@ -69,71 +83,96 @@ export default function RecentEventsList({
           }
         />
 
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="space-y-0 custom-scrollbar overflow-y-auto"
-          style={{ maxHeight: '310px' }}
-        >
-          {events.map((event) => {
-            const severity = severityConfig[event.severity] || severityConfig.moderate;
-            const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
-            const isSelected = selectedEventId === event.id;
-            const spine = spineColor[event.severity] ?? '#9CA3AF';
-
-            return (
-              <motion.div
-                key={event.id}
-                variants={listItemSlideIn}
-                onClick={() => onSelectEvent?.(event)}
-                className={`flex items-start gap-2 py-1.5 border-b border-[#F0EBE0] last:border-0 pl-2.5 pr-1.5 rounded-sm transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#F0EBE0]'
-                    : 'hover:bg-[#F7F3EA]'
-                }`}
-                style={{
-                  borderLeft: `3px solid ${spine}`,
-                }}
-              >
-                {/* Content */}
+        {isLoading ? (
+          <div className="space-y-0 custom-scrollbar overflow-y-auto" style={{ maxHeight: '310px' }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-start gap-2.5 py-2 border-b border-[#F0EBE0] last:border-0 pl-2.5 pr-1.5">
+                <div className="w-0.5 h-7 rounded-full bg-[#E8E2D4] animate-pulse flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1.5">
-                    {/* Place name */}
-                    <p
-                      className="text-xs font-medium text-ink truncate"
-                      style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-                    >
-                      {event.city}, {event.state}
-                    </p>
-                    <span
-                      className="text-[9px] font-medium flex-shrink-0"
-                      style={{ color: verification.color }}
-                    >
-                      {verification.label}
-                    </span>
+                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <div className="h-3 w-28 bg-[#E8E2D4] rounded animate-pulse" />
+                    <div className="h-2.5 w-14 bg-[#E8E2D4] rounded animate-pulse" />
                   </div>
-
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] text-[#7A8599] truncate">{event.eventType}</span>
-                    <span
-                      className="text-[9px] font-semibold flex-shrink-0"
-                      style={{ color: severity.color }}
-                    >
-                      {severity.label}
-                    </span>
-                    <span
-                      className="text-[9px] text-[#B0A898] flex-shrink-0"
-                      style={{ fontFamily: 'JetBrains Mono, monospace' }}
-                    >
-                      {getRelativeTime(event.timestamp)}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2.5 w-16 bg-[#E8E2D4] rounded animate-pulse" />
+                    <div className="h-2.5 w-10 bg-[#E8E2D4] rounded animate-pulse" />
+                    <div className="h-2.5 w-12 bg-[#E8E2D4] rounded animate-pulse" />
                   </div>
                 </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+              </div>
+            ))}
+          </div>
+        ) : events.length === 0 ? (
+          <div className="flex items-center justify-center p-6 text-xs text-[#7A8599]" style={{ minHeight: '200px' }}>
+            No recent events recorded in this time range.
+          </div>
+        ) : (
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="space-y-0 custom-scrollbar overflow-y-auto"
+            style={{ maxHeight: '310px' }}
+          >
+            {events.map((event) => {
+              const severity = severityConfig[event.severity] || severityConfig.moderate;
+              const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
+              const isSelected = selectedEventId === event.id;
+              const spine = spineColor[event.severity] ?? '#9CA3AF';
+
+              return (
+                <motion.div
+                  key={event.id}
+                  variants={listItemSlideIn}
+                  onClick={() => onSelectEvent?.(event)}
+                  className={`flex items-start gap-2 py-1.5 border-b border-[#F0EBE0] last:border-0 pl-2.5 pr-1.5 rounded-sm transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#F0EBE0]'
+                      : 'hover:bg-[#F7F3EA]'
+                  }`}
+                  style={{
+                    borderLeft: `3px solid ${spine}`,
+                  }}
+                >
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1.5">
+                      {/* Place name */}
+                      <p
+                        className="text-xs font-medium text-ink truncate"
+                        style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                      >
+                        {event.city}, {event.state}
+                      </p>
+                      <span
+                        className="text-[9px] font-medium flex-shrink-0"
+                        style={{ color: verification.color }}
+                      >
+                        {verification.label}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[9px] text-[#7A8599] truncate">{event.eventType}</span>
+                      <span
+                        className="text-[9px] font-semibold flex-shrink-0"
+                        style={{ color: severity.color }}
+                      >
+                        {severity.label}
+                      </span>
+                      <span
+                        className="text-[9px] text-[#B0A898] flex-shrink-0"
+                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                      >
+                        {getRelativeTime(event.timestamp)}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
       </Card>
     </motion.div>
   );

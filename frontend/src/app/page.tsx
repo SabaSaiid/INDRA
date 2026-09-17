@@ -11,8 +11,8 @@ import RecentEventsList from '@/components/RecentEventsList';
 import EventDistributionChart from '@/components/EventDistributionChart';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import LiveFeed from '@/components/LiveFeed';
-import { kpiData, type KpiItem } from '@/lib/mock-data';
-import { fetchDashboardSummary } from '@/lib/api';
+import { kpiData, type KpiItem, recentEvents, type RecentEvent } from '@/lib/mock-data';
+import { fetchDashboardSummary, fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import {
   KpiCardSkeleton,
   MapCardSkeleton,
@@ -30,6 +30,8 @@ export default function Home() {
     closeMobile,
   } = useSidebar();
   const [liveKpiData, setLiveKpiData] = useState<KpiItem[]>(kpiData);
+  const [events, setEvents] = useState<RecentEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>(undefined);
 
@@ -49,17 +51,33 @@ export default function Home() {
     setViewMode(mode);
   }, []);
 
-  // ── Live KPI data ──────────────────────────────────────────────────────────
+  // ── Live KPI and Event Data ───────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await fetchDashboardSummary();
-        if (!cancelled) setLiveKpiData(data);
+        const [kpiResult, apiEvents] = await Promise.allSettled([
+          fetchDashboardSummary(),
+          fetchEvents({ time_range: '7d' }),
+        ]);
+
+        if (!cancelled) {
+          if (kpiResult.status === 'fulfilled') {
+            setLiveKpiData(kpiResult.value);
+          }
+          if (apiEvents.status === 'fulfilled' && apiEvents.value.length > 0) {
+            setEvents(apiEventsToRecentEvents(apiEvents.value));
+          } else {
+            setEvents(recentEvents);
+          }
+        }
       } catch {
-        // mock data already set
+        if (!cancelled) setEvents(recentEvents);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+          setEventsLoading(false);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -155,6 +173,8 @@ export default function Home() {
                         <RecentEventsList
                           selectedEventId={selectedIncidentId}
                           onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                          events={events}
+                          loading={eventsLoading}
                         />
                       </div>
                     </div>
@@ -182,6 +202,8 @@ export default function Home() {
                       <RecentEventsList
                         selectedEventId={selectedIncidentId}
                         onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                        events={events}
+                        loading={eventsLoading}
                       />
                       <LiveFeed />
                     </div>
@@ -195,6 +217,8 @@ export default function Home() {
                       <RecentEventsList
                         selectedEventId={selectedIncidentId}
                         onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                        events={events}
+                        loading={eventsLoading}
                       />
                     </div>
                     {/* Wide analytics area */}

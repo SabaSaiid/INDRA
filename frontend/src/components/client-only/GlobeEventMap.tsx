@@ -268,7 +268,7 @@ export default function GlobeEventMap({
   const [isGlobe, setIsGlobe] = useState(true);
   const isGlobeRef = useRef(true);
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
-  const [timeRange, setTimeRange] = useState('24h');
+  const [timeRange, setTimeRange] = useState('7d');
   const [markers, setMarkers] = useState<MapMarker[]>(mapMarkers);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
