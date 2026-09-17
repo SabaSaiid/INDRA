@@ -151,10 +151,6 @@ export default function RecentEventsList({
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       unoptimized
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-                    <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded text-[7px] font-bold text-white/95 bg-black/65 backdrop-blur-xs leading-none pointer-events-none uppercase tracking-wider">
-                      {media.condition}
-                    </span>
                   </div>
 
                   {/* Content */}
