@@ -171,12 +171,12 @@ async def trigger_demo():
 
 @app.get("/healthz")
 async def health_check():
-    return {
-        "status": "healthy",
-        "database": "connected",
-        "redis": "connected",
-        "streaming_bus": "active"
-    }
+    """Real dependency checks — see app/services/health.py. 503 if a critical one is down."""
+    from fastapi.responses import JSONResponse
+    from app.services.health import run_health_checks
+
+    status_code, body = await run_health_checks()
+    return JSONResponse(status_code=status_code, content=body)
 
 @app.websocket("/ws/events")
 async def websocket_events_endpoint(websocket: WebSocket):
