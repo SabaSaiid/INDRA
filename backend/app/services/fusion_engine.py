@@ -5,10 +5,9 @@ assigns quadrant and review_status to verified events.
 """
 
 import logging
-import random
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Iterable, List, Optional
 
-from app.models.enums import Severity, ReviewStatus, Quadrant
+from app.models.enums import Severity, ReviewStatus, Quadrant, SourceType
 
 logger = logging.getLogger("indra.services.fusion_engine")
 
@@ -22,6 +21,56 @@ FACTORS = {
     "source_reliability": {"weight": 0.15, "label": "Source Reliability Index"},
     "anomaly_detection": {"weight": 0.05, "label": "Anomaly Detection Signal"},
 }
+
+
+# ── Source reliability ─────────────────────────────────────────────────────────
+# A fixed prior on how far a single report from each source can be trusted.
+# These values are a judgement call, not a fitted model — which is exactly why
+# they are written down here rather than drawn as placeholder noise.
+#
+#   OFFICIAL_DISPATCH  1.00  A field dispatch from NDRF/SDRF/district control is
+#                            the ground truth the platform is trying to reach.
+#   CWC_GAUGE          0.95  Central Water Commission river gauge: a calibrated
+#                            instrument, but it measures river level, not
+#                            street flooding, so it corroborates rather than
+#                            proves an urban event.
+#   AWS_SENSOR         0.90  IMD Automatic Weather Station: calibrated, but a
+#                            station can be several km from the incident and
+#                            sensors do drop out or stick.
+#   CITIZEN_APP        0.60  First-hand and geotagged, but unverified: one
+#                            person, possibly mistaken, possibly exaggerating.
+#   TWITTER_IMD        0.50  Social posts: frequently second-hand, reshared
+#                            from elsewhere, or geotagged to the poster rather
+#                            than the incident.
+SOURCE_RELIABILITY: Dict[SourceType, float] = {
+    SourceType.OFFICIAL_DISPATCH: 1.00,
+    SourceType.CWC_GAUGE: 0.95,
+    SourceType.AWS_SENSOR: 0.90,
+    SourceType.CITIZEN_APP: 0.60,
+    SourceType.TWITTER_IMD: 0.50,
+}
+
+
+def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
+    """
+    The Source Reliability factor for a cluster: the *maximum* reliability
+    among its reports' sources.
+
+    Maximum rather than mean, because one official gauge reading corroborating
+    five citizen reports should lift the event — averaging would let the
+    citizen reports dilute the strongest evidence present.
+
+    Accepts SourceType members or their string values. Returns None when no
+    report carries a recognised source, which compute_receipt() scores as an
+    offline factor rather than inventing a value.
+    """
+    scores = []
+    for raw in source_types:
+        try:
+            scores.append(SOURCE_RELIABILITY[SourceType(raw)])
+        except (ValueError, KeyError):
+            logger.warning(f"Unknown source_type {raw!r} ignored for source reliability")
+    return max(scores) if scores else None
 
 
 class FusionEngine:
@@ -135,17 +184,3 @@ class FusionEngine:
             return ReviewStatus.PENDING_HUMAN_REVIEW
         else:
             return ReviewStatus.QUARANTINED
-
-    def generate_heuristic_scores(self) -> Dict[str, float]:
-        """
-        Stub for perception layers (NLP + CV).
-        Returns plausible random scores for factors that don't have real data yet.
-        """
-        return {
-            "weather_score": round(random.uniform(0.70, 0.95), 3),
-            "report_density_score": round(random.uniform(0.60, 0.95), 3),
-            "spatial_score": round(random.uniform(0.65, 0.95), 3),
-            "vision_score": round(random.uniform(0.70, 0.95), 3),
-            "reliability_score": round(random.uniform(0.60, 0.90), 3),
-            "anomaly_score": round(random.uniform(0.50, 0.85), 3),
-        }

@@ -76,6 +76,18 @@ INDIAN_GAZETTEER: Dict[str, Dict[str, Any]] = {
 }
 
 
+class OutOfIndiaBoundsError(ValueError):
+    """Coordinates were supplied but fall outside India's bounding box."""
+
+    def __init__(self, lat: float, lng: float):
+        self.lat = lat
+        self.lng = lng
+        super().__init__(
+            f"Coordinates ({lat}, {lng}) are outside India's bounds "
+            f"(lat {INDIA_MIN_LAT}–{INDIA_MAX_LAT}, lng {INDIA_MIN_LNG}–{INDIA_MAX_LNG})"
+        )
+
+
 def is_within_india(lat: float, lng: float) -> bool:
     """Check if lat/lng is within Indian boundaries."""
     return (
@@ -97,26 +109,41 @@ def sanitize_coordinates(
     lng: Optional[float],
     text_hint: Optional[str] = None,
     city_hint: Optional[str] = None,
+    snap_out_of_bounds: bool = False,
 ) -> Tuple[float, float, str, str]:
     """
     Sanitizes coordinates, auto-corrects inverted pairs, or falls back to
     Gazetteer lookup from text/city hints.
-    
+
+    Coordinates that are present but outside India raise OutOfIndiaBoundsError
+    unless `snap_out_of_bounds` is True. Snapping them to a gazetteer match or
+    the (22, 82) national centroid used to be unconditional, and with
+    DBSCAN_MIN_SAMPLES=2 any two junk or GPS-glitched reports then clustered at
+    that one point and manufactured a verified event in the middle of India.
+
+    Missing coordinates still resolve from the hints — there is nothing to
+    reject, only a location to look up.
+
     Returns: (lat, lng, city, state)
     """
     if lat is not None and lng is not None:
         try:
             f_lat = float(lat)
             f_lng = float(lng)
+        except (ValueError, TypeError):
+            f_lat = f_lng = None
 
-            # Check for inversion
+        if f_lat is not None and f_lng is not None:
+            # A swapped pair is a recoverable client bug, not junk: the swap
+            # lands inside India, so it is corrected rather than rejected.
             if is_inverted(f_lat, f_lng):
                 f_lat, f_lng = f_lng, f_lat
 
             if is_within_india(f_lat, f_lng):
                 return f_lat, f_lng, city_hint or "India Node", ""
-        except (ValueError, TypeError):
-            pass
+
+            if not snap_out_of_bounds:
+                raise OutOfIndiaBoundsError(f_lat, f_lng)
 
     # Resolve from text or city hint
     search_str = f"{city_hint or ''} {text_hint or ''}".lower()

@@ -18,7 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.config import get_settings
-from app.services.geocoding import sanitize_coordinates
+from app.core.demo import demo_fallback
+from app.services.credibility import compute_credibility
+from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
 
 logger = logging.getLogger("indra.api.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
@@ -70,6 +72,7 @@ async def reports_trend(
         ORDER BY ds.day
     """)
 
+    db_error = None
     try:
         result = await db.execute(query, {"days": days})
         rows = result.fetchall()
@@ -83,9 +86,10 @@ async def reports_trend(
                 for row in rows
             ]
     except Exception as e:
-        logger.warning(f"Database query failed in reports_trend (falling back to demo trend): {e}")
+        logger.warning(f"Database query failed in reports_trend: {e}")
+        db_error = e
 
-    return DEMO_TREND
+    return demo_fallback("GET /api/reports/trend", lambda: DEMO_TREND, list, db_error)
 
 
 @router.post("/submit", status_code=202)
@@ -97,12 +101,23 @@ async def submit_report(
     Accepts a citizen report, persists to DB, pushes to Redpanda topic.
     Returns 202 Accepted with the report ID.
     """
-    report_id = uuid.uuid4()
+    # Sanitize & normalize coordinates against Indian bounds. Out-of-bounds
+    # reports are refused outright and never stored: two of them would
+    # otherwise cluster wherever they were snapped to and become an event.
+    try:
+        valid_lat, valid_lng, resolved_city, resolved_state = sanitize_coordinates(
+            report.latitude,
+            report.longitude,
+            text_hint=report.text,
+            snap_out_of_bounds=settings.SNAP_OUT_OF_BOUNDS_COORDINATES,
+        )
+    except OutOfIndiaBoundsError as e:
+        logger.info(f"Rejected report with out-of-bounds coordinates: {e}")
+        raise HTTPException(status_code=422, detail=str(e))
 
-    # Sanitize & normalize coordinates against Indian bounds
-    valid_lat, valid_lng, resolved_city, resolved_state = sanitize_coordinates(
-        report.latitude, report.longitude, text_hint=report.text
-    )
+    report_id = uuid.uuid4()
+    source_type = "CITIZEN_APP"
+    credibility = compute_credibility(source_type, report.text)
 
     # Compute geom_point and H3 cell
     try:
@@ -115,20 +130,22 @@ async def submit_report(
     insert_query = text("""
         INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, media_url, credibility_score)
         VALUES (
-            :id, 'CITIZEN_APP', :raw_text, :lat, :lng,
+            :id, :source_type, :raw_text, :lat, :lng,
             ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-            :h3_cell, :media_url, 0.5
+            :h3_cell, :media_url, :credibility
         )
     """)
 
     try:
         await db.execute(insert_query, {
             "id": str(report_id),
+            "source_type": source_type,
             "raw_text": report.text,
             "lat": valid_lat,
             "lng": valid_lng,
             "h3_cell": h3_cell,
             "media_url": report.media_url,
+            "credibility": credibility,
         })
         await db.commit()
     except Exception as e:
@@ -142,12 +159,18 @@ async def submit_report(
         )
         await producer.start()
         try:
+            # Publish exactly what was stored: the sanitised coordinates and
+            # the column names of the raw_reports row. The pipeline still
+            # re-reads the row by id, but nothing else consuming this topic
+            # should be able to see coordinates the database never held.
             message = json.dumps({
                 "id": str(report_id),
-                "source_type": "CITIZEN_APP",
-                "text": report.text,
-                "latitude": report.latitude,
-                "longitude": report.longitude,
+                "source_type": source_type,
+                "raw_text": report.text,
+                "latitude": valid_lat,
+                "longitude": valid_lng,
+                "h3_res8": h3_cell,
+                "credibility_score": credibility,
                 "media_url": report.media_url,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })

@@ -16,8 +16,12 @@ Weights (from fusion_engine.FACTORS):
 
 import pytest
 
-from app.models.enums import Quadrant, ReviewStatus, Severity
-from app.services.fusion_engine import FACTORS
+from app.models.enums import Quadrant, ReviewStatus, Severity, SourceType
+from app.services.fusion_engine import (
+    FACTORS,
+    SOURCE_RELIABILITY,
+    source_reliability_score,
+)
 
 ALL_FACTOR_KWARGS = (
     "weather_score",
@@ -165,9 +169,51 @@ def test_high_severity_at_085_goes_to_a_human_not_to_publish_or_bin(fusion):
     assert fusion.determine_review_status(confidence) is ReviewStatus.PENDING_HUMAN_REVIEW
 
 
-# ── generate_heuristic_scores() — the Day 2 replacement target ─────────────────
+# ── source_reliability_score() — Day 2 T5 ──────────────────────────────────────
 
-def test_heuristic_scores_cover_every_factor_and_stay_in_range(fusion):
-    scores = fusion.generate_heuristic_scores()
-    assert set(scores) == set(ALL_FACTOR_KWARGS)
-    assert all(0.0 <= v <= 1.0 for v in scores.values())
+@pytest.mark.parametrize(
+    "sources, expected",
+    [
+        (["CITIZEN_APP"] * 4, 0.60),
+        (["TWITTER_IMD"] * 3, 0.50),
+        (["CITIZEN_APP"] * 5 + ["CWC_GAUGE"], 0.95),
+        (["CITIZEN_APP"] * 5 + ["OFFICIAL_DISPATCH"], 1.0),
+        (["AWS_SENSOR"], 0.90),
+    ],
+)
+def test_source_reliability_table(sources, expected):
+    assert source_reliability_score(sources) == pytest.approx(expected)
+
+
+def test_source_reliability_accepts_enum_members():
+    assert source_reliability_score([SourceType.CWC_GAUGE]) == pytest.approx(0.95)
+
+
+def test_source_reliability_with_no_known_source_is_offline_not_invented():
+    assert source_reliability_score([]) is None
+    assert source_reliability_score(["NOT_A_SOURCE"]) is None
+
+
+def test_every_source_type_has_a_documented_reliability():
+    assert set(SOURCE_RELIABILITY) == set(SourceType)
+
+
+def test_vision_offline_costs_exactly_its_weight(fusion):
+    """Day 2 T7: vision=None scores exactly 0.15 below vision=1.0."""
+    base = dict(_all(0.5), vision_score=1.0)
+    offline = dict(base, vision_score=None)
+    delta = (
+        fusion.compute_receipt(**base)["confidence_score"]
+        - fusion.compute_receipt(**offline)["confidence_score"]
+    )
+    assert delta == pytest.approx(0.15)
+    factor = next(
+        f for f in fusion.compute_receipt(**offline)["factors"]
+        if f["factor"] == "Computer Vision Analysis"
+    )
+    assert factor["score"] == 0.0
+    assert factor["evidence"] == "Telemetry factor offline"
+
+
+def test_fusion_engine_no_longer_offers_placeholder_scores(fusion):
+    assert not hasattr(fusion, "generate_heuristic_scores")

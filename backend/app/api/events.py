@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.demo import demo_fallback
 
 logger = logging.getLogger("indra.api.events")
 router = APIRouter(prefix="/api/events", tags=["Events"])
@@ -252,6 +253,7 @@ async def list_events(
         LIMIT 50
     """)
 
+    db_error = None
     try:
         result = await db.execute(query, params)
         rows = result.fetchall()
@@ -287,16 +289,19 @@ async def list_events(
                 })
             return events
     except Exception as e:
-        logger.warning(f"Database query failed in list_events (falling back to demo events): {e}")
+        logger.warning(f"Database query failed in list_events: {e}")
+        db_error = e
 
-    # Fallback to demo events
-    filtered = DEMO_EVENTS
-    if severity:
-        filtered = [
-            e for e in filtered
-            if e["severity"].lower() == severity.lower() or e["review_status"].lower() == severity.lower()
-        ]
-    return filtered
+    def _demo_events():
+        filtered = DEMO_EVENTS
+        if severity:
+            filtered = [
+                e for e in filtered
+                if e["severity"].lower() == severity.lower() or e["review_status"].lower() == severity.lower()
+            ]
+        return filtered
+
+    return demo_fallback("GET /api/events", _demo_events, list, db_error)
 
 
 @router.get("/distribution")
@@ -359,6 +364,7 @@ async def event_distribution(
             "Others": "#94A3B8",
         }
 
+    db_error = None
     try:
         result = await db.execute(query, params)
         rows = result.fetchall()
@@ -377,9 +383,15 @@ async def event_distribution(
                 })
             return distribution
     except Exception as e:
-        logger.warning(f"Database query failed in event_distribution (falling back to demo distribution): {e}")
+        logger.warning(f"Database query failed in event_distribution: {e}")
+        db_error = e
 
-    return DEMO_SEVERITY_DISTRIBUTION if group_by_severity else DEMO_DISTRIBUTION
+    return demo_fallback(
+        "GET /api/events/distribution",
+        lambda: DEMO_SEVERITY_DISTRIBUTION if group_by_severity else DEMO_DISTRIBUTION,
+        list,
+        db_error,
+    )
 
 
 
@@ -410,6 +422,7 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
     except (ValueError, AttributeError, TypeError):
         event_uuid = None
 
+    db_error = None
     try:
         result = await db.execute(
             query, {"event_code": str(event_id), "event_uuid": event_uuid}
@@ -439,58 +452,65 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
             }
     except Exception as e:
         logger.warning(f"Database query failed in get_event_detail: {e}")
+        db_error = e
 
-    # Fallback to matching demo event
-    for ev in DEMO_EVENTS:
-        if ev["id"] == str(event_id) or ev["event_code"] == str(event_id):
-            return {
-                "id": ev["id"],
-                "event_code": ev["event_code"],
-                "event_type": ev.get("event_type", "URBAN_FLOOD"),
-                "event_type_display": ev["eventType"],
-                "severity": ev["severity"].upper(),
-                "severity_display": ev["severity"],
-                "confidence_score": ev["confidence_score"],
-                "review_status": ev["review_status"],
-                "verification": ev["verification"],
-                "quadrant": ev["quadrant"],
-                "impact_radius_km": ev["impact_radius_km"],
-                "center": {"lat": ev["lat"], "lng": ev["lng"]},
-                "boundary_geojson": None,
-                "verification_receipt": {
+    def _demo_detail():
+        # Fallback to matching demo event
+        for ev in DEMO_EVENTS:
+            if ev["id"] == str(event_id) or ev["event_code"] == str(event_id):
+                return {
+                    "id": ev["id"],
+                    "event_code": ev["event_code"],
+                    "event_type": ev.get("event_type", "URBAN_FLOOD"),
+                    "event_type_display": ev["eventType"],
+                    "severity": ev["severity"].upper(),
+                    "severity_display": ev["severity"],
+                    "confidence_score": ev["confidence_score"],
+                    "review_status": ev["review_status"],
+                    "verification": ev["verification"],
+                    "quadrant": ev["quadrant"],
+                    "impact_radius_km": ev["impact_radius_km"],
+                    "center": {"lat": ev["lat"], "lng": ev["lng"]},
+                    "boundary_geojson": None,
+                    "verification_receipt": {
+                        "city": ev["city"],
+                        "state": ev["state"],
+                        "confidence_total": int(ev["confidence_score"] * 100),
+                        "event_type_display": ev["eventType"],
+                    },
+                    "verified_at": ev["verified_at"],
                     "city": ev["city"],
                     "state": ev["state"],
-                    "confidence_total": int(ev["confidence_score"] * 100),
-                    "event_type_display": ev["eventType"],
-                },
-                "verified_at": ev["verified_at"],
+                }
+
+        # Default fallback: Patna flood scenario event
+        ev = DEMO_EVENTS[0]
+        return {
+            "id": ev["id"],
+            "event_code": ev["event_code"],
+            "event_type": "URBAN_FLOOD",
+            "event_type_display": ev["eventType"],
+            "severity": ev["severity"].upper(),
+            "severity_display": ev["severity"],
+            "confidence_score": ev["confidence_score"],
+            "review_status": ev["review_status"],
+            "verification": ev["verification"],
+            "quadrant": ev["quadrant"],
+            "impact_radius_km": ev["impact_radius_km"],
+            "center": {"lat": ev["lat"], "lng": ev["lng"]},
+            "boundary_geojson": None,
+            "verification_receipt": {
                 "city": ev["city"],
                 "state": ev["state"],
-            }
-
-    # Default fallback: Patna flood scenario event
-    ev = DEMO_EVENTS[0]
-    return {
-        "id": ev["id"],
-        "event_code": ev["event_code"],
-        "event_type": "URBAN_FLOOD",
-        "event_type_display": ev["eventType"],
-        "severity": ev["severity"].upper(),
-        "severity_display": ev["severity"],
-        "confidence_score": ev["confidence_score"],
-        "review_status": ev["review_status"],
-        "verification": ev["verification"],
-        "quadrant": ev["quadrant"],
-        "impact_radius_km": ev["impact_radius_km"],
-        "center": {"lat": ev["lat"], "lng": ev["lng"]},
-        "boundary_geojson": None,
-        "verification_receipt": {
+                "confidence_total": int(ev["confidence_score"] * 100),
+                "event_type_display": ev["eventType"],
+            },
+            "verified_at": ev["verified_at"],
             "city": ev["city"],
             "state": ev["state"],
-            "confidence_total": int(ev["confidence_score"] * 100),
-            "event_type_display": ev["eventType"],
-        },
-        "verified_at": ev["verified_at"],
-        "city": ev["city"],
-        "state": ev["state"],
-    }
+        }
+
+    def _not_found():
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    return demo_fallback(f"GET /api/events/{event_id}", _demo_detail, _not_found, db_error)

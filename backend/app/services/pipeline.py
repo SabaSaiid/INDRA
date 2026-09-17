@@ -11,11 +11,12 @@ reprocess endpoint can re-run it over existing rows.
 
 Design notes
 ------------
-* **The message is a trigger, not a source of truth.** `api/reports.py` stores
-  the *sanitised* coordinates from `sanitize_coordinates()` but publishes the
-  *raw* ones to Kafka, so the two disagree whenever a report arrives from
-  outside India or with a glitched GPS fix. The pipeline therefore re-reads the
-  row from Postgres by id and uses the stored values for every spatial decision.
+* **The message is a trigger, not a source of truth.** `api/reports.py` used to
+  store the *sanitised* coordinates but publish the *raw* ones; since 17 Sep it
+  publishes exactly what it stored. The pipeline still re-reads the row from
+  Postgres by id and uses the stored values for every spatial decision — it
+  costs one primary-key lookup and protects against any other producer on the
+  topic.
 * **Not every report becomes an event.** A duplicate, or a lone report that
   DBSCAN treats as noise, correctly produces no event. That is the system
   working, not failing.
@@ -25,8 +26,9 @@ Design notes
 
 import json
 import logging
+import math
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Sequence
 from uuid import UUID, uuid4
 
 from sqlalchemy import text
@@ -35,8 +37,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.models.enums import EventType, Severity
 from app.services.dedup import DedupService
-from app.services.fusion_engine import FusionEngine
+from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
+from app.services.weather import weather_score
 
 logger = logging.getLogger("indra.services.pipeline")
 settings = get_settings()
@@ -60,7 +63,10 @@ MERGE_WINDOW_MINUTES = 120
 
 
 def _derive_severity(cluster_size: int) -> Severity:
-    """Heuristic severity from corroboration count. Replaced on Day 2."""
+    """
+    Severity from corroboration count. Still a heuristic — there is no NLP
+    severity classifier — and the receipt's provenance block says so.
+    """
     if cluster_size >= SEVERITY_CRITICAL_REPORTS:
         return Severity.CRITICAL
     if cluster_size >= SEVERITY_HIGH_REPORTS:
@@ -68,22 +74,163 @@ def _derive_severity(cluster_size: int) -> Severity:
     return Severity.MODERATE
 
 
+# Report density saturates at the CRITICAL count (25), shaped so a 10-report
+# cluster already scores ~0.80. See _density_score.
+DENSITY_SATURATION_REPORTS = SEVERITY_CRITICAL_REPORTS
+DENSITY_CURVE_SCALE = 6.5
+
+
 def _density_score(cluster_size: int) -> float:
     """
-    Report density as a real signal: how much corroboration exists, saturating
-    at the count that would justify HIGH severity on its own.
+    Report Density: how much independent corroboration a cluster has.
+
+        score(n) = (1 − e^(−n / 6.5)) / (1 − e^(−25 / 6.5)),  clamped to [0, 1]
+
+    Why this shape, and why 25 rather than 10:
+
+    * Each additional report adds less than the one before — the fifth witness
+      matters more than the twentieth — so the curve is concave, not linear.
+    * It reaches ~0.80 at 10 reports: ten reports from one neighbourhood inside
+      the time window is already strong corroboration, so a moderate event
+      still scores well.
+    * It only reaches 1.0 at 25, the CRITICAL threshold, leaving headroom so a
+      major event scores distinctly above a moderate one. A linear ramp
+      saturating at 10 made 10 and 100 reports indistinguishable.
+
+    Reference points: 1 → 0.15, 3 → 0.38, 5 → 0.55, 10 → 0.80, 25+ → 1.0.
     """
-    return max(0.0, min(1.0, cluster_size / SEVERITY_HIGH_REPORTS))
+    if cluster_size <= 0:
+        return 0.0
+    norm = 1.0 - math.exp(-DENSITY_SATURATION_REPORTS / DENSITY_CURVE_SCALE)
+    raw = (1.0 - math.exp(-cluster_size / DENSITY_CURVE_SCALE)) / norm
+    return round(max(0.0, min(1.0, raw)), 4)
 
 
 def _coherence_score(max_pairwise_km: float) -> float:
     """
-    Spatial coherence as a real signal: a tight cluster is more likely to be one
-    real event than a diffuse one. Scored against the DBSCAN search diameter, so
-    a cluster spanning the full 2*eps window scores 0.
+    Spatial Coherence: a tight cluster is more likely to be one real event
+    than a diffuse one. Scored on the cluster's diameter d against the DBSCAN
+    search diameter D = 2 × DBSCAN_EPS_KM (10 km by default) with a raised
+    cosine:
+
+        score(d) = ½ · (1 + cos(π · d / D)),  and 0 for d ≥ D
+
+    Why a raised cosine rather than the earlier linear ramp:
+
+    * **Flat near zero.** Phone GPS error and people reporting from either end
+      of the same flooded street spread a genuine incident over a few hundred
+      metres to ~1 km. That spread is noise, not doubt, so it should cost
+      almost nothing — linear charged 10% for 1 km; this charges ~2%.
+    * **Midpoint at eps.** A cluster as wide as one DBSCAN radius scores 0.5,
+      the natural "could be one event, could be two" point.
+    * **Flat near D.** Beyond ~8 km the cluster is already implausible as one
+      incident; further spread adds little new information.
+
+    Reference points (eps = 5 km): 0 km → 1.0, 1 km → 0.98, 4 km → 0.65,
+    5 km → 0.5, 10 km → 0.0.
     """
     span = max(settings.DBSCAN_EPS_KM * 2.0, 0.001)
-    return max(0.0, min(1.0, 1.0 - (max_pairwise_km / span)))
+    d = max(0.0, float(max_pairwise_km))
+    if d >= span:
+        return 0.0
+    return round(0.5 * (1.0 + math.cos(math.pi * d / span)), 4)
+
+
+def score_cluster(
+    stats: Dict[str, Any],
+    source_types: Sequence[Any],
+    weather: Optional[float],
+    rainfall_mm: Optional[float] = None,
+) -> Dict[str, Any]:
+    """
+    Pure scoring step: cluster geometry + source mix + weather → receipt,
+    severity, quadrant and review status.
+
+    No I/O, no sampling, no clock — the same inputs always give the same
+    output, which is what tests/test_scoring_determinism.py pins down. Every
+    factor is either computed from those inputs or passed as None and marked
+    offline; nothing is invented.
+    """
+    fusion = FusionEngine()
+
+    density = _density_score(stats["count"])
+    coherence = _coherence_score(stats["max_pairwise_km"])
+    reliability = source_reliability_score(source_types)
+
+    receipt = fusion.compute_receipt(
+        weather_score=weather,
+        report_density_score=density,
+        spatial_score=coherence,
+        # No image classifier and no anomaly model ship this sprint. Passing
+        # None scores them 0.0 as "Telemetry factor offline" — an honest,
+        # visible cost of 0.20 confidence rather than a plausible fake.
+        vision_score=None,
+        reliability_score=reliability,
+        anomaly_score=None,
+    )
+    confidence = receipt["confidence_score"]
+
+    # Replace the generic evidence text with what was actually measured.
+    distinct_sources = sorted({str(getattr(t, "value", t)) for t in source_types})
+    evidence = {
+        "Report Density Analysis": f"{stats['count']} corroborating report(s) in cluster",
+        "Spatial Coherence Score": (
+            f"cluster diameter {stats['max_pairwise_km']:.2f} km "
+            f"against {settings.DBSCAN_EPS_KM * 2:.0f} km search diameter"
+        ),
+    }
+    if reliability is not None:
+        evidence["Source Reliability Index"] = (
+            f"highest-reliability source among {', '.join(distinct_sources)}"
+        )
+    if weather is not None and rainfall_mm is not None:
+        evidence["Weather Station Corroboration"] = (
+            f"{rainfall_mm:.1f} mm rainfall in past 24 h (Open-Meteo modelled precipitation)"
+        )
+    for factor in receipt["factors"]:
+        if factor["factor"] in evidence:
+            factor["evidence"] = evidence[factor["factor"]]
+
+    severity = _derive_severity(stats["count"])
+    quadrant = fusion.assign_quadrant(severity, confidence)
+    review_status = fusion.determine_review_status(
+        confidence,
+        settings.AUTO_PUBLISH_THRESHOLD,
+        settings.HUMAN_REVIEW_THRESHOLD,
+    )
+
+    def _state(value: Optional[float]) -> str:
+        return "computed" if value is not None else "offline"
+
+    # Be explicit in the stored receipt about what is real and what is not,
+    # so nobody downstream mistakes a missing signal for a measurement.
+    receipt["provenance"] = {
+        "report_density": "computed",
+        "spatial_coherence": "computed",
+        "weather_station": _state(weather),
+        "vision_analysis": "offline",
+        "source_reliability": _state(reliability),
+        "anomaly_detection": "offline",
+        "severity": "heuristic_from_cluster_size",
+    }
+    receipt["cluster"] = {
+        "size": stats["count"],
+        "centroid_lat": stats["centroid_lat"],
+        "centroid_lng": stats["centroid_lng"],
+        "max_pairwise_km": stats["max_pairwise_km"],
+        "radius_km": stats["radius_km"],
+        "source_types": distinct_sources,
+    }
+    if rainfall_mm is not None:
+        receipt["weather"] = {"rainfall_24h_mm": rainfall_mm, "provider": "open-meteo"}
+
+    return {
+        "receipt": receipt,
+        "confidence": confidence,
+        "severity": severity,
+        "quadrant": quadrant,
+        "review_status": review_status,
+    }
 
 
 async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, Any]]:
@@ -203,6 +350,20 @@ async def _event_report_ids(db: AsyncSession, event_id: UUID):
         )
     ).fetchall()
     return [r[0] for r in rows]
+
+
+async def _source_types(db: AsyncSession, report_ids: Sequence[UUID]) -> List[str]:
+    """The source_type of every report in a cluster, for Source Reliability."""
+    ids = [str(rid) for rid in report_ids]
+    if not ids:
+        return []
+    rows = (
+        await db.execute(
+            text("SELECT source_type FROM raw_reports WHERE id = ANY(CAST(:ids AS uuid[]))"),
+            {"ids": ids},
+        )
+    ).fetchall()
+    return [str(getattr(r[0], "value", r[0])) for r in rows]
 
 
 async def _next_event_code(db: AsyncSession) -> str:
@@ -337,51 +498,21 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             event_id = uuid4()
             event_code = None  # allocated at insert time
             linked = 0
+            all_report_ids = cluster["report_ids"]
 
         # ── 6. Scoring ──────────────────────────────────────────────────────
-        fusion = FusionEngine()
-        heuristics = fusion.generate_heuristic_scores()
-
-        # Two factors have real signal today; the rest are still placeholders.
-        density = _density_score(stats["count"])
-        coherence = _coherence_score(stats["max_pairwise_km"])
-
-        receipt = fusion.compute_receipt(
-            weather_score=heuristics["weather_score"],
-            report_density_score=density,
-            spatial_score=coherence,
-            vision_score=heuristics["vision_score"],
-            reliability_score=heuristics["reliability_score"],
-            anomaly_score=heuristics["anomaly_score"],
-        )
-        confidence = receipt["confidence_score"]
-
-        severity = _derive_severity(stats["count"])
-        quadrant = fusion.assign_quadrant(severity, confidence)
-        review_status = fusion.determine_review_status(
-            confidence,
-            settings.AUTO_PUBLISH_THRESHOLD,
-            settings.HUMAN_REVIEW_THRESHOLD,
+        scoring_ids = all_report_ids if existing is not None else cluster["report_ids"]
+        source_types = await _source_types(db, scoring_ids)
+        weather, rainfall_mm = await weather_score(
+            stats["centroid_lat"], stats["centroid_lng"]
         )
 
-        # Be explicit in the stored receipt about what is real and what is not,
-        # so nobody downstream mistakes a placeholder for a measurement.
-        receipt["provenance"] = {
-            "report_density": "computed",
-            "spatial_coherence": "computed",
-            "weather_station": "heuristic_placeholder",
-            "vision_analysis": "heuristic_placeholder",
-            "source_reliability": "heuristic_placeholder",
-            "anomaly_detection": "heuristic_placeholder",
-            "severity": "heuristic_from_cluster_size",
-        }
-        receipt["cluster"] = {
-            "size": stats["count"],
-            "centroid_lat": stats["centroid_lat"],
-            "centroid_lng": stats["centroid_lng"],
-            "max_pairwise_km": stats["max_pairwise_km"],
-            "radius_km": stats["radius_km"],
-        }
+        scored = score_cluster(stats, source_types, weather, rainfall_mm)
+        receipt = scored["receipt"]
+        confidence = scored["confidence"]
+        severity = scored["severity"]
+        quadrant = scored["quadrant"]
+        review_status = scored["review_status"]
 
         # ── 7. Persist ──────────────────────────────────────────────────────
         impact_radius = max(stats["radius_km"], 0.5)
