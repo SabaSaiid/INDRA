@@ -127,3 +127,56 @@ async def test_stored_credibility_reflects_report_quality(api, session):
     specific, terse = (p["credibility"] for p in session.inserts)
     assert 0.5 <= specific <= 0.7
     assert terse < 0.4
+
+
+# ── Day 4 T3: no false success ─────────────────────────────────────────────────
+
+class FailingSession(FakeSession):
+    def __init__(self):
+        super().__init__()
+        self.rolled_back = False
+
+    async def execute(self, statement, params=None):
+        raise ConnectionRefusedError("postgres is down")
+
+    async def rollback(self):
+        self.rolled_back = True
+
+
+async def test_unstored_report_is_503_and_never_published(api, monkeypatch):
+    from app.core.database import get_db
+    from app.main import app
+
+    failing = FailingSession()
+
+    async def _db():
+        yield failing
+
+    app.dependency_overrides[get_db] = _db
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+
+    assert r.status_code == 503
+    assert r.json() == {"detail": "Report could not be stored"}
+    assert failing.rolled_back
+    assert FakeProducer.sent == []
+
+
+async def test_stored_but_unpublished_report_is_202_not_queued(api, session, monkeypatch):
+    async def _boom(self):
+        raise ConnectionRefusedError("redpanda is down")
+
+    monkeypatch.setattr(FakeProducer, "start", _boom)
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+
+    assert r.status_code == 202
+    assert r.json()["queued"] is False
+    assert len(session.inserts) == 1
+    assert FakeProducer.sent == []
+
+
+async def test_stored_and_published_report_is_queued(api, session):
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+
+    assert r.status_code == 202
+    assert r.json()["queued"] is True
+    assert len(FakeProducer.sent) == 1
