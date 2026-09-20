@@ -268,7 +268,7 @@ export default function GlobeEventMap({
   const [isGlobe, setIsGlobe] = useState(true);
   const isGlobeRef = useRef(true);
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
-  const [timeRange, setTimeRange] = useState('24h');
+  const [timeRange, setTimeRange] = useState('7d');
   const [markers, setMarkers] = useState<MapMarker[]>(mapMarkers);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1130,8 +1130,8 @@ export default function GlobeEventMap({
   }
 
   return (
-    <div className={isFullscreen ? 'fixed inset-0 z-50 p-3 sm:p-6 bg-slate-950/90 backdrop-blur-md flex flex-col' : 'relative'}>
-      <Card hover={false} className={`overflow-hidden border border-slate-200/80 shadow-card flex flex-col indra-map-isolated isolate relative z-0 ${isFullscreen ? 'flex-1 h-full' : ''}`}>
+    <div className={isFullscreen ? 'fixed inset-0 z-50 p-3 sm:p-6 bg-slate-950/90 backdrop-blur-md flex flex-col' : 'relative h-full'}>
+      <Card hover={false} padding={false} className={`overflow-hidden border border-slate-200/80 shadow-card flex flex-col indra-map-isolated isolate relative z-0 h-full ${isFullscreen ? 'flex-1' : ''}`}>
         {/* Compact Single-Line Header Bar */}
         <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-b border-slate-200/80 bg-[#FDFAF5]">
           {/* Left: Live dot + Title + Incident chip */}

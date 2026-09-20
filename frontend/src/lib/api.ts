@@ -139,29 +139,44 @@ export const fallbackApiEvents: ApiEvent[] = mapMarkers.map((m, idx) => ({
   timestamp: new Date(Date.now() - idx * 3600000).toISOString(),
 }));
 
+const eventsInFlight = new Map<string, { promise: Promise<ApiEvent[]>; timestamp: number }>();
+const EVENTS_CACHE_TTL_MS = 15000;
+
 export async function fetchEvents(
   params?: { severity?: string; time_range?: string; bbox?: string }
 ): Promise<ApiEvent[]> {
-  try {
-    const searchParams = new URLSearchParams();
-    if (params?.severity) searchParams.set('severity', params.severity);
-    if (params?.time_range) searchParams.set('time_range', params.time_range);
-    if (params?.bbox) searchParams.set('bbox', params.bbox);
+  const searchParams = new URLSearchParams();
+  if (params?.severity) searchParams.set('severity', params.severity);
+  if (params?.time_range) searchParams.set('time_range', params.time_range);
+  if (params?.bbox) searchParams.set('bbox', params.bbox);
 
-    const url = `${API_BASE}/api/events${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) throw new Error('Empty events response');
-    return data;
-  } catch (err) {
-    console.warn('[INDRA] fetchEvents failed, using mock data:', err);
-    let filtered = fallbackApiEvents;
-    if (params?.severity) {
-      filtered = filtered.filter(e => e.severity.toLowerCase() === params.severity!.toLowerCase());
-    }
-    return filtered;
+  const url = `${API_BASE}/api/events${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  const now = Date.now();
+
+  const cached = eventsInFlight.get(url);
+  if (cached && now - cached.timestamp < EVENTS_CACHE_TTL_MS) {
+    return cached.promise;
   }
+
+  const fetchPromise = (async () => {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) throw new Error('Empty events response');
+      return data;
+    } catch (err) {
+      console.warn('[INDRA] fetchEvents failed, using mock data:', err);
+      let filtered = fallbackApiEvents;
+      if (params?.severity) {
+        filtered = filtered.filter(e => e.severity.toLowerCase() === params.severity!.toLowerCase());
+      }
+      return filtered;
+    }
+  })();
+
+  eventsInFlight.set(url, { promise: fetchPromise, timestamp: now });
+  return fetchPromise;
 }
 
 export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
@@ -189,7 +204,7 @@ export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
 }
 
 export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
-  return events.slice(0, 5).map((ev) => ({
+  return events.slice(0, 10).map((ev) => ({
     id: ev.id,
     city: ev.city,
     state: ev.state,

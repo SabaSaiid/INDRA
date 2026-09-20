@@ -56,21 +56,27 @@ export function MapCardSkeleton() {
 // Recent events list skeleton — compact rows
 export function ListCardSkeleton() {
   return (
-    <div className="bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card p-3.5">
-      <div className="flex items-center justify-between mb-2">
-        <Skeleton className="h-4 w-32" style={{ background: '#E8E2D4' }} />
-        <Skeleton className="h-3 w-12" style={{ background: '#E8E2D4' }} />
-      </div>
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-center gap-2.5 py-1.5 border-b border-[#E8E2D4] last:border-0">
-          <div className="w-0.5 h-8 rounded-full flex-shrink-0" style={{ background: '#E8E2D4' }} />
-          <div className="flex-1">
-            <Skeleton className="h-3.5 w-28 mb-1" style={{ background: '#E8E2D4' }} />
-            <Skeleton className="h-2.5 w-20" style={{ background: '#E8E2D4' }} />
-          </div>
-          <Skeleton className="h-3.5 w-12 rounded" style={{ background: '#E8E2D4' }} />
+    <div className="bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card p-3.5 h-full max-h-[318px] flex flex-col justify-between">
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <Skeleton className="h-4 w-32" style={{ background: '#E8E2D4' }} />
+          <Skeleton className="h-3 w-12" style={{ background: '#E8E2D4' }} />
         </div>
-      ))}
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center gap-2.5 py-1.5 border-b border-[#E8E2D4] last:border-0">
+            <div className="w-0.5 h-8 rounded-full flex-shrink-0" style={{ background: '#E8E2D4' }} />
+            <div className="flex-1">
+              <Skeleton className="h-3.5 w-28 mb-1" style={{ background: '#E8E2D4' }} />
+              <Skeleton className="h-2.5 w-20" style={{ background: '#E8E2D4' }} />
+            </div>
+            <Skeleton className="h-3.5 w-12 rounded" style={{ background: '#E8E2D4' }} />
+          </div>
+        ))}
+      </div>
+      <div className="pt-2 border-t border-[#E8E2D4] flex items-center justify-between">
+        <Skeleton className="h-3 w-24" style={{ background: '#E8E2D4' }} />
+        <Skeleton className="h-3 w-20" style={{ background: '#E8E2D4' }} />
+      </div>
     </div>
   );
 }
