@@ -324,7 +324,7 @@ Only after this step should the system produce a strong alert.
 
 ## Step 7 — Create a verified event
 
-Instead of showing 127 messy reports, the system can show:
+Instead of showing dozens of messy reports, the system can show:
 
 ```text
 PATNA URBAN FLOOD
@@ -404,14 +404,14 @@ Legend: ✅ built · 🟡 partly built · ⬜ designed, not built yet
 |---|---|---|---|
 | 1 | **Data Sources** | Where information comes from: IMD/Govt APIs, weather APIs, public datasets, social media, citizen reports, images/videos | 🟡 **Citizen reports, plus rainfall from Open-Meteo** fetched whenever an event is scored. No other outside source is read yet. |
 | 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | 🟡 Live reports flow in through the API and the stream, and a report that couldn't be saved is told so (503) instead of being silently lost. Reports with coordinates outside India are refused. Batch loading is only a fake-data seed script, clearly labelled as such. |
-| 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | 🟡 Deduplication (a repeated report is remembered as a copy and never counted as extra evidence), coordinate checking and geocoding work, and every report gets a credibility score; cleaning and metadata extraction don't exist. |
-| 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | 🟡 **Duplicate matching works.** A classifier that reads a report and names the flood type has been trained and tested on 300 practice reports we wrote, but it isn't good enough yet (it dismisses too many real floods as chatter, and it struggles with Hindi), so it's switched off. No image analysis, no anomaly detection — the receipt openly marks those as "offline". |
-| 5 | **Geo-Analytics** | Everything about *where*: location mapping, spatial clustering, heatmaps, event boundaries, risk zones, time-space trends | ✅ Clustering and mapping are real; heatmaps and risk zones aren't built. |
-| 6 | **Event Fusion Engine** | The heart: correlate observations, merge duplicates, calculate confidence, determine severity, build the weather event | ✅ Working, with no random numbers: 4 of the 6 confidence factors are real measurements and 2 are honestly marked offline. A human's approval is never undone by later reports. |
-| 7 | **Data Platform** | The memory: PostgreSQL+PostGIS, Redis, object storage, historical datasets | 🟡 The database is real, and the audit log is a working tamper-evident hash chain. Redis runs but nothing uses it; object storage isn't deployed. |
+| 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | ✅ Deduplication (a repeated report is remembered as a copy and never counted as extra evidence), coordinate checking, geocoding and a credibility score per report. **20 Sep: cleaning and metadata extraction now run at ingest** and are stored on the report — how deep the water is, which language it is in, life-safety keywords, place names. Rules and dictionaries, not a model. |
+| 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | ⬜ **Out of this project's scope since 20 Sep**, and not being built. Duplicate matching, which does work, uses sentence embeddings and stays. The trained classifier missed the accuracy gate set before training — it dismissed too many real floods as chatter — so it ships switched off and is not being retrained. **Image analysis and anomaly detection are permanently offline**, and every receipt says so instead of substituting a number. |
+| 5 | **Geo-Analytics** | Everything about *where*: location mapping, spatial clustering, heatmaps, event boundaries, risk zones, time-space trends | ✅ Clustering and mapping are real. **20 Sep: every event now has a real boundary polygon** on the map, and `GET /api/geo/heatmap` serves report density per hexagonal cell at three zoom levels, where coarser zooms are exact sums of finer ones. Risk zones aren't built. |
+| 6 | **Event Fusion Engine** | The heart: correlate observations, merge duplicates, calculate confidence, determine severity, build the weather event | ✅ Working, with no random numbers: 4 of the 6 confidence factors are real measurements and 2 are marked offline. **20 Sep: confidence is now an average over the factors that actually reported**, and the receipt publishes `factor_coverage` — how much of the designed model that was — so a score is never read as more complete than it is. **Severity now comes from what the reports say** (how deep the water is), not from how many people reported. A human's approval is never undone by later reports. |
+| 7 | **Data Platform** | The memory: PostgreSQL+PostGIS, Redis, object storage, historical datasets | 🟡 The database is real, and the audit log is a working tamper-evident hash chain. **Redis runs but nothing uses it** — it is health-checked and idle, which is stated rather than dressed up. Object storage isn't deployed, and the table for scheduled sensor readings is still empty because nothing polls on a schedule yet. |
 | 8a | **Real-Time API** | Serving it out: FastAPI, WebSocket, REST | ✅ Working. A commander can approve or reject an event, and that endpoint (plus provenance) requires login; the older dashboard endpoints still don't. |
-| 8b | **Alert Engine** | Telling people: critical events, SMS/email, dashboard alerts | ⬜ **Does not exist at all.** |
-| 9 | **IMD Command Center** | The control room humans look at | 🟡 The dashboard is built; risk zones and critical alerts have nothing behind them. |
+| 8b | **Alert Engine** | Telling people: critical events, SMS/email, dashboard alerts | ⬜ **Does not exist, and is out of this project's scope since 20 Sep.** No alert rules, no SMS, no email. Nothing in the API or the dashboard claims otherwise. |
+| 9 | **IMD Command Center** | The control room humans look at | 🟡 The dashboard is built (another team member's work); risk zones and critical alerts have nothing behind them. **21 Sep: an old static prototype page that claimed IMD and CWC sensor feeds was deleted** — it was a mockup from before the pipeline existed and contradicted the real system. |
 
 **If you remember one thing from this section:** the middle of the system — ingestion,
 clustering, fusion, and serving — genuinely works. A citizen report really does travel all
@@ -1448,7 +1448,7 @@ It looks impressive but proves almost nothing.
 Good demo:
 
 ```text
-Generate 127 reports
+Generate a burst of synthetic reports
         ↓
 Kafka
         ↓
