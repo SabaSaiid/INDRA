@@ -71,7 +71,11 @@ def test_same_fixture_twice_with_network_down_is_identical_and_offline():
             if f["factor"] == "Weather Station Corroboration"
         )
         assert weather["score"] == 0.0
+        assert weather["state"] == "offline"
         assert weather["evidence"] == "Telemetry factor offline"
+        # Excluded from the mean, so the cost shows up as lost coverage:
+        # 1.00 − vision 0.15 − anomaly 0.05 − weather 0.25 = 0.55.
+        assert result["receipt"]["factor_coverage"] == 0.55
 
 
 def test_a_hundred_runs_give_one_distinct_score():
@@ -122,16 +126,64 @@ def test_fixture_value_is_pinned():
     The actual number for the fixture, written down. If a curve or weight
     changes this fails, which is the point: a score change must be deliberate.
 
-      density(5)          0.5483 × 0.20 = 0.10966
-      coherence(1.9 km)   0.9135 × 0.20 = 0.18270
-      reliability citizen 0.60   × 0.15 = 0.09
+      density(5)          0.5483 × 0.20 = 0.1097
+      coherence(1.9 km)   0.9135 × 0.20 = 0.1827
+      reliability citizen 0.60   × 0.15 = 0.0900
       weather 15.6 mm     0.35   × 0.25 = 0.0875
-      vision, anomaly     offline       = 0
-                                    total 0.46986 → 0.4699
+      vision, anomaly     offline       = —      (excluded, not zeroed)
+                            total_weighted  0.4699
+                            factor_coverage 0.80  (0.25+0.20+0.20+0.15)
+
+      confidence = 0.4699 / 0.80 = 0.5874
+
+    Read that last line out loud: the event measured 0.4699 points out of the
+    0.80 of the model that could report, so it scores 0.5874 — and the receipt
+    publishes both numbers so the score is never quoted without its coverage.
+    Before 20 Sep this was 0.4699, because the two permanently offline factors
+    were charged their full 0.20.
     """
     result = _score()
-    assert result["confidence"] == 0.4699
+    assert result["confidence"] == 0.5874
+    assert result["receipt"]["factor_coverage"] == 0.80
+    assert result["receipt"]["total_weighted"] == 0.4699
+    # Still quarantined: five unverified citizen reports and 15.6 mm of rain is
+    # not a verified disaster. The scale was fixed, not the gates.
     assert result["review_status"].value == "QUARANTINED"
+
+
+def test_dropping_a_weak_factor_raises_the_mean_and_lowers_coverage():
+    """
+    Losing a *weak* factor RAISES the score. This is correct, and it is the
+    sharpest question this design invites — so it is pinned, not discovered live.
+
+    Weather scores 0.35 here, well below the cluster's other signals. Take the
+    Open-Meteo feed away and the mean of what remains is higher:
+
+      with weather     0.4699 / 0.80 = 0.5874
+      without weather  0.3824 / 0.55 = 0.6953
+
+    A nodal officer will reasonably ask: "your internet died and the system got
+    more confident?" The answer is that 0.6953 means *0.70 of the 55% of the
+    model we could measure* — not 0.70 of the available evidence. That is exactly
+    why `factor_coverage` must be rendered beside the score and never quoted
+    alone, and why the honest remedy is a coverage floor on auto-publishing
+    rather than pretending a missing feed scored zero.
+    """
+    with_weather = _score()
+    without_weather = _score(weather=None, mm=None)
+
+    assert with_weather["receipt"]["factor_coverage"] == 0.80
+    assert without_weather["receipt"]["factor_coverage"] == 0.55
+
+    assert with_weather["confidence"] == 0.5874
+    assert without_weather["confidence"] == 0.6953
+    assert without_weather["confidence"] > with_weather["confidence"]
+
+    # Coverage fell even though the score rose — the pair is the honest reading.
+    assert (
+        without_weather["receipt"]["factor_coverage"]
+        < with_weather["receipt"]["factor_coverage"]
+    )
 
 
 # ── Whole pipeline, twice, against Postgres ────────────────────────────────────

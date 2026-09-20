@@ -170,9 +170,12 @@ def score_cluster(
         weather_score=weather,
         report_density_score=density,
         spatial_score=coherence,
-        # No image classifier and no anomaly model ship this sprint. Passing
-        # None scores them 0.0 as "Telemetry factor offline" — an honest,
-        # visible cost of 0.20 confidence rather than a plausible fake.
+        # No image classifier and no anomaly model ship this sprint, and after
+        # the 20 Sep scope change they never will. Passing None excludes them
+        # from the weighted mean instead of scoring them 0.0, so they no longer
+        # cap a fully corroborated flood at 0.80. The cost stays visible and
+        # honest in the receipt's `factor_coverage` (0.80, not 1.0) and in the
+        # provenance block below — never as a plausible fake score.
         vision_score=None,
         reliability_score=reliability,
         anomaly_score=None,

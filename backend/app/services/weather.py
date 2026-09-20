@@ -17,9 +17,11 @@ event's location support a flood report?
   make an HTTP request.
 * **Failure is `None`, never a guess.** Timeout, connection error, non-200,
   malformed JSON, missing field — all return None, which compute_receipt()
-  scores 0.0 with "Telemetry factor offline". This function never raises.
-  Zero rainfall is *not* a failure: it is a real measurement and scores 0.0
-  with the factor online.
+  excludes from the weighted mean, lowering the receipt's `factor_coverage` by
+  this factor's 0.25 rather than scoring it a misleading 0.0. This function
+  never raises. Zero rainfall is *not* a failure: it is a real measurement, and
+  it scores 0.0 with the factor **online**, costing the full 0.25 — which is the
+  whole reason None and 0.0 have to stay distinguishable here.
 """
 
 import logging
