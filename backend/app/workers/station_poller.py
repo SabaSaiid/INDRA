@@ -7,13 +7,14 @@ Open-Meteo — which meant layer 1 had no feed on a schedule and layer 7 had no
 historical table with anything in it.
 
 This task closes both. Every STATION_POLL_INTERVAL_SECONDS it reads Open-Meteo's
-current precipitation for the demo cities and writes one row each:
+accumulated 24 h precipitation for the demo cities and writes one row each:
 
     station_code    OM-PATNA, OM-DELHI, …
     agency          OPEN_METEO          — never IMD or CWC; there is no feed for
                                           either, and a row claiming one would be
                                           a fabricated source
-    rainfall_mm     the reported value  — 0.0 is a real measurement, not a miss
+    rainfall_mm     the 24 h accumulation, the same quantity the weather factor
+                    scores. 0.0 is a real measurement, not a miss
     river_level_m   NULL                — no gauge feed exists
     anomaly_score   NULL                — anomaly detection is out of scope since
                                           20 Sep. 0.0 would read as "computed and
@@ -45,6 +46,10 @@ from app.models.station_readings import StationReading
 logger = logging.getLogger("indra.workers.station_poller")
 settings = get_settings()
 
+# Must match weather.LOOKBACK_HOURS: a stored reading is only substitutable for
+# a live one if it measures the same window.
+LOOKBACK_HOURS = 24
+
 # The same six cities scripts/burst_reports.py uses, so a demo and a poll talk
 # about the same places. (lat, lng).
 STATIONS: Dict[str, Tuple[float, float]] = {
@@ -61,19 +66,34 @@ def station_code(city: str) -> str:
     return f"OM-{city.upper()}"
 
 
-async def fetch_current_precipitation(
+async def fetch_rainfall_24h(
     lat: float, lng: float, client: httpx.AsyncClient
 ) -> Optional[Tuple[float, datetime]]:
     """
-    (precipitation_mm, observed_at) at a point, or None on any failure.
+    (accumulated_rainfall_mm, observed_at) over the last 24 h at a point, or
+    None on any failure.
 
-    Never raises. A malformed or partial body is a failure, not a zero — the
-    whole point of this table is that every row came from a real response.
+    **It must be the 24 h accumulation, not `current=precipitation`.** The score
+    curve in `weather.rainfall_to_score` maps IMD *daily* rainfall categories, so
+    a stored reading is only substitutable for a live one if it measures the same
+    quantity. Storing the current hour's millimetres and scoring them on the daily
+    curve would silently read a day of heavy rain as "no rain" — the first live
+    poll returned 0.0 mm for Patna while the 24 h sum was 5.0 mm, which is the
+    difference between the weather factor scoring 0.0 and 0.1477.
+
+    `observed_at` is the end of the accumulation window — the last hourly bucket
+    Open-Meteo reported — so freshness is judged on the data, not on when this
+    process happened to ask.
+
+    Never raises. A malformed or partial body is a failure, not a zero: the whole
+    point of this table is that every row came from a real response.
     """
     params = {
         "latitude": round(lat, 4),
         "longitude": round(lng, 4),
-        "current": "precipitation",
+        "hourly": "precipitation",
+        "past_hours": LOOKBACK_HOURS,
+        "forecast_hours": 0,
         "timezone": "UTC",
     }
     try:
@@ -83,23 +103,30 @@ async def fetch_current_precipitation(
             timeout=settings.WEATHER_TIMEOUT_SECONDS,
         )
     except Exception as e:
-        logger.warning(f"Open-Meteo current failed for ({lat}, {lng}): {type(e).__name__}: {e}")
+        logger.warning(f"Open-Meteo poll failed for ({lat}, {lng}): {type(e).__name__}: {e}")
         return None
 
     if resp.status_code != 200:
-        logger.warning(f"Open-Meteo current returned HTTP {resp.status_code} for ({lat}, {lng})")
+        logger.warning(f"Open-Meteo poll returned HTTP {resp.status_code} for ({lat}, {lng})")
         return None
 
     try:
-        current = resp.json()["current"]
-        mm = current["precipitation"]
-        if mm is None:
-            raise ValueError("precipitation is null")
-        observed_at = datetime.fromisoformat(current["time"]).replace(tzinfo=timezone.utc)
-        return float(mm), observed_at
+        hourly = resp.json()["hourly"]
+        values = hourly["precipitation"]
+        times = hourly["time"]
+        if not isinstance(values, list) or not values or not times:
+            raise ValueError("empty precipitation series")
+        # Missing hours come back null and contribute nothing, but a series that
+        # is entirely null is no measurement at all — the same rule weather.py
+        # applies to the live path, for the same reason.
+        present = [float(v) for v in values if v is not None]
+        if not present:
+            raise ValueError("precipitation series is all null")
+        observed_at = datetime.fromisoformat(times[-1]).replace(tzinfo=timezone.utc)
+        return round(sum(present), 2), observed_at
     except Exception as e:
         logger.warning(
-            f"Open-Meteo current response malformed for ({lat}, {lng}): {type(e).__name__}: {e}"
+            f"Open-Meteo poll response malformed for ({lat}, {lng}): {type(e).__name__}: {e}"
         )
         return None
 
@@ -120,7 +147,7 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> int:
     written = 0
     try:
         for city, (lat, lng) in STATIONS.items():
-            reading = await fetch_current_precipitation(lat, lng, client)
+            reading = await fetch_rainfall_24h(lat, lng, client)
             if reading is None:
                 continue
             mm, observed_at = reading

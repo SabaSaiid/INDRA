@@ -27,7 +27,7 @@ from app.models.enums import Agency
 from app.workers import station_poller
 from app.workers.station_poller import (
     STATIONS,
-    fetch_current_precipitation,
+    fetch_rainfall_24h,
     latest_reading_near,
     poll_once,
     station_code,
@@ -45,12 +45,33 @@ def _client(handler) -> httpx.AsyncClient:
 
 
 def _ok(precipitation, time_str="2026-09-21T06:00"):
+    """
+    A 24-hour hourly series summing to `precipitation`, ending at `time_str`.
+
+    The poller must request and store the same quantity the score curve reads —
+    24 h accumulated millimetres — so the fake speaks that shape, not `current`.
+    """
     def handler(request):
+        series = [0.0] * 23 + [precipitation]
+        times = [f"2026-09-21T{h:02d}:00" for h in range(23)] + [time_str]
         return httpx.Response(
-            200,
-            json={"current": {"time": time_str, "precipitation": precipitation}},
+            200, json={"hourly": {"time": times, "precipitation": series}}
         )
     return handler
+
+
+def _all_null(request):
+    """Open-Meteo reports a missing hour as null. A series of nothing but nulls
+    is no measurement at all, and must not be stored as 0.0 mm."""
+    return httpx.Response(
+        200,
+        json={
+            "hourly": {
+                "time": [f"2026-09-21T{h:02d}:00" for h in range(24)],
+                "precipitation": [None] * 24,
+            }
+        },
+    )
 
 
 def _status(code):
@@ -58,7 +79,7 @@ def _status(code):
 
 
 def _malformed(request):
-    return httpx.Response(200, json={"current": {"time": "2026-09-21T06:00"}})
+    return httpx.Response(200, json={"hourly": {"time": ["2026-09-21T06:00"]}})
 
 
 def _boom(request):
@@ -69,7 +90,7 @@ def _boom(request):
 
 async def test_a_good_response_yields_millimetres_and_the_observation_time():
     async with _client(_ok(12.5)) as c:
-        result = await fetch_current_precipitation(PATNA_LAT, PATNA_LNG, c)
+        result = await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c)
 
     mm, observed_at = result
     assert mm == 12.5
@@ -78,37 +99,82 @@ async def test_a_good_response_yields_millimetres_and_the_observation_time():
 
 async def test_zero_rainfall_is_a_measurement_not_a_failure():
     async with _client(_ok(0.0)) as c:
-        result = await fetch_current_precipitation(PATNA_LAT, PATNA_LNG, c)
+        result = await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c)
 
     assert result is not None
     assert result[0] == 0.0
 
 
-async def test_a_null_precipitation_is_a_failure_not_a_zero():
-    async with _client(_ok(None)) as c:
-        assert await fetch_current_precipitation(PATNA_LAT, PATNA_LNG, c) is None
+async def test_an_all_null_series_is_a_failure_not_a_zero():
+    async with _client(_all_null) as c:
+        assert await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c) is None
+
+
+async def test_a_partially_null_series_sums_the_hours_that_reported():
+    """A missing hour contributes nothing; it does not void the whole window."""
+    def handler(request):
+        return httpx.Response(
+            200,
+            json={
+                "hourly": {
+                    "time": ["2026-09-21T04:00", "2026-09-21T05:00", "2026-09-21T06:00"],
+                    "precipitation": [2.0, None, 3.0],
+                }
+            },
+        )
+
+    async with _client(handler) as c:
+        mm, _ = await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c)
+
+    assert mm == 5.0
+
+
+async def test_the_poll_asks_for_the_same_window_the_score_curve_reads():
+    """
+    The unit mismatch that was caught live: `current=precipitation` is the
+    current hour's millimetres, while rainfall_to_score maps IMD *daily*
+    categories. Storing one and scoring it on the other read 5.0 mm of real
+    rain as 0.0 mm of none. The request must ask for the 24 h window.
+    """
+    from app.services import weather
+
+    seen = {}
+
+    def handler(request):
+        seen.update(dict(request.url.params))
+        return httpx.Response(
+            200,
+            json={"hourly": {"time": ["2026-09-21T06:00"], "precipitation": [1.0]}},
+        )
+
+    async with _client(handler) as c:
+        await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c)
+
+    assert seen["hourly"] == "precipitation"
+    assert seen["past_hours"] == str(weather.LOOKBACK_HOURS) == "24"
+    assert "current" not in seen
 
 
 @pytest.mark.parametrize("code", [429, 500, 503])
 async def test_a_non_200_is_a_failure(code):
     async with _client(_status(code)) as c:
-        assert await fetch_current_precipitation(PATNA_LAT, PATNA_LNG, c) is None
+        assert await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c) is None
 
 
 async def test_a_malformed_body_is_a_failure():
     async with _client(_malformed) as c:
-        assert await fetch_current_precipitation(PATNA_LAT, PATNA_LNG, c) is None
+        assert await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c) is None
 
 
 async def test_a_connection_error_never_escapes():
     async with _client(_boom) as c:
-        assert await fetch_current_precipitation(PATNA_LAT, PATNA_LNG, c) is None
+        assert await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c) is None
 
 
 async def test_a_failure_logs_exactly_one_warning(caplog):
     with caplog.at_level("WARNING", logger="indra.workers.station_poller"):
         async with _client(_boom) as c:
-            await fetch_current_precipitation(PATNA_LAT, PATNA_LNG, c)
+            await fetch_rainfall_24h(PATNA_LAT, PATNA_LNG, c)
 
     assert len(caplog.records) == 1
 
@@ -233,7 +299,7 @@ async def test_a_partial_outage_stores_only_what_answered(db):
         if calls["n"] == 2:
             raise httpx.ConnectError("one station down")
         return httpx.Response(
-            200, json={"current": {"time": "2026-09-21T06:00", "precipitation": 1.0}}
+            200, json={"hourly": {"time": ["2026-09-21T06:00"], "precipitation": [1.0]}}
         )
 
     async with _client(handler) as c:
