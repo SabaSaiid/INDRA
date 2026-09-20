@@ -1,7 +1,8 @@
 """
 INDRA Platform — Report Consumer Worker
-Background aiokafka consumer that reads from indra.raw.reports,
-runs dedup, and broadcasts NEW_REPORT WebSocket messages.
+Background aiokafka consumer that reads from indra.raw.reports, runs the
+verification pipeline, broadcasts NEW_REPORT / VERIFIED_EVENT WebSocket messages,
+and publishes verified events to indra.verified.events.
 """
 
 import json
@@ -93,6 +94,12 @@ async def handle_report_message(report_data: Dict[str, Any]) -> None:
                 f"Broadcast VERIFIED_EVENT {event.get('event_code')} "
                 f"to {len(getattr(_ws_manager, 'active_connections', []))} client(s)"
             )
+
+        # Outbound half of the stream: the same event goes to indra.verified.events.
+        if event:
+            from app.services.event_publisher import publish_verified_event
+
+            await publish_verified_event(event)
 
     except Exception as e:
         logger.error(f"Error processing report message: {e}")
