@@ -164,43 +164,51 @@ $$\text{Confidence} = 25\% (\text{Weather}) + 20\% (\text{Reports}) + 20\% (\tex
 ## 📊 Implementation Status — What Is Built Today
 
 Everything above describes the **designed** system. This section is the honest ledger of what
-actually runs, verified against code on **16 Sep 2026, end of backend sprint Day 3**. Keep the
-two separate: the design is the ambition, this is the state. The full per-layer breakdown lives
-in [`docs/ARCHITECTURE.md` §0](docs/ARCHITECTURE.md).
+actually runs, verified against code and a live stack on **21 Sep 2026, the last day of the
+backend sprint**. Keep the two separate: the design is the ambition, this is the state. The full
+per-layer breakdown lives in [`docs/ARCHITECTURE.md` §0](docs/ARCHITECTURE.md).
 
-> **Branch caveat:** Day 1 is on `main`. Day 2 (PR #14) and Day 3 (PR #15) are open and not yet
-> merged, and Day 4 session A is on branch `aditya_19sep`, so the Day 2–4 rows below describe
-> that branch until they land.
+**Backend sprint (16–21 Sep):** Day 1 ✅ wire the pipeline · Day 2 ✅ real scoring signals ·
+Day 3 ✅ audit chain, human review, RBAC · Day 4 ✅ correctness fixes, text processing ·
+Day 5 ✅ coverage-aware confidence, content severity, geo surface, every invented number removed ·
+Day 6 ✅ Redis in real use, a scheduled station feed, documentation published
 
-**Backend sprint (16–20 Sep):** Day 1 ✅ wire the pipeline · Day 2 ✅ real scoring signals ·
-Day 3 ✅ audit chain, human review, RBAC · Day 4 🟡 session A ✅ correctness + measured classifier,
-B/C ⬜ content scoring, alerts · Day 5 ⬜ hardening & rehearsal
+> **Scope, stated once and plainly.** Layers **4 (AI/ML)** and **8b (the alert engine)** left the
+> backend's scope on 20 Sep. They are **cancelled, not deferred**. The ML code already committed
+> stays frozen; `vision_analysis` and `anomaly_detection` are **permanently offline** in every
+> receipt, and the confidence score is re-normalised over the factors that actually report rather
+> than pretending the missing ones scored zero. Nothing in this repository, the API or the
+> dashboard claims an alert was sent.
 
-Legend: ✅ built · 🟡 partial · ⬜ designed, not built
+Legend: ✅ built · 🟡 partial · ⬛ out of scope
 
 | # | Architecture Layer | Status | Reality |
 | :-: | :--- | :-: | :--- |
-| 1 | **Data Sources** | 🟡 2/6 | Citizen reports are live, and **Open-Meteo rainfall is fetched per event** for the weather factor (Day 2). Nothing is polled on a schedule; the IMD / OpenWeather / Twitter keys are unread. |
-| 2 | **Data Ingestion** | 🟡 | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and re-delivered messages are not re-broadcast. **Batch ingestion is only a synthetic seed script** (marked synthetic, refuses to run without `--synthetic`). |
-| 3 | **Data Processing** | 🟡 3/6 | Deduplication (a suppressed duplicate is marked and **never counted as corroboration**), coordinate validation (**out-of-India → 422, never stored**) and gazetteer geocoding are real; each report gets a computed credibility score. Cleaning, timestamp processing and metadata extraction are not implemented. |
-| 4 | **AI / ML Layer** | 🟡 1/6 | Sentence-Transformers runs for duplicate matching. An event-type text classifier (MiniLM + logistic regression) is **trained and measured on a synthetic labelled set but below its acceptance gate, so it is offline and not wired** (test macro-F1 0.787; NOT_RELEVANT recall 0.667 and 5/72 floods dismissed fail the gate; `backend/app/ml/artifacts/event_classifier_v1.metrics.json`). No PyTorch/OpenCV vision, no anomaly detection — both **explicitly "offline"** in every receipt. |
-| 5 | **Geo-Analytics** | ✅ | PostGIS `ST_ClusterDBSCAN` clustering and Uber H3 res-8 indexing are real. Heatmaps and risk zones are not built. |
-| 6 | **Event Fusion Engine** | ✅ | Correlation, duplicate merging, scoring and event construction run end-to-end. **No randomness: 4 of 6 factors are measured, 2 are labelled offline**, and scoring is proven deterministic. Human decisions survive later merges. |
-| 7 | **Data Platform** | 🟡 | PostgreSQL + PostGIS fully real, and **`audit_logs` is a working SHA-256 hash chain** (Day 3). Redis runs but **no code connects to it**. Object storage is configured but not deployed. |
-| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo for real (503 if a critical one is down). **Day 3:** `PATCH /api/events/{id}/review` and `GET /api/events/{id}/provenance`, both **auth-enforced**; new `EVENT_REVIEWED` message. Endpoints the dashboard already calls remain unauthenticated. |
-| 8b | **Alert Engine** | ⬜ | **Not implemented.** No SMS, email, or dispatch integration exists. |
-| 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is built; it does not yet call the review/provenance endpoints, and risk zones and critical alerts have no backend behind them. |
+| 1 | **Data Sources** | 🟡 2/6 | Citizen reports are live, and Open-Meteo is now **polled on a schedule** — every 10 minutes, 24 h accumulated rainfall for six cities into `station_readings`, attributed `OPEN_METEO` and nothing else. The IMD / OpenWeather / Twitter keys are empty and unread, decided 16 Sep for want of credentials. |
+| 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and a re-delivered message is not re-broadcast — now across a restart, since that memory moved to Redis. **Batch ingestion is only a synthetic seed script**, which refuses to run without `--synthetic` and marks every receipt synthetic. |
+| 3 | **Data Processing** | ✅ | Deduplication (a suppressed duplicate is marked and **never counted as corroboration**), out-of-India coordinates → **422, never stored**, gazetteer geocoding, a computed credibility score per report, and **cleaning + metadata extraction stored on every report** (`analysis`, migration `0005`). Depth, language and places are regex and dictionaries — rule-based, and the receipt says so. |
+| 4 | **AI / ML Layer** | ⬛ | **Out of scope since 20 Sep.** Sentence-Transformers (MiniLM) embeddings run for duplicate matching and nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macro-F1 0.787, NOT_RELEVANT recall 0.667), so it is offline and unwired. No vision, no anomaly detection — both **permanently `offline`** in every receipt. |
+| 5 | **Geo-Analytics** | ✅ | PostGIS `ST_ClusterDBSCAN` clustering, Uber H3 res-8 indexing, a **boundary polygon on every event** that contains all of its reports, and `GET /api/geo/heatmap` aggregating res 6/7/8 with duplicates excluded. Risk zones are not built. |
+| 6 | **Event Fusion Engine** | ✅ | Correlation, duplicate merging, scoring and event construction run end to end. **No randomness.** Confidence is re-normalised over the factors that reported and the receipt publishes `factor_coverage` beside it. Severity comes from **what the reports say** — a depth axis and a corroboration axis, published thresholds, no model. Determinism is pinned by tests, and a human decision survives later merges. |
+| 7 | **Data Platform** | ✅ | PostgreSQL + PostGIS, an `audit_logs` **SHA-256 hash chain**, **Redis genuinely in use** (the Open-Meteo cache and the broadcast-dedup set, both with a memory fallback so losing it degrades nothing), and `station_readings` **holding real polled rows** for the first time. Object storage is configured but not deployed. |
+| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo for real, including whether the schema exists. `PATCH /api/events/{id}/review` and `GET /api/events/{id}/provenance` are **auth-enforced**; the endpoints the dashboard already calls remain open, which is a known and recorded gap. |
+| 8b | **Alert Engine** | ⬛ | **Cancelled 20 Sep.** No SMS, no email, no dispatch integration, no `GET /api/alerts`. Nothing anywhere claims otherwise. |
+| 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is built and owned by the rest of the team. It does not yet call the review/provenance endpoints, and its severity filter has no `ADVISORY` chip although the backend now produces `ADVISORY` events — see [`docs/frontend-handover.md`](docs/frontend-handover.md). |
 
-**The honest one-liner:** the spine works and is honest — *a citizen report travels REST →
-Kafka → dedup → spatial clustering → deterministic confidence scoring (with live Open-Meteo
-rainfall) → a persisted event and a hash-chained audit row → live WebSocket push, and a
-commander can approve it through an auth-gated review endpoint*. That path is covered by
-**326 automated tests** (326 passed, 2 skipped), run against a separate test database. What is **not** built is most of the perception layer, scheduled
-external feed ingestion, and the entire alerting tier. Where a confidence factor has no real
-signal behind it, the Verification Receipt prints `"Telemetry factor offline"` rather than
-inventing a number — **stating that a signal is absent is treated as strictly better than
-faking it.** The cost is visible: confidence currently tops out at **0.80**, so nothing
-auto-publishes and events reach the command center through human review.
+**The honest one-liner:** the spine works and is honest — *a citizen report travels REST → Kafka →
+dedup → spatial clustering → deterministic confidence scoring (with real Open-Meteo rainfall, read
+from this platform's own polled table) → a persisted event with a boundary polygon and a
+hash-chained audit row → live WebSocket push, and a commander can approve it through an auth-gated
+review endpoint.* That path is covered by **568 automated tests** (568 passed, 2 skipped, run
+against a separate test database, and green with the network off).
+
+What is **not** built is the perception layer, most external feeds, and the entire alerting tier.
+Where a confidence factor has no real signal behind it the receipt prints `offline` with a reason
+rather than inventing a number — **stating that a signal is absent is treated as strictly better
+than faking it.** The visible cost is that the Patna demo scores around **0.56 at coverage 0.80**
+and lands in `QUARANTINED`, so nothing auto-publishes and events reach the command center through
+human review. That is the designed behaviour of honest scoring, and the
+[demo runbook](docs/demo-runbook.md) says exactly what to expect.
 
 ---
 
@@ -339,11 +347,11 @@ INDRA/
 │   └── backend-todo.md             # Backend 5-day sprint plan (16–20 Sep)
 ├── backend/
 │   ├── app/
-│   │   ├── api/                    # REST routes: dashboard, events (+ review, provenance), reports, feed, auth, teams, profile
+│   │   ├── api/                    # REST routes: dashboard, events (+ review, provenance), reports, feed, geo, auth, teams, profile
 │   │   ├── core/                   # config, database (async SQLAlchemy), security (JWT/bcrypt/RBAC), demo (DEMO_MODE gate)
 │   │   ├── models/                 # SQLAlchemy ORM + enums.py (all controlled vocabularies)
-│   │   ├── services/               # pipeline, fusion_engine, dedup, geo_clustering, geocoding, weather, credibility, audit
-│   │   └── workers/                # report_consumer — Kafka consumer driving the pipeline
+│   │   ├── services/               # pipeline, fusion_engine, dedup, geo_clustering, geocoding, weather, credibility, audit, cache, text_processing, health
+│   │   └── workers/                # report_consumer (Kafka → pipeline), station_poller (scheduled Open-Meteo feed)
 │   ├── alembic/                    # Database migrations (0001_initial, 0002_teams_and_profiles, 0003_review_and_audit_chain)
 │   ├── tests/                      # pytest suite — unit + integration (`-m integration` needs Docker)
 │   ├── pytest.ini                  # asyncio loop scope pinned to session

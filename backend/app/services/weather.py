@@ -12,9 +12,12 @@ event's location support a flood report?
 * **Curve.** Accumulated 24 h rainfall is scored against IMD's own daily
   rainfall categories, so every breakpoint is a published threshold rather than
   a number picked for the demo. See RAINFALL_CURVE.
-* **Cache.** One entry per H3 res-8 cell for 10 minutes. A flood cluster sends
-  many reports from the same few cells in quick succession; they must not each
-  make an HTTP request.
+* **Cache.** One entry per H3 res-8 cell for 10 minutes, in Redis under
+  `wx:{cell}` and in process memory when Redis is down (`services/cache.py`). A
+  flood cluster sends many reports from the same few cells in quick succession;
+  they must not each make an HTTP request. The expiry is written *inside* the
+  cached value as well as given to Redis as a TTL, so both backends expire on the
+  same injected clock and the cache behaves identically either way.
 * **Failure is `None`, never a guess.** Timeout, connection error, non-200,
   malformed JSON, missing field — all return None, which compute_receipt()
   excludes from the weighted mean, lowering the receipt's `factor_coverage` by
@@ -26,11 +29,12 @@ event's location support a flood report?
 
 import logging
 import time
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import httpx
 
 from app.core.config import get_settings
+from app.services import cache
 
 logger = logging.getLogger("indra.services.weather")
 settings = get_settings()
@@ -63,8 +67,8 @@ RAINFALL_CURVE: List[Tuple[float, float]] = [
     (204.5, 1.00),
 ]
 
-# cell -> (expires_at_monotonic, rainfall_mm or None)
-_cache: Dict[str, Tuple[float, Optional[float]]] = {}
+# Redis key namespace for the per-cell reading.
+CACHE_KEY_PREFIX = "wx:"
 
 # Injectable for tests; production uses time.monotonic.
 _clock: Callable[[], float] = time.monotonic
@@ -90,7 +94,8 @@ def _cell_key(lat: float, lng: float) -> str:
 
 
 def clear_cache() -> None:
-    _cache.clear()
+    """Drop the cached readings. Clears the memory fallback only."""
+    cache.clear()
 
 
 async def fetch_rainfall(
@@ -102,15 +107,18 @@ async def fetch_rainfall(
     Accumulated precipitation (mm) over the last LOOKBACK_HOURS at (lat, lng),
     or None on any failure. Cached per H3 cell. Never raises.
     """
-    key = _cell_key(lat, lng)
+    key = CACHE_KEY_PREFIX + _cell_key(lat, lng)
     now = _clock()
-    hit = _cache.get(key)
-    if hit is not None and hit[0] > now:
+
+    hit = await cache.get_json(key)
+    # [expires_at, rainfall_mm | null]. A cached null is a remembered failure,
+    # which is not the same as a cache miss and must not trigger a request.
+    if isinstance(hit, list) and len(hit) == 2 and hit[0] > now:
         return hit[1]
 
     rainfall = await _request_rainfall(lat, lng, client)
     ttl = CACHE_TTL_SECONDS if rainfall is not None else FAILURE_CACHE_TTL_SECONDS
-    _cache[key] = (now + ttl, rainfall)
+    await cache.set_json(key, [now + ttl, rainfall], ttl_seconds=ttl)
     return rainfall
 
 

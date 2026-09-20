@@ -90,6 +90,32 @@ def pytest_collection_modifyitems(config, items):
     )
 
 
+# ── Cache isolation ────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def _isolated_cache():
+    """
+    The whole suite runs on the cache's in-memory fallback, cleared between
+    tests.
+
+    Not for want of a Redis — one is usually running on this machine, which is
+    exactly the problem. The broadcast-dedup keys live for 24 hours, so a shared
+    Redis would carry report ids from one test run into the next and make the
+    suite pass or fail depending on what ran yesterday. It would also make
+    `pytest -m "not integration"` require a container.
+
+    The Redis path itself is covered by `test_cache.py`, which opts back in
+    deliberately and is marked `integration`.
+    """
+    from app.services import cache
+
+    cache.use_memory_only(True)
+    cache.clear()
+    yield
+    cache.clear()
+    cache.use_memory_only(False)
+
+
 # ── Service fixtures (no DB) ───────────────────────────────────────────────────
 
 @pytest.fixture

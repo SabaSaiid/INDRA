@@ -10,8 +10,11 @@ at CHECK_TIMEOUT_SECONDS, so a hung dependency costs at most that long.
     unhealthy   503   a critical check is down (Postgres, Kafka/Redpanda)
 
 Postgres and Kafka are critical because without either a submitted report is
-not stored or not processed. Nothing reads Redis yet, and Open-Meteo being down
-only marks the weather factor offline in new receipts, so those degrade.
+not stored or not processed. Redis is not: since Day 6 it holds the weather
+cache and the broadcast-dedup set, and both fall back to process memory when it
+is gone (`services/cache.py`), so losing it costs cross-restart memory and
+nothing else. Open-Meteo being down only marks the weather factor offline in new
+receipts. Both therefore degrade rather than fail.
 
 A check is "down" if it raises, returns False, or times out.
 """

@@ -103,6 +103,30 @@ class Settings(BaseSettings):
     OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
     WEATHER_TIMEOUT_SECONDS: float = 3.0
 
+    # ── Station poller (layer 1: the one scheduled external feed) ──────────
+    # Every interval, Open-Meteo 24 h accumulated precipitation for the demo
+    # cities is written to station_readings. Off means no task is started and the table
+    # stays empty; the weather factor then fetches live per event, exactly as it
+    # did before Day 6.
+    STATION_POLLER_ENABLED: bool = True
+    STATION_POLL_INTERVAL_SECONDS: int = 600
+    # How fresh and how near a stored reading must be for the weather factor to
+    # prefer it over a live fetch.
+    #
+    # 180 minutes, not the 30 the day plan assumed. Age is measured on the end of
+    # the reading's 24-hour accumulation window, and Open-Meteo publishes its
+    # hourly buckets about two hours behind: measured live on 21 Sep, a poll made
+    # at 19:50 UTC returned a series ending 18:00 UTC, a lag of 1 h 50 m. At 30
+    # minutes every genuine reading would have been rejected and the stored path
+    # would never once have been taken -- a feature that silently does nothing.
+    #
+    # Three hours is defensible on its own terms: the stored value answers "how
+    # much rain fell here over the last day", and a window that closed two hours
+    # ago still answers it. A reading older than that is stale enough that a
+    # live fetch is worth the wait.
+    STATION_READING_MAX_AGE_MINUTES: int = 180
+    STATION_READING_MAX_DISTANCE_KM: float = 25.0
+
     # ── ML kill switches ───────────────────────────────────────────────────
     # Off means the model is treated as offline (receipt says so), never a crash.
     CLASSIFIER_ENABLED: bool = True
