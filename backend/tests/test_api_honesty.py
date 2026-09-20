@@ -176,3 +176,41 @@ def test_the_time_gate_is_really_read_from_settings(monkeypatch):
 
     monkeypatch.setattr(settings, "DEDUP_TIME_DELTA_MINUTES", 5)
     assert service.find_duplicate(body, 25.5941, 85.1376, now, existing) is None
+
+
+# ── The legacy prototype dashboard is gone ────────────────────────────────────
+
+async def test_the_legacy_dashboard_is_gone(api):
+    """
+    /legacy served app/templates/index.html, a 1,069-line static mockup built
+    before the pipeline existed. It claimed telemetry this system does not have:
+    "IMD AWS Station 42410 registered 92.4mm rain pulse", "CWC Gauge: Ganga level
+    rising 4.2cm/hr at Digha Ghat", "PyTorch Vision detected waist-deep
+    floodwater (Prob: 0.91)", "127 Signals". No IMD or CWC feed exists and vision
+    analysis is permanently offline.
+
+    It exercised no code path and nothing referenced it. The real command center
+    is the Next.js app on port 3000.
+    """
+    assert (await api.get("/legacy")).status_code == 404
+
+
+def test_no_html_templates_are_served_from_the_backend():
+    """
+    The backend serves JSON and a WebSocket, not pages.
+
+    app/templates/ held the prototype mockup; with it gone there is no server-side
+    HTML left to drift out of step with the API. A new template appearing here
+    would mean a second, hand-written view of the data — which is how the /legacy
+    page came to claim IMD and CWC feeds that never existed.
+
+    Deliberately a structural check rather than a grep for the old claim strings:
+    main.py's comments quote several of them verbatim to record why they went, and
+    that explanation is worth keeping.
+    """
+    from pathlib import Path
+
+    app_dir = Path(__file__).resolve().parents[1] / "app"
+
+    assert not (app_dir / "templates").exists()
+    assert list(app_dir.rglob("*.html")) == []

@@ -8,7 +8,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from typing import List
 from pathlib import Path
 import json
@@ -77,9 +77,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
-
-
 class ConnectionManager:
     """Manages real-time WebSocket connections to the Command Center dashboard."""
     def __init__(self):
@@ -137,14 +134,17 @@ async def serve_dashboard():
     """Redirects to the modern INDRA Next.js frontend dashboard on port 3000."""
     return RedirectResponse(url="http://localhost:3000", status_code=307)
 
-@app.get("/legacy", response_class=HTMLResponse)
-async def serve_legacy_dashboard():
-    """Serves the legacy INDRA prototype template."""
-    index_path = TEMPLATES_DIR / "index.html"
-    if index_path.exists():
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read(), status_code=200)
-    return HTMLResponse(content="<h1>INDRA Command Center - Template Loading</h1>", status_code=200)
+# GET /legacy and app/templates/index.html were removed on 20 Sep, for the same
+# reason as /api/scenario above: the page claimed telemetry this system does not
+# have. "IMD AWS Station 42410 registered 92.4mm rain pulse", "CWC Gauge: Ganga
+# level rising 4.2cm/hr at Digha Ghat", "PyTorch Vision detected waist-deep
+# floodwater (Prob: 0.91)", "Photo flood_412.jpg verified by PyTorch CV (0.94
+# water prob)", "127 Signals". There is no IMD or CWC feed, and vision analysis is
+# permanently offline since layer 4 left the scope.
+#
+# It was a static mockup built before the pipeline existed; it exercised no code
+# path and nothing referenced it. The real command center is the Next.js app on
+# port 3000, which reads this API.
 
 @app.get("/api/info")
 async def platform_info():
