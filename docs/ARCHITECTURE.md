@@ -12,12 +12,14 @@
 > the pitch, the ledger is the truth, and conflating the two is how a demo falls apart under
 > a judge's follow-up question.
 >
-> Ledger last verified against code: **16 Sep 2026** (end of backend sprint **Day 3**; Days 2
-> and 3 were finished ahead of their 17/18 Sep slots).
+> Ledger last verified against code **and a live stack**: **21 Sep 2026**, the last day of the
+> backend sprint. Everything marked ✅ below was exercised by a named test or reproduced in a run
+> recorded that day.
 >
-> **Branch caveat:** Day 1 is on `main`. Day 2 (PR #14, `aditya_17sep`) and Day 3 (PR #15,
-> `aditya_18sep`, stacked on Day 2) are **open, not yet merged**. Until they merge, anything
-> below marked *Day 2* or *Day 3* is true of `aditya_18sep`, not of `main`.
+> **Scope, stated once.** Layers **4 (AI/ML)** and **8b (the alert engine)** left the backend's
+> scope on 20 Sep. They are **cancelled, not deferred**: the ML code already committed stays
+> frozen, and no alerting will be built. Where this document's design sections describe them, they
+> describe the target architecture, not a plan with a date on it.
 
 ---
 
@@ -34,23 +36,23 @@ Legend: ✅ built · 🟡 partial · ⬜ designed, not built
 
 ```mermaid
 flowchart TD
-    SRC["<b>1. DATA SOURCES</b><br/>⬜ IMD / Govt APIs<br/>🟡 Weather APIs<br/>🟡 Public datasets<br/>⬜ Social media<br/>✅ Citizen reports<br/>🟡 Images / Videos"]
+    SRC["<b>1. DATA SOURCES</b><br/>⬜ IMD / Govt APIs<br/>✅ Weather APIs (polled)<br/>⬜ Public datasets<br/>⬜ Social media<br/>✅ Citizen reports<br/>⬜ Images / Videos"]
 
     ING["<b>2. DATA INGESTION</b><br/>✅ REST API / Webhooks<br/>✅ Kafka / Redpanda<br/>🟡 Batch ingestion<br/>✅ Stream ingestion"]
 
-    PROC["<b>3. DATA PROCESSING LAYER</b><br/>⬜ Cleaning<br/>✅ Normalization<br/>✅ Deduplication<br/>⬜ Timestamp processing<br/>🟡 Geocoding<br/>⬜ Metadata extraction"]
+    PROC["<b>3. DATA PROCESSING LAYER</b><br/>✅ Cleaning<br/>✅ Normalization<br/>✅ Deduplication<br/>✅ Timestamp processing<br/>🟡 Geocoding<br/>✅ Metadata extraction"]
 
-    AI["<b>4. AI / ML LAYER</b><br/>🟡 NLP classifier<br/>⬜ Event detection<br/>⬜ Fake detection<br/>✅ Duplicate matching<br/>⬜ Image analysis<br/>⬜ Anomaly detection"]
+    AI["<b>4. AI / ML LAYER</b><br/>⬛ OUT OF SCOPE 20 Sep<br/>⬜ NLP classifier (below gate)<br/>⬜ Fake detection<br/>✅ Duplicate matching<br/>⬜ Image analysis<br/>⬜ Anomaly detection"]
 
-    GEO["<b>5. GEO-ANALYTICS</b><br/>✅ Location mapping<br/>✅ Spatial clustering<br/>🟡 Heatmaps<br/>🟡 Event boundaries<br/>⬜ Risk zones<br/>🟡 Time-space trends"]
+    GEO["<b>5. GEO-ANALYTICS</b><br/>✅ Location mapping<br/>✅ Spatial clustering<br/>✅ Heatmaps<br/>✅ Event boundaries<br/>⬜ Risk zones<br/>🟡 Time-space trends"]
 
-    FUS["<b>6. EVENT FUSION ENGINE</b><br/>✅ Correlate observations<br/>✅ Merge duplicate reports<br/>✅ Calculate confidence<br/>🟡 Determine severity<br/>✅ Build weather event"]
+    FUS["<b>6. EVENT FUSION ENGINE</b><br/>✅ Correlate observations<br/>✅ Merge duplicate reports<br/>✅ Confidence + coverage<br/>✅ Severity from content<br/>✅ Build weather event"]
 
-    PLAT["<b>7. DATA PLATFORM</b><br/>✅ PostgreSQL + PostGIS<br/>🟡 Redis<br/>⬜ Object Storage S3/MinIO<br/>🟡 Historical datasets"]
+    PLAT["<b>7. DATA PLATFORM</b><br/>✅ PostgreSQL + PostGIS<br/>✅ Redis (cache + dedup set)<br/>⬜ Object Storage S3/MinIO<br/>✅ Station readings"]
 
     API["<b>8a. REAL-TIME API</b><br/>✅ FastAPI<br/>✅ WebSocket<br/>✅ REST APIs<br/>✅ Human review + RBAC"]
 
-    ALERT["<b>8b. ALERT ENGINE</b><br/>⬜ Critical events<br/>⬜ SMS / Email<br/>⬜ Dashboard alerts"]
+    ALERT["<b>8b. ALERT ENGINE</b><br/>⬛ OUT OF SCOPE 20 Sep<br/>⬜ Critical events<br/>⬜ SMS / Email<br/>⬜ Dashboard alerts"]
 
     CC["<b>9. IMD COMMAND CENTER</b><br/>✅ India Weather Map<br/>✅ Real-time Analytics<br/>✅ Weather Events<br/>⬜ Risk Zones<br/>✅ Verification Status<br/>🟡 Historical Trends<br/>⬜ Critical Alerts<br/>🟡 Report Investigation"]
 
@@ -69,8 +71,8 @@ flowchart TD
     classDef partial fill:#fff8e1,stroke:#f9a825,stroke-width:2px;
     classDef absent fill:#fbe9e7,stroke:#c62828,stroke-dasharray: 5 5,stroke-width:2px;
 
-    class ING,GEO,FUS,API built;
-    class SRC,PROC,PLAT,CC partial;
+    class ING,PROC,GEO,FUS,PLAT,API built;
+    class SRC,CC partial;
     class AI,ALERT absent;
 ```
 
@@ -78,59 +80,73 @@ flowchart TD
 
 | # | Layer | Status | What is actually true |
 |---|---|---|---|
-| 1 | Data Sources | 🟡 **2 of 6** | Citizen reports have a live writer (`POST /api/reports/submit`). **Day 2:** Open-Meteo rainfall is the first external feed actually read (`services/weather.py`, `httpx`, 3 s timeout, cached per H3 res-8 cell). It is pulled *per event* for the weather factor, not polled on a schedule, so `station_readings` is still empty. `TWITTER_IMD`, `AWS_SENSOR`, `CWC_GAUGE`, `OFFICIAL_DISPATCH` are declared `SourceType` values with no producer; the OpenWeather, IMD and Twitter keys are unread. `raw_reports.media_url` stores a string; no image is uploaded or opened. |
-| 2 | Data Ingestion | 🟡 **stream real, batch synthetic** | REST → Postgres **and** Redpanda (`indra.raw.reports`); `workers/report_consumer.py` consumes it. **Batch ingestion is not real (corrected Day 4):** the ✅ previously rested on `scripts/seed_national_data.py`, which invents events, receipts and reports. Since Day 4 it refuses to run without `--synthetic`, marks every receipt `synthetic: true`, and no longer writes `station_readings` or unchained audit rows. **Day 2:** the Kafka message now carries exactly the stored row (sanitised coordinates, `raw_text`, `h3_res8`, `credibility_score`). **Day 4:** a report that cannot be stored returns 503 and is never published (a stored report whose publish fails returns 202 `queued: false`); a re-delivered message is not re-broadcast as `NEW_REPORT`. |
-| 3 | Data Processing | 🟡 **3 of 6** | Deduplication is real and wired (`services/dedup.py`: MiniLM cosine ≥ 0.88 **AND** ≤ 1 km **AND** ≤ 15 min, Levenshtein ≥ 0.75 fallback). **Day 4:** a suppressed report is recorded as `duplicate_of` its original (migration `0004`) and excluded from clustering, so it is never counted as corroboration. **Day 2:** out-of-India coordinates are **rejected with 422 and never stored** (previously snapped to `(22, 82)` or to a city named in the text); a swapped lat/lng is still corrected. Each report gets a computed `credibility_score` (`services/credibility.py`: source prior × text quality) instead of a flat 0.5. Geocoding is a 56-city static gazetteer, and the bounds check is a bounding box, not the border. Cleaning, timestamp processing and metadata extraction do not exist. |
-| 4 | AI / ML | 🟡 **1 of 6** | `all-MiniLM-L6-v2` runs for duplicate matching. **Day 4:** An event-type text classifier (MiniLM + logistic regression) is **trained and measured on a synthetic labelled set but below its acceptance gate, so it is offline and not wired** (test macro-F1 0.787; NOT_RELEVANT recall 0.667 and 5/72 floods dismissed fail the gate; `backend/app/ml/artifacts/event_classifier_v1.metrics.json`). The labelled set is `data/labelled/reports_v1.csv` (300 synthetic rows, frozen split, `DATASHEET.md`). So nothing yet derives event type or severity from report content. No vision model, no fake detection, no anomaly detection. **Day 2:** vision and anomaly are now *explicitly* `"offline"` in every receipt rather than filled with random numbers — a deliberate choice, and the reason confidence is capped at 0.80. |
-| 5 | Geo-Analytics | ✅ **mostly** | `ST_ClusterDBSCAN` clustering is real, persists membership, and yields centroid / radius / max-pairwise stats in `geography` metres. H3 res-8 cells are computed and stored but nothing reads them yet, so heatmaps are storage-ready, not built. Events carry `center_point` and `impact_radius_km`; `boundary_polygon` exists in the schema but is never populated. Risk zones do not exist. |
-| 6 | Event Fusion | ✅ **the spine** | `services/pipeline.py` correlates, merges duplicates, merges *streaming-arrival fragments* into one event, scores, and persists. **Day 2: no randomness left** — 4 factors are measured (weather, report density, spatial coherence, source reliability), 2 are explicitly offline, and a determinism test proves the same cluster gives a byte-identical receipt. **Day 3:** a human decision (approve / reject / severity override) is never overwritten by a later merge; each pipeline write (report links + event + audit row) is one transaction. Severity stays 🟡: it is derived from corroboration count, and the receipt says so (`heuristic_from_cluster_size`). |
-| 7 | Data Platform | 🟡 **2 of 4** | PostGIS is fully real (3 migrations, GIST indexes, enums, audit-immutability trigger). **Day 3:** `audit_logs` is a real append-only **SHA-256 hash chain** (`services/audit.py`, migration `0003`), written by the pipeline and the review endpoint, appended under an advisory lock so concurrent writers cannot fork it. **Redis runs but no backend code connects to it** — WebSocket fan-out is an in-process list, so the app cannot run multi-worker. Object storage is configured in `.env` but absent from `docker-compose.yml`. |
-| 8a | Real-Time API | ✅ **complete** | FastAPI, 7 routers, REST + `/ws/events` carrying `NEW_REPORT`, `VERIFIED_EVENT`, `EVENT_REVIEWED` (Day 3), `DEMO_PULSE`. **Day 2:** `DEMO_MODE` gates every demo fallback (`[]` / 404 / 503 when off). **Day 3:** `PATCH /api/events/{id}/review` (COMMANDER/ADMIN) and `GET /api/events/{id}/provenance` (ANALYST/COMMANDER/ADMIN) are **auth-enforced**. Caveat: *only those two* are gated — every endpoint the dashboard already calls is still open, because the frontend holds no token yet. **Day 4:** `/healthz` checks Postgres, Kafka, Redis and Open-Meteo concurrently (2 s cap each): 503 `unhealthy` if Postgres or Kafka is down, 200 `degraded` if Redis or Open-Meteo is. |
-| 8b | Alert Engine | ⬜ **absent** | Not implemented in any form: no notification code, no SMS/email provider, no critical-event trigger. Not scheduled in this sprint. |
-| 9 | Command Center | 🟡 | The Next.js dashboard is built (frontend team). Backend-side, verification status and events are served from real data; review and provenance endpoints now exist but the dashboard does not call them yet (handover written). Risk zones and critical alerts have no backend behind them. Every frontend fetch falls back to mock data, so **the UI looking complete says nothing about backend state**. |
+| 1 | Data Sources | 🟡 **2 of 6** | Citizen reports have a live writer (`POST /api/reports/submit`). **Open-Meteo is now polled on a schedule** (`workers/station_poller.py`, Day 6): every 10 minutes, 24 h accumulated rainfall for six cities is written to `station_readings` as `agency = OPEN_METEO`, and the weather factor prefers a stored reading within 3 h and 25 km over a live request. Before today the table had never held a row. `TWITTER_IMD`, `CWC_GAUGE`, `OFFICIAL_DISPATCH` remain declared `SourceType` values with no producer; the OpenWeather, IMD and Twitter keys are empty and unread (decided 16 Sep, for want of credentials). `raw_reports.media_url` stores a string; no image is uploaded or opened, and none ever will be — vision left the scope on 20 Sep. |
+| 2 | Data Ingestion | ✅ **stream real, batch honestly synthetic** | REST → Postgres **and** Redpanda (`indra.raw.reports`); `workers/report_consumer.py` consumes it and `services/event_publisher.py` publishes verified events to `indra.verified.events`. A report that cannot be stored returns **503** and is never published; a stored report whose publish fails returns 202 `queued: false`. A re-delivered message is not re-broadcast as `NEW_REPORT` — and since Day 6 that memory lives in Redis, so it **survives a restart**. **Batch ingestion is a synthetic seed script and says so**: `scripts/seed_national_data.py` refuses to run without `--synthetic` and marks every receipt `synthetic: true`. |
+| 3 | Data Processing | ✅ **5 of 6** | Deduplication is real and wired (`services/dedup.py`: MiniLM cosine ≥ 0.88 **AND** ≤ 1 km **AND** ≤ 15 min, Levenshtein ≥ 0.75 fallback, thresholds now in `config.py`). A suppressed report is recorded as `duplicate_of` its original and excluded from clustering, so it is never counted as corroboration **and never grades severity**. Out-of-India coordinates are **rejected with 422 and never stored**; a swapped lat/lng is still corrected. Each report gets a computed `credibility_score`. **Cleaning and metadata extraction ship** (`services/text_processing.py`, migration `0005`): every report stores `{cleaned_text, language, depth_cm, depth_basis, keywords, places, …}`, all of it regex and dictionaries — rule-based, and the receipt says `rule_based`, never "model". Geocoding remains a 56-city static gazetteer with a bounding-box bounds check, which is why it stays the one 🟡 here. |
+| 4 | AI / ML | ⬛ **out of scope since 20 Sep** | `all-MiniLM-L6-v2` runs for duplicate matching and for nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macro-F1 0.787; NOT_RELEVANT recall 0.667 and 5/72 floods dismissed), so `classify()` returns `None` and it is unwired. The labelled set (`data/labelled/reports_v1.csv`, 300 synthetic rows, frozen split, `DATASHEET.md`) stays committed and frozen. No vision model, no fake detection, no anomaly detection — and none is planned. `vision_analysis` and `anomaly_detection` are **permanently `offline`** in every receipt, with a reason, rather than filled with a number. |
+| 5 | Geo-Analytics | ✅ | `ST_ClusterDBSCAN` clustering is real, persists membership, and yields centroid / radius / max-pairwise stats in `geography` metres. **Every event carries a `boundary_polygon`** containing all of its non-duplicate reports (concave hull, buffered 250 m, convex-hull fallback), served as `boundary_geojson`. **`GET /api/geo/heatmap`** aggregates the stored `h3_res8` at res 6/7/8 over a 24 h/48 h/7 d window, duplicates excluded, with res-7 counts summing their res-8 children exactly. Risk zones do not exist. Clustering is still done in degrees, ~10% anisotropic at Patna's latitude — a known, recorded limit. |
+| 6 | Event Fusion | ✅ **the spine** | `services/pipeline.py` correlates, merges duplicates, merges streaming-arrival fragments into one event, scores and persists. **No randomness.** Confidence is `Σ_online(w·s) / Σ_online w` and the receipt publishes **`factor_coverage`** beside it, so an offline factor lowers the stated coverage instead of silently scoring zero; a determinism test proves the same cluster gives a byte-identical receipt. **Severity comes from the reports' content**: `max()` of a depth axis (≥120 cm CRITICAL / ≥60 HIGH / ≥20 MODERATE) and a corroboration axis (≥10 HIGH / ≥5 MODERATE), published thresholds with no model behind them, and the receipt names the winning axis and the phrase it read. A human decision is never overwritten by a later merge; each pipeline write is one transaction. |
+| 7 | Data Platform | ✅ **3 of 4** | PostGIS is fully real (6 migrations, GIST indexes, enums, audit-immutability trigger). `audit_logs` is an append-only **SHA-256 hash chain** (`services/audit.py`), written by the pipeline and the review endpoint, appended under an advisory lock so concurrent writers cannot fork it. **Redis is genuinely in use since Day 6** (`services/cache.py`): the Open-Meteo cache and the broadcast-dedup set, each with an in-memory fallback, so a stopped Redis degrades the service and breaks nothing. **`station_readings` holds real polled rows.** Object storage is configured in `.env` but absent from `docker-compose.yml`. WebSocket fan-out is still an in-process list, so the app runs **single-process by design**. |
+| 8a | Real-Time API | ✅ | FastAPI, 8 routers, REST + `/ws/events` carrying `NEW_REPORT`, `VERIFIED_EVENT`, `EVENT_REVIEWED`. `DEMO_MODE` defaults to **false** and gates every demo fallback (`[]` / 404 / 503 when off) — including `GET /api/dashboard/summary`, the one that escaped the original gate. `PATCH /api/events/{id}/review` (COMMANDER/ADMIN) and `GET /api/events/{id}/provenance` (ANALYST/COMMANDER/ADMIN) are **auth-enforced**. Caveat, unchanged and recorded: *only those two* are gated, because the dashboard holds no token yet. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo concurrently, **including whether the schema exists** — 503 `unhealthy` if Postgres or Kafka is down, 200 `degraded` if Redis or Open-Meteo is. CORS is an explicit origin list, not `*`. |
+| 8b | Alert Engine | ⬛ **cancelled 20 Sep** | Not implemented in any form: no notification code, no SMS/email provider, no critical-event trigger, no `GET /api/alerts`. It is **not scheduled** — it left the scope rather than slipping. Nothing in the API, the dashboard or these documents claims an alert was sent. |
+| 9 | Command Center | 🟡 | The Next.js dashboard is built and owned by the rest of the team. Backend-side, verification status and events are served from real data; review, provenance and heatmap endpoints exist but the dashboard does not call them yet. The backend now produces **`ADVISORY`** events, for which the dashboard has no filter chip. All of it is written up in `docs/frontend-handover.md`. |
 
 ### Where the real path runs
 
 ```
 Citizen report ──► REST ──► Redpanda ──► consumer ──► dedup ──► DBSCAN cluster
                                                                       │
-                          Open-Meteo rainfall ──► 6-factor receipt ◄──┘
+   station_readings (polled every 10 min) ──► 6-factor receipt ◄──────┘
+        └─ or live Open-Meteo on a miss        (4 online, 2 permanently offline,
+                                                coverage 0.80 published with it)
                                                         │
-   WebSocket ◄── verified_events row + audit row (one transaction)
+   WebSocket ◄── verified_events row + boundary polygon + audit row (one transaction)
+       │              │
+       │              └──► indra.verified.events
        │
        └── commander: PATCH /review ──► HUMAN_APPROVED + audit row ──► EVENT_REVIEWED
 ```
 
-Everything on that line is live and test-covered (**326 passed, 2 skipped**, against a separate `indra_test` database).
-Everything off it — NLP classification, vision, anomaly detection, alerting, object storage,
-scheduled external polling — is not.
+Everything on that line is live and test-covered (**568 passed, 2 skipped**, against a separate
+`indra_test` database, and green with the network off). Everything off it — NLP classification,
+vision, anomaly detection, alerting, object storage, risk zones — is not, and is not coming.
 
 ### Audit, auth and review — three claims to keep straight
 
-| Claim made elsewhere in this doc | Reality (Day 3) |
+| Claim made elsewhere in this doc | Reality (verified 21 Sep) |
 |---|---|
 | "Unalterable SHA-256 audit trail" | ✅ **Real.** Every pipeline decision (`AUTO_VERIFY` / `ESCALATE` / `QUARANTINE`) and every human review (`HUMAN_APPROVE` / `HUMAN_REJECT` / `MANUAL_OVERRIDE`) writes one chained row; the DB trigger rejects `UPDATE`/`DELETE`; tampering with, deleting or reordering a row is detected at that row. **Honest limit:** rows cut off the *end* of the chain, or a `TRUNCATE`, still leave a valid chain — that needs an external anchor for the head hash, which is not built. |
 | "Human-in-the-loop review queue" | ✅ **Real.** `PATCH /api/events/{id}/review` approves or rejects from `QUARANTINED` or `PENDING_HUMAN_REVIEW`, or overrides severity; illegal transitions → 409, concurrent approvals → one 200 and one 409. `GET /api/events/{id}/provenance` returns the contributing reports, the audit rows and a chain check. |
 | "RBAC / role-gated access" | 🟡 **Enforced on the two new endpoints only** (pinned by a 7-token × 3-endpoint test matrix). Endpoints the dashboard already calls stay open until the frontend has a login flow. |
 
-### Fixed defect (found Day 3, fixed Day 4)
+### Known limits, stated rather than hidden
 
-A report suppressed as a duplicate used to stay in `raw_reports` with `event_id NULL`, so the
-next genuine report clustered with it and it was merged into the event (6 distinct reports
-showed as **7**). It is now marked `duplicate_of` its original and never clustered; the live
-re-run gives `report_count 6`, and the former strict `xfail` passes.
+The full register with a severity, a status and a sentence to say out loud for each is
+[`bug-register.md`](bug-register.md). The five worth knowing before any demo:
+
+| Limit | Status |
+|---|---|
+| The audit chain cannot detect a **truncated tail** or a `TRUNCATE` | By design, for want of an external anchor for the head hash |
+| **Two backends on one broker** re-deliver reports | Known-bad; the demo rule is one backend process, which also covers the poller and WebSocket fan-out |
+| Auth gates **only** the review and provenance endpoints | Waiting on a dashboard login flow, which is not this layer's to build |
+| DBSCAN clusters in **degrees** (~10% anisotropic at Patna) | Recorded; not changed hours before a demo |
+| Dedup cosine **0.88** misses paraphrases | Deliberately strict: splitting one incident is recoverable, merging two real ones hides one |
 
 ### The one-line summary
 
-The **spine is real and now honest**: a citizen report travels REST → Kafka → dedup → DBSCAN
-cluster → deterministic scoring (4 measured factors incl. live Open-Meteo rainfall, 2
-explicitly offline) → a persisted event with a hash-chained audit row → WebSocket, and a
-commander can approve it through an auth-gated endpoint without the next report undoing the
-decision. What is **not** real is most of the *perception* (no NLP classification, no
-vision, no anomaly detection; a text classifier is measured but below its gate), scheduled *external ingestion*, and the entire *alerting*
-tier. Because two factors are offline, **confidence tops out at 0.80**: nothing
-auto-publishes, and the live demo cluster lands at ~0.43 → `QUARANTINED` until a human
-approves it.
+The **spine is real and honest**: a citizen report travels REST → Kafka → dedup → DBSCAN cluster
+→ deterministic scoring (4 measured factors, including rainfall read from this platform's own
+polled `station_readings`, and 2 permanently offline with the coverage published beside the score)
+→ a persisted event with a boundary polygon and a hash-chained audit row → WebSocket and
+`indra.verified.events`, and a commander can approve it through an auth-gated endpoint without the
+next report undoing the decision.
+
+What is **not** real is the *perception* layer (no NLP classification, no vision, no anomaly
+detection — out of scope since 20 Sep), most *external ingestion* (one feed, Open-Meteo), and the
+entire *alerting* tier (cancelled). Because two factors are permanently offline, **coverage is
+0.80 and is quoted with every score**. The live demo cluster lands at **0.4984 → `QUARANTINED`**,
+which is the correct reading of five unverified citizen reports and near-zero rainfall, and it
+reaches a commander through human review rather than auto-publishing.
 
 ---
 
