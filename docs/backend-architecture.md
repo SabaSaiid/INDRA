@@ -1,266 +1,226 @@
-# Backend Architecture — `INDRA/backend`
+# INDRA — Backend Architecture
 
-Backend-only detail, deeper than the whole-system `architecture.md`. Aditya's reference for module boundaries and data flow. Re-verified against the live code on 16 Sep 2026, end of sprint Day 3.
+**What this is:** how the backend is put together — module boundaries, what each one owns, and
+the exact path a citizen report takes from an HTTP request to a pin on the dashboard. Deeper than
+[`ARCHITECTURE.md`](ARCHITECTURE.md), which covers the whole nine-layer system; this file is only
+`backend/`.
 
-> **Sprint:** backend completion run, **16–20 Sep 2026**. Day plan in `backend-todo.md`; Days 1–3 are done (`aditya_16-sep.md`, `aditya_17-sep.md`, `aditya_18-sep.md`); Day 4 is next (`aditya_19-sep.md`). The "competition readiness" section at the bottom of this file is the *why* behind that plan's ordering.
+**Last verified against the code and a running stack: 21 Sep 2026.**
 
-> ### Where the code actually is (16 Sep, end of Day 3)
->
-> - **`main`**: Day 1 (PRs #4–#9 merged). 71 tests.
-> - **`aditya_17sep`**, **PR #14 open**: Day 2. 219 passed, 2 skipped.
-> - **`aditya_18sep`**, **PR #15 open**, stacked on Day 2: Day 3. 287 passed, 2 skipped,
->   1 xfailed. Needs `alembic upgrade head` (migration `0003`). Merge #14 before #15.
->
-> This document describes `aditya_18sep`. Read against `main`, the Day 2/Day 3 modules
-> (`weather.py`, `credibility.py`, `audit.py`, `core/demo.py`, the review/provenance endpoints)
-> will be missing — that is the branch state, not a regression.
+Scope note, once: layers **4 (AI/ML)** and **8b (the alert engine)** left this backend's scope on
+20 Sep and are **cancelled, not deferred**. Nothing below is waiting on them.
 
-## Where the backend sits in the 9-layer architecture
+---
 
-The team's canonical SIH26069 system diagram has nine layers. **Seven of them are backend
-territory** (layers 2–8); layer 1 is external sources plus the frontend's citizen PWA, and
-layer 9 is the frontend's command center. Status verified against code, not intent.
-
-Legend: ✅ built · 🟡 partial · ⬜ designed, not built · ⬛ not backend's layer
+## The one path that matters
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ 1. DATA SOURCES                                          🟡 2 of 6  ⬛/✅ │
-│    ✅ Citizen reports  ⬜ IMD/Govt APIs  🟡 Weather APIs (Open-Meteo)     │
-│    ⬜ Social media     🟡 Public datasets  🟡 Images/Videos               │
-│    → ingest endpoint + per-event Open-Meteo fetch; nothing polled        │
-└────────────────────────────────┬────────────────────────────────────────┘
-┌────────────────────────────────▼────────────────────────────────────────┐
-│ 2. DATA INGESTION                                        ✅ complete     │
-│    ✅ REST API/Webhooks  ✅ Kafka/Redpanda  ✅ Batch  ✅ Stream          │
-│    → api/reports.py (producer) + workers/report_consumer.py (consumer)   │
-└────────────────────────────────┬────────────────────────────────────────┘
-┌────────────────────────────────▼────────────────────────────────────────┐
-│ 3. DATA PROCESSING LAYER                                 🟡 3 of 6       │
-│    ✅ Deduplication  ✅ Normalization (out-of-India → 422)  🟡 Geocoding │
-│    ⬜ Cleaning  ⬜ Timestamp processing  ⬜ Metadata extraction           │
-│    → services/dedup.py, geocoding.py, credibility.py                    │
-└───────────────┬────────────────────────────────┬────────────────────────┘
-┌───────────────▼──────────────┐ ┌───────────────▼────────────────────────┐
-│ 4. AI / ML LAYER   ⬜ 1 of 6 │ │ 5. GEO-ANALYTICS        ✅ mostly      │
-│    ✅ Duplicate matching     │ │    ✅ Location mapping                  │
-│    ⬜ NLP classifier         │ │    ✅ Spatial clustering                │
-│    ⬜ Event detection        │ │    🟡 Heatmaps (H3 stored, unread)      │
-│    ⬜ Fake detection         │ │    🟡 Event boundaries (polygon unused) │
-│    ⬜ Image analysis (offline)│ │    ⬜ Risk zones                        │
-│    ⬜ Anomaly det. (offline) │ │    🟡 Time-space trends                 │
-│    → MiniLM, dedup only      │ │    → services/geo_clustering.py         │
-└───────────────┬──────────────┘ └───────────────┬────────────────────────┘
-┌───────────────▼────────────────────────────────▼────────────────────────┐
-│ 6. EVENT FUSION ENGINE                                   ✅ the spine    │
-│    ✅ Correlate observations  ✅ Merge duplicates  ✅ Build event        │
-│    ✅ Calculate confidence (4 measured, 2 offline, deterministic)        │
-│    🟡 Determine severity (from report count, not content)               │
-│    ✅ Human decisions survive merges (Day 3)                             │
-│    → services/pipeline.py + fusion_engine.py + weather.py               │
-└────────────────────────────────┬────────────────────────────────────────┘
-┌────────────────────────────────▼────────────────────────────────────────┐
-│ 7. DATA PLATFORM                                         🟡 2 of 4       │
-│    ✅ PostgreSQL + PostGIS (+ SHA-256 audit chain, Day 3)                │
-│    🟡 Redis (running, zero client code)                                 │
-│    ⬜ Object Storage S3/MinIO  🟡 Historical datasets                    │
-└───────────────┬────────────────────────────────┬────────────────────────┘
-┌───────────────▼──────────────┐ ┌───────────────▼────────────────────────┐
-│ 8a. REAL-TIME API ✅ complete│ │ 8b. ALERT ENGINE          ⬜ absent    │
-│    ✅ FastAPI ✅ WS ✅ REST  │ │    ⬜ Critical events                   │
-│    ✅ review + provenance    │ │    ⬜ SMS/Email  ⬜ Dashboard alerts     │
-│    ⚠ only those 2 are gated  │ │                                         │
-└───────────────┬──────────────┘ └───────────────┬────────────────────────┘
-┌───────────────▼────────────────────────────────▼────────────────────────┐
-│ 9. IMD COMMAND CENTER                                    ⬛ frontend      │
-│    Next.js dashboard — not backend's to edit. Note every fetch falls     │
-│    back to mock data, so a complete-looking UI proves nothing about us.  │
-└─────────────────────────────────────────────────────────────────────────┘
+POST /api/reports/submit
+   │  validate (India bounds, 5–2000 chars)  ─── outside → 422, nothing stored
+   │  geocode, H3 res-8 cell, credibility score, rule-based analysis
+   │  INSERT raw_reports  ─── failed → 503, nothing published
+   ▼
+indra.raw.reports  (Redpanda)
+   │
+   ▼  workers/report_consumer.py
+   │  broadcast NEW_REPORT once per report id (Redis-backed, survives restart)
+   ▼  services/pipeline.py :: process_report
+   │
+   ├─ 1. dedup            MiniLM cosine ≥ 0.88 AND ≤ 1 km AND ≤ 15 min
+   │                      a duplicate is marked duplicate_of and stops here
+   ├─ 2. cluster          PostGIS ST_ClusterDBSCAN, eps 5 km, min 2 samples
+   ├─ 3. stats            centroid, radius, max pairwise distance, in metres
+   ├─ 4. weather          station_readings within 3 h and 25 km  ─── miss → live Open-Meteo
+   ├─ 5. score            6-factor receipt, re-normalised over the factors that reported
+   ├─ 6. severity         max(depth axis, corroboration axis), from the report texts
+   └─ 7. persist          ONE transaction: event + boundary polygon + report links + audit row
+   │
+   ├──► WebSocket  VERIFIED_EVENT
+   └──► indra.verified.events
 ```
 
-**What this means for the sprint.** The backend's spine — layers 2, 5, 6, 8a — is built, and
-after Days 2 and 3 it is also honest (no random factors) and accountable (hash-chained audit,
-human review, RBAC on the new endpoints). What remains: layer 4 (AI/ML) is a deliberate
-deferral, layer 8b (alerting) does not exist, the duplicate-absorption bug and `/healthz` are
-Day 4, and gating the endpoints the dashboard already calls waits on a frontend login flow.
+Everything on that line is live and covered by the test suite. Everything off it — classification,
+vision, anomaly detection, alerting — is not, and is not coming.
+
+---
 
 ## Module map
 
 ```
 backend/app/
-├── main.py                FastAPI entrypoint. CORS (allow_origins=["*"] — fine for hackathon, tighten before real deploy).
-│                            Lifespan: init_db() (non-fatal on failure) + starts report_consumer as background task.
-│                            Exposes: GET /, GET /legacy, GET /api/info, GET /api/scenario,
-│                            POST /api/demo/trigger, GET /healthz, WS /ws/events.
+├── main.py              FastAPI entrypoint. Explicit CORS origin list (not "*").
+│                        Lifespan starts, and cleanly stops, three background tasks:
+│                          · the Kafka report consumer
+│                          · the embedding-model warm-up (off the event loop)
+│                          · the Open-Meteo station poller
+│                        Serves GET /, /api/info, /healthz, WS /ws/events.
 ├── core/
-│   ├── config.py            pydantic-settings — reads .env (DATABASE_URL, KAFKA_*, DBSCAN_*, H3_HEX_RESOLUTION, thresholds).
-│   ├── database.py           async SQLAlchemy engine + get_db() dependency + init_db().
-│   ├── demo.py              Day 2: demo_fallback() — demo data only when DEMO_MODE=true; else [] / 404 / 503.
-│   └── security.py            bcrypt hash/verify, HS256 JWT create/verify (8h expiry, claims {sub, role, agency,
-│                              iat, exp}), get_current_operator(), require_roles(*roles), 4 demo users.
-│                              Day 3: guards the review and provenance endpoints; ROLES derived from OperatorRole.
-├── api/                     one router per domain, all prefixed /api/<domain>, all imported via api/__init__.py
-│   ├── dashboard.py           prefix /api/dashboard — GET /summary
-│   ├── events.py               prefix /api/events   — GET "", GET /distribution, GET /{event_id},
-│   │                             PATCH /{event_id}/review (Day 3), GET /{event_id}/provenance (Day 3)
-│   ├── reports.py               prefix /api/reports  — GET /trend, POST /submit
-│   ├── feed.py                    prefix /api/feed     — GET /recent
-│   ├── auth.py                     prefix /api/auth     — POST /token
-│   ├── teams.py                     prefix /api/teams    — GET "", GET /hackathon/sixth-sense, GET /{team_id}, POST "", PATCH /{team_id}/assign
-│   └── profile.py                    prefix /api/profile  — GET /me, PATCH /me, GET /activity, GET /operators, GET /preferences, PATCH /preferences
-├── models/                  SQLAlchemy ORM, one file per table + enums.py for every controlled vocabulary
-│   ├── raw_reports.py
-│   ├── verified_events.py
-│   ├── station_readings.py
-│   ├── teams.py
-│   ├── profiles.py
-│   ├── audit_logs.py
-│   └── enums.py               SourceType, EventType, Severity, ReviewStatus, Quadrant, Agency, AuditAction,
-│                                TeamStatus, TeamAgency, DutyStatus, OperatorRole
-├── services/                business logic — see below, this is where the actual "intelligence" lives (or should)
-│   ├── fusion_engine.py       compute_receipt / assign_quadrant / determine_review_status + SOURCE_RELIABILITY
-│   │                          table. generate_heuristic_scores() deleted Day 2 — no randomness left.
-│   ├── weather.py             Day 2: Open-Meteo 24 h rainfall → IMD categories, cached per H3 cell; failure → None.
-│   ├── credibility.py         Day 2: per-report credibility = source prior × text quality.
-│   ├── audit.py               Day 3: append-only SHA-256 chain — record(), verify_rows(), verify_chain().
-│   ├── dedup.py               is_duplicate(new_text, lat, lng, time, existing[]) — AND of three gates.
-│   ├── geo_clustering.py      cluster_unassigned_reports() / get_cluster_stats() /
-│   │                          assign_reports_to_event() / assign_h3_cells() / update_geom_points().
-│   ├── geocoding.py           sanitize_coordinates() — validates lat/lng, raises OutOfIndiaBoundsError (→ 422), fixes swaps, resolves city/state
-│   └── pipeline.py            process_report(db, report): dedup → cluster → stats → score_cluster() (pure,
-│                              deterministic) → persist + audit row in one transaction → return event.
-└── workers/
-    └── report_consumer.py     background aiokafka consumer — calls process_report() per message
-                               and broadcasts VERIFIED_EVENT (T11)
+│   ├── config.py        pydantic-settings, reads the REPO-ROOT .env (not backend/.env).
+│   │                    Every threshold lives here: dedup gates, DBSCAN, H3 resolution,
+│   │                    review thresholds, poller interval and freshness gates, DEMO_MODE.
+│   ├── database.py      async SQLAlchemy engine, get_db() dependency, init_db().
+│   ├── security.py      bcrypt + HS256 JWT (8 h), get_current_operator, require_roles().
+│   └── demo.py          demo_fallback() — the single gate every demo response goes through.
+├── api/                 one router per domain, each prefixed /api/<domain>
+│   ├── dashboard.py     GET /summary
+│   ├── events.py        GET "", /distribution, /{id}, PATCH /{id}/review, GET /{id}/provenance
+│   ├── reports.py       GET /trend, POST /submit
+│   ├── feed.py          GET /recent
+│   ├── geo.py           GET /heatmap
+│   ├── auth.py          POST /token
+│   ├── teams.py         team records
+│   └── profile.py       operator records
+├── models/              SQLAlchemy ORM, one file per table, plus enums.py for every
+│                        controlled vocabulary (SourceType, Severity, ReviewStatus,
+│                        Quadrant, Agency, AuditAction, OperatorRole, …)
+├── services/            where the intelligence lives
+│   ├── pipeline.py      the orchestrator above. Fails soft: one bad report cannot
+│   │                    kill the consumer loop.
+│   ├── fusion_engine.py compute_receipt / assign_quadrant / determine_review_status.
+│   ├── dedup.py         the three-gate AND. MiniLM encode runs in a thread.
+│   ├── geo_clustering.py DBSCAN, H3 assignment, cluster stats, report→event linking.
+│   ├── geocoding.py     coordinate sanitising against India's bounds, 56-city gazetteer.
+│   ├── credibility.py   source prior × text quality, per report.
+│   ├── text_processing.py cleaning, language detection, depth and place extraction.
+│   │                    Regex and dictionaries. No model.
+│   ├── weather.py       Open-Meteo 24 h accumulation → IMD daily-category curve.
+│   ├── cache.py         Redis, with an in-memory fallback. Never load-bearing.
+│   ├── audit.py         the SHA-256 hash chain.
+│   ├── event_publisher.py verified events → indra.verified.events
+│   └── health.py        the four real dependency checks behind /healthz.
+├── workers/
+│   ├── report_consumer.py  aiokafka consumer driving the pipeline.
+│   └── station_poller.py   the scheduled Open-Meteo feed into station_readings.
+└── ml/                  FROZEN. event_classifier.py is trained, measured below its
+                         acceptance gate, and returns None. Out of scope since 20 Sep.
 ```
 
-**`geo_clustering.py` — resolved 16 Sep (T9).** The problem was that `cluster_unassigned_reports()` ran the
-`ST_ClusterDBSCAN` query, grouped report IDs per cluster, logged each one, and returned a bare `int`: it
-**never wrote `event_id` back to `raw_reports`** and never handed the cluster→report mapping to its caller,
-so both the name and its `"reports assigned"` log line overstated what it did. It now returns
-`[{cluster_id, report_ids, size}]`, and two methods were added alongside it — `get_cluster_stats()`
-(centroid, radius, max pairwise distance, computed in `geography`/metres, which is what Day 2 needs for the
-real `spatial_coherence` and `report_density` factors) and an explicit `assign_reports_to_event()` that does
-the write. Clustering still only considers `event_id IS NULL`, which is what makes reprocessing idempotent.
+---
 
-**Still open on that file:** the eps conversion `eps_km * 0.009` is degrees-at-equator and is off by roughly
-10% at Patna's latitude. Switching the clustering itself to a `geography`-based distance is Day 5 polish;
-the *stats* already use `geography`, so the numbers feeding the confidence score are not affected.
+## The scoring model, precisely
 
-## Request flow as it exists today (verified by reading the code)
+Six factors, fixed weights:
 
-```
-POST /api/reports/submit
-   │
-   ├─ ReportSubmission pydantic model validates lat/lng + text length (5–2000 chars)
-   ├─ geocoding.sanitize_coordinates() — out-of-India → 422, nothing stored or published (Day 2)
-   ├─ h3.latlng_to_cell() computes H3 cell
-   ├─ credibility.compute_credibility() computes credibility_score (Day 2; was hardcoded 0.5)
-   ├─ INSERT INTO raw_reports
-   ├─ Kafka producer sends the stored row (valid coords, raw_text, h3_res8, credibility) to indra.raw.reports
-   └─ returns 202 {id, status: "accepted"}   ⚠ still 202 if the insert failed — Day 4
-```
-
-## Request flow through the pipeline
+| Factor | Weight | State |
+|---|---|---|
+| Weather Station Corroboration | 0.25 | online |
+| Report Density Analysis | 0.20 | online |
+| Spatial Coherence Score | 0.20 | online |
+| Computer Vision Analysis | 0.15 | **permanently offline** |
+| Source Reliability Index | 0.15 | online |
+| Anomaly Detection Signal | 0.05 | **permanently offline** |
 
 ```
-Kafka topic indra.raw.reports
-   │
-   └─ report_consumer.py broadcasts NEW_REPORT → opens an AsyncSession → pipeline.process_report(db, report)
-        │
-        ├─ 1. SELECT recent nearby reports (ST_DWithin 1km, created_at > now()-15min)
-        ├─ 2. DedupService.is_duplicate(...)  ──► duplicate? log, return None
-        │       ⚠ the duplicate stays event_id NULL and can be absorbed later — Day 4 fix
-        ├─ 3. update_geom_points() + assign_h3_cells()
-        ├─ 4. cluster_unassigned_reports() → the cluster containing this report (lone report → None)
-        ├─ 5. get_cluster_stats(report_ids) → count, centroid, radius_km, max_pairwise_km
-        ├─ 6. weather_score() (Open-Meteo, cached, ≤3 s) → score_cluster(): 4 measured factors, 2 offline
-        ├─ 7. overlapping recent event?  merge: lock it FOR UPDATE, keep HUMAN_APPROVED / severity override
-        │                                 new:   INSERT INTO verified_events
-        ├─ 8. assign_reports_to_event(commit=False) + audit.record() on create / status change
-        ├─ 9. COMMIT once (links + event + audit row), or roll back all of it
-        └─ 10. return the event dict → consumer broadcasts VERIFIED_EVENT over /ws/events
-
-PATCH /api/events/{id}/review   (COMMANDER/ADMIN)
-   └─ lock event → validate transition (409 if illegal) → HUMAN_APPROVED / REJECTED / severity override
-      → audit.record(HUMAN_APPROVE | HUMAN_REJECT | MANUAL_OVERRIDE) → COMMIT → broadcast EVENT_REVIEWED
+online          = { f : score(f) is not None }
+total_weighted  = Σ_online  w_f · s_f
+factor_coverage = Σ_online  w_f                    → 0.80 today
+confidence      = total_weighted / factor_coverage
 ```
 
-The whole of `process_report` is wrapped in try/except following the codebase's fail-soft convention —
-a pipeline crash must never kill the consumer loop.
+An offline factor **lowers the stated coverage** rather than silently scoring zero. Before this
+change two permanently-offline factors held 20% of the scale hostage and `AUTO_PUBLISHED` (≥ 0.90)
+was mathematically unreachable — a broken scale, not honesty. The receipt publishes
+`factor_coverage` beside the score so the number is both usable and truthful. **Never quote one
+without the other.**
 
-**Frontend handover notes (do not implement):** `VERIFIED_EVENT` (Day 1) is shaped like
-`GET /api/events/{id}`. Day 3 adds `EVENT_REVIEWED`, the `HUMAN_APPROVED` review status, and the two
-auth-gated endpoints — full shapes in the Day 3 handover note. Existing message types are unchanged.
+Gates: `≥ 0.90` → `AUTO_PUBLISHED` · `≥ 0.60` → `PENDING_HUMAN_REVIEW` · else `QUARANTINED`.
 
-## Query endpoints — read paths
+**The curves are published, not tuned for a demo.** Rainfall is scored against IMD's own daily
+rainfall categories (0 → 0.00, 2.5 → 0.10, 15.6 → 0.35, 64.5 → 0.70, 115.6 → 0.90, 204.5+ → 1.00).
+Density saturates at 25 reports. Coherence is a raised cosine over twice the DBSCAN epsilon. The
+reasoning for each is in the docstring beside it.
 
-- `GET /api/dashboard/summary` — KPI numbers for the dashboard cards (total reports, verified events, critical events, citizen reports + deltas).
-- `GET /api/events`, `GET /api/events/{event_id}`, `GET /api/events/distribution` — verified events list/detail/aggregation. 481 lines total in `events.py` — this is the biggest router, worth a dedicated read before changing event-related behavior.
-- `GET /api/reports/trend?range=7d|14d|30d` — daily report counts; has a raw-SQL query with a hardcoded `DEMO_TREND` fallback if the query fails (good pattern to reuse elsewhere — fail soft, log a warning, return demo data).
-- `GET /api/feed/recent` — live feed items.
-- `GET /api/teams`, `/api/teams/{team_id}`, `/api/teams/hackathon/sixth-sense` — team roster/detail.
-- `GET /api/profile/me`, `/activity`, `/operators`, `/preferences` — operator profile data.
+### Severity is read, not counted
 
-## Auth — verified 16 Sep (Day 3)
+`max()` of two axes over the **non-duplicate** reports, taking the higher:
 
-`POST /api/auth/token` takes an OAuth2 password form, checks the password with bcrypt against
-`DEMO_USERS`, and returns an HS256 JWT with `{sub, role, agency, iat, exp}` and an 8-hour expiry. `401` on
-bad credentials.
+| Axis | Rule |
+|---|---|
+| Depth (deepest quoted in any report) | ≥ 120 cm CRITICAL · ≥ 60 HIGH · ≥ 20 MODERATE · else ADVISORY |
+| Corroboration (report count) | ≥ 10 HIGH · ≥ 5 MODERATE · else ADVISORY |
 
-Demo users: `admin`/`admin123` (ADMIN, NDMA), `commander`/`commander123` (COMMANDER, SDMA_BIHAR),
-`analyst`/`analyst123` (ANALYST, IMD), `citizen`/`citizen123` (CITIZEN, PUBLIC).
+The count axis **never reaches CRITICAL**: a count is evidence that something is happening, not of
+how bad it is. The depth cuts are operational — 20 cm stops a two-wheeler, 60 cm floats a small
+car, 120 cm turns wading into a rescue — and are numbers a nodal officer can argue with, which is
+the point. The receipt names the winning axis and the phrase it read.
 
-**Enforced since Day 3, on two endpoints only:**
+---
 
-| Endpoint | Allowed roles | No / expired / bad token | Wrong role |
-|---|---|---|---|
-| `PATCH /api/events/{id}/review` | COMMANDER, ADMIN | 401 | 403 |
-| `GET /api/events/{id}/provenance` | ANALYST, COMMANDER, ADMIN | 401 | 403 |
+## The data platform
 
-Pinned by a 7-token × 3-case test matrix. A missing token on an unknown id returns 401, not 404, so ids
-can't be probed anonymously. `ROLES` is now derived from `OperatorRole` (5 roles, incl. `FIELD_RESPONDER`).
+| Store | What it holds | What happens without it |
+|---|---|---|
+| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `audit_logs`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
+| **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit returns 202 `queued: false`, `/healthz` 503. **Critical** |
+| **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s) and the broadcast-dedup set (`bcast:{id}`, TTL 24 h) | both fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
+| **Object storage** | nothing — configured in `.env`, not deployed | n/a |
 
-**Everything the dashboard already calls is still open**, because the frontend never requests a token.
-Gating the mutations (`POST /api/teams`, `PATCH /api/teams/{id}/assign`, `PATCH /api/profile/*`) is
-proposed in the Day 3 handover and waits on a dashboard login flow.
+Six migrations, `0001` … `0006`. `audit_logs` carries a row-level trigger rejecting `UPDATE` and
+`DELETE`.
 
-## Config surface (`core/config.py` / `.env`)
+### The audit chain
 
-Thresholds and tunables that affect backend behavior directly:
+One global chain ordered by `seq`:
+`sha256(canonical_json{prev_hash, event_id, operator_id, action, reason, details, logged_at})`,
+genesis `"0"*64`. Appended under `pg_advisory_xact_lock` inside the caller's transaction, so
+twenty concurrent writers cannot fork it. The pipeline writes `AUTO_VERIFY` / `ESCALATE` /
+`QUARANTINE` on create and on a status-changing merge — **not per report**, so the ledger records
+decisions rather than traffic. A reviewer writes `HUMAN_APPROVE` / `HUMAN_REJECT` /
+`MANUAL_OVERRIDE`.
 
-- `AUTO_PUBLISH_THRESHOLD=0.90`, `HUMAN_REVIEW_THRESHOLD=0.70` — used by `fusion_engine.determine_review_status()`. With vision/anomaly offline the max confidence is 0.80, so auto-publish is currently unreachable.
-- `DEMO_MODE` (Day 2) — gates every demo fallback. `.env` has `true`.
-- `SNAP_OUT_OF_BOUNDS_COORDINATES` (Day 2, default `false`) — old snapping behaviour behind an explicit flag.
-- `OPEN_METEO_API_URL`, `WEATHER_TIMEOUT_SECONDS=3.0` (Day 2) — weather factor.
-- **Fixed Day 2:** `.env` is actually read now (`env_file` is anchored to `config.py`, not the working directory).
-- `DBSCAN_EPS_KM=5.0`, `DBSCAN_MIN_SAMPLES=2` — used by `geo_clustering.cluster_unassigned_reports()`. Note: `status.md`'s dedup constants (`GPS_DELTA_KM=1.0`, `TIME_DELTA_MINUTES=15`) are hardcoded in `dedup.py` itself, not read from settings — inconsistent with how the clustering service reads its constants from `get_settings()`. Worth aligning if touching either file.
-- `H3_HEX_RESOLUTION=8` — used in both `geo_clustering.py` and `reports.py`'s inline H3 call.
-- `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_REPORTS_TOPIC`, `KAFKA_EVENTS_TOPIC` — note `KAFKA_EVENTS_TOPIC` is defined in `.env.example` but I have not yet found any code that produces to it; only `KAFKA_REPORTS_TOPIC` is used (in `reports.py` producer and `report_consumer.py`'s consumer).
+> **Honest limit:** editing, deleting or reordering a row is detected at that row. Rows cut off
+> the **end**, or a `TRUNCATE`, leave a valid chain. Detecting that needs an external anchor for
+> the head hash, which is not built.
 
-## Competition readiness — what has to change to actually win SIH
+---
 
-Everything above describes what the code *is*. This section is about closing the gap to what it needs to *become* to survive judging, not just look good in a README. SIH judges generally score on: does the prototype visibly work live, is the technical depth real (not just claimed), is the novelty explainable, and does it hold up if someone pokes at it. Mapped onto this specific backend, in priority order:
+## Background tasks, and why each is safe
 
-### Non-negotiable before demo day — these are what make the pitch *true*
+| Task | Started | Failure behaviour |
+|---|---|---|
+| Kafka report consumer | lifespan | Retries with backoff; logs the broker being offline once, not per attempt |
+| Embedding warm-up | lifespan, in a thread | Non-fatal. Without it the first report blocked the **entire** event loop for ~13 s — the API stopped answering, not just that report |
+| Station poller | lifespan, if `STATION_POLLER_ENABLED` | Every tick wrapped; a failure logs one WARNING and the next tick retries |
 
-1. ~~**Wire the real pipeline**~~ ✅ **DONE — Day 1, 16 Sep.** A live-submitted report now flows
-   `POST /api/reports/submit` → Kafka → `DedupService` → `GeoClusteringService` → `FusionEngine`
-   → a persisted `verified_events` row → `VERIFIED_EVENT` over `/ws/events`, covered end-to-end
-   by tests. The pitch — "we turn many noisy reports into one verified event" — is now
-   demonstrable in the live code path rather than only in `data/samples/patna_flood_scenario.json`.
-   **This was the single highest-risk gap and it is closed.** It is merged to `main`.
-2. ~~**Replace at least 2 of the 6 fusion factors with real computed signals**~~ ✅ **DONE — Day 2.** 4 factors measured (incl. live Open-Meteo), 2 explicitly offline, credibility computed, determinism tested. Original note:, not `random.uniform(...)`. The cheapest wins: `report_density` from the actual count of deduplicated reports in a cluster, and `spatial_coherence` from the actual DBSCAN cluster tightness — both are already computed as byproducts of `geo_clustering.py`, so this is wiring, not new modeling. Also replace the hardcoded `credibility_score = 0.5` in `reports.py`'s insert. If a judge reads `fusion_engine.py` (or asks "how is this score computed") and finds it's random, the core technical claim of the project — an explainable, evidence-based confidence score — is disproven in front of them.
-3. ~~**Make `audit_logs` actually get written to**~~ ✅ **DONE — Day 3.** SHA-256 hash chain written by the pipeline and the review endpoint. Original note:, for at least one transition (e.g. every `review_status` change). Right now the table exists but has zero writers anywhere in the codebase. "Unalterable audit trail" and "provenance chain" are repeated selling points in the README and `understand.md` — if a judge opens the database and the table is empty, that claim is provably false, which is worse for credibility than never having mentioned an audit trail at all.
-4. ~~**Add the missing human-review endpoint**~~ ✅ **DONE — Day 3.** `PATCH /api/events/{id}/review` + `GET /api/events/{id}/provenance`. Original note: (see `api-requirements.md` gap #1 — something like `PATCH /api/events/{event_id}/review`). The 2×2 confidence/severity matrix is the project's headline idea, but right now it's a read-only label with no action behind it. Judges respond well to seeing the "high severity, low confidence → flagged for human review → operator overrides/confirms" story actually work live, not just described in a slide.
-5. **Keep `/api/demo/trigger` as an explicit, clearly-separate fallback**, and be ready to explain the distinction if asked. Once #1 works, the canned scenario becomes a legitimate "what if the network drops" failsafe (which the project's own docs correctly argue for) instead of being, as it is today, the *only* thing that actually produces a verified event.
+All three are cancelled and **awaited** at shutdown, which is what keeps
+`Task was destroyed but it is pending!` out of the logs.
 
-### Strong differentiators if time remains after the above
+> **One backend process.** WebSocket fan-out is an in-process list, the poller has no leader
+> election, and two consumers on one broker re-deliver reports. This is a deliberate limit for a
+> demo stack, recorded as BUG-011, not an accident.
 
-6. **Make `/healthz` check something real** (DB ping, Redis ping, reuse `report_consumer.py`'s existing `check_kafka_connection()` for Kafka) instead of returning hardcoded `"connected"` strings. Cheap, and defuses "is this actually running right now" questions during a live demo.
-7. **Produce to `KAFKA_EVENTS_TOPIC`** once real verified events exist, so the documented data flow (Kafka in *and* out) is actually demonstrable, not just half-true.
-8. ~~**Verify auth actually gates the new review endpoint**~~ ✅ **DONE — Day 3** (7×3 test matrix). Original note: before demo day — an unauthenticated "approve/override a disaster event" endpoint is a bad look for a system whose whole pitch is trustworthiness, and it's an easy thing for a technical judge to probe.
+---
 
-### What NOT to spend remaining time on
+## Configuration
 
-9. Full NLP/CV models, ClickHouse/Iceberg, Kubernetes, MinIO/S3 — all correctly deferred already per the project's own phased plan. Resist scope-creep into "let's add real ML" before #1–#4 above are done; a wired pipeline with honest heuristic scores and a real audit trail beats an unwired pipeline with one impressive but disconnected ML model. Judges reward a working end-to-end slice over an isolated impressive component.
+Everything tunable is in `core/config.py`, read from the **repo-root `.env`**. A `backend/.env`,
+if one exists, wins — which has bitten this project before.
+
+The settings worth knowing: `DEMO_MODE` (default **false**, and it must stay false for a demo),
+`DEDUP_COSINE_THRESHOLD` (0.88), `DBSCAN_EPS_KM` (5.0), `DBSCAN_MIN_SAMPLES` (2),
+`H3_HEX_RESOLUTION` (8), `AUTO_PUBLISH_THRESHOLD` (0.90), `HUMAN_REVIEW_THRESHOLD` (0.60),
+`STATION_POLLER_ENABLED`, `STATION_READING_MAX_AGE_MINUTES` (180),
+`SNAP_OUT_OF_BOUNDS_COORDINATES` (false — true lets junk reports cluster at India's centroid),
+`CORS_ORIGINS`.
+
+---
+
+## Testing
+
+```bash
+cd backend
+.venv/bin/pytest -q                                   # 568 passed, 2 skipped
+.venv/bin/pytest -q -m "not integration"              # no Docker needed
+.venv/bin/pytest -q -m "not integration and not network"   # fully offline
+```
+
+The suite runs against its own **`indra_test`** database and cannot touch dev data. Integration
+tests carry `@pytest.mark.integration`; anything hitting the network carries `network`.
+
+**The suite is necessary and not sufficient.** Every one of the most serious defects found in this
+project was invisible to a green suite and was caught by running the thing end to end from an
+empty volume, or by disbelieving a number that looked too good. Two examples, both in
+[`bug-register.md`](bug-register.md): an empty database answering with a fabricated
+`0.94 / AUTO_PUBLISHED` event that 518 passing tests could not see, and a station poller storing
+one hour of rain where the score curve expected a day of it. **Rehearse from cold, and probe every
+number that flatters you.**
