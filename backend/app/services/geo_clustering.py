@@ -27,7 +27,9 @@ class GeoClusteringService:
 
     async def cluster_unassigned_reports(self) -> List[Dict[str, Any]]:
         """
-        Run ST_ClusterDBSCAN over raw_reports WHERE event_id IS NULL.
+        Run ST_ClusterDBSCAN over raw_reports WHERE event_id IS NULL AND
+        duplicate_of IS NULL. A suppressed duplicate is never clustered, so it
+        can never be counted as corroboration.
 
         Returns the cluster → report mapping so the caller can act on it:
             [{"cluster_id": int, "report_ids": [UUID, ...], "size": int}, ...]
@@ -58,6 +60,7 @@ class GeoClusteringService:
                         OVER () AS cluster_id
                 FROM raw_reports
                 WHERE event_id IS NULL
+                  AND duplicate_of IS NULL
                   AND geom_point IS NOT NULL
             )
             SELECT cluster_id, array_agg(id) as report_ids

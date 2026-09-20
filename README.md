@@ -135,23 +135,25 @@ two separate: the design is the ambition, this is the state. The full per-layer 
 in [`docs/ARCHITECTURE.md` §0](docs/ARCHITECTURE.md).
 
 > **Branch caveat:** Day 1 is on `main`. Day 2 (PR #14) and Day 3 (PR #15) are open and not yet
-> merged, so the Day 2/Day 3 rows below describe branch `aditya_18sep` until they land.
+> merged, and Day 4 session A is on branch `aditya_19sep`, so the Day 2–4 rows below describe
+> that branch until they land.
 
 **Backend sprint (16–20 Sep):** Day 1 ✅ wire the pipeline · Day 2 ✅ real scoring signals ·
-Day 3 ✅ audit chain, human review, RBAC · Day 4 ⬜ ops honesty · Day 5 ⬜ hardening & rehearsal
+Day 3 ✅ audit chain, human review, RBAC · Day 4 🟡 session A ✅ correctness + measured classifier,
+B/C ⬜ content scoring, alerts · Day 5 ⬜ hardening & rehearsal
 
 Legend: ✅ built · 🟡 partial · ⬜ designed, not built
 
 | # | Architecture Layer | Status | Reality |
 | :-: | :--- | :-: | :--- |
 | 1 | **Data Sources** | 🟡 2/6 | Citizen reports are live, and **Open-Meteo rainfall is fetched per event** for the weather factor (Day 2). Nothing is polled on a schedule; the IMD / OpenWeather / Twitter keys are unread. |
-| 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming + batch seeding. The Kafka message now matches the stored row. |
-| 3 | **Data Processing** | 🟡 3/6 | Deduplication, coordinate validation (**out-of-India → 422, never stored**) and gazetteer geocoding are real; each report gets a computed credibility score. Cleaning, timestamp processing and metadata extraction are not implemented. |
-| 4 | **AI / ML Layer** | ⬜ 1/6 | Sentence-Transformers runs, **for duplicate matching only**. No NLP classifier, no PyTorch/OpenCV vision, no anomaly detection — the last two are **explicitly "offline"** in every receipt. |
+| 2 | **Data Ingestion** | 🟡 | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and re-delivered messages are not re-broadcast. **Batch ingestion is only a synthetic seed script** (marked synthetic, refuses to run without `--synthetic`). |
+| 3 | **Data Processing** | 🟡 3/6 | Deduplication (a suppressed duplicate is marked and **never counted as corroboration**), coordinate validation (**out-of-India → 422, never stored**) and gazetteer geocoding are real; each report gets a computed credibility score. Cleaning, timestamp processing and metadata extraction are not implemented. |
+| 4 | **AI / ML Layer** | 🟡 1/6 | Sentence-Transformers runs for duplicate matching. An event-type text classifier (MiniLM + logistic regression) is **trained and measured on a synthetic labelled set but below its acceptance gate, so it is offline and not wired** (test macro-F1 0.787; NOT_RELEVANT recall 0.667 and 5/72 floods dismissed fail the gate; `backend/app/ml/artifacts/event_classifier_v1.metrics.json`). No PyTorch/OpenCV vision, no anomaly detection — both **explicitly "offline"** in every receipt. |
 | 5 | **Geo-Analytics** | ✅ | PostGIS `ST_ClusterDBSCAN` clustering and Uber H3 res-8 indexing are real. Heatmaps and risk zones are not built. |
 | 6 | **Event Fusion Engine** | ✅ | Correlation, duplicate merging, scoring and event construction run end-to-end. **No randomness: 4 of 6 factors are measured, 2 are labelled offline**, and scoring is proven deterministic. Human decisions survive later merges. |
 | 7 | **Data Platform** | 🟡 | PostgreSQL + PostGIS fully real, and **`audit_logs` is a working SHA-256 hash chain** (Day 3). Redis runs but **no code connects to it**. Object storage is configured but not deployed. |
-| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. **Day 3:** `PATCH /api/events/{id}/review` and `GET /api/events/{id}/provenance`, both **auth-enforced**; new `EVENT_REVIEWED` message. Endpoints the dashboard already calls remain unauthenticated. |
+| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo for real (503 if a critical one is down). **Day 3:** `PATCH /api/events/{id}/review` and `GET /api/events/{id}/provenance`, both **auth-enforced**; new `EVENT_REVIEWED` message. Endpoints the dashboard already calls remain unauthenticated. |
 | 8b | **Alert Engine** | ⬜ | **Not implemented.** No SMS, email, or dispatch integration exists. |
 | 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is built; it does not yet call the review/provenance endpoints, and risk zones and critical alerts have no backend behind them. |
 
@@ -159,8 +161,7 @@ Legend: ✅ built · 🟡 partial · ⬜ designed, not built
 Kafka → dedup → spatial clustering → deterministic confidence scoring (with live Open-Meteo
 rainfall) → a persisted event and a hash-chained audit row → live WebSocket push, and a
 commander can approve it through an auth-gated review endpoint*. That path is covered by
-**287 automated tests** (287 passed, 2 skipped, 1 strict xfail pinning a known duplicate-counting
-bug scheduled for Day 4). What is **not** built is most of the perception layer, scheduled
+**326 automated tests** (326 passed, 2 skipped), run against a separate test database. What is **not** built is most of the perception layer, scheduled
 external feed ingestion, and the entire alerting tier. Where a confidence factor has no real
 signal behind it, the Verification Receipt prints `"Telemetry factor offline"` rather than
 inventing a number — **stating that a signal is absent is treated as strictly better than
@@ -215,9 +216,9 @@ the picture and the ledger can never drift apart.
 ```mermaid
 flowchart TD
     L1["<b>1. DATA SOURCES</b><br/>⬜ IMD / Govt APIs · 🟡 Weather APIs · 🟡 Public datasets<br/>⬜ Social media · ✅ Citizen reports · 🟡 Images / Videos"]
-    L2["<b>2. DATA INGESTION</b><br/>✅ REST API / Webhooks · ✅ Kafka / Redpanda<br/>✅ Batch ingestion · ✅ Stream ingestion"]
+    L2["<b>2. DATA INGESTION</b><br/>✅ REST API / Webhooks · ✅ Kafka / Redpanda<br/>🟡 Batch ingestion · ✅ Stream ingestion"]
     L3["<b>3. DATA PROCESSING LAYER</b><br/>⬜ Cleaning · ✅ Normalization · ✅ Deduplication<br/>⬜ Timestamp processing · 🟡 Geocoding · ⬜ Metadata extraction"]
-    L4["<b>4. AI / ML LAYER</b><br/>⬜ NLP classifier · ⬜ Event detection · ⬜ Fake detection<br/>✅ Duplicate matching · ⬜ Image analysis · ⬜ Anomaly detection"]
+    L4["<b>4. AI / ML LAYER</b><br/>🟡 NLP classifier · ⬜ Event detection · ⬜ Fake detection<br/>✅ Duplicate matching · ⬜ Image analysis · ⬜ Anomaly detection"]
     L5["<b>5. GEO-ANALYTICS</b><br/>✅ Location mapping · ✅ Spatial clustering · 🟡 Heatmaps<br/>🟡 Event boundaries · ⬜ Risk zones · 🟡 Time-space trends"]
     L6["<b>6. EVENT FUSION ENGINE</b><br/>✅ Correlate observations · ✅ Merge duplicate reports<br/>✅ Calculate confidence · 🟡 Determine severity · ✅ Build weather event"]
     L7["<b>7. DATA PLATFORM</b><br/>✅ PostgreSQL + PostGIS · 🟡 Redis<br/>⬜ Object Storage (S3/MinIO) · 🟡 Historical datasets"]

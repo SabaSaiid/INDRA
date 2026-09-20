@@ -5,7 +5,7 @@
 # ==============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help dev start bg stop restart status setup infra-up infra-down infra-status doctor demo test logs clean
+.PHONY: help dev start bg stop restart status setup infra-up infra-down infra-status doctor demo test test-integration smoke logs clean
 
 help:
 	@./start.sh help
@@ -49,7 +49,16 @@ doctor:
 demo:
 	@./start.sh demo
 
+# Backend pytest suites. Both run against the `indra_test` database (see
+# backend/tests/conftest.py), never the dev database.
 test:
+	@cd backend && .venv/bin/pytest -q -m "not integration"
+
+test-integration:
+	@cd backend && .venv/bin/pytest -q
+
+# HTTP probes against a running backend (was `make test`).
+smoke:
 	@./start.sh test
 
 logs:

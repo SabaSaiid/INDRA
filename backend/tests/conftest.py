@@ -1,18 +1,93 @@
 """
 Shared pytest fixtures for the INDRA backend suite.
 
-Nothing here needs a database. Tests that do need Postgres/Redpanda must carry
-the `@pytest.mark.integration` marker so `pytest -m "not integration"` stays
-runnable on a machine with no Docker.
+Tests that need Postgres/Redpanda must carry the `@pytest.mark.integration`
+marker so `pytest -m "not integration"` stays runnable on a machine with no
+Docker.
+
+**The suite never touches the dev database.** Integration fixtures truncate
+audit_logs, raw_reports and verified_events, so they run against a separate
+`indra_test` database on the same container. `app.core.database` builds its
+engine at import time from DATABASE_URL, so the override below has to happen
+before *any* `app.` import — including the ones further down this file.
 """
 
+import os
+
+# Must stay above every app import. See the module docstring.
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://indra_user:indra_password@localhost:5433/indra_test",
+)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+
+import asyncio
+import subprocess
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
 
 from app.services.dedup import DedupService, _get_embedding_model
 from app.services.fusion_engine import FusionEngine
+
+
+# ── Test database bootstrap ────────────────────────────────────────────────────
+
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+
+
+async def _ensure_test_database(url: str) -> None:
+    """Create the test database (with PostGIS) if it does not exist yet."""
+    import asyncpg
+    from sqlalchemy.engine import make_url
+
+    u = make_url(url)
+    if not u.database or u.database == "indra_db":
+        raise RuntimeError(f"refusing to use {u.database!r} as the test database")
+
+    conn_args = dict(
+        user=u.username, password=u.password, host=u.host, port=u.port, timeout=5
+    )
+    admin = await asyncpg.connect(database="postgres", **conn_args)
+    try:
+        exists = await admin.fetchval(
+            "SELECT 1 FROM pg_database WHERE datname = $1", u.database
+        )
+        if not exists:
+            await admin.execute(f'CREATE DATABASE "{u.database}"')
+    finally:
+        await admin.close()
+
+    db = await asyncpg.connect(database=u.database, **conn_args)
+    try:
+        await db.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+    finally:
+        await db.close()
+
+
+def pytest_collection_modifyitems(config, items):
+    """
+    Once per session, and only if integration tests were collected: create
+    `indra_test` if absent and migrate it to head. If Postgres is unreachable
+    the integration tests are left to fail on their own, as before.
+    """
+    if not any(item.get_closest_marker("integration") for item in items):
+        return
+    try:
+        asyncio.run(_ensure_test_database(TEST_DATABASE_URL))
+    except (OSError, asyncio.TimeoutError) as e:
+        print(f"\n[conftest] test database unreachable ({e}); integration tests will fail")
+        return
+    subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=_BACKEND_DIR,
+        env={**os.environ, "DATABASE_URL": TEST_DATABASE_URL},
+        check=True,
+        capture_output=True,
+    )
 
 
 # ── Service fixtures (no DB) ───────────────────────────────────────────────────

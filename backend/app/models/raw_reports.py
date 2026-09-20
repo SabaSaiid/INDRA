@@ -40,6 +40,13 @@ class RawReport(Base):
         ForeignKey("verified_events.id", use_alter=True),
         nullable=True,
     )
+    # Set when the pipeline suppresses this report as a duplicate; points at
+    # the original. Such a report is never clustered or counted (migration 0004).
+    duplicate_of = Column(
+        UUID(as_uuid=True),
+        ForeignKey("raw_reports.id"),
+        nullable=True,
+    )
 
     # Constraints
     __table_args__ = (

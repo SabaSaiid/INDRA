@@ -1,0 +1,301 @@
+id,text,lang,event_type,severity,depth_cm,spam,split
+r001,"Water starting to collect at the Rajendra Nagar crossing after an hour of steady rain, still passable",en,URBAN_FLOOD,ADVISORY,,0,train
+r002,"Ankle-deep puddles forming near Boring Road bus stop, drains are slow",en,URBAN_FLOOD,ADVISORY,5,0,train
+r003,Municipal corporation warns of waterlogging in low-lying Kankarbagh lanes if rain continues tonight,en,URBAN_FLOOD,ADVISORY,,0,test
+r004,"Minor water accumulation outside Andheri station subway, traffic moving slowly",en,URBAN_FLOOD,ADVISORY,,0,train
+r005,Storm drain near Sector 14 market is choked and water is backing up onto the footpath,en,URBAN_FLOOD,ADVISORY,,0,train
+r006,"Light waterlogging on Outer Ring Road service lane near Silk Board, two-wheelers slowing down",en,URBAN_FLOOD,ADVISORY,,0,test
+r007,Around 10 cm of water on the road outside Lajpat Nagar metro gate 2,en,URBAN_FLOOD,ADVISORY,10,0,train
+r008,"Some water entering the parking basement of our society in Gachibowli, pumps switched on",en,URBAN_FLOOD,ADVISORY,,0,train
+r009,"Rainwater pooling in front of the Chennai Central taxi stand, no disruption yet",en,URBAN_FLOOD,ADVISORY,,0,test
+r010,"Kankarbagh main road pe thoda paani jama ho raha hai, abhi gaadi chal rahi hai",hinglish,URBAN_FLOOD,ADVISORY,,0,train
+r011,"Hamare mohalle ki naali overflow hone lagi hai, baarish ruki nahi to paani ghar tak aayega",hinglish,URBAN_FLOOD,ADVISORY,,0,test
+r012,"Minto bridge ke neeche paani bharna shuru, traffic police tainat hai",hinglish,URBAN_FLOOD,ADVISORY,,0,train
+r013,"गांधी मैदान के पास सड़क पर पानी जमा होने लगा है, अभी आवाजाही जारी है",hi,URBAN_FLOOD,ADVISORY,,0,train
+r014,"Water level slowly rising in the Hindmata junction dip, BEST buses still running",en,URBAN_FLOOD,ADVISORY,,0,train
+r015,Residents of Velachery asked to move vehicles to higher ground as a precaution against street flooding,en,URBAN_FLOOD,ADVISORY,,0,train
+r016,"Knee-deep water on Boring Road near Patna Women's College, autos refusing to go",en,URBAN_FLOOD,MODERATE,45,0,test
+r017,Kurla underpass closed to traffic after it filled with rainwater,en,URBAN_FLOOD,MODERATE,,0,train
+r018,"About a foot of water inside shops along Ashok Rajpath, shopkeepers moving stock up",en,URBAN_FLOOD,MODERATE,30,0,train
+r019,"Several streets in Madipakkam waterlogged, school buses rerouted",en,URBAN_FLOOD,MODERATE,,0,test
+r020,"Heavy waterlogging at ITO intersection, traffic jam stretching two kilometres",en,URBAN_FLOOD,MODERATE,,0,test
+r021,"Water up to the car doors on Hebbal flyover service road, many vehicles stalled",en,URBAN_FLOOD,MODERATE,40,0,train
+r022,Ground floor flats in our Anna Nagar block have water coming in through the doors,en,URBAN_FLOOD,MODERATE,,0,test
+r023,"Sewage and rainwater overflowing into homes on Station Road, the smell is terrible",en,URBAN_FLOOD,MODERATE,,0,train
+r024,"Ghutno tak paani bhar gaya hai Saket colony mein, bike nikalna mushkil hai",hinglish,URBAN_FLOOD,MODERATE,50,0,train
+r025,"Andheri subway band kar diya, poora paani bhar gaya hai, log ghoom ke ja rahe hain",hinglish,URBAN_FLOOD,MODERATE,,0,train
+r026,"Dukano mein paani ghus gaya Lalbagh market mein, saara maal geela ho gaya",hinglish,URBAN_FLOOD,MODERATE,,0,test
+r027,"पटना के राजेंद्र नगर में घुटने तक पानी भर गया है, ऑटो नहीं चल रहे",hi,URBAN_FLOOD,MODERATE,45,0,train
+r028,सिकंदराबाद के निचले इलाकों में घरों में पानी घुस गया है,hi,URBAN_FLOOD,MODERATE,,0,train
+r029,"Commuters wading through water outside Dadar station, local trains delayed",en,URBAN_FLOOD,MODERATE,,0,test
+r030,Shin to knee high water across the whole of Jawahar Nagar main road this morning,en,URBAN_FLOOD,MODERATE,35,0,train
+r031,"Waist-deep water in Kankarbagh colony, families stuck on first floors asking for boats",en,URBAN_FLOOD,HIGH,90,0,train
+r032,"Entire Velachery lake area neighbourhood under water, people trapped in apartments without power",en,URBAN_FLOOD,HIGH,,0,test
+r033,"Water about one metre deep in the lanes of Rajendra Nagar, elderly residents need evacuation",en,URBAN_FLOOD,HIGH,100,0,test
+r034,"Cars fully submerged in the Minto Bridge underpass, a bus is stuck with passengers inside",en,URBAN_FLOOD,HIGH,,0,train
+r035,Rescue teams using rubber boats in Tolichowki after the overnight downpour flooded houses,en,URBAN_FLOOD,HIGH,,0,train
+r036,"Waist high water inside our building compound in Kurla, we cannot get out",en,URBAN_FLOOD,HIGH,90,0,test
+r037,"Hospital ground floor in Sion flooded, patients being shifted upstairs",en,URBAN_FLOOD,HIGH,,0,train
+r038,"Chest-deep water on the road near Patliputra colony, NDRF called in",en,URBAN_FLOOD,HIGH,120,0,train
+r039,"Kamar tak paani hai gali mein, bachche aur buzurg upar wale floor pe fase hue hain",hinglish,URBAN_FLOOD,HIGH,90,0,train
+r040,"Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please",hinglish,URBAN_FLOOD,HIGH,,0,train
+r041,"Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain",hinglish,URBAN_FLOOD,HIGH,,0,train
+r042,"कंकड़बाग में कमर तक पानी है, लोग छतों पर फंसे हैं, नाव की जरूरत है",hi,URBAN_FLOOD,HIGH,90,0,train
+r043,"हैदराबाद के कई मोहल्लों में घर डूब गए हैं, राहत दल नावों से लोगों को निकाल रहा है",hi,URBAN_FLOOD,HIGH,,0,train
+r044,"Basement of a Koramangala apartment filled to the ceiling, water now entering ground floor homes",en,URBAN_FLOOD,HIGH,,0,train
+r045,"Nearly a metre of water inside houses in Adyar, residents stranded since midnight",en,URBAN_FLOOD,HIGH,100,0,train
+r046,"Water above head height in the Kankarbagh underpass, a car with a family inside was swept in",en,URBAN_FLOOD,CRITICAL,150,0,train
+r047,Two people electrocuted after live wires fell into floodwater on Station Road,en,URBAN_FLOOD,CRITICAL,,0,train
+r048,"Wall collapsed under floodwater pressure in Mailardevpally, houses washed out and people missing",en,URBAN_FLOOD,CRITICAL,,0,test
+r049,"Water up to the first floor ceiling in Velachery, hundreds on rooftops, no rescue yet",en,URBAN_FLOOD,CRITICAL,180,0,train
+r050,"A child was swept into an open drain in flooded Andheri East, search underway",en,URBAN_FLOOD,CRITICAL,,0,test
+r051,"Thousands stranded in apartments across north Chennai, food and water running out on day three",en,URBAN_FLOOD,CRITICAL,,0,test
+r052,"Neck-deep water in Rajendra Nagar, people on roofs waving for help, boats not reaching",en,URBAN_FLOOD,CRITICAL,160,0,train
+r053,"Bus with around 30 passengers stuck in the flooded underpass, water rising to the windows",en,URBAN_FLOOD,CRITICAL,,0,train
+r054,"Naale mein ek aadmi beh gaya, abhi tak mila nahi, poora ilaaka doob chuka hai",hinglish,URBAN_FLOOD,CRITICAL,,0,train
+r055,"Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo",hinglish,URBAN_FLOOD,CRITICAL,150,0,train
+r056,"Basement parking mein paani bhar gaya aur do guard andar fas gaye, bahar nahi nikal paaye",hinglish,URBAN_FLOOD,CRITICAL,,0,train
+r057,"बाढ़ के पानी में करंट फैलने से तीन लोगों की मौत, पूरा इलाका डूबा हुआ है",hi,URBAN_FLOOD,CRITICAL,,0,test
+r058,"गले तक पानी भर गया है, सैकड़ों लोग छतों पर फंसे हैं, अब तक कोई मदद नहीं पहुंची",hi,URBAN_FLOOD,CRITICAL,150,0,test
+r059,"Hospital in flooded Sion lost power and the backup generators are under water, ICU patients at risk",en,URBAN_FLOOD,CRITICAL,,0,train
+r060,"Old building collapsed in a waterlogged Bhiwandi lane, residents feared trapped under debris",en,URBAN_FLOOD,CRITICAL,,0,train
+r061,"Gandak water level rising near Gopalganj, still one metre below the danger mark",en,RIVER_BREACH,ADVISORY,,0,test
+r062,"CWC reports the Kosi at Birpur is approaching the warning level, villagers told to stay alert",en,RIVER_BREACH,ADVISORY,,0,train
+r063,"Seepage noticed at the base of the Bagmati embankment near Sitamarhi, engineers inspecting",en,RIVER_BREACH,ADVISORY,,0,test
+r064,"Farakka barrage gates opened, downstream villages advised to keep away from the riverbank",en,RIVER_BREACH,ADVISORY,,0,train
+r065,"Yamuna crossing the warning mark at Old Railway Bridge, no flooding in the city yet",en,RIVER_BREACH,ADVISORY,,0,train
+r066,"Brahmaputra flowing close to danger level at Dibrugarh, district administration on watch",en,RIVER_BREACH,ADVISORY,,0,test
+r067,"Small crack reported on the Mahananda embankment, sandbags being placed",en,RIVER_BREACH,ADVISORY,,0,train
+r068,"Ganga ka paani badh raha hai Digha ghat pe, abhi khatre ke nishaan se neeche hai",hinglish,RIVER_BREACH,ADVISORY,,0,test
+r069,"Kosi tatbandh pe rishaav dikh raha hai, gaon walon ko satark rehne bola gaya",hinglish,RIVER_BREACH,ADVISORY,,0,train
+r070,"Dam se paani chhoda jaayega aaj raat, nadi kinare wale gaon khaali karne ki taiyari karein",hinglish,RIVER_BREACH,ADVISORY,,0,train
+r071,"गंडक नदी का जलस्तर बढ़ रहा है, प्रशासन ने तटवर्ती गांवों को सतर्क किया",hi,RIVER_BREACH,ADVISORY,,0,test
+r072,"बागमती तटबंध पर रिसाव की सूचना, इंजीनियरों की टीम मौके पर पहुंची",hi,RIVER_BREACH,ADVISORY,,0,train
+r073,"Godavari at Bhadrachalam rising steadily after upstream rain, first warning issued",en,RIVER_BREACH,ADVISORY,,0,test
+r074,"Water touching the lowest steps of the ghats in Varanasi, boats suspended as a precaution",en,RIVER_BREACH,ADVISORY,,0,train
+r075,Irrigation department monitoring a weak stretch of the Sone canal bank near Arrah,en,RIVER_BREACH,ADVISORY,,0,train
+r076,River water has entered low-lying fields and the road to a Madhubani village is under a foot of water,en,RIVER_BREACH,MODERATE,30,0,train
+r077,"Kosi overflow cut off the approach road to three villages near Supaul, tractors ferrying people",en,RIVER_BREACH,MODERATE,,0,train
+r078,"Yamuna above the danger mark, families in the Mayur Vihar floodplain moving to relief camps",en,RIVER_BREACH,MODERATE,,0,train
+r079,"Brahmaputra water entered paddy fields and some huts in Morigaon, livestock being moved",en,RIVER_BREACH,MODERATE,,0,train
+r080,Knee-high river water in the outer hamlets of Darbhanga after the Kamla overflowed its bank,en,RIVER_BREACH,MODERATE,40,0,test
+r081,"Small breach in a village embankment near Muzaffarpur, water spreading slowly into farmland",en,RIVER_BREACH,MODERATE,,0,train
+r082,Godavari backwaters flooding the low streets of the Bhadrachalam temple town,en,RIVER_BREACH,MODERATE,,0,train
+r083,"Nadi ka paani gaon mein ghus aaya, ghutne bhar paani hai, log saamaan chhat pe rakh rahe hain",hinglish,RIVER_BREACH,MODERATE,50,0,train
+r084,"Yamuna khatre ke nishaan ke upar, khadar ke log camp mein shift ho rahe hain",hinglish,RIVER_BREACH,MODERATE,,0,train
+r085,"Bandh mein chhota darar aaya hai, kheton mein paani phail raha hai",hinglish,RIVER_BREACH,MODERATE,,0,test
+r086,"कोसी का पानी खेतों में फैल गया है, तीन गांवों का सड़क संपर्क टूटा",hi,RIVER_BREACH,MODERATE,,0,train
+r087,दरभंगा के बाहरी गांवों में नदी का पानी घुटनों तक भर गया है,hi,RIVER_BREACH,MODERATE,40,0,test
+r088,"Mahanadi flood water covering the highway near Cuttack at one stretch, vehicles crossing slowly",en,RIVER_BREACH,MODERATE,,0,test
+r089,"Riverbank erosion swallowed part of the road near Bhagalpur, water lapping at houses",en,RIVER_BREACH,MODERATE,,0,train
+r090,Relief camps opened in Barpeta as the Beki river spills into low-lying villages,en,RIVER_BREACH,MODERATE,,0,test
+r091,"Kosi embankment breached near Kusaha, chest-deep water rushing into villages",en,RIVER_BREACH,HIGH,120,0,train
+r092,"Bagmati broke through the embankment overnight, around fifteen villages cut off in Sitamarhi",en,RIVER_BREACH,HIGH,,0,train
+r093,"Waist-deep river water inside homes in Dhemaji, NDRF boats evacuating families",en,RIVER_BREACH,HIGH,90,0,test
+r094,"Yamuna water entered Civil Lines, Ring Road submerged and the Secretariat surrounded",en,RIVER_BREACH,HIGH,,0,train
+r095,"Brahmaputra breach in Majuli has submerged more than twenty villages, people on raised platforms",en,RIVER_BREACH,HIGH,,0,train
+r096,"Dam release flooded downstream towns along the Periyar, thousands moved to camps",en,RIVER_BREACH,HIGH,,0,train
+r097,One metre of water in Bhagalpur villages after the Ganga overtopped the ring bund,en,RIVER_BREACH,HIGH,100,0,train
+r098,"Tatbandh toot gaya, poore gaon mein paani, log bachchon ko lekar oonchi jagah bhaag rahe hain",hinglish,RIVER_BREACH,HIGH,,0,train
+r099,"Kamar tak nadi ka paani ghar mein, maweshi beh gaye, naav chahiye",hinglish,RIVER_BREACH,HIGH,90,0,test
+r100,"Kamla nadi ne bandh tod diya, das gaon doob gaye hain",hinglish,RIVER_BREACH,HIGH,,0,train
+r101,"कोसी तटबंध टूटा, दर्जनों गांव जलमग्न, लोग ऊंचे स्थानों की ओर भाग रहे हैं",hi,RIVER_BREACH,HIGH,,0,test
+r102,"नदी का पानी घरों में कमर तक भर गया, एनडीआरएफ की नावें लोगों को निकाल रही हैं",hi,RIVER_BREACH,HIGH,90,0,train
+r103,"Mahanadi breach near Kendrapara inundated farmland and villages, highway traffic halted",en,RIVER_BREACH,HIGH,,0,train
+r104,"Tista and Torsa overflowing together, several tea garden villages flooded in Jalpaiguri",en,RIVER_BREACH,HIGH,,0,test
+r105,Around a metre of water across Morigaon villages after the embankment gave way,en,RIVER_BREACH,HIGH,100,0,train
+r106,"Kosi changed course after a major embankment breach, lakhs of people displaced across three districts",en,RIVER_BREACH,CRITICAL,,0,train
+r107,Houses washed away as a two-metre wall of river water hit villages near the breach point,en,RIVER_BREACH,CRITICAL,200,0,train
+r108,"Dam gates failed and the reservoir is emptying uncontrolled into towns downstream, evacuate now",en,RIVER_BREACH,CRITICAL,,0,train
+r109,"Boat carrying evacuees capsized in the flooded Bagmati, many feared drowned",en,RIVER_BREACH,CRITICAL,,0,train
+r110,People stranded on embankment tops for three days without food as the Brahmaputra keeps rising,en,RIVER_BREACH,CRITICAL,,0,train
+r111,"Entire village in Supaul submerged up to the rooftops after the river broke through, several residents missing",en,RIVER_BREACH,CRITICAL,,0,train
+r112,"River water above the roofs of single storey houses in Dhemaji, people clinging to trees",en,RIVER_BREACH,CRITICAL,300,0,test
+r113,"Bandh poori tarah toot gaya, ghar beh rahe hain, kai log laapata hain",hinglish,RIVER_BREACH,CRITICAL,,0,train
+r114,"Naav palat gayi nadi mein, bees log the, abhi tak sirf paanch mile",hinglish,RIVER_BREACH,CRITICAL,,0,train
+r115,"Nadi ka paani chhat tak aa gaya hai, log pedon pe chadhe hain, turant helicopter bhejo",hinglish,RIVER_BREACH,CRITICAL,300,0,train
+r116,"तटबंध टूटने से पूरा गांव बह गया, कई लोग लापता, हेलीकॉप्टर से राहत की मांग",hi,RIVER_BREACH,CRITICAL,,0,train
+r117,"नदी में नाव पलटी, कई लोगों के डूबने की आशंका",hi,RIVER_BREACH,CRITICAL,,0,train
+r118,"नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं",hi,RIVER_BREACH,CRITICAL,300,0,train
+r119,"Railway bridge pillars washed out by the flooded river, a train halted just before the gap",en,RIVER_BREACH,CRITICAL,,0,test
+r120,Rescue helicopters dropping food to villages completely surrounded after the Gandak breach,en,RIVER_BREACH,CRITICAL,,0,test
+r121,IMD warns of possible cloudburst events in Chamoli and Rudraprayag districts over the next 48 hours,en,CLOUDBURST,ADVISORY,,0,train
+r122,"Very intense rain for twenty minutes above Mandi town, small hill streams running muddy",en,CLOUDBURST,ADVISORY,,0,train
+r123,Char Dham yatra halted at Sonprayag as a precaution after extremely heavy rain on the hills,en,CLOUDBURST,ADVISORY,,0,test
+r124,"Local nallah in Kullu rising quickly after a sudden downpour upstream, people asked to stay away",en,CLOUDBURST,ADVISORY,,0,train
+r125,"Loose stones falling on the Kedarnath trek after a burst of heavy rain, pilgrims told to wait",en,CLOUDBURST,ADVISORY,,0,train
+r126,"Doppler radar shows an intense rain cell over upper Kinnaur, residents near streams alerted",en,CLOUDBURST,ADVISORY,,0,train
+r127,Tourists advised not to camp near riverbeds in Kasol tonight due to cloudburst risk,en,CLOUDBURST,ADVISORY,,0,train
+r128,"Pahad pe bahut tez baarish ho rahi hai, gadhera ka paani badh raha hai, dhyaan rakhna",hinglish,CLOUDBURST,ADVISORY,,0,test
+r129,"Badal phatne ki chetavani aayi hai Chamoli ke liye, yatra roki gayi hai",hinglish,CLOUDBURST,ADVISORY,,0,train
+r130,"Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai",hinglish,CLOUDBURST,ADVISORY,,0,train
+r131,"मौसम विभाग ने उत्तरकाशी में बादल फटने की आशंका जताई, लोगों से नदी-नालों से दूर रहने को कहा",hi,CLOUDBURST,ADVISORY,,0,test
+r132,"पहाड़ पर अचानक तेज बारिश से नाले का जलस्तर बढ़ा, प्रशासन ने अलर्ट जारी किया",hi,CLOUDBURST,ADVISORY,,0,train
+r133,"Sudden intense shower over Dharamshala, ankle-deep water gushing down the market road steps",en,CLOUDBURST,ADVISORY,10,0,train
+r134,"Army post in Ladakh reports an unusual intense rain burst, no damage so far",en,CLOUDBURST,ADVISORY,,0,train
+r135,"Heavy rain spell over the Munsiyari hills, small slips on the road, traffic moving with caution",en,CLOUDBURST,ADVISORY,,0,test
+r136,"Cloudburst above a village near Mandi sent debris onto the road, highway blocked for hours",en,CLOUDBURST,MODERATE,,0,train
+r137,Flash flood after a cloudburst brought a foot of muddy water into the Manikaran market,en,CLOUDBURST,MODERATE,30,0,train
+r138,"Sudden cloudburst in upper Kullu washed away a footbridge, no one hurt",en,CLOUDBURST,MODERATE,,0,train
+r139,Mudflow from a cloudburst buried parked cars in a Dharchula lane,en,CLOUDBURST,MODERATE,,0,test
+r140,Kedarnath route closed after a cloudburst triggered debris flow near Gaurikund,en,CLOUDBURST,MODERATE,,0,train
+r141,Cloudburst damaged apple orchards and a school wall in Shimla district,en,CLOUDBURST,MODERATE,,0,test
+r142,Knee-deep slush in homes of Tharali after a burst of rain brought the nallah down,en,CLOUDBURST,MODERATE,40,0,test
+r143,"Badal phata upar gaon mein, malba sadak pe aa gaya, raasta band hai",hinglish,CLOUDBURST,MODERATE,,0,test
+r144,"Achanak aayi baadh se puliya beh gayi, pahadi gaon ka sampark toot gaya",hinglish,CLOUDBURST,MODERATE,,0,test
+r145,"Ghutne tak keechad aur paani bhar gaya ghar mein, pahad ke nale ne rasta badal liya",hinglish,CLOUDBURST,MODERATE,40,0,train
+r146,"बादल फटने से मलबा सड़क पर आ गया, राष्ट्रीय राजमार्ग बंद",hi,CLOUDBURST,MODERATE,,0,train
+r147,"पहाड़ी नाले में अचानक आई बाढ़ में पैदल पुल बह गया, गांव का संपर्क कटा",hi,CLOUDBURST,MODERATE,,0,train
+r148,"Cloudburst in Rajouri caused flash flooding in a stream, a few shops damaged",en,CLOUDBURST,MODERATE,,0,train
+r149,Pilgrims stranded on the Amarnath route after a cloudburst washed out a stretch of the track,en,CLOUDBURST,MODERATE,,0,test
+r150,"Cloudburst near Pithoragarh left ankle-deep slush in cowsheds and farmland, villagers safe",en,CLOUDBURST,MODERATE,10,0,train
+r151,"Cloudburst in a Chamoli village washed away four houses, families evacuated in the dark",en,CLOUDBURST,HIGH,,0,train
+r152,"Flash flood from a cloudburst swept through a campsite near Kasol, tourists rescued by ITBP",en,CLOUDBURST,HIGH,,0,train
+r153,Chest-deep debris-laden water rushed through the Tharali market after the cloudburst,en,CLOUDBURST,HIGH,120,0,train
+r154,"Cloudburst triggered landslides that cut off twelve villages in Kinnaur, food supplies needed",en,CLOUDBURST,HIGH,,0,train
+r155,"Hydropower project site flooded by a cloudburst surge, workers trapped in the tunnel",en,CLOUDBURST,HIGH,,0,train
+r156,"Multiple vehicles swept off the road in Kullu after a cloudburst, rescue underway",en,CLOUDBURST,HIGH,,0,test
+r157,"Cloudburst in Doda damaged a bridge and several homes, people moved to a school",en,CLOUDBURST,HIGH,,0,train
+r158,"Badal phatne se chaar ghar beh gaye, log raat mein bhaag ke school mein ruke hain",hinglish,CLOUDBURST,HIGH,,0,train
+r159,"Pahad se malba aaya aur poora bazaar dab gaya, kai dukane toot gayi, gaadiyan beh gayi",hinglish,CLOUDBURST,HIGH,,0,test
+r160,"Seene tak malba wala paani aaya, gaon ke log pahad pe chadh gaye",hinglish,CLOUDBURST,HIGH,100,0,test
+r161,"बादल फटने से चार मकान बह गए, परिवारों को रात में सुरक्षित स्थान पर पहुंचाया गया",hi,CLOUDBURST,HIGH,,0,train
+r162,"बादल फटने के बाद भूस्खलन से बारह गांवों का संपर्क टूटा, राशन की कमी",hi,CLOUDBURST,HIGH,,0,train
+r163,"Army bridge washed away by a cloudburst surge on the Leh highway, convoy stranded",en,CLOUDBURST,HIGH,,0,test
+r164,Waist-high torrent through the village lanes of Dharali after a sudden cloudburst,en,CLOUDBURST,HIGH,90,0,train
+r165,"Cloudburst flooded the Kheer Ganga trek camp, dozens of trekkers stranded on high ground",en,CLOUDBURST,HIGH,,0,train
+r166,"Massive cloudburst in Kishtwar, at least twenty people dead and many missing in the flash flood",en,CLOUDBURST,CRITICAL,,0,train
+r167,"Entire Dharali village buried under debris after a cloudburst, rescue teams cannot reach",en,CLOUDBURST,CRITICAL,,0,train
+r168,Cloudburst swept away a langar tent full of pilgrims on the Machail yatra route,en,CLOUDBURST,CRITICAL,,0,test
+r169,"Flash flood from a cloudburst destroyed the hotel row in the Kedarnath valley, hundreds unaccounted",en,CLOUDBURST,CRITICAL,,0,train
+r170,"Cloudburst washed away a school building with students sheltering inside, army called in",en,CLOUDBURST,CRITICAL,,0,test
+r171,"Families buried in their homes after a cloudburst landslide in Mandi, death toll rising",en,CLOUDBURST,CRITICAL,,0,train
+r172,"Debris wall several metres high swept through the village after the cloudburst, houses flattened",en,CLOUDBURST,CRITICAL,300,0,test
+r173,"Badal phatne se poora gaon malbe mein dab gaya, bees se zyada log laapata",hinglish,CLOUDBURST,CRITICAL,,0,train
+r174,"Yatriyon ka tent beh gaya badal phatne se, kai log mare, bachav dal nahi pahuncha",hinglish,CLOUDBURST,CRITICAL,,0,train
+r175,"Raat ko badal phata, ghar ke ghar beh gaye, maut ka aankda badh raha hai",hinglish,CLOUDBURST,CRITICAL,,0,train
+r176,"किश्तवाड़ में बादल फटने से बीस लोगों की मौत, कई लापता",hi,CLOUDBURST,CRITICAL,,0,train
+r177,"बादल फटने से पूरा गांव मलबे में दब गया, बचाव दल नहीं पहुंच पा रहा",hi,CLOUDBURST,CRITICAL,,0,train
+r178,"रात में बादल फटा, कई घर बह गए और मौत का आंकड़ा बढ़ता जा रहा है",hi,CLOUDBURST,CRITICAL,,0,train
+r179,Helicopters unable to fly as bodies are recovered from the cloudburst debris in Chamoli,en,CLOUDBURST,CRITICAL,,0,train
+r180,"Cloudburst over the ridge sent a flash flood wave into the valley town at night, dozens missing",en,CLOUDBURST,CRITICAL,,0,test
+r181,"IMD issues a cyclone watch for the north Odisha coast, fishermen told not to venture out",en,CYCLONE_INUNDATION,ADVISORY,,0,train
+r182,"High tide with strong winds pushing seawater onto Marina beach road, police closing the stretch",en,CYCLONE_INUNDATION,ADVISORY,,0,test
+r183,"Deep depression over the Bay of Bengal likely to intensify, coastal districts of Andhra on alert",en,CYCLONE_INUNDATION,ADVISORY,,0,train
+r184,Waves splashing over the sea wall at Worli Sea Face as the cyclone passes offshore,en,CYCLONE_INUNDATION,ADVISORY,,0,test
+r185,Ankle-deep seawater on the promenade road in Puri during high tide ahead of the cyclone,en,CYCLONE_INUNDATION,ADVISORY,10,0,train
+r186,Port authorities hoist danger signal number 7 at Paradip as the storm approaches,en,CYCLONE_INUNDATION,ADVISORY,,0,test
+r187,Coastal villages in Ganjam asked to prepare for evacuation before the cyclone makes landfall,en,CYCLONE_INUNDATION,ADVISORY,,0,test
+r188,"Samundar mein toofan aa raha hai, machhuaare waapas bulaaye gaye, kinare pe paani chadh raha hai",hinglish,CYCLONE_INUNDATION,ADVISORY,,0,test
+r189,"Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain",hinglish,CYCLONE_INUNDATION,ADVISORY,,0,train
+r190,"High tide mein samundar ka paani sadak pe aa gaya, takhne tak hai abhi",hinglish,CYCLONE_INUNDATION,ADVISORY,10,0,train
+r191,चक्रवात की चेतावनी के बाद ओडिशा तट पर मछुआरों को समुद्र में न जाने की सलाह,hi,CYCLONE_INUNDATION,ADVISORY,,0,train
+r192,"तेज हवाओं के साथ समुद्र का पानी तटीय सड़क तक पहुंचा, प्रशासन सतर्क",hi,CYCLONE_INUNDATION,ADVISORY,,0,train
+r193,"Strong gusts and rough sea at Kakinada, shops on the beach road shutting early",en,CYCLONE_INUNDATION,ADVISORY,,0,train
+r194,Cyclone shelters opened in coastal Bhadrak as the storm heads towards landfall,en,CYCLONE_INUNDATION,ADVISORY,,0,test
+r195,"Swell waves entering the fishing harbour in Kochi, boats being tied up",en,CYCLONE_INUNDATION,ADVISORY,,0,train
+r196,Storm surge pushed knee-deep seawater into fishing hamlets near Machilipatnam,en,CYCLONE_INUNDATION,MODERATE,40,0,train
+r197,Cyclone winds uprooted trees and seawater flooded the coastal road to Digha,en,CYCLONE_INUNDATION,MODERATE,,0,test
+r198,Low-lying streets of Nagapattinam flooded by the surge as the cyclone crosses the coast,en,CYCLONE_INUNDATION,MODERATE,,0,test
+r199,About a foot of seawater inside beachfront shops in Puri after the cyclone's outer bands,en,CYCLONE_INUNDATION,MODERATE,30,0,train
+r200,Salt water entered paddy fields along the Sundarbans coast as the tide overtopped embankments,en,CYCLONE_INUNDATION,MODERATE,,0,train
+r201,Heavy rain and sea surge flooded parts of the beach road colonies in Visakhapatnam,en,CYCLONE_INUNDATION,MODERATE,,0,train
+r202,"Cyclonic storm flooded the Mandvi coastline, fishing boats damaged in the harbour",en,CYCLONE_INUNDATION,MODERATE,,0,train
+r203,"Toofan ke saath samundar ka paani gaon mein ghus aaya, ghutne tak paani hai",hinglish,CYCLONE_INUNDATION,MODERATE,40,0,train
+r204,Cyclone se ped gir gaye aur kinare ki sadak pe samundar ka paani bhar gaya,hinglish,CYCLONE_INUNDATION,MODERATE,,0,train
+r205,"Machhuaaron ki bastiyon mein khaara paani ghus gaya, naavein toot gayi",hinglish,CYCLONE_INUNDATION,MODERATE,,0,train
+r206,चक्रवात के कारण समुद्र का पानी गांवों में घुटनों तक भर गया,hi,CYCLONE_INUNDATION,MODERATE,40,0,test
+r207,तूफान से पेड़ उखड़े और तटीय सड़क पर समुद्र का पानी भर गया,hi,CYCLONE_INUNDATION,MODERATE,,0,train
+r208,Tidal flooding during the cyclone left Kutch coastal salt pans and huts under water,en,CYCLONE_INUNDATION,MODERATE,,0,train
+r209,Knee-deep water in Pattinapakkam as the cyclone surge met heavy rain,en,CYCLONE_INUNDATION,MODERATE,50,0,test
+r210,Surge water in the Kolkata docks area after the cyclone crossed the Sundarbans,en,CYCLONE_INUNDATION,MODERATE,,0,train
+r211,"One-metre storm surge flooded coastal villages in Jagatsinghpur, people moved to cyclone shelters",en,CYCLONE_INUNDATION,HIGH,100,0,train
+r212,"Cyclone landfall near Kakinada, seawater entered homes up to half a kilometre inland",en,CYCLONE_INUNDATION,HIGH,,0,train
+r213,"Sundarbans embankments breached by the cyclone surge, several islands inundated with saltwater",en,CYCLONE_INUNDATION,HIGH,,0,train
+r214,"Waist-deep seawater in fishing colonies of Nagapattinam, families trapped by the surge",en,CYCLONE_INUNDATION,HIGH,90,0,train
+r215,"Cyclone flattened huts and the sea flooded Bhitarkanika villages, relief boats deployed",en,CYCLONE_INUNDATION,HIGH,,0,test
+r216,"Surge flooded the coastal highway and Digha town centre, hotels evacuated",en,CYCLONE_INUNDATION,HIGH,,0,test
+r217,"Seawater gushed into the low-lying Gosaba island villages, thousands in shelters",en,CYCLONE_INUNDATION,HIGH,,0,train
+r218,"Kamar tak samundar ka paani ghar mein, toofan mein chhappar ud gaye, shelter bhejo",hinglish,CYCLONE_INUNDATION,HIGH,90,0,train
+r219,"Cyclone ne samundari tatbandh tod diya, poora dweep khaare paani mein doob gaya",hinglish,CYCLONE_INUNDATION,HIGH,,0,train
+r220,"Toofan ka paani aadha kilometre andar tak aa gaya, log shelter mein bhaag rahe hain",hinglish,CYCLONE_INUNDATION,HIGH,,0,test
+r221,"चक्रवात के बाद घरों में कमर तक समुद्री पानी, लोग आश्रय स्थलों की ओर",hi,CYCLONE_INUNDATION,HIGH,90,0,train
+r222,"सुंदरबन में तूफानी लहरों से तटबंध टूटे, कई द्वीप जलमग्न",hi,CYCLONE_INUNDATION,HIGH,,0,test
+r223,"Chest-deep surge water in coastal Balasore hamlets after landfall, NDRF boats on the way",en,CYCLONE_INUNDATION,HIGH,120,0,train
+r224,Cyclone surge swept fishing boats onto the road in Machilipatnam and flooded the market,en,CYCLONE_INUNDATION,HIGH,,0,test
+r225,Seawater inundated coastal Porbandar after the severe cyclonic storm,en,CYCLONE_INUNDATION,HIGH,,0,train
+r226,"Three-metre storm surge swept into Paradip coastal villages at landfall, houses destroyed and people missing",en,CYCLONE_INUNDATION,CRITICAL,300,0,train
+r227,"Super cyclone has flooded entire coastal blocks, lakhs without shelter and communication lost",en,CYCLONE_INUNDATION,CRITICAL,,0,test
+r228,Surge water drowned several villagers who had not reached the cyclone shelter in time,en,CYCLONE_INUNDATION,CRITICAL,,0,train
+r229,Fishing village in Nagapattinam completely washed away by the cyclone surge,en,CYCLONE_INUNDATION,CRITICAL,,0,train
+r230,"Cyclone shelter itself surrounded by seawater and the roof damaged, hundreds inside need rescue",en,CYCLONE_INUNDATION,CRITICAL,,0,test
+r231,"Islands in the Sundarbans fully submerged after the surge, people floating on debris",en,CYCLONE_INUNDATION,CRITICAL,,0,train
+r232,"Two metres of seawater through Gosaba market, bodies being recovered after the cyclone",en,CYCLONE_INUNDATION,CRITICAL,200,0,test
+r233,"Toofani lehron ne poora gaon baha diya, bahut log laapata hain",hinglish,CYCLONE_INUNDATION,CRITICAL,,0,train
+r234,"Shelter ke andar tak samundar ka paani, chhat ud gayi, sainkdon log fase hain",hinglish,CYCLONE_INUNDATION,CRITICAL,,0,train
+r235,"Do metre tak khaara paani aa gaya, log naariyal ke pedon pe latke hain",hinglish,CYCLONE_INUNDATION,CRITICAL,200,0,train
+r236,"चक्रवात की लहरों ने पूरा गांव बहा दिया, कई लोग लापता",hi,CYCLONE_INUNDATION,CRITICAL,,0,train
+r237,"आश्रय स्थल तक समुद्र का पानी पहुंचा, छत उड़ गई, सैकड़ों लोग फंसे",hi,CYCLONE_INUNDATION,CRITICAL,,0,train
+r238,"दो मीटर तक समुद्री पानी भर गया, लोग पेड़ों पर चढ़कर बचने की कोशिश कर रहे हैं",hi,CYCLONE_INUNDATION,CRITICAL,200,0,train
+r239,"Communication towers down and the coast under water, the collector reports deaths across the landfall zone",en,CYCLONE_INUNDATION,CRITICAL,,0,train
+r240,"Ship ran aground and seawater flooded the whole port colony, workers missing after the cyclone",en,CYCLONE_INUNDATION,CRITICAL,,0,train
+r241,"Lovely light rain in Pune this evening, perfect weather for chai and pakodas",en,NOT_RELEVANT,,,0,train
+r242,"Finally some drizzle in Bengaluru, the heat was unbearable this week",en,NOT_RELEVANT,,,0,train
+r243,"Monsoon photography walk this Sunday at Marine Drive, all welcome",en,NOT_RELEVANT,,,0,train
+r244,Why does it always rain on the day I wash my car,en,NOT_RELEVANT,,,0,train
+r245,Fog so dense in Delhi this morning that flights were delayed at IGI,en,NOT_RELEVANT,,,0,train
+r246,Heatwave continues in Rajasthan with Churu touching 48 degrees,en,NOT_RELEVANT,,,0,train
+r247,"Street light not working near our society gate for a week, please fix",en,NOT_RELEVANT,,,0,test
+r248,Pothole on the main road outside the school keeps getting bigger,en,NOT_RELEVANT,,,0,test
+r249,"Power cut in our area since morning, no rain or storm, just a scheduled cut",en,NOT_RELEVANT,,,0,test
+r250,Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads,en,NOT_RELEVANT,,50,0,train
+r251,Waist-deep water in parts of Kathmandu after the Bagmati overflowed in Nepal,en,NOT_RELEVANT,,90,0,train
+r252,Typhoon floods Manila streets as residents wade through knee-deep water,en,NOT_RELEVANT,,50,0,test
+r253,"Heavy rain expected in London this weekend, Wimbledon matches may be delayed",en,NOT_RELEVANT,,,0,train
+r254,Beautiful rainbow over the Western Ghats after the shower today,en,NOT_RELEVANT,,,0,train
+r255,The new water park in Noida opens next week with a wave pool,en,NOT_RELEVANT,,,0,train
+r256,"AC leak in our office flooded the server room floor, IT team is on it",en,NOT_RELEVANT,,,0,train
+r257,"Burst water pipe on the second floor of our building, plumber coming",en,NOT_RELEVANT,,,0,train
+r258,Kids enjoying paper boats in the rain puddles outside the house,en,NOT_RELEVANT,,,0,train
+r259,Cricket match at Eden Gardens abandoned due to rain,en,NOT_RELEVANT,,,0,train
+r260,"Mild thunder and a few drops in Jaipur, nothing much",en,NOT_RELEVANT,,,0,train
+r261,"Water tanker did not come today, no supply for two days in our colony",en,NOT_RELEVANT,,,0,train
+r262,The movie Flood Warning releases in theatres this Friday,en,NOT_RELEVANT,,,0,test
+r263,"Snowfall in Gulmarg attracts tourists, roads open",en,NOT_RELEVANT,,,0,test
+r264,Dust storm in Bikaner reduced visibility in the afternoon,en,NOT_RELEVANT,,,0,test
+r265,"Rain rain go away, come again another day, sang my daughter all morning",en,NOT_RELEVANT,,,0,train
+r266,"Get 50% off waterproof shoes this monsoon, order now at the link in bio",en,NOT_RELEVANT,,,1,train
+r267,"Flood insurance at the lowest premium, call today, limited offer",en,NOT_RELEVANT,,,1,test
+r268,Forward to 10 groups: NASA says a mega tsunami will hit Mumbai tonight at 2 am,en,NOT_RELEVANT,,,1,test
+r269,"Earn money from home during the rains, join our WhatsApp group now",en,NOT_RELEVANT,,,1,train
+r270,"Breaking unverified forward: Tehri dam has burst and Haridwar will drown in one hour, share fast",en,NOT_RELEVANT,,,1,train
+r271,"Best umbrellas in town at Sharma Stores, rain special discount",en,NOT_RELEVANT,,,1,train
+r272,Crypto flood of profits! Invest now before the rain of returns ends,en,NOT_RELEVANT,,,1,train
+r273,"Click here to claim government flood relief of 10000 rupees, enter your bank details",en,NOT_RELEVANT,,,1,test
+r274,"Viral message says the Army has declared a national flood emergency and schools are closed for a month, forward to all",en,NOT_RELEVANT,,,1,test
+r275,"Waterproofing services for your roof, free inspection, call now",en,NOT_RELEVANT,,,1,test
+r276,Anyone know a good dry cleaner in Indiranagar,en,NOT_RELEVANT,,,0,train
+r277,"Weather is so pleasant in Shillong today, cool breeze and mist",en,NOT_RELEVANT,,,0,test
+r278,"Clouds over Mumbai but no rain yet, humid as ever",en,NOT_RELEVANT,,,0,train
+r279,"The aquarium tank at home overflowed when the filter failed, the fish are fine",en,NOT_RELEVANT,,,0,train
+r280,Bengaluru traffic is terrible today even without any rain,en,NOT_RELEVANT,,,0,test
+r281,Floods of fans at the airport to welcome the team back home,en,NOT_RELEVANT,,,0,test
+r282,"Tsunami evacuation drill conducted at a Chennai school, students moved out calmly",en,NOT_RELEVANT,,,0,train
+r283,"Rain dance party at the club on Saturday night, entry free for couples",en,NOT_RELEVANT,,,1,train
+r284,"Aaj mausam bahut suhaana hai, halki halki baarish, chai peene ka mann hai",hinglish,NOT_RELEVANT,,,0,test
+r285,"Garmi se bura haal hai, baarish kab aayegi yaar",hinglish,NOT_RELEVANT,,,0,train
+r286,"Hamare gali ki street light kharab hai ek hafte se, koi sunta nahi",hinglish,NOT_RELEVANT,,,0,train
+r287,"Kal match baarish ki wajah se cancel ho gaya, bahut bura laga",hinglish,NOT_RELEVANT,,,0,train
+r288,"Ghar ki tanki overflow ho gayi, motor band karna bhool gaye",hinglish,NOT_RELEVANT,,,0,test
+r289,"Monsoon sale shuru, sabhi chhatri aur raincoat pe 40% chhoot, jaldi aayein",hinglish,NOT_RELEVANT,,,1,train
+r290,"Ye message 20 logon ko bhejo, kal poore Bihar mein bhookamp aur baadh aayegi",hinglish,NOT_RELEVANT,,,1,train
+r291,Sarkari baadh rahat ke 5000 rupaye paane ke liye is link pe apna OTP daalein,hinglish,NOT_RELEVANT,,,1,train
+r292,"Dubai mein baarish se sadkein bhar gayi, video dekho",hinglish,NOT_RELEVANT,,,0,test
+r293,"Bachche baarish mein kaagaz ki naav chala rahe hain, bahut maza aa raha hai",hinglish,NOT_RELEVANT,,,0,train
+r294,"आज मौसम बहुत सुहाना है, हल्की बारिश और ठंडी हवा चल रही है",hi,NOT_RELEVANT,,,0,train
+r295,"दिल्ली में घना कोहरा, कई उड़ानें देरी से",hi,NOT_RELEVANT,,,0,train
+r296,हमारे मोहल्ले में दो दिन से पानी की सप्लाई नहीं आई,hi,NOT_RELEVANT,,,0,train
+r297,"बरसात में छाता और रेनकोट पर भारी छूट, आज ही खरीदें",hi,NOT_RELEVANT,,,1,train
+r298,"यह संदेश सभी को भेजें, कल रात पूरे मुंबई में सुनामी आएगी",hi,NOT_RELEVANT,,,1,train
+r299,"राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा",hi,NOT_RELEVANT,,,0,train
+r300,"बच्चों ने बारिश में कागज की नाव चलाई, बहुत मज़ा आया",hi,NOT_RELEVANT,,,0,train

@@ -360,12 +360,6 @@ async def test_processing_each_report_of_a_cluster_yields_one_event(db):
     assert await event_count(db) == 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Known bug found 18 Sep (Day 3 e2e), fix scheduled Day 4: a suppressed "
-    "duplicate stays unassigned, so DBSCAN pulls it into the next cluster and it is "
-    "counted as corroboration.",
-)
 async def test_suppressed_duplicate_is_not_absorbed_by_a_later_report(db):
     results = []
     for lat, lng, body in CLUSTER_TEXTS:
@@ -383,3 +377,91 @@ async def test_suppressed_duplicate_is_not_absorbed_by_a_later_report(db):
 
     assert result["id"] == event_id
     assert result["report_count"] == 6  # 5 + the new report; the duplicate stays out
+
+
+# ── Suppressed duplicates are marked and never counted (Day 4, migration 0004) ─
+
+async def duplicate_of(db, rid):
+    return (
+        await db.execute(
+            text("SELECT duplicate_of, event_id FROM raw_reports WHERE id = CAST(:id AS uuid)"),
+            {"id": str(rid)},
+        )
+    ).fetchone()
+
+
+async def test_suppressed_duplicate_records_its_original(db):
+    ids = await seed_cluster(db)
+    for rid in ids:
+        await process_report(db, {"id": str(rid)})
+
+    dupe = await insert_report(db, PATNA_LAT, PATNA_LNG, CLUSTER_TEXTS[0][2])
+    assert await process_report(db, {"id": str(dupe)}) is None
+
+    row = await duplicate_of(db, dupe)
+    assert row[0] == ids[0]
+    assert row[1] is None
+
+
+async def test_every_copy_points_at_the_original_not_at_another_copy(db):
+    now = datetime.now(timezone.utc)
+    body = "Water entering ground floor shops near Kankarbagh main road"
+    ids = []
+    for minutes_ago in (3, 2, 1):  # arrive and are processed one at a time
+        rid = await insert_report(db, PATNA_LAT, PATNA_LNG, body, when=now - timedelta(minutes=minutes_ago))
+        assert await process_report(db, {"id": str(rid)}) is None
+        ids.append(rid)
+    original, second, third = ids
+
+    assert (await duplicate_of(db, original))[0] is None
+    assert (await duplicate_of(db, second))[0] == original
+    assert (await duplicate_of(db, third))[0] == original
+
+
+async def test_duplicates_do_not_corroborate_a_distinct_report(db):
+    """
+    The original sits in a rejected event (so nothing can merge into it); two
+    suppressed copies of it remain unassigned. A distinct report 300 m away must
+    stay a lone report: before migration 0004 the two copies clustered with it
+    into a 3-report event.
+    """
+    event_id = uuid.uuid4()
+    await db.execute(
+        text("""
+            INSERT INTO verified_events
+                (id, event_code, event_type, severity, confidence_score,
+                 review_status, quadrant, impact_radius_km, center_point, verification_receipt)
+            VALUES (CAST(:id AS uuid), 'INDRA-TEST-REJ', 'URBAN_FLOOD', 'MODERATE', 0.4,
+                    'REJECTED', 'Noise', 0.5,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), '{}'::jsonb)
+        """),
+        {"id": str(event_id), "lat": PATNA_LAT, "lng": PATNA_LNG},
+    )
+    await db.commit()
+    body = CLUSTER_TEXTS[0][2]
+    original = await insert_report(db, PATNA_LAT, PATNA_LNG, body)
+    copies = [await insert_report(db, PATNA_LAT, PATNA_LNG, body) for _ in range(2)]
+    await db.execute(
+        text("UPDATE raw_reports SET event_id = CAST(:e AS uuid) WHERE id = CAST(:id AS uuid)"),
+        {"e": str(event_id), "id": str(original)},
+    )
+    await db.execute(
+        text("UPDATE raw_reports SET duplicate_of = CAST(:o AS uuid) WHERE id = ANY(CAST(:ids AS uuid[]))"),
+        {"o": str(original), "ids": [str(c) for c in copies]},
+    )
+    await db.commit()
+
+    distinct = await insert_report(
+        db, PATNA_LAT + 0.0027, PATNA_LNG, "Auto stand near Rajendra Nagar flooded, rickshaws cannot move"
+    )
+    assert await process_report(db, {"id": str(distinct)}) is None
+    assert await event_count(db) == 1  # only the rejected one
+
+
+async def test_redelivered_duplicate_is_skipped(db):
+    await insert_report(db, PATNA_LAT, PATNA_LNG, CLUSTER_TEXTS[0][2])
+    dupe = await insert_report(db, PATNA_LAT, PATNA_LNG, CLUSTER_TEXTS[0][2])
+    assert await process_report(db, {"id": str(dupe)}) is None
+    first = await duplicate_of(db, dupe)
+    assert await process_report(db, {"id": str(dupe)}) is None
+    assert await duplicate_of(db, dupe) == first

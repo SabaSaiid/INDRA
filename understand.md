@@ -403,9 +403,9 @@ Legend: ✅ built · 🟡 partly built · ⬜ designed, not built yet
 | # | Layer | What it does | Built? |
 |---|---|---|---|
 | 1 | **Data Sources** | Where information comes from: IMD/Govt APIs, weather APIs, public datasets, social media, citizen reports, images/videos | 🟡 **Citizen reports, plus rainfall from Open-Meteo** fetched whenever an event is scored. No other outside source is read yet. |
-| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | ✅ Fully working. Reports with coordinates outside India are refused. |
-| 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | 🟡 Deduplication, coordinate checking and geocoding work, and every report gets a credibility score; cleaning and metadata extraction don't exist. |
-| 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | ⬜ **Only duplicate matching.** No classifier, no image analysis, no anomaly detection — the receipt openly marks the last two as "offline". |
+| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | 🟡 Live reports flow in through the API and the stream, and a report that couldn't be saved is told so (503) instead of being silently lost. Reports with coordinates outside India are refused. Batch loading is only a fake-data seed script, clearly labelled as such. |
+| 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | 🟡 Deduplication (a repeated report is remembered as a copy and never counted as extra evidence), coordinate checking and geocoding work, and every report gets a credibility score; cleaning and metadata extraction don't exist. |
+| 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | 🟡 **Duplicate matching works.** A classifier that reads a report and names the flood type has been trained and tested on 300 practice reports we wrote, but it isn't good enough yet (it dismisses too many real floods as chatter, and it struggles with Hindi), so it's switched off. No image analysis, no anomaly detection — the receipt openly marks those as "offline". |
 | 5 | **Geo-Analytics** | Everything about *where*: location mapping, spatial clustering, heatmaps, event boundaries, risk zones, time-space trends | ✅ Clustering and mapping are real; heatmaps and risk zones aren't built. |
 | 6 | **Event Fusion Engine** | The heart: correlate observations, merge duplicates, calculate confidence, determine severity, build the weather event | ✅ Working, with no random numbers: 4 of the 6 confidence factors are real measurements and 2 are honestly marked offline. A human's approval is never undone by later reports. |
 | 7 | **Data Platform** | The memory: PostgreSQL+PostGIS, Redis, object storage, historical datasets | 🟡 The database is real, and the audit log is a working tamper-evident hash chain. Redis runs but nothing uses it; object storage isn't deployed. |
@@ -418,8 +418,8 @@ clustering, fusion, and serving — genuinely works. A citizen report really doe
 the way through and come out as a scored event, a human can approve it, and every decision is
 written to a tamper-evident audit log. What is missing is at the two ends: we pull in only one
 outside source (rainfall, layer 1), and we don't yet *send alerts out* (layer 8b).
-And the "AI" layer is thinner than its name suggests — it matches duplicates, and that is
-all it does so far.
+And the "AI" layer is thinner than its name suggests: it matches duplicates. A text
+classifier has been built and measured, but it missed its quality bar, so it stays switched off.
 
 ---
 

@@ -9,16 +9,33 @@ Target numbers:
   - ~8,000+ citizen_reports (CITIZEN_APP)
   - verified_at timestamps spread across past 7 days (upward curve)
 
+Everything this script writes is SYNTHETIC: random severities, random
+confidence scores and invented receipts. Every receipt it writes carries
+`"synthetic": true` and `provenance: {"all": "synthetic"}` so a seeded event can
+never pass for a computed one. It refuses to run without --synthetic.
+
+It deliberately does NOT write:
+  * station_readings — invented rainfall and anomaly scores would poison anything
+    that reads the table as real telemetry.
+  * audit_logs — rows without a prev_hash break the hash chain, and
+    verify_chain() would then fail in every provenance response.
+It also never disables trg_audit_immutable. If the audit ledger already has
+rows it refuses to clear the database; start from `docker compose down -v`.
+
+Never run it before a demo: its ~5,600 unassigned reports would be clustered by
+the live pipeline into events.
+
 Usage:
-  cd backend && .venv/bin/python ../scripts/seed_national_data.py
+  cd backend && .venv/bin/python ../scripts/seed_national_data.py --synthetic
 """
 
+import argparse
 import asyncio
+import sys
 import uuid
 import random
 import math
 import json
-import hashlib
 from datetime import datetime, timedelta, timezone
 
 import asyncpg
@@ -121,7 +138,7 @@ def compute_quadrant(severity: str, confidence: float) -> str:
 
 
 def generate_verification_receipt(city_data: dict, display_type: str) -> dict:
-    """Generate a realistic verification receipt JSONB."""
+    """Generate an invented verification receipt, marked synthetic."""
     factors = [
         {"factor": "Weather Station Corroboration", "weight_pct": 25,
          "score": round(random.uniform(0.70, 0.98), 4),
@@ -149,6 +166,8 @@ def generate_verification_receipt(city_data: dict, display_type: str) -> dict:
     total = sum(f["weighted_points"] for f in factors)
 
     return {
+        "synthetic": True,
+        "provenance": {"all": "synthetic"},
         "city": city_data["name"],
         "state": city_data["state"],
         "event_type_display": display_type,
@@ -173,6 +192,7 @@ def upward_curve_timestamp(day_index: int, total_days: int = 7) -> datetime:
 async def seed():
     """Main seed function."""
     print("🌱 INDRA National Seed Data Generator")
+    print("writes SYNTHETIC events with invented receipts — never run before a demo")
     print("=" * 60)
 
     ssl_mode = "require" if ("localhost" not in DSN and "127.0.0.1" not in DSN) else None
@@ -182,17 +202,22 @@ async def seed():
     # Check if data already exists
     existing = await conn.fetchval("SELECT COUNT(*) FROM verified_events")
     if existing > 0:
+        ledger_rows = await conn.fetchval("SELECT COUNT(*) FROM audit_logs")
+        if ledger_rows > 0:
+            await conn.close()
+            print(
+                f"✘ The audit ledger holds {ledger_rows} row(s). This script will not "
+                "delete audit history. Start from an empty database "
+                "(docker compose down -v && alembic upgrade head)."
+            )
+            sys.exit(1)
         print(f"⚠ Database already contains {existing} events. Clearing existing data...")
-        await conn.execute("ALTER TABLE audit_logs DISABLE TRIGGER trg_audit_immutable")
-        await conn.execute("DELETE FROM audit_logs")
-        await conn.execute("ALTER TABLE audit_logs ENABLE TRIGGER trg_audit_immutable")
         try:
             await conn.execute("DELETE FROM user_profiles")
             await conn.execute("DELETE FROM teams")
         except Exception:
             pass
         await conn.execute("DELETE FROM raw_reports")
-        await conn.execute("DELETE FROM station_readings")
         await conn.execute("DELETE FROM verified_events")
         print("✓ Existing data cleared.")
 
@@ -351,61 +376,6 @@ async def seed():
 
     print(f"  ✓ Inserted {citizen_count} citizen reports")
 
-    # ── 4. Generate station readings ───────────────────────────────────────
-    print("\n🌡️ Generating station readings...")
-    station_count = 0
-    agencies = ["IMD", "CWC", "OPEN_METEO"]
-
-    for city in CITIES:
-        for agency in agencies:
-            for day in range(7):
-                station_code = f"{agency}-{city['name'][:3].upper()}-{random.randint(100, 999)}"
-                recorded_at = datetime.now(timezone.utc) - timedelta(days=day, hours=random.randint(0, 23))
-
-                await conn.execute("""
-                    INSERT INTO station_readings
-                        (id, station_code, station_name, agency, station_location,
-                         rainfall_mm, river_level_m, anomaly_score, recorded_at)
-                    VALUES ($1, $2, $3, $4::agency_enum,
-                            ST_SetSRID(ST_MakePoint($5, $6), 4326),
-                            $7, $8, $9, $10)
-                """,
-                    uuid.uuid4(), station_code,
-                    f"{city['name']} {agency} Station",
-                    agency,
-                    jitter(city["lng"], 0.02), jitter(city["lat"], 0.02),
-                    round(random.uniform(0, 250), 1),
-                    round(random.uniform(0, 15), 2) if agency == "CWC" else None,
-                    round(random.uniform(0, 1), 3),
-                    recorded_at,
-                )
-                station_count += 1
-
-    print(f"  ✓ Inserted {station_count} station readings")
-
-    # ── 5. Generate audit logs ─────────────────────────────────────────────
-    print("\n📋 Generating audit logs...")
-    audit_count = 0
-    actions = ["AUTO_VERIFY", "MANUAL_OVERRIDE", "QUARANTINE", "ESCALATE"]
-
-    for ev in events[:20]:  # First 20 events
-        action = random.choice(actions)
-        reason = f"{'Automated' if action == 'AUTO_VERIFY' else 'Manual'} verification - confidence: {ev['confidence_score']}"
-        sha = hashlib.sha256(f"{ev['id']}{action}{reason}".encode()).hexdigest()
-
-        await conn.execute("""
-            INSERT INTO audit_logs
-                (id, event_id, operator_id, action_taken, reason, sha256_hash, logged_at)
-            VALUES ($1, $2, $3, $4::audit_action_enum, $5, $6, $7)
-        """,
-            uuid.uuid4(), ev["id"],
-            f"OP-{'AUTO' if action == 'AUTO_VERIFY' else 'CMD'}-{random.randint(1,5):03d}",
-            action, reason, sha, ev["verified_at"],
-        )
-        audit_count += 1
-
-    print(f"  ✓ Inserted {audit_count} audit logs")
-
     # ── 6. Generate teams and user profiles ────────────────────────────────
     print("\n🛡️ Generating disaster response teams and operator profiles...")
     teams_data = [
@@ -470,8 +440,8 @@ async def seed():
     print(f"  Verified Events:   {len(events)}")
     print(f"  Total Reports:     {total_reports:,}")
     print(f"  Citizen Reports:   {citizen_count:,}")
-    print(f"  Station Readings:  {station_count}")
-    print(f"  Audit Logs:        {audit_count}")
+    print("  Station Readings:  0 (never seeded)")
+    print("  Audit Logs:        0 (never seeded)")
     print(f"  Response Teams:    {len(teams_data)}")
     print(f"  Operator Profiles: {len(profiles_data)}")
     print(f"  Cities:            {', '.join(c['name'] for c in CITIES)}")
@@ -480,4 +450,18 @@ async def seed():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument(
+        "--synthetic",
+        action="store_true",
+        help="acknowledge that every row written is invented demo data",
+    )
+    args = parser.parse_args()
+    if not args.synthetic:
+        print(
+            "Refusing to run: this script writes SYNTHETIC events with invented "
+            "receipts. Pass --synthetic to confirm. Never run it before a demo.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
     asyncio.run(seed())

@@ -1,0 +1,137 @@
+{
+  "model_version": "event_classifier_v1",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_device": "cpu",
+  "sklearn_version": "1.9.1",
+  "dataset": "data/labelled/reports_v1.csv",
+  "dataset_sha256": "ce142c3a109365bee6f0e407288b74096e675fe71abcaa1cf3dd90ff732f2745",
+  "dataset_is_synthetic": true,
+  "n_train": 210,
+  "n_test": 90,
+  "classes": [
+    "URBAN_FLOOD",
+    "RIVER_BREACH",
+    "CLOUDBURST",
+    "CYCLONE_INUNDATION",
+    "NOT_RELEVANT"
+  ],
+  "selection": {
+    "method": "StratifiedKFold(5, shuffle=True, random_state=42) macro-F1 on train only",
+    "cv_macro_f1": {
+      "logistic_regression(C=0.1)": 0.6239,
+      "logistic_regression(C=1.0)": 0.7076,
+      "logistic_regression(C=10.0)": 0.7115,
+      "nearest_centroid(cosine)": 0.626
+    },
+    "chosen": "logistic_regression(C=10.0)"
+  },
+  "test": {
+    "accuracy": 0.7889,
+    "macro_f1": 0.7873,
+    "majority_class_baseline_accuracy": 0.2,
+    "per_class": {
+      "URBAN_FLOOD": {
+        "precision": 0.8,
+        "recall": 0.8889,
+        "f1": 0.8421,
+        "support": 18
+      },
+      "RIVER_BREACH": {
+        "precision": 0.8125,
+        "recall": 0.7222,
+        "f1": 0.7647,
+        "support": 18
+      },
+      "CLOUDBURST": {
+        "precision": 0.875,
+        "recall": 0.7778,
+        "f1": 0.8235,
+        "support": 18
+      },
+      "CYCLONE_INUNDATION": {
+        "precision": 0.7619,
+        "recall": 0.8889,
+        "f1": 0.8205,
+        "support": 18
+      },
+      "NOT_RELEVANT": {
+        "precision": 0.7059,
+        "recall": 0.6667,
+        "f1": 0.6857,
+        "support": 18
+      }
+    },
+    "confusion_matrix": {
+      "rows_true_columns_predicted": [
+        "URBAN_FLOOD",
+        "RIVER_BREACH",
+        "CLOUDBURST",
+        "CYCLONE_INUNDATION",
+        "NOT_RELEVANT"
+      ],
+      "matrix": [
+        [
+          16,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          2,
+          13,
+          1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          14,
+          1,
+          2
+        ],
+        [
+          0,
+          1,
+          0,
+          16,
+          1
+        ],
+        [
+          2,
+          1,
+          1,
+          2,
+          12
+        ]
+      ]
+    },
+    "accuracy_by_language": {
+      "en": 0.8806,
+      "hi_or_hinglish": 0.5217,
+      "hi": 0.625,
+      "hinglish": 0.4667
+    },
+    "flood_rows_predicted_not_relevant": 5
+  },
+  "gate": {
+    "macro_f1": {
+      "value": 0.7873,
+      "min": 0.75,
+      "pass": true
+    },
+    "not_relevant_recall": {
+      "value": 0.6667,
+      "min": 0.8,
+      "pass": false
+    },
+    "flood_predicted_not_relevant": {
+      "value": 5,
+      "of": 72,
+      "max": 4,
+      "pass": false
+    }
+  },
+  "accepted": false
+}

@@ -1,7 +1,8 @@
 """
 INDRA Platform — Reports API
 GET  /api/reports/trend?range=7d  — daily total_reports for the trend chart
-POST /api/reports/submit          — accepts report, pushes to Redpanda, returns 202
+POST /api/reports/submit          — stores the report, pushes to Redpanda, returns 202
+                                    (503 if it could not be stored)
 """
 
 import uuid
@@ -99,7 +100,12 @@ async def submit_report(
 ):
     """
     Accepts a citizen report, persists to DB, pushes to Redpanda topic.
-    Returns 202 Accepted with the report ID.
+
+    * Stored and published → 202, `"queued": true`.
+    * Stored, publish failed → 202, `"queued": false`. The row exists but the
+      pipeline has not been told about it.
+    * Not stored → 503 and nothing is published. A 202 here used to tell the
+      citizen their report was accepted when it had been dropped.
     """
     # Sanitize & normalize coordinates against Indian bounds. Out-of-bounds
     # reports are refused outright and never stored: two of them would
@@ -149,9 +155,16 @@ async def submit_report(
         })
         await db.commit()
     except Exception as e:
-        logger.warning(f"Database storage skipped for report (offline fallback mode): {e}")
+        logger.error(f"Report {report_id} could not be stored — returning 503: {e}")
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(status_code=503, detail="Report could not be stored")
 
-    # Push to Redpanda/Kafka (non-blocking, fail-safe)
+    # Push to Redpanda/Kafka. The report is already stored, so a failure here
+    # is reported in the response but is not an error for the citizen.
+    queued = False
     try:
         from aiokafka import AIOKafkaProducer
         producer = AIOKafkaProducer(
@@ -178,6 +191,7 @@ async def submit_report(
                 settings.KAFKA_REPORTS_TOPIC,
                 message.encode("utf-8"),
             )
+            queued = True
         finally:
             await producer.stop()
     except Exception as e:
@@ -186,5 +200,5 @@ async def submit_report(
 
     return JSONResponse(
         status_code=202,
-        content={"id": str(report_id), "status": "accepted"},
+        content={"id": str(report_id), "status": "accepted", "queued": queued},
     )

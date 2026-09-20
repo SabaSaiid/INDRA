@@ -7,7 +7,8 @@ runs dedup, and broadcasts NEW_REPORT WebSocket messages.
 import json
 import logging
 import asyncio
-from typing import Optional
+from collections import OrderedDict
+from typing import Any, Dict, Optional
 
 from app.core.config import get_settings
 
@@ -21,6 +22,80 @@ _ws_manager = None
 def set_ws_manager(manager):
     global _ws_manager
     _ws_manager = manager
+
+
+# Kafka delivers at least once: after a rebalance or a restart before the offset
+# was committed, the same report arrives again. The pipeline is idempotent on
+# re-delivery (a linked or suppressed report is skipped), but the live feed is
+# not, so a re-delivered message would show the same report twice. The ids of
+# recently broadcast reports are remembered, oldest evicted first.
+#
+# Per process only: a restarted backend has an empty memory and will broadcast a
+# re-delivered report once more. The demo runs one backend process.
+BROADCAST_MEMORY_SIZE = 2000
+_recently_broadcast: "OrderedDict[str, None]" = OrderedDict()
+
+
+def _first_broadcast(report_id: Optional[str]) -> bool:
+    """True the first time an id is seen (within memory). No id → always True."""
+    if not report_id:
+        return True
+    if report_id in _recently_broadcast:
+        _recently_broadcast.move_to_end(report_id)
+        return False
+    _recently_broadcast[report_id] = None
+    if len(_recently_broadcast) > BROADCAST_MEMORY_SIZE:
+        _recently_broadcast.popitem(last=False)
+    return True
+
+
+async def handle_report_message(report_data: Dict[str, Any]) -> None:
+    """
+    One consumed message: broadcast NEW_REPORT (once per report id), run the
+    verification pipeline (every time), broadcast VERIFIED_EVENT if it produced
+    or updated an event. Never raises — the consumer loop must survive.
+    """
+    try:
+        report_id = report_data.get("id")
+        logger.info(f"Received report: {report_id or 'unknown'}")
+
+        # NEW_REPORT keeps the existing frontend contract. VERIFIED_EVENT is
+        # additive on top of it.
+        if _ws_manager and _first_broadcast(str(report_id) if report_id else None):
+            await _ws_manager.broadcast({
+                "type": "NEW_REPORT",
+                "report": report_data,
+            })
+
+        # Run the verification pipeline. The worker lives outside FastAPI's
+        # dependency injection, so it takes a session from the sessionmaker
+        # directly rather than via Depends(get_db).
+        event = None
+        try:
+            from app.core.database import async_session
+            from app.services.pipeline import process_report
+
+            async with async_session() as db:
+                event = await process_report(db, report_data)
+        except Exception as e:
+            # process_report already fails soft; this guards the session/import
+            # layer around it.
+            logger.error(f"Pipeline invocation failed: {e}")
+
+        # None is a normal outcome — a duplicate, or a report with too little
+        # corroboration to be an event yet.
+        if event and _ws_manager:
+            await _ws_manager.broadcast({
+                "type": "VERIFIED_EVENT",
+                "event": event,
+            })
+            logger.info(
+                f"Broadcast VERIFIED_EVENT {event.get('event_code')} "
+                f"to {len(getattr(_ws_manager, 'active_connections', []))} client(s)"
+            )
+
+    except Exception as e:
+        logger.error(f"Error processing report message: {e}")
 
 
 async def check_kafka_connection(bootstrap_servers: str, timeout: float = 1.5) -> bool:
@@ -84,48 +159,7 @@ async def start_report_consumer():
             retry_delay = 5
 
             async for msg in consumer:
-                try:
-                    report_data = msg.value
-                    logger.info(f"Received report: {report_data.get('id', 'unknown')}")
-
-                    # NEW_REPORT is broadcast for every message, unchanged, so the
-                    # live feed keeps moving and the existing frontend contract is
-                    # untouched. VERIFIED_EVENT is additive on top of it.
-                    if _ws_manager:
-                        await _ws_manager.broadcast({
-                            "type": "NEW_REPORT",
-                            "report": report_data,
-                        })
-
-                    # Run the verification pipeline. The worker lives outside
-                    # FastAPI's dependency injection, so it takes a session from
-                    # the sessionmaker directly rather than via Depends(get_db).
-                    event = None
-                    try:
-                        from app.core.database import async_session
-                        from app.services.pipeline import process_report
-
-                        async with async_session() as db:
-                            event = await process_report(db, report_data)
-                    except Exception as e:
-                        # process_report already fails soft; this guards the
-                        # session/import layer around it.
-                        logger.error(f"Pipeline invocation failed: {e}")
-
-                    # None is a normal outcome — a duplicate, or a report with
-                    # too little corroboration to be an event yet.
-                    if event and _ws_manager:
-                        await _ws_manager.broadcast({
-                            "type": "VERIFIED_EVENT",
-                            "event": event,
-                        })
-                        logger.info(
-                            f"Broadcast VERIFIED_EVENT {event.get('event_code')} "
-                            f"to {len(getattr(_ws_manager, 'active_connections', []))} client(s)"
-                        )
-
-                except Exception as e:
-                    logger.error(f"Error processing report message: {e}")
+                await handle_report_message(msg.value)
 
         except asyncio.CancelledError:
             logger.info("Report consumer shutting down...")
