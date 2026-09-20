@@ -42,7 +42,7 @@ from app.services.dedup import DedupService
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
 from app.services.text_processing import extract_metadata
-from app.services.weather import weather_score
+from app.services.weather import rainfall_to_score, weather_score
 
 logger = logging.getLogger("indra.services.pipeline")
 settings = get_settings()
@@ -253,6 +253,7 @@ def score_cluster(
     rainfall_mm: Optional[float] = None,
     *,
     report_texts: Sequence[str],
+    weather_source: str = "open_meteo_live",
 ) -> Dict[str, Any]:
     """
     Pure scoring step: cluster geometry + source mix + weather + report text →
@@ -305,8 +306,16 @@ def score_cluster(
             f"highest-reliability source among {', '.join(distinct_sources)}"
         )
     if weather is not None and rainfall_mm is not None:
+        # Which path produced the number is part of the evidence, not a detail:
+        # a stored reading came from this platform's own polled feed, a live one
+        # from a request made while scoring.
+        origin = (
+            "polled station reading"
+            if weather_source == "station_reading"
+            else "Open-Meteo modelled precipitation"
+        )
         evidence["Weather Station Corroboration"] = (
-            f"{rainfall_mm:.1f} mm rainfall in past 24 h (Open-Meteo modelled precipitation)"
+            f"{rainfall_mm:.1f} mm rainfall in past 24 h ({origin})"
         )
     for factor in receipt["factors"]:
         if factor["factor"] in evidence:
@@ -354,7 +363,11 @@ def score_cluster(
         "source_types": distinct_sources,
     }
     if rainfall_mm is not None:
-        receipt["weather"] = {"rainfall_24h_mm": rainfall_mm, "provider": "open-meteo"}
+        receipt["weather"] = {
+            "rainfall_24h_mm": rainfall_mm,
+            "provider": "open-meteo",
+            "source": weather_source,
+        }
 
     return {
         "receipt": receipt,
@@ -493,6 +506,38 @@ async def _event_report_ids(db: AsyncSession, event_id: UUID):
         )
     ).fetchall()
     return [r[0] for r in rows]
+
+
+async def _weather_for_cluster(
+    db: AsyncSession, lat: float, lng: float
+) -> tuple[Optional[float], Optional[float], str]:
+    """
+    (score, rainfall_mm, source) for the Weather Station Corroboration factor,
+    preferring the platform's own polled data over a live request.
+
+    A stored reading is used when it is fresh enough and near enough
+    (STATION_READING_MAX_AGE_MINUTES, STATION_READING_MAX_DISTANCE_KM); on a miss
+    the behaviour is exactly what it was before Day 6. Two reasons to prefer the
+    stored row: it is a measurement this platform holds and can show, and it lets
+    an event be scored with the network unplugged.
+
+    The curve is the same either way — only where the millimetres came from
+    changes, and the receipt says which.
+    """
+    try:
+        from app.workers.station_poller import latest_reading_near
+
+        stored = await latest_reading_near(db, lat, lng)
+    except Exception as e:
+        logger.warning(f"Station reading lookup failed, falling back to live: {e}")
+        stored = None
+
+    if stored is not None:
+        rainfall_mm, _recorded_at, _code = stored
+        return rainfall_to_score(rainfall_mm), rainfall_mm, "station_reading"
+
+    score, rainfall_mm = await weather_score(lat, lng)
+    return score, rainfall_mm, "open_meteo_live"
 
 
 async def _source_types(db: AsyncSession, report_ids: Sequence[UUID]) -> List[str]:
@@ -793,12 +838,17 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         scoring_ids = all_report_ids if existing is not None else cluster["report_ids"]
         source_types = await _source_types(db, scoring_ids)
         report_texts = await _report_texts(db, scoring_ids)
-        weather, rainfall_mm = await weather_score(
-            stats["centroid_lat"], stats["centroid_lng"]
+        weather, rainfall_mm, weather_source = await _weather_for_cluster(
+            db, stats["centroid_lat"], stats["centroid_lng"]
         )
 
         scored = score_cluster(
-            stats, source_types, weather, rainfall_mm, report_texts=report_texts
+            stats,
+            source_types,
+            weather,
+            rainfall_mm,
+            report_texts=report_texts,
+            weather_source=weather_source,
         )
         receipt = scored["receipt"]
         confidence = scored["confidence"]

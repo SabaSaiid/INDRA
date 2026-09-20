@@ -76,6 +76,15 @@ async def lifespan(app: FastAPI):
 
     warmup_task = asyncio.create_task(_warm_embeddings())
 
+    # Layer 1's one scheduled external feed: Open-Meteo current precipitation
+    # into station_readings, which was empty for the whole project until Day 6.
+    poller_task = None
+    try:
+        from app.workers.station_poller import start_station_poller
+        poller_task = asyncio.create_task(start_station_poller())
+    except Exception as e:
+        logger.warning(f"Station poller startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
@@ -89,6 +98,15 @@ async def lifespan(app: FastAPI):
         consumer_task.cancel()
         try:
             await consumer_task
+        except asyncio.CancelledError:
+            pass
+
+    # Awaited, not fired and forgotten: an un-awaited cancelled task is what
+    # produces "Task was destroyed but it is pending!" on shutdown.
+    if poller_task:
+        poller_task.cancel()
+        try:
+            await poller_task
         except asyncio.CancelledError:
             pass
 

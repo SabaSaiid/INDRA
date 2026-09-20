@@ -103,6 +103,19 @@ class Settings(BaseSettings):
     OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
     WEATHER_TIMEOUT_SECONDS: float = 3.0
 
+    # ── Station poller (layer 1: the one scheduled external feed) ──────────
+    # Every interval, Open-Meteo current precipitation for the demo cities is
+    # written to station_readings. Off means no task is started and the table
+    # stays empty; the weather factor then fetches live per event, exactly as it
+    # did before Day 6.
+    STATION_POLLER_ENABLED: bool = True
+    STATION_POLL_INTERVAL_SECONDS: int = 600
+    # How fresh and how near a stored reading must be for the weather factor to
+    # prefer it over a live fetch. 30 min is under the half-life of a rain burst;
+    # 25 km is the scale over which an Open-Meteo grid cell is representative.
+    STATION_READING_MAX_AGE_MINUTES: int = 30
+    STATION_READING_MAX_DISTANCE_KM: float = 25.0
+
     # ── ML kill switches ───────────────────────────────────────────────────
     # Off means the model is treated as offline (receipt says so), never a crash.
     CLASSIFIER_ENABLED: bool = True

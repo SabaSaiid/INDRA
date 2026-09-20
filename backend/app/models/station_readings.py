@@ -22,7 +22,10 @@ class StationReading(Base):
     station_location = Column(Geometry("POINT", srid=4326), nullable=True)
     rainfall_mm = Column(Float, nullable=True)
     river_level_m = Column(Float, nullable=True)
-    anomaly_score = Column(Float, nullable=True, default=0.0)
+    # No default: anomaly detection is out of scope since 20 Sep and does not
+    # run. 0.0 would read as "computed, and normal" for a model that never
+    # executed. NULL says what is true — nothing measured this. (0006)
+    anomaly_score = Column(Float, nullable=True)
     recorded_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
