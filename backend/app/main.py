@@ -102,6 +102,7 @@ try:
         events_router,
         reports_router,
         feed_router,
+        geo_router,
         auth_router,
         teams_router,
         profile_router,
@@ -110,6 +111,7 @@ try:
     app.include_router(events_router)
     app.include_router(reports_router)
     app.include_router(feed_router)
+    app.include_router(geo_router)
     app.include_router(auth_router)
     app.include_router(teams_router)
     app.include_router(profile_router)
