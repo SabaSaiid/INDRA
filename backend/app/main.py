@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("INDRA Platform starting up...")
     consumer_task = None
+    warmup_task = None
     try:
         from app.core.database import init_db
         await init_db()
@@ -43,9 +44,47 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Report consumer startup skipped (non-fatal): {e}")
 
+    # Warm the embedding model, off the event loop, without delaying readiness.
+    #
+    # MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.
+    # Paid on the first real report it froze the entire API — the T14 cold-start
+    # rehearsal saw GET /api/events time out completely, then answer in 0.03 s once
+    # the model was resident. Doing it here, in a thread, on a task nobody awaits,
+    # means /healthz answers immediately and the first citizen report pays nothing.
+    #
+    # Failure is deliberately non-fatal: with no model cache and no network, dedup
+    # falls back to Levenshtein and the platform still runs.
+    async def _warm_embeddings():
+        try:
+            from app.services.dedup import _get_embedding_model
+
+            model = await asyncio.to_thread(_get_embedding_model)
+            if model is None:
+                logger.warning(
+                    "Embedding model unavailable — dedup will use the Levenshtein "
+                    "fallback. Cosine similarity is off for this run."
+                )
+                return
+            # Keyword, not positional: encode()'s second positional argument is
+            # prompt_name in sentence-transformers 6.x, so passing True there
+            # raised "Prompt name 'True' not found". The warm-up then silently
+            # skipped, which the non-fatal WARNING is what caught.
+            await asyncio.to_thread(model.encode, "warmup", convert_to_numpy=True)
+            logger.info("✓ Embedding model warm — first report will not block")
+        except Exception as e:
+            logger.warning(f"Embedding warm-up skipped (non-fatal): {e}")
+
+    warmup_task = asyncio.create_task(_warm_embeddings())
+
     yield
 
     # Shutdown
+    if warmup_task and not warmup_task.done():
+        warmup_task.cancel()
+        try:
+            await warmup_task
+        except (asyncio.CancelledError, Exception):
+            pass
     if consumer_task:
         consumer_task.cancel()
         try:

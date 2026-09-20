@@ -106,3 +106,88 @@ async def test_kafka_false_is_503(client, checks):
 
     assert r.status_code == 503
     assert r.json()["checks"]["streaming_bus"]["status"] == "down"
+
+
+# ── Day 5: a reachable but unmigrated database is not healthy ──────────────────
+
+async def test_an_unmigrated_database_is_reported_down(monkeypatch):
+    """
+    Found by the T14 cold-start rehearsal.
+
+    After `docker compose down -v`, with `alembic upgrade head` skipped, Postgres
+    answered SELECT 1 and /healthz reported **healthy** against a database with no
+    raw_reports table. The first citizen report then failed with a 503 and
+    UndefinedTableError. Going green on a schemaless database tells the operator
+    the one thing they must not be told before a demo.
+
+    check_database now also confirms the table exists, so this asserts the failure
+    is raised rather than swallowed into a pass.
+    """
+    from sqlalchemy import text as sa_text
+
+    from app.services import health
+
+    class _Result:
+        def __init__(self, value):
+            self._value = value
+
+        def scalar(self):
+            return self._value
+
+    class _Conn:
+        async def execute(self, statement, *a, **k):
+            # SELECT 1 succeeds; the to_regclass lookup reports "no such table".
+            if "to_regclass" in str(statement):
+                return _Result(None)
+            return _Result(1)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    class _Engine:
+        def connect(self):
+            return _Conn()
+
+    import app.core.database as database_module
+
+    monkeypatch.setattr(database_module, "engine", _Engine())
+
+    with pytest.raises(RuntimeError, match="not migrated"):
+        await health.check_database()
+
+
+async def test_a_migrated_database_is_healthy(monkeypatch):
+    """The same path, with the table present, must pass."""
+    from app.services import health
+
+    class _Result:
+        def __init__(self, value):
+            self._value = value
+
+        def scalar(self):
+            return self._value
+
+    class _Conn:
+        async def execute(self, statement, *a, **k):
+            if "to_regclass" in str(statement):
+                return _Result("raw_reports")
+            return _Result(1)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    class _Engine:
+        def connect(self):
+            return _Conn()
+
+    import app.core.database as database_module
+
+    monkeypatch.setattr(database_module, "engine", _Engine())
+
+    assert await health.check_database() is True

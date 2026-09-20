@@ -41,10 +41,29 @@ _WEATHER_PROBE_PARAMS = {
 
 
 async def check_database() -> bool:
+    """
+    Reachable **and** migrated.
+
+    `SELECT 1` alone was not enough, and the T14 cold-start rehearsal proved it:
+    after `docker compose down -v`, with `alembic upgrade head` accidentally
+    skipped, Postgres answered `SELECT 1` happily and `/healthz` reported
+    **healthy** against a database with no `raw_reports` table at all. The first
+    citizen report then failed with a 503 and `UndefinedTableError`. A health check
+    that goes green on a schemaless database is telling the operator the one thing
+    they must not be told before a demo.
+
+    So this also confirms the table the whole platform writes to actually exists.
+    It is a catalogue lookup, not a table scan, so it costs nothing.
+    """
     from app.core.database import engine
 
     async with engine.connect() as conn:
         await conn.execute(text("SELECT 1"))
+        migrated = await conn.execute(text("SELECT to_regclass('public.raw_reports')"))
+        if migrated.scalar() is None:
+            raise RuntimeError(
+                "database is reachable but not migrated — run `alembic upgrade head`"
+            )
     return True
 
 

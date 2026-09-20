@@ -24,6 +24,7 @@ Design notes
   consumer loop, matching the convention in `api/reports.py::reports_trend`.
 """
 
+import asyncio
 import json
 import logging
 import math
@@ -678,7 +679,22 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         # corroboration by the reports that arrive after it.
         original_ids, candidates = await _dedup_candidates(db, stored)
         if candidates:
-            match = DedupService().find_duplicate(
+            # Off the event loop, via a worker thread.
+            #
+            # find_duplicate is synchronous and MiniLM's encode() is blocking,
+            # CPU-bound work. Called directly from this coroutine it stalled the
+            # whole uvicorn loop for the duration — about 13 s on the first report,
+            # while the model loaded. The T14 cold-start rehearsal found this the
+            # hard way: GET /api/events timed out completely, then answered in
+            # 0.03 s once the model was in memory. Nothing could be served in that
+            # window: not the API, not /healthz, not the WebSocket, on a cold start,
+            # which is exactly when a demo begins.
+            #
+            # to_thread fixes the class of problem rather than the first instance —
+            # every dedup check was serialising the loop for its own duration, not
+            # just the first.
+            match = await asyncio.to_thread(
+                DedupService().find_duplicate,
                 stored["raw_text"],
                 stored["latitude"],
                 stored["longitude"],

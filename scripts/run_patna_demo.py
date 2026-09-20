@@ -203,7 +203,11 @@ def settle(event, quiet_for=4.0, limit_s=30.0):
     "5 reports, 0.4984" — which looks like the number is unstable when it is
     simply still arriving. Measured on a local stack: all five land within ~8s.
 
-    Polls until report_count has held steady for `quiet_for` seconds.
+    Polls the receipt's cluster size until it has held steady for `quiet_for`
+    seconds. It reads verification_receipt.cluster.size rather than a top-level
+    report_count, because GET /api/events/{id} does not return one — a first
+    version of this function polled `detail["report_count"]`, got None every time,
+    and reported "steady at None report(s)" while measuring nothing at all.
     """
     print(f"  Letting the cluster settle (quiet for {quiet_for:.0f}s)")
     last, stable_since = None, time.monotonic()
@@ -214,10 +218,17 @@ def settle(event, quiet_for=4.0, limit_s=30.0):
             _, detail = _request("GET", f"/api/events/{event['id']}")
         except urllib.error.URLError:
             break
-        count = detail.get("report_count")
+
+        receipt = detail.get("verification_receipt") or {}
+        count = (receipt.get("cluster") or {}).get("size")
+        if count is None:
+            print("    … no cluster size in the receipt yet")
+            time.sleep(1.0)
+            continue
+
         if count != last:
             if last is not None:
-                print(f"    report_count {last} → {count}")
+                print(f"    cluster size {last} → {count}")
             last, stable_since = count, time.monotonic()
         elif time.monotonic() - stable_since >= quiet_for:
             print(f"    ✓ steady at {count} report(s)\n")
