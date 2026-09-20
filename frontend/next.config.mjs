@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  distDir: process.env.NEXT_DIST_DIR || '.next',
   webpack: (config) => {
-    // Disable Webpack filesystem packfile cache in all modes.
-    // PackFileCacheStrategy causes ENOENT and snapshot resolution failures on macOS,
-    // which corrupts the chunk manifest and triggers 'Cannot find module ./NNN.js'.
-    config.cache = false;
+    // Use in-memory cache instead of filesystem packfile cache.
+    // Filesystem packfiles fail on paths containing spaces ('0_Saba CSE', 'SIH 26'),
+    // corrupting .next chunk manifests and triggering 'Cannot find module ./NNN.js'.
+    // Memory cache completely eliminates disk corruption while preserving
+    // seamless HMR chunk manifests and CSS extraction.
+    config.cache = { type: 'memory' };
     return config;
   },
 };
