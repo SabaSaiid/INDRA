@@ -330,6 +330,18 @@ async def _store(db, *, mm, age_minutes, lat, lng, code="OM-TEST"):
 
 
 @pytest.mark.integration
+async def test_the_age_gate_clears_open_meteos_real_publication_lag(db):
+    """
+    Measured live on 21 Sep: a poll at 19:50 UTC returned a series ending
+    18:00 UTC. At the 30-minute gate the day plan assumed, every genuine
+    reading would have been rejected and the stored path would never have run.
+    """
+    await _store(db, mm=8.0, age_minutes=110, lat=PATNA_LAT, lng=PATNA_LNG)
+
+    assert await latest_reading_near(db, PATNA_LAT, PATNA_LNG) is not None
+
+
+@pytest.mark.integration
 async def test_a_fresh_near_reading_is_used(db):
     await _store(db, mm=8.0, age_minutes=5, lat=PATNA_LAT + 0.05, lng=PATNA_LNG)
 
@@ -341,14 +353,14 @@ async def test_a_fresh_near_reading_is_used(db):
 
 @pytest.mark.integration
 async def test_a_reading_just_inside_the_age_boundary_is_used(db):
-    await _store(db, mm=8.0, age_minutes=29, lat=PATNA_LAT, lng=PATNA_LNG)
+    await _store(db, mm=8.0, age_minutes=179, lat=PATNA_LAT, lng=PATNA_LNG)
 
     assert await latest_reading_near(db, PATNA_LAT, PATNA_LNG) is not None
 
 
 @pytest.mark.integration
 async def test_a_reading_past_the_age_boundary_is_ignored(db):
-    await _store(db, mm=8.0, age_minutes=31, lat=PATNA_LAT, lng=PATNA_LNG)
+    await _store(db, mm=8.0, age_minutes=181, lat=PATNA_LAT, lng=PATNA_LNG)
 
     assert await latest_reading_near(db, PATNA_LAT, PATNA_LNG) is None
 
@@ -458,7 +470,7 @@ async def test_the_receipt_names_which_source_the_rainfall_came_from(db):
 def test_the_poller_can_be_turned_off():
     """A kill switch that is never exercised is not a kill switch."""
     assert hasattr(settings, "STATION_POLLER_ENABLED")
-    assert settings.STATION_READING_MAX_AGE_MINUTES == 30
+    assert settings.STATION_READING_MAX_AGE_MINUTES == 180
     assert settings.STATION_READING_MAX_DISTANCE_KM == 25.0
 
 
