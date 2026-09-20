@@ -215,11 +215,18 @@ async def test_merges_keep_a_severity_override(db):
 
     status, severity, quadrant, _, receipt = await event_row(db, event_id)
     assert status == "HUMAN_APPROVED"
-    assert severity == "HIGH"  # the heuristic alone would say MODERATE at 5 reports
+    # The content rule alone would say MODERATE here: the deepest phrase in
+    # CLUSTER_TEXTS is "knee deep" (50 cm) and there are 5 reports, so both axes
+    # read MODERATE. The commander's override outranks it.
+    assert severity == "HIGH"
     assert quadrant == "Critical Verified Event"
     # Carried forward, or the next merge would lose it.
     assert receipt["human_review"]["severity_override"] == "HIGH"
     assert receipt["provenance"]["severity"] == "human_override"
+    # The override records the decision without erasing the machine's reading —
+    # an operator overruling the rule should still be able to see what it said.
+    assert receipt["severity_basis"]["max_depth_cm"] == 50
+    assert receipt["severity_basis"]["depth_axis"] == "MODERATE"
 
 
 async def test_without_a_human_decision_status_is_recomputed(db):

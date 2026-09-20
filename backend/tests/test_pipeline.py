@@ -229,13 +229,89 @@ async def test_status_is_consistent_with_the_persisted_score(db):
     assert quadrant == expected_quadrant.value
 
 
-async def test_five_reports_yield_moderate_severity(db):
-    """Below the 10-report HIGH threshold, so a 5-report cluster is MODERATE."""
+async def test_five_reports_with_knee_deep_water_are_moderate(db):
+    """
+    MODERATE — but for a different reason than before 20 Sep.
+
+    The old rule said MODERATE because 5 is below the 10-report HIGH threshold.
+    The answer is unchanged, the reasoning is not: exactly one of CLUSTER_TEXTS
+    ("Knee deep water outside my house") carries a depth, 50 cm, which is
+    MODERATE on the depth axis; 5 reports is MODERATE on the count axis; the
+    event takes the higher of the two.
+
+    Worth keeping precisely because the two rules agree here — it pins that the
+    rewrite did not quietly move a value everything else is measured against.
+    """
     ids = await seed_cluster(db)
 
     result = await process_report(db, {"id": str(ids[0])})
 
     assert result["severity"] == Severity.MODERATE.value
+
+    basis = result["verification_receipt"]["severity_basis"]
+    assert basis["max_depth_cm"] == 50
+    assert basis["depth_basis"] == "body:knee"
+    assert basis["reports_with_depth"] == 1
+    assert basis["depth_axis"] == "MODERATE"
+    assert basis["count_axis"] == "MODERATE"
+    assert (
+        result["verification_receipt"]["provenance"]["severity"]
+        == "rule_based_depth_and_count"
+    )
+
+
+async def test_a_waist_deep_report_raises_severity_without_more_reports(db):
+    """
+    Content drives severity end to end — the headline claim of T3.
+
+    Same five locations, same sources, same weather, same cluster size. One
+    report now says the water is waist deep, and the event grades HIGH instead of
+    MODERATE. Under the old rule this was impossible: nothing below 10 reports
+    could ever exceed MODERATE, however bad the water was.
+    """
+    texts = list(CLUSTER_TEXTS)
+    lat, lng, _ = texts[2]
+    texts[2] = (lat, lng, "Waist deep water in the lane, cannot walk")
+
+    ids = []
+    for lat, lng, body in texts:
+        ids.append(await insert_report(db, lat, lng, body))
+
+    result = await process_report(db, {"id": str(ids[0])})
+
+    assert result["severity"] == Severity.HIGH.value
+    basis = result["verification_receipt"]["severity_basis"]
+    assert basis["max_depth_cm"] == 100
+    assert basis["depth_axis"] == "HIGH"
+    assert basis["count_axis"] == "MODERATE"
+
+
+async def test_a_suppressed_duplicate_cannot_grade_the_event(db):
+    """
+    A duplicate carrying alarming text must not raise severity.
+
+    Reposting "chest deep water" five times is one claim, not five, and it must
+    not be able to drive an event to CRITICAL. The dedup step already refuses to
+    cluster the duplicate; _report_texts also filters duplicate_of IS NULL so the
+    severity maximum cannot see it either.
+    """
+    ids = await seed_cluster(db)
+    result = await process_report(db, {"id": str(ids[0])})
+    assert result["severity"] == Severity.MODERATE.value
+
+    # Same text and place as report 0 → suppressed as a duplicate, but the text
+    # it carries would be CRITICAL on the depth axis if it were ever counted.
+    lat, lng, body = CLUSTER_TEXTS[0]
+    dupe = await insert_report(db, lat, lng, body + " chest deep water")
+    assert await process_report(db, {"id": str(dupe)}) is None
+
+    row = (
+        await db.execute(
+            text("SELECT severity FROM verified_events WHERE id = CAST(:e AS uuid)"),
+            {"e": result["id"]},
+        )
+    ).fetchone()
+    assert row[0] == Severity.MODERATE.value
 
 
 async def test_event_centroid_sits_inside_the_cluster(db):

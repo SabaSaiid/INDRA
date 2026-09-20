@@ -27,6 +27,18 @@ FIXTURE_STATS = {
 }
 CITIZENS = ["CITIZEN_APP"] * 5
 
+# Deliberately depth-free: none of these phrases yields a depth_cm, so severity
+# here is decided by the count axis alone (5 reports → MODERATE) and the pinned
+# confidence numbers stay a property of the scoring curves rather than of the
+# depth extractor. Tests that care about content severity pass their own texts.
+FIXTURE_TEXTS = [
+    "Water entering the lane near the market",
+    "Road flooded outside the community hall",
+    "Drain overflowing on the main road",
+    "Buses diverted, street is under water",
+    "Rain water collecting near the bus stop",
+]
+
 
 @pytest.fixture(autouse=True)
 def _pinned_settings(monkeypatch):
@@ -36,8 +48,10 @@ def _pinned_settings(monkeypatch):
     monkeypatch.setattr(s, "HUMAN_REVIEW_THRESHOLD", 0.70)
 
 
-def _score(stats=FIXTURE_STATS, sources=CITIZENS, weather=0.35, mm=15.6):
-    return score_cluster(dict(stats), list(sources), weather, mm)
+def _score(stats=FIXTURE_STATS, sources=CITIZENS, weather=0.35, mm=15.6, texts=FIXTURE_TEXTS):
+    return score_cluster(
+        dict(stats), list(sources), weather, mm, report_texts=list(texts)
+    )
 
 
 def _stats(**overrides):

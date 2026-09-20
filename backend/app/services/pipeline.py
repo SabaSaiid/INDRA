@@ -40,15 +40,47 @@ from app.services import audit
 from app.services.dedup import DedupService
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
+from app.services.text_processing import extract_metadata
 from app.services.weather import weather_score
 
 logger = logging.getLogger("indra.services.pipeline")
 settings = get_settings()
 
-# Severity thresholds by corroboration count. Crude and deliberately explicit —
-# this is a stand-in for the NLP severity classifier, and the receipt says so.
-SEVERITY_CRITICAL_REPORTS = 25
-SEVERITY_HIGH_REPORTS = 10
+# ── Severity: content first, corroboration second ─────────────────────────────
+# Two independent axes; the event takes the higher of the two.
+#
+#   Depth   what the reports actually say about the water. This is the axis that
+#           decides whether a boat is needed, and it is available from a single
+#           report — one person saying "chest deep" is a more serious fact than
+#           twenty people saying "wet road".
+#   Count   how many independent reports there are. A large number of reports
+#           about shallow water is still a real incident worth raising, even when
+#           nobody quotes a depth.
+#
+# The depth cuts are operational, not learned: 20 cm stops a two-wheeler, 60 cm
+# floats a small car and is above most plinths, 120 cm is above an adult's waist
+# and turns wading into a rescue. These are published numbers a nodal officer can
+# argue with, which is the point — there is no severity model here and the
+# receipt's provenance says which axis decided.
+#
+# Extraction and its measured accuracy live in text_processing.extract_metadata
+# and tests/test_text_processing.py.
+SEVERITY_DEPTH_CRITICAL_CM = 120
+SEVERITY_DEPTH_HIGH_CM = 60
+SEVERITY_DEPTH_MODERATE_CM = 20
+
+SEVERITY_COUNT_HIGH_REPORTS = 10
+SEVERITY_COUNT_MODERATE_REPORTS = 5
+
+# Ordering for "the higher of the two axes". Severity is a str enum, so max()
+# over the members themselves compares alphabetically and CRITICAL < HIGH — this
+# tuple is not decoration, it is what makes the comparison mean what it says.
+SEVERITY_ORDER = (
+    Severity.ADVISORY,
+    Severity.MODERATE,
+    Severity.HIGH,
+    Severity.CRITICAL,
+)
 
 # Dedup candidate window, mirroring DedupService's own gates.
 DEDUP_WINDOW_MINUTES = 15
@@ -71,21 +103,87 @@ PIPELINE_AUDIT_ACTIONS = {
 }
 
 
-def _derive_severity(cluster_size: int) -> Severity:
-    """
-    Severity from corroboration count. Still a heuristic — there is no NLP
-    severity classifier — and the receipt's provenance block says so.
-    """
-    if cluster_size >= SEVERITY_CRITICAL_REPORTS:
+def _depth_severity(depth_cm: Optional[float]) -> Severity:
+    """Severity from the deepest water any report in the cluster describes."""
+    if depth_cm is None:
+        return Severity.ADVISORY
+    if depth_cm >= SEVERITY_DEPTH_CRITICAL_CM:
         return Severity.CRITICAL
-    if cluster_size >= SEVERITY_HIGH_REPORTS:
+    if depth_cm >= SEVERITY_DEPTH_HIGH_CM:
         return Severity.HIGH
-    return Severity.MODERATE
+    if depth_cm >= SEVERITY_DEPTH_MODERATE_CM:
+        return Severity.MODERATE
+    return Severity.ADVISORY
 
 
-# Report density saturates at the CRITICAL count (25), shaped so a 10-report
-# cluster already scores ~0.80. See _density_score.
-DENSITY_SATURATION_REPORTS = SEVERITY_CRITICAL_REPORTS
+def _count_severity(cluster_size: int) -> Severity:
+    """
+    Severity from corroboration alone.
+
+    Never reaches CRITICAL: a count is evidence that something is happening, not
+    evidence of how bad it is. Calling an event CRITICAL because it was popular
+    is the bug this whole rule replaces.
+    """
+    if cluster_size >= SEVERITY_COUNT_HIGH_REPORTS:
+        return Severity.HIGH
+    if cluster_size >= SEVERITY_COUNT_MODERATE_REPORTS:
+        return Severity.MODERATE
+    return Severity.ADVISORY
+
+
+def _derive_severity(report_texts: Sequence[str], cluster_size: int) -> Dict[str, Any]:
+    """
+    Severity from what the reports say, not just how many there are.
+
+    Replaces a rule that graded a disaster by cluster size alone, so one report
+    saying "water two metres deep" was MODERATE while twelve saying "small
+    puddle" was HIGH.
+
+    Pure: extract_metadata is a regex pass with no I/O, no clock and no sampling,
+    so the same cluster always yields the same severity. The maximum is
+    order-independent, which matters because the texts arrive in whatever order
+    Postgres returns them.
+
+    Returns {"severity", "provenance", "basis"}. `basis` goes into the receipt so
+    the reading is auditable: a commander can see that it was the phrase "knee
+    deep" that made this MODERATE, and override it knowing what they override.
+    """
+    depths: List[tuple] = []
+    for body in report_texts:
+        meta = extract_metadata(body or "")
+        if meta["depth_cm"] is not None:
+            depths.append((int(meta["depth_cm"]), meta["depth_basis"]))
+
+    max_depth_cm, depth_basis = max(depths, default=(None, None))
+
+    depth_axis = _depth_severity(max_depth_cm)
+    count_axis = _count_severity(cluster_size)
+    severity = max(depth_axis, count_axis, key=SEVERITY_ORDER.index)
+
+    return {
+        "severity": severity,
+        "provenance": (
+            "rule_based_depth_and_count" if depths else "rule_based_count_only"
+        ),
+        "basis": {
+            "rule": "max(depth_axis, count_axis)",
+            "max_depth_cm": max_depth_cm,
+            "depth_basis": depth_basis,
+            "reports_with_depth": len(depths),
+            "report_count": cluster_size,
+            "depth_axis": depth_axis.value,
+            "count_axis": count_axis.value,
+        },
+    }
+
+
+# Report density saturates at 25 reports, shaped so a 10-report cluster already
+# scores ~0.80. 25 is a property of this curve, not of any severity rule — it
+# buys headroom so a 25-report event scores distinctly above a 10-report one. It
+# used to alias the old count-based CRITICAL severity threshold, which no longer
+# exists now that severity is derived from content.
+# See _density_score; tests/test_scoring_curves.py pins density(25) == 1.0.
+DENSITY_SATURATION_REPORTS = 25
 DENSITY_CURVE_SCALE = 6.5
 
 
@@ -102,9 +200,11 @@ def _density_score(cluster_size: int) -> float:
     * It reaches ~0.80 at 10 reports: ten reports from one neighbourhood inside
       the time window is already strong corroboration, so a moderate event
       still scores well.
-    * It only reaches 1.0 at 25, the CRITICAL threshold, leaving headroom so a
-      major event scores distinctly above a moderate one. A linear ramp
-      saturating at 10 made 10 and 100 reports indistinguishable.
+    * It only reaches 1.0 at 25, leaving headroom so a major event scores
+      distinctly above a moderate one. A linear ramp saturating at 10 made 10 and
+      100 reports indistinguishable. (25 was once also the count at which
+      severity became CRITICAL; severity is derived from report content now, so
+      this number belongs to the curve alone.)
 
     Reference points: 1 → 0.15, 3 → 0.38, 5 → 0.55, 10 → 0.80, 25+ → 1.0.
     """
@@ -150,10 +250,18 @@ def score_cluster(
     source_types: Sequence[Any],
     weather: Optional[float],
     rainfall_mm: Optional[float] = None,
+    *,
+    report_texts: Sequence[str],
 ) -> Dict[str, Any]:
     """
-    Pure scoring step: cluster geometry + source mix + weather → receipt,
-    severity, quadrant and review status.
+    Pure scoring step: cluster geometry + source mix + weather + report text →
+    receipt, severity, quadrant and review status.
+
+    `report_texts` is keyword-only and deliberately has **no default**. Severity
+    is derived from what the reports say, so a caller that forgot to pass them
+    would silently grade every event on corroboration count alone — the exact bug
+    this argument exists to fix, reintroduced invisibly and with no test failure.
+    Better a TypeError at the call site.
 
     No I/O, no sampling, no clock — the same inputs always give the same
     output, which is what tests/test_scoring_determinism.py pins down. Every
@@ -203,7 +311,11 @@ def score_cluster(
         if factor["factor"] in evidence:
             factor["evidence"] = evidence[factor["factor"]]
 
-    severity = _derive_severity(stats["count"])
+    # The count axis uses stats["count"] (geometry-derived, consistent with the
+    # density factor) rather than len(report_texts): a report with no geom_point
+    # can still contribute its depth but must not contribute corroboration.
+    decided = _derive_severity(report_texts, stats["count"])
+    severity = decided["severity"]
     quadrant = fusion.assign_quadrant(severity, confidence)
     review_status = fusion.determine_review_status(
         confidence,
@@ -223,8 +335,15 @@ def score_cluster(
         "vision_analysis": "offline",
         "source_reliability": _state(reliability),
         "anomaly_detection": "offline",
-        "severity": "heuristic_from_cluster_size",
+        # rule_based_depth_and_count | rule_based_count_only — which evidence
+        # actually graded this event. Overwritten with "human_override" further
+        # down if a commander has set a severity_override.
+        "severity": decided["provenance"],
     }
+    # Severity as auditable as confidence: which axis won, what depth was found
+    # and what phrase it came from. A new top-level block rather than more keys
+    # under provenance, whose key set is asserted exactly by the determinism test.
+    receipt["severity_basis"] = decided["basis"]
     receipt["cluster"] = {
         "size": stats["count"],
         "centroid_lat": stats["centroid_lat"],
@@ -389,6 +508,35 @@ async def _source_types(db: AsyncSession, report_ids: Sequence[UUID]) -> List[st
     return [str(getattr(r[0], "value", r[0])) for r in rows]
 
 
+async def _report_texts(db: AsyncSession, report_ids: Sequence[UUID]) -> List[str]:
+    """
+    The raw text of every report in a cluster, for content-derived severity.
+
+    `duplicate_of IS NULL` is belt-and-braces: a suppressed duplicate never gets
+    an event_id and is excluded from clustering, so it cannot reach here anyway.
+    The guard is explicit because the severity rule takes a *maximum* over
+    depths — without it, one reposted "chest deep water" could grade an event
+    CRITICAL twice over, which is precisely the popularity-grading the rule
+    exists to remove. (`_source_types` above has no such guard; harmless today
+    because it takes a max over a bounded reliability table, but the asymmetry is
+    deliberate, not an oversight.)
+    """
+    ids = [str(rid) for rid in report_ids]
+    if not ids:
+        return []
+    rows = (
+        await db.execute(
+            text("""
+                SELECT raw_text FROM raw_reports
+                WHERE id = ANY(CAST(:ids AS uuid[]))
+                  AND duplicate_of IS NULL
+            """),
+            {"ids": ids},
+        )
+    ).fetchall()
+    return [r[0] or "" for r in rows]
+
+
 async def _next_event_code(db: AsyncSession) -> str:
     """
     Sequential, human-readable code: INDRA-YYYYMMDD-NNN.
@@ -547,11 +695,14 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         # ── 6. Scoring ──────────────────────────────────────────────────────
         scoring_ids = all_report_ids if existing is not None else cluster["report_ids"]
         source_types = await _source_types(db, scoring_ids)
+        report_texts = await _report_texts(db, scoring_ids)
         weather, rainfall_mm = await weather_score(
             stats["centroid_lat"], stats["centroid_lng"]
         )
 
-        scored = score_cluster(stats, source_types, weather, rainfall_mm)
+        scored = score_cluster(
+            stats, source_types, weather, rainfall_mm, report_texts=report_texts
+        )
         receipt = scored["receipt"]
         confidence = scored["confidence"]
         severity = scored["severity"]
