@@ -537,6 +537,87 @@ async def _report_texts(db: AsyncSession, report_ids: Sequence[UUID]) -> List[st
     return [r[0] or "" for r in rows]
 
 
+async def _set_boundary_polygon(db: AsyncSession, event_id: UUID) -> bool:
+    """
+    Recompute `verified_events.boundary_polygon` from the event's linked reports.
+
+    The footprint an operator sees on the map: a hull around the reporting points,
+    buffered by 250 m so it covers the street rather than just the pins.
+
+        ST_Buffer(ST_ConcaveHull(ST_Collect(geom_point), 0.8)::geography, 250)
+
+    Three things about that expression are load-bearing:
+
+    * **The ::geography cast.** SRID 4326 is degrees, so buffering the geometry
+      directly would take 250 *degrees*. Measured in metres only via geography.
+    * **The hull of 1-2 points is not a polygon.** On GEOS 3.9 one point yields
+      ST_Point and two yield ST_LineString (verified against this database). The
+      buffer absorbs both into a polygon, which is why a lone report still gets a
+      footprint — a 250 m disc of area ~195,000 m².
+    * **The column is geometry(Polygon,4326).** A MULTIPOLYGON or a bare
+      LINESTRING would be rejected outright, so the CASE falls back to a convex
+      hull if a concave one ever returns something else.
+
+    Duplicates are excluded: a suppressed repost must not stretch the footprint.
+
+    Called after reports are linked, for both the create and merge paths, since
+    on create the FK means linking can only happen once the event row exists.
+
+    Returns True if a polygon was written. A failure here is logged and left NULL
+    rather than raised: the event and its score are the product, and a missing
+    map outline must not cost the operator the alert.
+
+    **Runs inside a SAVEPOINT, and that is not optional.** Catching the Python
+    exception is not enough — a server-side failure (a GEOS error on a degenerate
+    hull, say) aborts the whole Postgres transaction, so every later statement in
+    step 7 would fail with "current transaction is aborted", the blanket handler
+    in process_report would roll back, and the event would be silently lost. The
+    savepoint confines the damage to this one statement, which is the difference
+    between "the map outline is missing" and "the alert never existed". Verified
+    against this database: after a server-side error a plain session cannot run
+    another statement, and a nested one can.
+    """
+    try:
+        async with db.begin_nested():
+            result = await db.execute(
+                text("""
+                    UPDATE verified_events SET boundary_polygon = hull.poly
+                    FROM (
+                        SELECT CASE
+                            WHEN GeometryType(concave) = 'POLYGON' THEN concave
+                            ELSE convex
+                        END AS poly
+                        FROM (
+                            SELECT
+                                ST_Buffer(
+                                    ST_ConcaveHull(ST_Collect(geom_point), 0.8)::geography,
+                                    250
+                                )::geometry AS concave,
+                                ST_Buffer(
+                                    ST_ConvexHull(ST_Collect(geom_point))::geography,
+                                    250
+                                )::geometry AS convex
+                            FROM raw_reports
+                            WHERE event_id = CAST(:e AS uuid)
+                              AND duplicate_of IS NULL
+                              AND geom_point IS NOT NULL
+                        ) shapes
+                    ) hull
+                    WHERE verified_events.id = CAST(:e AS uuid)
+                      AND hull.poly IS NOT NULL
+                      AND GeometryType(hull.poly) = 'POLYGON'
+                """),
+                {"e": str(event_id)},
+            )
+        return (result.rowcount or 0) > 0
+    except Exception as e:
+        logger.warning(
+            f"Pipeline: could not compute boundary_polygon for event {event_id}, "
+            f"leaving it NULL: {e}"
+        )
+        return False
+
+
 async def _next_event_code(db: AsyncSession) -> str:
     """
     Sequential, human-readable code: INDRA-YYYYMMDD-NNN.
@@ -809,6 +890,11 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 cluster["report_ids"], event_id, commit=False
             )
             action = "created"
+
+        # The event's footprint, from the reports now linked to it. Runs for both
+        # paths and after linking, so a merge widens the polygon to cover the
+        # reports it just absorbed.
+        await _set_boundary_polygon(db, event_id)
 
         report_count = (
             await db.execute(
