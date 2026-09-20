@@ -92,11 +92,38 @@ async def test_event_detail_by_event_code_returns_the_real_row(api, seeded_event
     assert r.json()["id"] == event_id
 
 
-async def test_event_detail_with_a_non_uuid_id_does_not_error(api, seeded_event):
+async def test_event_detail_with_a_non_uuid_id_is_a_404(api, seeded_event, monkeypatch):
     """
-    The id is a free-text path segment, so a non-UUID must not blow up the
-    uuid comparison — it should simply match nothing real.
+    The id is a free-text path segment, so a non-UUID must not blow up the uuid
+    comparison — it must simply match nothing real.
+
+    This used to assert 200. That was DEMO_MODE=true leaking into the contract:
+    with demo data on, the detail endpoint's `empty()` branch answered a
+    non-existent event with an invented one, so "matches nothing real" looked like
+    a success. With DEMO_MODE=false — the default since 20 Sep — the honest answer
+    to "show me this event" when there is no such event is 404.
     """
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "DEMO_MODE", False)
+
+    r = await api.get("/api/events/definitely-not-a-uuid")
+
+    assert r.status_code == 404
+    assert r.status_code != 500
+
+
+async def test_event_detail_with_a_non_uuid_id_in_demo_mode_invents_nothing_real(
+    api, seeded_event, monkeypatch
+):
+    """
+    With demo data on, the same request answers 200 with a demo event — but it must
+    never be mistaken for the seeded row, and it must never be a 500.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "DEMO_MODE", True)
+
     r = await api.get("/api/events/definitely-not-a-uuid")
 
     assert r.status_code == 200

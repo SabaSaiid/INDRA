@@ -21,9 +21,9 @@ except the five report texts, which are labelled synthetic.
 
 Usage
 -----
-    ./start.sh bg                       # backend must be running
+    ./start.sh -b                       # backend must be running (-b = background)
     .venv/bin/python ../scripts/run_patna_demo.py
-    .venv/bin/python ../scripts/run_patna_demo.py --official   # add the dispatch
+    .venv/bin/python ../scripts/run_patna_demo.py --corroborate  # one extra report
 
 Exit code is non-zero if the demo did not produce an event, so it can be used as
 a smoke test rather than only read by a human.
@@ -49,15 +49,35 @@ REPORTS = [
     (25.5920, 85.1345, "Sewage water mixed with rain water on the street here"),
 ]
 
-# An official dispatch raises source reliability from 0.60 to 1.00, which is the
-# escalation step of the demo. Only sent with --official.
-OFFICIAL = (
+# One more corroborating report, sent with --corroborate.
+#
+# This used to be called OFFICIAL and was described as raising source reliability
+# from 0.60 to 1.00. That was wrong, and running it is what showed it:
+# POST /api/reports/submit stamps every report CITIZEN_APP (reports.py:159), so
+# the "district control room" text arrived with citizen reliability like any other
+# and the receipt's cluster block read ["CITIZEN_APP"].
+#
+# The hardcoding is deliberate and correct -- if a client could declare its own
+# source_type, anyone could claim OFFICIAL_DISPATCH and award itself the model's
+# highest trust weight, and the factor would measure what a reporter says about
+# itself. Raising source reliability needs an authenticated ingest path for trusted
+# sources, which is not built. See bug.md BUG-025.
+#
+# So this flag does what it can honestly do: add corroboration, which on a dry day
+# is the lever that actually moves the score.
+EXTRA_REPORT = (
     25.5948,
     85.1381,
-    "District control room confirms waterlogging in Kankarbagh, pumps deployed",
+    "More water collecting near the Kankarbagh community hall, still rising",
 )
 
 RULE = "─" * 72
+
+# Hardcoded demo events in app/api/events.py, served when DEMO_MODE is true and a
+# read finds no rows. Their confidences (0.94, 0.91, ...) are values the real
+# pipeline cannot reach, so seeing one means the script is being shown demo data,
+# not a result. Recognised by event_code so it can be named in the error.
+DEMO_EVENT_CODE_PREFIX = "WX-EV-"
 
 
 def _request(method, path, payload=None, timeout=10):
@@ -84,7 +104,7 @@ def preflight():
     try:
         status, health = _request("GET", "/healthz", timeout=5)
     except urllib.error.URLError as e:
-        _die(f"backend not reachable at {API} — start it with ./start.sh bg ({e.reason})")
+        _die(f"backend not reachable at {API} — start it with ./start.sh -b ({e.reason})")
         return
 
     state = health.get("status")
@@ -114,24 +134,97 @@ def submit(reports):
     return ids
 
 
+def _is_computed(event):
+    """
+    True only for an event this pipeline actually produced.
+
+    With DEMO_MODE=true, GET /api/events answers an *empty* database with
+    hardcoded demo events -- and during the first seconds of a run the database is
+    empty, so the endpoint legitimately returns invented data. Those events carry
+    no `factors` block, so the presence of a real receipt is what separates a
+    computed event from a narrated one.
+
+    Without this check the script reported WX-EV-28231827-A at confidence 0.94,
+    AUTO_PUBLISHED, 0.0s after submitting -- a value the real pipeline cannot
+    reach. Narrating that to a nodal officer as a live result is the exact
+    dishonesty this script was rewritten to remove, so it verifies rather than
+    trusts.
+    """
+    if str(event.get("event_code", "")).startswith(DEMO_EVENT_CODE_PREFIX):
+        return False
+    try:
+        _, detail = _request("GET", f"/api/events/{event['id']}")
+    except urllib.error.HTTPError:
+        return False
+    receipt = detail.get("verification_receipt") or {}
+    return "factor_coverage" in receipt and bool(receipt.get("factors"))
+
+
 def wait_for_event(deadline_s=45):
-    """Poll /api/events until the pipeline has fused something."""
+    """Poll /api/events until the pipeline has fused something real."""
     print(f"  Waiting for the pipeline (up to {deadline_s}s)")
     started = time.monotonic()
+    saw_demo = False
+
     while time.monotonic() - started < deadline_s:
         try:
             _, events = _request("GET", "/api/events")
         except urllib.error.URLError:
             events = None
-        if events:
-            elapsed = time.monotonic() - started
-            print(f"    ✓ event after {elapsed:.1f}s\n")
-            return events[0], elapsed
+
+        for event in events or []:
+            if _is_computed(event):
+                elapsed = time.monotonic() - started
+                print(f"    ✓ event after {elapsed:.1f}s\n")
+                return event, elapsed
+            saw_demo = True
+
+        if saw_demo:
+            print("    … ignoring demo-mode placeholder events "
+                  "(set DEMO_MODE=false — see bug.md BUG-024)")
+            saw_demo = False
         time.sleep(1.0)
+
     _die(
-        f"no event after {deadline_s}s — check the consumer is running and that "
-        "exactly one backend process is attached to the broker"
+        f"no computed event after {deadline_s}s.\n"
+        "    Checks: is the report consumer running? is exactly one backend attached\n"
+        "    to the broker (lsof -i :8000)? is DEMO_MODE=false so that an empty\n"
+        "    database is not answered with invented events?"
     )
+
+
+def settle(event, quiet_for=4.0, limit_s=30.0):
+    """
+    Wait until the event stops growing before printing it.
+
+    Reports are consumed one at a time, so a cluster is still absorbing members
+    for a few seconds after the first event appears. Printed too early the demo
+    shows "3 reports, confidence 0.4585" and a refresh a moment later shows
+    "5 reports, 0.4984" — which looks like the number is unstable when it is
+    simply still arriving. Measured on a local stack: all five land within ~8s.
+
+    Polls until report_count has held steady for `quiet_for` seconds.
+    """
+    print(f"  Letting the cluster settle (quiet for {quiet_for:.0f}s)")
+    last, stable_since = None, time.monotonic()
+    started = time.monotonic()
+
+    while time.monotonic() - started < limit_s:
+        try:
+            _, detail = _request("GET", f"/api/events/{event['id']}")
+        except urllib.error.URLError:
+            break
+        count = detail.get("report_count")
+        if count != last:
+            if last is not None:
+                print(f"    report_count {last} → {count}")
+            last, stable_since = count, time.monotonic()
+        elif time.monotonic() - stable_since >= quiet_for:
+            print(f"    ✓ steady at {count} report(s)\n")
+            return
+        time.sleep(1.0)
+
+    print(f"    … still changing after {limit_s:.0f}s; printing anyway\n")
 
 
 def show_event(event):
@@ -214,25 +307,34 @@ def show_heatmap():
 
 def main():
     ap = argparse.ArgumentParser(description="Run the Patna demo against a live backend.")
-    ap.add_argument("--official", action="store_true",
-                    help="also submit an official dispatch report, which raises source "
-                         "reliability to 1.00 and should push the event over the review gate")
+    ap.add_argument("--corroborate", action="store_true",
+                    help="submit one extra corroborating report, raising the report-density "
+                         "factor (source reliability cannot be raised through this endpoint "
+                         "-- see bug.md BUG-025)")
     ap.add_argument("--wait", type=int, default=45, help="seconds to wait for an event")
     args = ap.parse_args()
 
     preflight()
-    reports = list(REPORTS) + ([OFFICIAL] if args.official else [])
+    reports = list(REPORTS) + ([EXTRA_REPORT] if args.corroborate else [])
     submit(reports)
     event, _ = wait_for_event(args.wait)
+    settle(event)
     detail = show_event(event)
     show_heatmap()
 
     print(RULE)
     status = detail.get("review_status")
     if status == "QUARANTINED":
-        print("  Read: five unverified citizen reports and light rain is not a verified")
-        print("  disaster. Re-run with --official to add a district control room dispatch")
-        print("  and watch the score cross the review gate.")
+        print("  Read: a handful of unverified citizen reports is not a verified disaster.")
+        print("  Quarantined is the correct verdict, not a failure — and the receipt above")
+        print("  shows exactly which evidence produced it.")
+        print()
+        print("  What would raise it: more independent reports (the density factor), or")
+        print("  real rainfall (the weather factor, live from Open-Meteo — today it scored")
+        print("  near zero because Patna is dry). Source reliability reads 0.60 and cannot")
+        print("  move in a live run: the citizen app is the only ingest route built, and")
+        print("  letting a client declare itself an official source would make that factor")
+        print("  meaningless. See bug.md BUG-025.")
     elif status == "PENDING_HUMAN_REVIEW":
         print("  Read: corroborated enough to reach an operator, not enough to publish")
         print("  itself. An operator now approves or rejects it via")
