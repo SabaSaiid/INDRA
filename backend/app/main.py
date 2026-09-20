@@ -14,6 +14,10 @@ from pathlib import Path
 import json
 import logging
 
+from app.core.config import get_settings
+
+settings = get_settings()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("indra.api")
 
@@ -58,17 +62,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Enable CORS
+# CORS: an explicit allow-list, not "*".
+#
+# allow_origins=["*"] with allow_credentials=True is forbidden by the CORS spec,
+# and Starlette handles the combination by echoing back whatever Origin it is
+# sent -- so every page on the internet could read this API with the viewer's
+# credentials attached. The list defaults to the dashboard's dev origins; set
+# CORS_ORIGINS in .env to change it.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
-SCENARIO_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "samples" / "patna_flood_scenario.json"
 
 
 class ConnectionManager:
@@ -149,27 +158,21 @@ async def platform_info():
         "team": "Sixth Sense"
     }
 
-@app.get("/api/scenario")
-async def get_patna_scenario():
-    """Returns the 127-report Patna flood verification scenario dataset."""
-    if SCENARIO_FILE.exists():
-        with open(SCENARIO_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"error": "Scenario dataset not found"}
-
-@app.post("/api/demo/trigger")
-async def trigger_demo():
-    """Broadcasts a live scenario pulse to connected dashboard WebSocket clients."""
-    if SCENARIO_FILE.exists():
-        with open(SCENARIO_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        await ws_manager.broadcast({
-            "type": "DEMO_PULSE",
-            "scenario": data.get("scenario_metadata", {}),
-            "receipt": data.get("verification_receipt", {})
-        })
-        return {"status": "broadcast_sent", "recipients": len(ws_manager.active_connections)}
-    return {"status": "error", "message": "Dataset not found"}
+# GET /api/scenario and POST /api/demo/trigger were removed on 20 Sep.
+#
+# They served data/samples/patna_flood_scenario.json as if it were a real
+# verified event: 127 signals, confidence 0.94, AUTO_PUBLISHED, CRITICAL, "IMD AWS
+# recorded 92mm rainfall", two "CWC river level sensors", ten "verified multimedia
+# evidence". Every one of those was fabricated. There is no IMD or CWC feed (no
+# API keys, decided 16 Sep), vision analysis is permanently offline since layer 4
+# left the scope, and the real pipeline cannot reach 0.94. /api/demo/trigger
+# broadcast it to the dashboard over the live WebSocket as a DEMO_PULSE, beside
+# genuine VERIFIED_EVENT messages.
+#
+# Nothing in frontend/ referenced either route, so removing them changed no
+# behaviour the dashboard depends on. The demo now runs on the real pipeline --
+# see scripts/run_patna_demo.py, which posts reports and reads every number back
+# from the API.
 
 @app.get("/healthz")
 async def health_check():

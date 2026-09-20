@@ -12,13 +12,38 @@ import math
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
 
+from app.core.config import get_settings
+
 logger = logging.getLogger("indra.services.dedup")
 
 # ── Thresholds ─────────────────────────────────────────────────────────────────
-COSINE_THRESHOLD = 0.88
-GPS_DELTA_KM = 1.0
-TIME_DELTA_MINUTES = 15
-LEVENSHTEIN_THRESHOLD = 0.75  # normalized similarity
+# These live in settings since 20 Sep, with exactly the values they were
+# hard-coded at, so they can be tuned from .env rather than by editing this file.
+# Nothing about dedup behaviour changed in that move.
+#
+# They are resolved **per call**, not at import time: a threshold read once at
+# import cannot be overridden by an environment variable in a running process,
+# which would have made the setting decorative. See _gates().
+#
+# The bare module names remain as the documented defaults; several docstrings and
+# notes cite COSINE_THRESHOLD = 0.88 by name.
+_DEFAULTS = get_settings()
+
+COSINE_THRESHOLD = _DEFAULTS.DEDUP_COSINE_THRESHOLD
+GPS_DELTA_KM = _DEFAULTS.DEDUP_GPS_DELTA_KM
+TIME_DELTA_MINUTES = _DEFAULTS.DEDUP_TIME_DELTA_MINUTES
+LEVENSHTEIN_THRESHOLD = _DEFAULTS.DEDUP_LEVENSHTEIN_THRESHOLD  # normalized similarity
+
+
+def _gates():
+    """The four dedup gates as configured right now."""
+    s = get_settings()
+    return (
+        s.DEDUP_COSINE_THRESHOLD,
+        s.DEDUP_GPS_DELTA_KM,
+        s.DEDUP_TIME_DELTA_MINUTES,
+        s.DEDUP_LEVENSHTEIN_THRESHOLD,
+    )
 
 # ── Lazy-loaded embedding model ────────────────────────────────────────────────
 _model = None
@@ -112,6 +137,8 @@ class DedupService:
         if not existing_reports:
             return None
 
+        cosine_threshold, gps_delta_km, time_delta_minutes, levenshtein_threshold = _gates()
+
         model = _get_embedding_model()
         use_embeddings = model is not None
 
@@ -123,12 +150,12 @@ class DedupService:
 
         for index, (ex_text, ex_lat, ex_lng, ex_time) in enumerate(existing_reports):
             # Time delta check (fastest, do first)
-            if abs((new_time - ex_time).total_seconds()) > TIME_DELTA_MINUTES * 60:
+            if abs((new_time - ex_time).total_seconds()) > time_delta_minutes * 60:
                 continue
 
             # GPS delta check
             dist_km = _haversine_km(new_lat, new_lng, ex_lat, ex_lng)
-            if dist_km > GPS_DELTA_KM:
+            if dist_km > gps_delta_km:
                 continue
 
             # Text similarity check
@@ -136,7 +163,7 @@ class DedupService:
                 try:
                     ex_embedding = model.encode(ex_text, convert_to_numpy=True)
                     sim = _cosine_similarity(new_embedding, ex_embedding)
-                    if sim >= COSINE_THRESHOLD:
+                    if sim >= cosine_threshold:
                         logger.info(
                             f"Duplicate detected (cosine={sim:.3f}, dist={dist_km:.2f}km)"
                         )
@@ -144,11 +171,11 @@ class DedupService:
                 except Exception:
                     # Fall through to Levenshtein
                     sim = _levenshtein_similarity(new_text, ex_text)
-                    if sim >= LEVENSHTEIN_THRESHOLD:
+                    if sim >= levenshtein_threshold:
                         return index
             else:
                 sim = _levenshtein_similarity(new_text, ex_text)
-                if sim >= LEVENSHTEIN_THRESHOLD:
+                if sim >= levenshtein_threshold:
                     logger.info(
                         f"Duplicate detected (levenshtein={sim:.3f}, dist={dist_km:.2f}km)"
                     )
