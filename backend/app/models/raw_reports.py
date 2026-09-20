@@ -8,7 +8,7 @@ from sqlalchemy import (
     Column, String, Float, Text, Enum, DateTime, ForeignKey,
     Index, CheckConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 
@@ -47,6 +47,16 @@ class RawReport(Base):
         ForeignKey("raw_reports.id"),
         nullable=True,
     )
+
+    # What layer 3 extracted from raw_text at ingest: cleaned_text, language,
+    # depth_cm, depth_basis, keywords, places, url_count, phone_count,
+    # extracted_at (migration 0005). Rules and dictionaries, never a model.
+    #
+    # NULL means the extraction failed and the report was stored anyway — a
+    # disaster report is not worth losing to a regex. Content severity therefore
+    # re-extracts from raw_text rather than trusting this column; see
+    # services/pipeline.py::_report_texts.
+    analysis = Column(JSONB, nullable=True)
 
     # Constraints
     __table_args__ = (

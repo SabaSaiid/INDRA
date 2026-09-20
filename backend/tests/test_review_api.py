@@ -314,9 +314,19 @@ async def test_provenance_of_a_streamed_then_approved_event(api, db, tokens, bro
     assert str(dupe) not in [x["id"] for x in body["reports"]]
     created = [x["created_at"] for x in body["reports"]]
     assert created == sorted(created)
-    assert [a["action_taken"] for a in body["audit"]] == ["QUARANTINE", "HUMAN_APPROVE"]
+    # QUARANTINE at report 2, ESCALATE when report 5 takes the score past the
+    # 0.60 review gate, then the commander's HUMAN_APPROVE. The ESCALATE row is
+    # new since the gate moved: the pipeline's own escalation is now reachable
+    # with default settings, so the provenance shows the full decision history
+    # rather than jumping from quarantine straight to approval.
+    assert [a["action_taken"] for a in body["audit"]] == [
+        "QUARANTINE",
+        "ESCALATE",
+        "HUMAN_APPROVE",
+    ]
     assert body["audit"][1]["prev_hash"] == body["audit"][0]["sha256_hash"]
-    assert body["chain"] == {"valid": True, "checked": 2, "broken_at_seq": None}
+    assert body["audit"][2]["prev_hash"] == body["audit"][1]["sha256_hash"]
+    assert body["chain"] == {"valid": True, "checked": 3, "broken_at_seq": None}
 
 
 async def test_provenance_of_an_event_with_no_audit_rows(api, db, tokens):

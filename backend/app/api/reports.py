@@ -22,10 +22,44 @@ from app.core.config import get_settings
 from app.core.demo import demo_fallback
 from app.services.credibility import compute_credibility
 from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
+from app.services.text_processing import clean_text, detect_language, extract_metadata
 
 logger = logging.getLogger("indra.api.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
 settings = get_settings()
+
+
+def _analyse(raw_text: str, report_id) -> Optional[dict]:
+    """
+    Layer-3 extraction for one report: cleaned text, language, depth, keywords.
+
+    Rules and dictionaries only — no model. `raw_text` is never modified; this is
+    stored alongside it in raw_reports.analysis.
+
+    **Best-effort by design.** Any failure returns None so the caller stores the
+    report with analysis NULL and still answers 202. Losing a disaster report
+    because a regex raised would be a far worse bug than not knowing how deep the
+    water was, so the whole thing is wrapped. Content severity re-extracts from
+    raw_text at scoring time and therefore does not depend on this succeeding.
+    """
+    try:
+        meta = extract_metadata(raw_text)
+        return {
+            "cleaned_text": clean_text(raw_text),
+            "language": detect_language(raw_text),
+            "depth_cm": meta["depth_cm"],
+            "depth_basis": meta["depth_basis"],
+            "keywords": meta["keywords"],
+            "places": meta["places"],
+            "url_count": meta["url_count"],
+            "phone_count": meta["phone_count"],
+            "extracted_at": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        logger.warning(
+            f"Analysis failed for report {report_id}, storing it without one: {e}"
+        )
+        return None
 
 
 class ReportSubmission(BaseModel):
@@ -132,13 +166,15 @@ async def submit_report(
     except Exception:
         h3_cell = None
 
+    analysis = _analyse(report.text, report_id)
+
     # Insert into DB
     insert_query = text("""
-        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, media_url, credibility_score)
+        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, media_url, credibility_score, analysis)
         VALUES (
             :id, :source_type, :raw_text, :lat, :lng,
             ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-            :h3_cell, :media_url, :credibility
+            :h3_cell, :media_url, :credibility, CAST(:analysis AS jsonb)
         )
     """)
 
@@ -152,6 +188,7 @@ async def submit_report(
             "h3_cell": h3_cell,
             "media_url": report.media_url,
             "credibility": credibility,
+            "analysis": json.dumps(analysis) if analysis is not None else None,
         })
         await db.commit()
     except Exception as e:

@@ -180,3 +180,154 @@ async def test_stored_and_published_report_is_queued(api, session):
     assert r.status_code == 202
     assert r.json()["queued"] is True
     assert len(FakeProducer.sent) == 1
+
+
+# ── Day 5 T2: per-report analysis is stored at ingest ──────────────────────────
+
+def _stored_analysis(session):
+    """The analysis JSON from the insert the endpoint just performed."""
+    assert session.inserts, "nothing was inserted"
+    raw = session.inserts[-1]["analysis"]
+    return None if raw is None else json.loads(raw)
+
+
+async def test_every_stored_report_carries_an_analysis(api, session):
+    r = await api.post(
+        "/api/reports/submit",
+        json=body(25.5941, 85.1376, text="Water 3 feet deep near Gandhi Maidan"),
+    )
+    assert r.status_code == 202
+
+    analysis = _stored_analysis(session)
+    assert analysis is not None
+    assert set(analysis) == {
+        "cleaned_text",
+        "language",
+        "depth_cm",
+        "depth_basis",
+        "keywords",
+        "places",
+        "url_count",
+        "phone_count",
+        "extracted_at",
+    }
+    assert analysis["depth_cm"] == 91          # 3 ft
+    assert analysis["depth_basis"] == "measure:feet"
+    assert analysis["language"] == "en"
+
+
+@pytest.mark.parametrize(
+    "text_in,depth_cm,language",
+    [
+        ("Water 3 feet deep near Gandhi Maidan", 91, "en"),
+        ("घुटने तक पानी भरा है", 50, "hi"),
+        ("2.5 ft paani Kankarbagh main road", 76, "hinglish"),
+        ("flood", None, "en"),
+    ],
+)
+async def test_analysis_extracts_depth_and_language(api, session, text_in, depth_cm, language):
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376, text=text_in))
+    assert r.status_code == 202
+
+    analysis = _stored_analysis(session)
+    assert analysis["depth_cm"] == depth_cm
+    assert analysis["language"] == language
+
+
+async def test_places_are_gazetteer_cities_not_landmarks(api, session):
+    """
+    `places` resolves the gazetteer, so it holds cities — not street landmarks.
+
+    Worth pinning because it is easy to read the field name as "landmarks" and
+    then claim the system extracts them. "Gandhi Maidan" is a landmark and does
+    not appear; "Patna" is a gazetteer city and does.
+    """
+    await api.post(
+        "/api/reports/submit",
+        json=body(25.5941, 85.1376, text="Flooding in Patna near Gandhi Maidan"),
+    )
+    analysis = _stored_analysis(session)
+    assert analysis["places"] == ["Patna"]
+    assert "Gandhi Maidan" not in analysis["places"]
+
+
+@pytest.mark.parametrize(
+    "text_in",
+    [
+        "flood",                 # exactly min_length
+        "x" * 2000,              # exactly max_length
+        "🌊🌊🌊🌊🌊",                # emoji only, no letters at all
+        "देखो! पानी… <script>alert(1)</script>",   # mixed script and markup
+        "     ok     ",          # padded to length with whitespace
+        "3 ft 3 ft 3 ft 3 ft",   # repeated depth mentions
+    ],
+)
+async def test_odd_text_still_yields_an_analysis(api, session, text_in):
+    """
+    Extraction must survive anything ingest accepts, without raising.
+
+    Note the emoji-only case: detect_language divides by the number of letters,
+    so a report with zero letters would be a ZeroDivisionError if the guard were
+    dropped.
+    """
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376, text=text_in))
+    assert r.status_code == 202
+
+    analysis = _stored_analysis(session)
+    assert analysis is not None
+    assert isinstance(analysis["cleaned_text"], str)
+    assert analysis["language"] in {"en", "hi", "hinglish"}
+
+
+@pytest.mark.parametrize("text_in", ["", "oops", "x" * 2001])
+async def test_text_outside_the_schema_bounds_is_422_and_stores_nothing(api, session, text_in):
+    """
+    The real contract, pinned: text is 5-2000 characters.
+
+    Written after a test of mine assumed ingest accepted a 2-character and a
+    4000-character report; it does not, and it is right not to. Validation
+    rejecting them before any analysis runs is the behaviour worth keeping.
+    """
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376, text=text_in))
+    assert r.status_code == 422
+    assert session.inserts == []
+
+
+async def test_a_failing_analyser_still_stores_the_report(api, session, monkeypatch, caplog):
+    """
+    A disaster report is not worth losing to a regex.
+
+    If extraction raises, the report is stored with analysis NULL and the client
+    still gets 202. The WARNING is the only trace, and it names the report id.
+    """
+    from app.api import reports as reports_api
+
+    def _boom(_text):
+        raise RuntimeError("extractor exploded")
+
+    monkeypatch.setattr(reports_api, "extract_metadata", _boom)
+
+    with caplog.at_level("WARNING", logger="indra.api.reports"):
+        r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+
+    assert r.status_code == 202
+    assert _stored_analysis(session) is None
+    assert any("Analysis failed" in m for m in caplog.messages)
+
+
+async def test_analysis_never_modifies_raw_text(api, session):
+    """
+    raw_text is the evidence; cleaned_text is a derived convenience.
+
+    The stored raw_text must be byte-identical to what the citizen sent, even
+    though cleaned_text normalises it.
+    """
+    messy = "Water   here  https://x.co/a  ２ ft"
+    await api.post("/api/reports/submit", json=body(25.5941, 85.1376, text=messy))
+
+    params = session.inserts[-1]
+    assert params["raw_text"] == messy
+
+    analysis = _stored_analysis(session)
+    assert analysis["cleaned_text"] != messy
+    assert "<URL>" in analysis["cleaned_text"]

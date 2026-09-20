@@ -10,7 +10,12 @@ from pathlib import Path
 
 import pytest
 
-from app.services.text_processing import clean_text, depth_bucket, extract_metadata
+from app.services.text_processing import (
+    clean_text,
+    depth_bucket,
+    detect_language,
+    extract_metadata,
+)
 
 DATASET = Path(__file__).resolve().parents[2] / "data" / "labelled" / "reports_v1.csv"
 
@@ -148,3 +153,93 @@ def test_test_split_depth_bucket_accuracy():
 def test_test_split_rows_without_depth_rarely_get_one():
     hits, n = _false_depth_rate(_rows("test"))
     assert hits / n <= 0.03, (hits, n)
+
+
+# ── detect_language (Day 5 T2) ─────────────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    "text_in,expected",
+    [
+        # Devanagari
+        ("घुटने तक पानी भरा है", "hi"),
+        ("गांधी मैदान के पास सड़क पर पानी जमा होने लगा है", "hi"),
+        # Romanised Hindi — one strong marker is enough
+        ("2.5 ft paani Kankarbagh main road", "hinglish"),
+        ("Kankarbagh main road pe thoda paani jama ho raha hai", "hinglish"),
+        ("Hamare mohalle ki naali overflow hone lagi hai", "hinglish"),
+        ("Kamar tak paani hai gali mein", "hinglish"),
+        # English
+        ("Water 3 feet deep near Gandhi Maidan", "en"),
+        ("Ankle-deep puddles forming near Boring Road bus stop", "en"),
+        ("Municipal corporation warns of waterlogging in Kankarbagh", "en"),
+    ],
+)
+def test_detect_language(text_in, expected):
+    assert detect_language(text_in) == expected
+
+
+@pytest.mark.parametrize(
+    "text_in",
+    [
+        "Water is rising towards me near the bus stop",   # "me"
+        "Please log this report, the road is flooded",    # "log"
+        "The auto stand near the market is under water",  # "auto"
+        "A band of heavy rain is crossing the district",  # "band"
+        "Water level is on par with last year",           # "par"
+        "Drains are blocked and water cannot ho away",    # one weak marker only
+    ],
+)
+def test_plain_english_is_not_mistaken_for_hinglish(text_in):
+    """
+    The reason detect_language has two tiers instead of one marker list.
+
+    Each of these English sentences contains a token that is also a romanised
+    Hindi particle. A single flat list scored 100% on the labelled dataset while
+    misreading five of these as Hinglish — which is why a weak marker alone is
+    not evidence and two are required.
+    """
+    assert detect_language(text_in) == "en"
+
+
+@pytest.mark.parametrize("text_in", ["", "   ", "🌊🌊🌊", "12345", None])
+def test_detect_language_defaults_to_en_and_never_raises(text_in):
+    """
+    No letters means no evidence, and the ratio would divide by zero unguarded.
+    """
+    assert detect_language(text_in) == "en"
+
+
+def test_one_hindi_word_does_not_make_an_english_report_hindi():
+    """
+    The Devanagari test is a 30% ratio, not "any Devanagari".
+
+    English reports quote Hindi place names and single words often enough that a
+    presence test would relabel them.
+    """
+    assert detect_language("Waterlogging reported near गांधी मैदान this morning") == "en"
+
+
+def _language_accuracy(rows):
+    hits = sum(detect_language(r["text"]) == r["lang"] for r in rows)
+    return hits, len(rows)
+
+
+def test_train_split_language_accuracy():
+    hits, n = _language_accuracy(_rows("train"))
+    assert hits / n >= 0.95, (hits, n)
+
+
+def test_test_split_language_accuracy():
+    """
+    Measured, and worth far less than it looks — see detect_language's docstring.
+
+    This scores 100% on both splits, but the dataset is synthetic and generated
+    by this project, so its three languages are cleanly separated by script and
+    by a small vocabulary. The honest claim is "the rule agrees with how this
+    data was written", not "the rule is 100% accurate on real reports". The gate
+    is deliberately set at 0.95 rather than 1.0 so that a future real-world row
+    which genuinely code-mixes does not have to be argued away to keep a green
+    suite.
+    """
+    hits, n = _language_accuracy(_rows("test"))
+    assert hits / n >= 0.95, (hits, n)

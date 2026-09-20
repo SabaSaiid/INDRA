@@ -7,6 +7,7 @@ assigns quadrant and review_status to verified events.
 import logging
 from typing import Dict, Any, Iterable, List, Optional
 
+from app.core.config import get_settings
 from app.models.enums import Severity, ReviewStatus, Quadrant, SourceType
 
 logger = logging.getLogger("indra.services.fusion_engine")
@@ -90,8 +91,42 @@ class FusionEngine:
         """
         Compute the verification receipt.
 
-        Each factor that is None is scored 0.0 with evidence "Telemetry factor offline".
-        Returns { "confidence_score": float, "factors": [...], "total_weighted": float }
+        Confidence is the weighted mean over the factors that actually
+        reported:
+
+            confidence = Σ_online (w · s) / Σ_online w
+
+        A factor that never reported is not evidence against the event. No
+        image classifier and no anomaly model ship this sprint, and charging
+        every event their combined 0.20 capped a fully corroborated flood at
+        0.80 — the platform was quarantining real events on behalf of models it
+        had chosen not to build. So an offline factor is excluded from the mean,
+        and the receipt publishes `factor_coverage`: the share of the model's
+        designed weight that reported. A 0.59 over 0.80 coverage must never be
+        mistaken for a 0.59 over full coverage, so the number the receipt
+        claims and the evidence behind it stay separable.
+
+        An explicit 0.0 is a measurement, not a gap: zero rainfall is a real
+        reading and costs the weather factor its full 0.25. Only None is
+        offline.
+
+        `weight_pct` stays nominal (25.0, 20.0, …) — it is the *design* weight,
+        identical on every receipt, so the offline rows keep showing what the
+        model wanted and did not get. Re-normalising it per factor would print
+        "weather 31.25%" on one receipt and "25%" on another, leaving a reader
+        unable to tell whether the model changed or the telemetry did. The
+        self-explaining arithmetic lives instead in one visible division that a
+        person can check with a calculator:
+
+            total_weighted / factor_coverage = confidence_score
+
+        For that to be literally true of the *printed* numbers, each row's
+        weighted_points is rounded before being summed, so the points column
+        adds up to total_weighted exactly. A receipt whose line items do not add
+        to its total is a bug in a receipt.
+
+        Returns {"confidence_score", "factor_coverage", "factors",
+                 "total_weighted"}.
         """
         scores = {
             "weather_station": weather_score,
@@ -104,60 +139,104 @@ class FusionEngine:
 
         factors: List[Dict[str, Any]] = []
         total_weighted = 0.0
+        coverage = 0.0
 
         for key, meta in FACTORS.items():
             raw_score = scores.get(key)
-            if raw_score is None:
+            online = raw_score is not None
+
+            if online:
+                raw_score = max(0.0, min(1.0, float(raw_score)))
+                evidence = f"{meta['label']} data integrated"
+                coverage += meta["weight"]
+            else:
                 raw_score = 0.0
                 evidence = "Telemetry factor offline"
-            else:
-                raw_score = max(0.0, min(1.0, raw_score))
-                evidence = f"{meta['label']} data integrated"
 
-            weight_pct = meta["weight"] * 100
-            weighted_points = raw_score * meta["weight"]
+            # Rounded per row, then summed, so the points column in the stored
+            # receipt adds up to total_weighted exactly.
+            weighted_points = round(raw_score * meta["weight"], 4)
             total_weighted += weighted_points
 
             factors.append({
                 "factor": meta["label"],
-                "weight_pct": weight_pct,
+                "weight_pct": meta["weight"] * 100,
+                # "computed" | "offline" — the same vocabulary the pipeline's
+                # provenance block uses. This is what distinguishes a score of
+                # 0.0 that was measured from one that was never reported;
+                # `score` stays 0.0 rather than null so the receipt renderers
+                # (which multiply it) cannot throw.
+                "state": "computed" if online else "offline",
                 "score": round(raw_score, 4),
-                "weighted_points": round(weighted_points, 4),
+                "weighted_points": weighted_points,
                 "evidence": evidence,
             })
 
-        confidence = round(max(0.0, min(1.0, total_weighted)), 4)
+        total_weighted = round(total_weighted, 4)
+        factor_coverage = round(coverage, 4)
+
+        # Σ_online w == 0: nothing reported, so there is nothing to be confident
+        # about and nothing to divide by. Unreachable from the pipeline (report
+        # density and spatial coherence are always computed from the cluster's
+        # own geometry); guarded for every other caller.
+        if factor_coverage > 0.0:
+            confidence = round(total_weighted / factor_coverage, 4)
+        else:
+            confidence = 0.0
+        # A mean of values in [0, 1] cannot leave [0, 1]; this clamp is what
+        # keeps verified_events.ck_confidence_range true even if rounding or a
+        # future factor misbehaves.
+        confidence = max(0.0, min(1.0, confidence))
 
         return {
             "confidence_score": confidence,
+            "factor_coverage": factor_coverage,
             "factors": factors,
-            "total_weighted": round(total_weighted, 4),
+            "total_weighted": total_weighted,
         }
 
     def assign_quadrant(
-        self, severity: Severity, confidence: float
+        self,
+        severity: Severity,
+        confidence: float,
+        auto_threshold: Optional[float] = None,
+        review_threshold: Optional[float] = None,
     ) -> Quadrant:
         """
         Quadrant assignment based on severity and confidence.
 
-        - severity ∈ {HIGH, CRITICAL} & C ≥ 0.90 → "Critical Verified Event"
-        - severity ∈ {HIGH, CRITICAL} & C < 0.90 → "Unverified Threat"
-        - severity ∈ {ADVISORY, MODERATE} & C ≥ 0.70 → "Confirmed Minor Event"
+        - severity ∈ {HIGH, CRITICAL} & C ≥ auto_threshold → "Critical Verified Event"
+        - severity ∈ {HIGH, CRITICAL} & C < auto_threshold → "Unverified Threat"
+        - severity ∈ {ADVISORY, MODERATE} & C ≥ review_threshold → "Confirmed Minor Event"
         - else → "Noise"
         - Default (can't determine) → "Unverified Threat" (fail-safe)
+
+        The two thresholds default to the same settings determine_review_status()
+        uses, and that shared default is the point. They used to be hard-coded
+        0.90 / 0.70 here while the review gate was configurable, so lowering
+        HUMAN_REVIEW_THRESHOLD to 0.60 on 20 Sep would have put an event at 0.62
+        into PENDING_HUMAN_REVIEW while this method still called it "Noise" — the
+        Intelligence Matrix labelling the very event it was asking an operator to
+        review as noise. One gate, one number, read from one place.
         """
         try:
+            settings = get_settings()
+            if auto_threshold is None:
+                auto_threshold = settings.AUTO_PUBLISH_THRESHOLD
+            if review_threshold is None:
+                review_threshold = settings.HUMAN_REVIEW_THRESHOLD
+
             high_severities = {Severity.HIGH, Severity.CRITICAL}
             low_severities = {Severity.ADVISORY, Severity.MODERATE}
 
             if severity in high_severities:
-                if confidence >= 0.90:
+                if confidence >= auto_threshold:
                     return Quadrant.CRITICAL_VERIFIED
                 else:
                     return Quadrant.UNVERIFIED_THREAT
 
             if severity in low_severities:
-                if confidence >= 0.70:
+                if confidence >= review_threshold:
                     return Quadrant.CONFIRMED_MINOR
                 else:
                     return Quadrant.NOISE
@@ -182,7 +261,10 @@ class FusionEngine:
         return Quadrant.CONFIRMED_MINOR
 
     def determine_review_status(
-        self, confidence: float, auto_threshold: float = 0.90, review_threshold: float = 0.70
+        self,
+        confidence: float,
+        auto_threshold: Optional[float] = None,
+        review_threshold: Optional[float] = None,
     ) -> ReviewStatus:
         """
         Route event to the appropriate review status based on confidence.
@@ -190,7 +272,18 @@ class FusionEngine:
         - C ≥ auto_threshold → AUTO_PUBLISHED
         - C ≥ review_threshold → PENDING_HUMAN_REVIEW
         - else → QUARANTINED
+
+        Both thresholds default to settings, exactly as assign_quadrant's do, so
+        the two methods can never disagree about where a gate is. They used to
+        carry hard-coded 0.90 / 0.70 literals, which meant a caller that omitted
+        them silently applied a different policy from the pipeline.
         """
+        settings = get_settings()
+        if auto_threshold is None:
+            auto_threshold = settings.AUTO_PUBLISH_THRESHOLD
+        if review_threshold is None:
+            review_threshold = settings.HUMAN_REVIEW_THRESHOLD
+
         if confidence >= auto_threshold:
             return ReviewStatus.AUTO_PUBLISHED
         elif confidence >= review_threshold:
