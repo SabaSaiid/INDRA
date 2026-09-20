@@ -11,8 +11,10 @@ import RecentEventsList from '@/components/RecentEventsList';
 import EventDistributionChart from '@/components/EventDistributionChart';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import LiveFeed from '@/components/LiveFeed';
+import EventVerificationModal from '@/components/EventVerificationModal';
 import { kpiData, type KpiItem, recentEvents, type RecentEvent } from '@/lib/mock-data';
 import { fetchDashboardSummary, fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   KpiCardSkeleton,
   MapCardSkeleton,
@@ -34,6 +36,8 @@ export default function Home() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>(undefined);
+  const [verificationEventId, setVerificationEventId] = useState<string | null>(null);
+  const { subscribe } = useIndraWebSocket();
 
   // ── View Mode (persisted across sessions) ──────────────────────────────────
   const [viewMode, setViewMode] = useState<ViewMode>('mission-control');
@@ -81,6 +85,34 @@ export default function Home() {
       }
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // ── WebSocket: auto-refresh events on real-time broadcasts ────────────────
+  const refreshEvents = useCallback(async () => {
+    try {
+      const apiEvents = await fetchEvents({ time_range: '7d' });
+      if (apiEvents.length > 0) {
+        setEvents(apiEventsToRecentEvents(apiEvents));
+      }
+    } catch { /* no-op */ }
+  }, []);
+
+  useEffect(() => {
+    return subscribe('dashboard-page', (msg) => {
+      if (['NEW_REPORT', 'VERIFIED_EVENT', 'EVENT_REVIEWED'].includes(msg.type)) {
+        refreshEvents();
+        // Also refresh KPIs on verified/reviewed events
+        if (msg.type !== 'NEW_REPORT') {
+          fetchDashboardSummary().then(setLiveKpiData);
+        }
+      }
+    });
+  }, [subscribe, refreshEvents]);
+
+  // Handler to open verification modal from event lists
+  const handleEventSelect = useCallback((ev: RecentEvent) => {
+    setSelectedIncidentId(ev.id);
+    setVerificationEventId(ev.id);
   }, []);
 
   return (
@@ -172,7 +204,7 @@ export default function Home() {
                       <div className="lg:col-span-2 flex flex-col">
                         <RecentEventsList
                           selectedEventId={selectedIncidentId}
-                          onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                          onSelectEvent={handleEventSelect}
                           events={events}
                           loading={eventsLoading}
                         />
@@ -201,7 +233,7 @@ export default function Home() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                       <RecentEventsList
                         selectedEventId={selectedIncidentId}
-                        onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                        onSelectEvent={handleEventSelect}
                         events={events}
                         loading={eventsLoading}
                       />
@@ -216,7 +248,7 @@ export default function Home() {
                     <div className="lg:col-span-2 flex flex-col h-full">
                       <RecentEventsList
                         selectedEventId={selectedIncidentId}
-                        onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
+                        onSelectEvent={handleEventSelect}
                         events={events}
                         loading={eventsLoading}
                       />
@@ -233,6 +265,13 @@ export default function Home() {
             )}
           </AnimatePresence>
         </main>
+
+        {/* Verification Receipt Modal */}
+        <EventVerificationModal
+          eventId={verificationEventId}
+          onClose={() => setVerificationEventId(null)}
+          onEventUpdated={() => refreshEvents()}
+        />
       </div>
     </div>
   );

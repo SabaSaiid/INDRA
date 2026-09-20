@@ -28,7 +28,233 @@ import {
 } from './mock-data';
 import { sanitizeIncidentCoordinate } from './geo-resolver';
 
+export type { FeedItem };
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
+// ─── Authentication & Token Management ───────────────────────────────────────
+
+/** Demo credentials matching backend security.py DEMO_USERS. */
+const DEMO_CREDENTIALS: Record<string, string> = {
+  commander: 'commander123',
+  analyst: 'analyst123',
+  admin: 'admin123',
+  citizen: 'citizen123',
+};
+
+interface AuthToken {
+  access_token: string;
+  token_type: string;
+  role: string;
+  agency: string;
+  fetchedAt: number;
+}
+
+const tokenCache = new Map<string, AuthToken>();
+const TOKEN_TTL_MS = 7 * 60 * 60 * 1000; // 7 hours (backend issues 8h tokens)
+
+/**
+ * Fetch a JWT token from the backend for the given persona.
+ * Tokens are cached in-memory and auto-refreshed when stale.
+ */
+export async function getAuthToken(username: string): Promise<string | null> {
+  const cached = tokenCache.get(username);
+  if (cached && Date.now() - cached.fetchedAt < TOKEN_TTL_MS) {
+    return cached.access_token;
+  }
+
+  const password = DEMO_CREDENTIALS[username];
+  if (!password) {
+    console.warn(`[INDRA] No demo credentials for persona: ${username}`);
+    return null;
+  }
+
+  try {
+    const body = new URLSearchParams();
+    body.set('username', username);
+    body.set('password', password);
+
+    const res = await fetch(`${API_BASE}/api/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    if (!res.ok) throw new Error(`Auth failed: HTTP ${res.status}`);
+    const data = await res.json();
+    const token: AuthToken = { ...data, fetchedAt: Date.now() };
+    tokenCache.set(username, token);
+    return token.access_token;
+  } catch (err) {
+    console.warn(`[INDRA] getAuthToken(${username}) failed:`, err);
+    return null;
+  }
+}
+
+/** Build Authorization headers for the given persona. Returns empty if auth fails. */
+export async function getAuthHeaders(username: string): Promise<Record<string, string>> {
+  const token = await getAuthToken(username);
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+/** Clear cached token (e.g. on persona switch). */
+export function clearAuthToken(username: string) {
+  tokenCache.delete(username);
+}
+
+// ─── Event Detail ────────────────────────────────────────────────────────────
+
+export interface EventDetail {
+  id: string;
+  event_code: string;
+  event_type: string;
+  event_type_display: string;
+  severity: string;
+  severity_display: string;
+  confidence_score: number;
+  review_status: string;
+  verification: string;
+  quadrant: string;
+  impact_radius_km: number;
+  center: { lat: number; lng: number };
+  boundary_geojson: string | null;
+  verification_receipt: Record<string, any>;
+  verified_at: string;
+  city: string;
+  state: string;
+}
+
+export async function fetchEventDetail(eventId: string): Promise<EventDetail | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/events/${eventId}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[INDRA] fetchEventDetail(${eventId}) failed:`, err);
+    return null;
+  }
+}
+
+// ─── Event Provenance (Auth Required) ────────────────────────────────────────
+
+export interface ProvenanceReport {
+  id: string;
+  source_type: string;
+  raw_text: string;
+  latitude: number;
+  longitude: number;
+  credibility_score: number;
+  created_at: string;
+}
+
+export interface AuditEntry {
+  seq: number;
+  action_taken: string;
+  operator_id: string;
+  reason: string | null;
+  details: Record<string, any> | null;
+  logged_at: string;
+  sha256_hash: string;
+  prev_hash: string;
+}
+
+export interface ProvenanceData {
+  event: {
+    id: string;
+    event_code: string;
+    review_status: string;
+    severity: string;
+    confidence_score: number;
+    verification_receipt: Record<string, any>;
+  };
+  reports: ProvenanceReport[];
+  audit: AuditEntry[];
+  chain: { valid: boolean; checked: number; error?: string };
+}
+
+export async function fetchEventProvenance(
+  eventId: string,
+  operatorUsername: string = 'commander'
+): Promise<ProvenanceData | null> {
+  try {
+    const authHeaders = await getAuthHeaders(operatorUsername);
+    const res = await fetch(`${API_BASE}/api/events/${eventId}/provenance`, {
+      cache: 'no-store',
+      headers: { ...authHeaders },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[INDRA] fetchEventProvenance(${eventId}) failed:`, err);
+    return null;
+  }
+}
+
+// ─── Event Review (Auth Required: COMMANDER / ADMIN) ─────────────────────────
+
+export interface ReviewResponse extends EventDetail {}
+
+export async function reviewEvent(
+  eventId: string,
+  action: 'approve' | 'reject' | 'override_severity',
+  reason: string,
+  operatorUsername: string = 'commander',
+  newSeverity?: string
+): Promise<{ success: boolean; data?: ReviewResponse; error?: string }> {
+  try {
+    const authHeaders = await getAuthHeaders(operatorUsername);
+    if (!authHeaders.Authorization) {
+      return { success: false, error: 'Authentication failed — cannot obtain token' };
+    }
+    const body: Record<string, any> = { action, reason };
+    if (action === 'override_severity' && newSeverity) {
+      body.new_severity = newSeverity;
+    }
+    const res = await fetch(`${API_BASE}/api/events/${eventId}/review`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      return { success: false, error: err.detail || `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    return { success: true, data };
+  } catch (err: any) {
+    console.warn(`[INDRA] reviewEvent(${eventId}) failed:`, err);
+    return { success: false, error: err?.message || 'Network error' };
+  }
+}
+
+// ─── Citizen Report Submission ───────────────────────────────────────────────
+
+export interface ReportSubmission {
+  latitude: number;
+  longitude: number;
+  text: string;
+  media_url?: string;
+}
+
+export async function submitCitizenReport(
+  report: ReportSubmission
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/reports/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      return { success: false, error: err.detail || `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    return { success: true, data };
+  } catch (err: any) {
+    console.warn('[INDRA] submitCitizenReport failed:', err);
+    return { success: false, error: err?.message || 'Network error' };
+  }
+}
 
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
@@ -118,6 +344,7 @@ export interface ApiEvent {
   imageGradient: string;
   verified_at: string;
   timestamp: string;
+  corroborating_reports_count?: number;
 }
 
 export const fallbackApiEvents: ApiEvent[] = mapMarkers.map((m, idx) => ({

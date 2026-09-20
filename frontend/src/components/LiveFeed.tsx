@@ -1,79 +1,93 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import {
   liveFeedItems,
-  feedSourceConfig,
   type FeedSourceType,
   type FeedItem,
 } from '@/lib/mock-data';
 import { fetchRecentFeed } from '@/lib/api';
-import { ArrowRight } from 'lucide-react';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { ArrowRight, Radio } from 'lucide-react';
 
-// Source label abbreviation
-const sourceAbbr: Record<FeedSourceType, string> = {
-  citizen: 'CTZN',
-  social:  'SOCI',
-  imd:     'IMD',
-  news:    'NEWS',
+// Source styling and abbreviations
+const sourceConfig: Record<string, { color: string; bg: string; abbr: string }> = {
+  citizen: { color: '#4A6670', bg: '#EDF1F3', abbr: 'CTZN' },
+  social:  { color: '#B8873A', bg: '#F7F2E7', abbr: 'SOCI' },
+  imd:     { color: '#8C2F26', bg: '#F5EBEA', abbr: 'IMD' },
+  news:    { color: '#7A8599', bg: '#EEF0F4', abbr: 'NEWS' },
+  event:   { color: '#8C2F26', bg: '#FEE2E2', abbr: 'EVNT' },
+  review:  { color: '#065F46', bg: '#D1FAE5', abbr: 'AUDT' },
 };
 
 export default function LiveFeed() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>(liveFeedItems);
+  const { connected, subscribe } = useIndraWebSocket();
 
-  // Fetch live feed data
+  // Initial fetch of recent feed items
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await fetchRecentFeed(10);
+        const data = await fetchRecentFeed(12);
         if (!cancelled && data.length > 0) {
           setFeedItems(data);
         }
       } catch {
-        // mock data already set
+        // mock data already initialized
       }
     })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // WebSocket for real-time NEW_REPORT pushes
-  useEffect(() => {
-    const wsUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000')
-      .replace('http://', 'ws://')
-      .replace('https://', 'wss://');
-
-    let ws: WebSocket | null = null;
-    try {
-      ws = new WebSocket(`${wsUrl}/ws/events`);
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'NEW_REPORT' && msg.report) {
-            const newItem: FeedItem = {
-              id: msg.report.id || `ws-${Date.now()}`,
-              source: 'citizen' as FeedSourceType,
-              sourceLabel: 'Citizen report',
-              message: msg.report.text || msg.report.raw_text || 'New report received',
-              time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-            };
-            setFeedItems((prev) => [newItem, ...prev.slice(0, 9)]);
-          }
-        } catch {
-          // ignore malformed WS messages
-        }
-      };
-    } catch {
-      console.warn('[INDRA] WebSocket connection failed (non-fatal)');
-    }
-
     return () => {
-      if (ws) ws.close();
+      cancelled = true;
     };
   }, []);
+
+  // Centralized WebSocket listener handling NEW_REPORT, VERIFIED_EVENT, and EVENT_REVIEWED
+  useEffect(() => {
+    return subscribe('live-feed-component', (msg) => {
+      const nowTime = new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+      if (msg.type === 'NEW_REPORT' && msg.report) {
+        const rep = msg.report;
+        const newItem: FeedItem = {
+          id: rep.id || `ws-rep-${Date.now()}`,
+          source: (rep.source_type === 'sensor' ? 'imd' : 'citizen') as FeedSourceType,
+          sourceLabel: rep.source_type === 'sensor' ? 'Sensor pulse' : 'Citizen report',
+          message: rep.text || rep.raw_text || 'Ground incident report received',
+          time: nowTime,
+        };
+        setFeedItems((prev) => [newItem, ...prev.slice(0, 14)]);
+      } else if (msg.type === 'VERIFIED_EVENT' && msg.event) {
+        const ev = msg.event;
+        const confPct = Math.round((ev.confidence_score || 0.85) * 100);
+        const newItem: FeedItem = {
+          id: ev.id || `ws-ev-${Date.now()}`,
+          source: 'imd' as FeedSourceType,
+          sourceLabel: 'Verified Event',
+          message: `${ev.event_type || ev.eventType || 'Event'} cluster formed in ${ev.city || 'Area'} (${confPct}% conf)`,
+          time: nowTime,
+        };
+        setFeedItems((prev) => [newItem, ...prev.slice(0, 14)]);
+      } else if (msg.type === 'EVENT_REVIEWED') {
+        const newItem: FeedItem = {
+          id: `ws-rev-${Date.now()}`,
+          source: 'imd' as FeedSourceType,
+          sourceLabel: 'Audit Action',
+          message: `${msg.event_code || 'Event'} marked ${msg.review_status || msg.action || 'REVIEWED'} by ${msg.operator_id || 'Commander'}`,
+          time: nowTime,
+        };
+        setFeedItems((prev) => [newItem, ...prev.slice(0, 14)]);
+      }
+    });
+  }, [subscribe]);
 
   return (
     <motion.div
@@ -81,20 +95,30 @@ export default function LiveFeed() {
       initial="hidden"
       animate="visible"
       transition={{ delay: 0.6 }}
+      className="h-full"
     >
-      <Card hover={false} className="h-full" density="compact">
+      <Card hover={false} className="h-full flex flex-col min-h-0" density="compact">
         <CardHeader
           density="compact"
           title={
-            <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-              Live Reports
+            <span className="flex items-center gap-1.5" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              <span>Live Feed</span>
+              {connected && (
+                <span className="flex items-center gap-1 text-[9px] font-mono text-emerald-600 font-normal">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  LIVE
+                </span>
+              )}
             </span>
           }
           action={
-            <button className="flex items-center gap-1 text-[10px] font-medium text-[#7A8599] hover:text-ink transition-colors">
-              View all
+            <Link
+              href="/reports"
+              className="flex items-center gap-1 text-[10px] font-medium text-[#7A8599] hover:text-[#1B2432] transition-colors"
+            >
+              <span>View all</span>
               <ArrowRight className="w-3 h-3" />
-            </button>
+            </Link>
           }
         />
 
@@ -102,13 +126,11 @@ export default function LiveFeed() {
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="custom-scrollbar overflow-y-auto"
+          className="custom-scrollbar overflow-y-auto flex-1 min-h-0"
           style={{ maxHeight: '185px' }}
         >
           {feedItems.map((item) => {
-            const source = (item.source || 'news') as FeedSourceType;
-            const sourceStyle = feedSourceConfig[source] || feedSourceConfig.news;
-            const abbr = sourceAbbr[source] ?? 'LOG';
+            const cfg = sourceConfig[item.source] || sourceConfig.news;
 
             return (
               <motion.div
@@ -116,22 +138,22 @@ export default function LiveFeed() {
                 variants={listItemSlideIn}
                 className="flex items-center gap-2 py-1.5 border-b border-[#F0EBE0] last:border-0 px-1 transition-colors hover:bg-[#F7F3EA] rounded"
               >
-                {/* Micro source pill */}
+                {/* Micro source badge */}
                 <span
                   className="text-[9px] font-semibold flex-shrink-0 tabular-nums px-1 py-0.5 rounded"
                   style={{
                     fontFamily: 'JetBrains Mono, monospace',
-                    color: sourceStyle.color,
-                    backgroundColor: `${sourceStyle.color}18`,
+                    color: cfg.color,
+                    backgroundColor: `${cfg.color}18`,
                   }}
                 >
-                  {abbr}
+                  {cfg.abbr}
                 </span>
 
-                {/* Content — single line */}
+                {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[10px] font-semibold text-ink flex-shrink-0">
+                    <span className="text-[10px] font-semibold text-[#1B2432] flex-shrink-0">
                       {item.sourceLabel}
                     </span>
                     <span className="text-[9px] text-[#4A5568] truncate flex-1 min-w-0">

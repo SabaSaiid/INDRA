@@ -462,6 +462,12 @@ export interface FeedItem {
   sourceLabel: string;
   message: string;
   time: string;
+  text?: string;
+  city?: string;
+  confidence?: number;
+  eventType?: string;
+  type?: string;
+  timestamp?: string;
 }
 
 export const liveFeedItems: FeedItem[] = [

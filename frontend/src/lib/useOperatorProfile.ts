@@ -7,7 +7,7 @@ import {
   mockUserProfile,
   mockProfilesMap,
 } from './mock-data';
-import { fetchUserProfile, updateUserProfile } from './api';
+import { fetchUserProfile, updateUserProfile, getAuthToken, clearAuthToken } from './api';
 
 const OPERATOR_STORAGE_KEY = 'indra_current_role';
 
@@ -68,9 +68,19 @@ export const AVAILABLE_OPERATOR_PERSONAS: OperatorPersonaOption[] = [
 export function useOperatorProfile() {
   const [selectedRole, setSelectedRoleState] = useState<string>('commander');
   const [profile, setProfile] = useState<UserProfile>(() => mockProfilesMap['commander'] || mockUserProfile);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Auto-authenticate for the current persona on mount and role changes
+  useEffect(() => {
+    let cancelled = false;
+    getAuthToken(selectedRole).then((token) => {
+      if (!cancelled) setIsAuthenticated(!!token);
+    });
+    return () => { cancelled = true; };
+  }, [selectedRole]);
 
   // Sync stored role from localStorage after initial client hydration to avoid hydration mismatch
   useEffect(() => {
@@ -105,11 +115,16 @@ export function useOperatorProfile() {
   // Sync profile when role changes
   const switchRole = useCallback(async (role: string) => {
     setSelectedRoleState(role);
+    setIsAuthenticated(false);
+    clearAuthToken(role);
     try {
       localStorage.setItem(OPERATOR_STORAGE_KEY, role);
     } catch {
       // ignore
     }
+
+    // Pre-warm auth token for the new persona
+    getAuthToken(role).then((token) => setIsAuthenticated(!!token));
 
     try {
       const data = await fetchUserProfile(role);
@@ -230,6 +245,7 @@ export function useOperatorProfile() {
     updateProfile,
     isUpdatingStatus,
     isSavingProfile,
+    isAuthenticated,
     availablePersonas: AVAILABLE_OPERATOR_PERSONAS,
   };
 }
