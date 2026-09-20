@@ -91,6 +91,12 @@ async def lifespan(app: FastAPI):
             await consumer_task
         except asyncio.CancelledError:
             pass
+
+    try:
+        from app.services import cache
+        await cache.close()
+    except Exception as e:
+        logger.warning(f"Cache shutdown skipped (non-fatal): {e}")
     logger.info("INDRA Platform shut down.")
 
 

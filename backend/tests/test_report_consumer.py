@@ -7,6 +7,7 @@ and no database are needed.
 
 import pytest
 
+from app.services import cache
 from app.workers import report_consumer
 
 
@@ -23,7 +24,6 @@ class FakeManager:
 def manager(monkeypatch):
     m = FakeManager()
     monkeypatch.setattr(report_consumer, "_ws_manager", m)
-    monkeypatch.setattr(report_consumer, "_recently_broadcast", type(report_consumer._recently_broadcast)())
     return m
 
 
@@ -61,12 +61,12 @@ async def test_message_without_id_is_broadcast_and_does_not_raise(manager, pipel
 
 
 async def test_memory_is_capped_and_evicts_the_oldest(manager, pipeline_calls):
-    size = report_consumer.BROADCAST_MEMORY_SIZE
+    size = cache.MEMORY_SEEN_SIZE
     for i in range(1, size + 2):  # 2001 distinct ids
         await report_consumer.handle_report_message({"id": f"r{i}"})
 
-    assert len(report_consumer._recently_broadcast) == size
+    assert len(cache._memory_seen) == size
     await report_consumer.handle_report_message({"id": "r1"})
 
     assert len(new_reports(manager)) == size + 2  # r1 was evicted, so it broadcasts again
-    assert len(report_consumer._recently_broadcast) == size
+    assert len(cache._memory_seen) == size

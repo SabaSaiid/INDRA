@@ -8,10 +8,10 @@ and publishes verified events to indra.verified.events.
 import json
 import logging
 import asyncio
-from collections import OrderedDict
 from typing import Any, Dict, Optional
 
 from app.core.config import get_settings
+from app.services import cache
 
 logger = logging.getLogger("indra.workers.report_consumer")
 settings = get_settings()
@@ -29,25 +29,25 @@ def set_ws_manager(manager):
 # was committed, the same report arrives again. The pipeline is idempotent on
 # re-delivery (a linked or suppressed report is skipped), but the live feed is
 # not, so a re-delivered message would show the same report twice. The ids of
-# recently broadcast reports are remembered, oldest evicted first.
+# recently broadcast reports are remembered in Redis for 24 hours, and in process
+# memory (oldest evicted first) whenever Redis is unavailable.
 #
-# Per process only: a restarted backend has an empty memory and will broadcast a
-# re-delivered report once more. The demo runs one backend process.
-BROADCAST_MEMORY_SIZE = 2000
-_recently_broadcast: "OrderedDict[str, None]" = OrderedDict()
+# On the memory path this is per process: a restarted backend has an empty memory
+# and will broadcast a re-delivered report once more. With Redis answering, a
+# restart no longer re-broadcasts — which was the whole point of moving it.
+# Flushing Redis forgets, deliberately; that is recorded in bug.md as BY-DESIGN.
+BROADCAST_MEMORY_TTL_SECONDS = 24 * 60 * 60
+BROADCAST_KEY_PREFIX = "bcast:"
 
 
-def _first_broadcast(report_id: Optional[str]) -> bool:
+async def _first_broadcast(report_id: Optional[str]) -> bool:
     """True the first time an id is seen (within memory). No id → always True."""
     if not report_id:
         return True
-    if report_id in _recently_broadcast:
-        _recently_broadcast.move_to_end(report_id)
-        return False
-    _recently_broadcast[report_id] = None
-    if len(_recently_broadcast) > BROADCAST_MEMORY_SIZE:
-        _recently_broadcast.popitem(last=False)
-    return True
+    return await cache.set_if_absent(
+        BROADCAST_KEY_PREFIX + report_id,
+        ttl_seconds=BROADCAST_MEMORY_TTL_SECONDS,
+    )
 
 
 async def handle_report_message(report_data: Dict[str, Any]) -> None:
@@ -62,7 +62,7 @@ async def handle_report_message(report_data: Dict[str, Any]) -> None:
 
         # NEW_REPORT keeps the existing frontend contract. VERIFIED_EVENT is
         # additive on top of it.
-        if _ws_manager and _first_broadcast(str(report_id) if report_id else None):
+        if _ws_manager and await _first_broadcast(str(report_id) if report_id else None):
             await _ws_manager.broadcast({
                 "type": "NEW_REPORT",
                 "report": report_data,
