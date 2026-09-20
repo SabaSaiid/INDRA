@@ -806,14 +806,20 @@ cmd_doctor() {
         echo "  ${YELLOW}ℹ Environment File:${RESET}    .env missing (will auto-copy from .env.example)"
     fi
 
-    # 5. Sample Dataset Verification
-    local sample_dataset="$DATA_DIR/samples/patna_flood_scenario.json"
-    if [[ -f "$sample_dataset" ]]; then
-        local dsize
-        dsize=$(wc -c < "$sample_dataset" | tr -d ' ')
-        echo "  ${GREEN}✓ Scenario Dataset:${RESET}    patna_flood_scenario.json ($dsize bytes, 127 reports verified)"
+    # 5. Labelled Dataset Verification
+    #
+    # This used to report patna_flood_scenario.json as "127 reports verified".
+    # Nothing in that file was verified or even ingested -- it was a hand-written
+    # narrative served straight to the dashboard, and it was deleted on 20 Sep.
+    # The labelled set below is real data this project measures against, and the
+    # banner says plainly that it is synthetic.
+    local labelled_dataset="$DATA_DIR/labelled/reports_v1.csv"
+    if [[ -f "$labelled_dataset" ]]; then
+        local drows
+        drows=$(( $(wc -l < "$labelled_dataset" | tr -d ' ') - 1 ))
+        echo "  ${GREEN}✓ Labelled Dataset:${RESET}    reports_v1.csv ($drows synthetic rows, train/test split)"
     else
-        echo "  ${RED}✘ Scenario Dataset:${RESET}    Missing at $sample_dataset"
+        echo "  ${YELLOW}ℹ Labelled Dataset:${RESET}    Missing at $labelled_dataset"
     fi
 
     # 6. Docker & Infrastructure Check

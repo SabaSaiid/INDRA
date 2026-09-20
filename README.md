@@ -40,29 +40,63 @@ Standard Weather App:
 [1 API Request] ────────────────────────► [1 UI Update] (Basic CRUD)
 
 INDRA Platform:
-[Asynchronous Signal A] ┐
-[Asynchronous Signal B] ┼──► [AI / Geo Fusion Layer] ──► [1 Verified Weather Event]
-[Asynchronous Signal C] ┘    • Deep Learning             • Event ID: WX-EV-28231827-A
-                             • Anomaly Detection         • Confidence: 94% [HIGH]
-                             • PostGIS & Uber H3 Hex     • Evidence: 12 Distinct Sources
+[Citizen report A] ┐
+[Citizen report B] ┼──► [Geo / Fusion Layer] ──► [1 Verified Weather Event]
+[Citizen report C] ┘    • PostGIS + Uber H3 Hex    • Event ID: INDRA-20260920-001
+                        • DBSCAN clustering        • Confidence: 0.4984
+                        • MiniLM dedup             • Coverage:   0.80
+                        • Open-Meteo rainfall      • Status:     QUARANTINED
+                        • Rule-based severity      • Evidence:   5 reports, 1 source type
 ```
+
+The values above are from a real run (21 Sep 2026), not an illustration. **Deep learning and anomaly
+detection are deliberately absent**: the only model in the data path is MiniLM sentence embeddings for
+deduplication. The AI/ML layer left this project's scope on 20 Sep, and the receipt marks its two
+factors `offline` on every event rather than substituting a number.
 
 ---
 
-## 📖 Executive Summary & Case Study (127 $\rightarrow$ 1)
+## 📖 Executive Summary & Case Study
 
-During acute crises (cloudbursts, flash floods, cyclones), emergency dispatchers face severe **alert fatigue and report fragmentation**. INDRA ingests scattered citizen mobile reports, tweets (`#IMD`, `#PatnaRains`), public river gauges, and weather APIs, consolidating them into **one verified event** with an explainable evidence receipt.
+During acute crises (cloudbursts, flash floods, cyclones), emergency dispatchers face severe **alert
+fatigue and report fragmentation**. INDRA consolidates scattered reports into **one verified event**
+carrying an explainable evidence receipt.
+
+The box below is a **real run**, copied from the API on 21 Sep 2026 — not an illustration. Five
+synthetic citizen reports were posted to `POST /api/reports/submit` and every number was read back
+from `GET /api/events/{id}`. Reproduce it with
+`backend/.venv/bin/python scripts/run_patna_demo.py`.
 
 ```
-       127 SCATTERED SIGNALS                            1 VERIFIED EVENT
-┌──────────────────────────────────┐          ┌───────────────────────────────────┐
-│ • 64 Citizen app reports         │          │ PATNA URBAN FLOOD EVENT           │
-│ • 48 Social media #IMD posts     │  ═════>  │ • Event ID: WX-EV-28231827-A      │
-│ • 3 Weather API / AWS readings   │  INDRA   │ • Severity: CRITICAL              │
-│ • 2 CWC River Level Gauges       │          │ • Confidence: 94% [AUTO-PUBLISHED]│
-│ • 10 Verified media photos       │          │ • Reports: 103 Verified | 8 Susp. │
-└──────────────────────────────────┘          └───────────────────────────────────┘
+   5 SCATTERED CITIZEN REPORTS                      1 VERIFIED EVENT
+┌──────────────────────────────────┐      ┌────────────────────────────────────────┐
+│ • 5 citizen app reports          │      │ INDRA-20260920-001  (URBAN_FLOOD)      │
+│ • 1 quoting "knee deep water"    │ ═══> │ • Severity:   MODERATE                 │
+│ • live Open-Meteo rainfall       │INDRA │ • Confidence: 0.4984                   │
+│   (0.008 — Patna was dry)        │      │ • Coverage:   0.80                     │
+│                                  │      │ • Status:     QUARANTINED              │
+│                                  │      │ • Footprint:  39-vertex polygon        │
+└──────────────────────────────────┘      └────────────────────────────────────────┘
+
+   confidence = total_weighted / factor_coverage = 0.3987 / 0.80 = 0.4984
 ```
+
+**`QUARANTINED` is the correct verdict here, not a failure.** Five unverified citizen reports and
+near-zero rainfall is not a verified disaster, and the receipt shows exactly which evidence produced
+that number. The score rises with independent corroboration and with real rainfall.
+
+**`factor_coverage` is the honesty.** It is the share of the designed model that actually reported.
+`0.80` means two factors — `vision_analysis` (0.15) and `anomaly_detection` (0.05) — did not report at
+all, so the score is a mean over the 80% that did. Those two are **permanently offline**: the AI/ML
+layer left this project's scope on 20 Sep, and the receipt says so on every event rather than
+substituting a plausible number. **The score is never quoted without its coverage.**
+
+> **What was here before, and why it is gone.** This section previously showed "127 SCATTERED SIGNALS"
+> resolving to event `WX-EV-28231827-A` at "Confidence: 94% [AUTO-PUBLISHED]", built from "48 Social
+> media #IMD posts", "2 CWC River Level Gauges" and "10 Verified media photos". None of that existed.
+> There is no IMD, CWC or social-media feed in this system — Open-Meteo is the only external source,
+> decided 16 Sep for want of API keys — image verification is offline, and the scoring engine
+> **cannot reach 0.94**. It was replaced with a measured run on 21 Sep.
 
 ---
 
@@ -275,12 +309,12 @@ To avoid the anti-pattern of managing 15 microservices during a hackathon sprint
 | Scene | Phase | Description | Live today? |
 | :---: | :--- | :--- | :-: |
 | **Scene 1** | **Baseline** | India map normal. Open-Meteo live API stream active. Zero false alerts. | 🟡 map real, **no scheduled feed** |
-| **Scene 3** | **The Spike** | `run_patna_demo.py` triggers a cloudburst surge. 127 reports enter via Kafka in seconds. | 🟡 canned replay; the **live** surge path is `POST /api/reports/submit` |
-| **Scene 5** | **Fusion** | BERT detects flood; PostGIS + H3 merges 127 signals into 1 geographic event polygon. | ✅ **real** (clustering + merging; no BERT classification) |
-| **Scene 7** | **Evidence** | PyTorch CV confirms waist-deep water; Open-Meteo confirms 92mm rainfall anomaly. | 🟡 **Open-Meteo rainfall real; vision is offline — do not claim image evidence** |
-| **Scene 8** | **Intelligence** | INDRA calculates **94% Confidence** and prints the explainable Verification Receipt. | 🟡 receipt real and deterministic; 4 of 6 factors measured, live score ~0.43 → `QUARANTINED` |
+| **Scene 3** | **The Spike** | `run_patna_demo.py` posts five reports through the live API; `burst_reports.py --count 100` drives the surge. | ✅ **real since 21 Sep** — the script was a canned replay and now posts to `POST /api/reports/submit` and reads every number back. 100 reports measured at p95 4 ms, 100/100 stored |
+| **Scene 5** | **Fusion** | PostGIS + H3 merge the incoming reports into one event with a real boundary polygon. | ✅ **real** (clustering, merging, and since 20 Sep a 250 m-buffered hull containing every report). **No BERT and no classification** — that is layer 4, which is out of scope |
+| **Scene 7** | **Evidence** | Open-Meteo rainfall is fetched live; report text is read for depth ("knee deep" → 50 cm) and that sets severity. | 🟡 **Rainfall and depth extraction are real. There is no image evidence — vision is permanently offline, so never claim it.** Rainfall is whatever the weather actually is; it scored 0.008 on a dry day |
+| **Scene 8** | **Intelligence** | INDRA computes the confidence and prints the explainable Verification Receipt. | ✅ receipt real, deterministic and self-checking (`total_weighted / factor_coverage = confidence`). **Measured 21 Sep: 0.4984 at coverage 0.80 → `QUARANTINED`.** There is no 94% — the engine cannot reach it, and 4 of 6 factors report |
 | **Scene 8½** | **Human Review** | A commander approves the quarantined event; the decision is hash-chained and survives new reports. | ✅ **real** (Day 3) |
-| **Scene 10** | **Action** | WebSocket pushes live red hazard zone to Next.js dashboard; auto-dispatches NDRF alert. | 🟡 WebSocket real; **no alert dispatch exists** |
+| **Scene 10** | **Action** | WebSocket pushes the verified event to the Next.js dashboard. | 🟡 WebSocket real. **No alert dispatch exists and none is being built** — the alert engine is out of scope since 20 Sep. Do not promise NDRF dispatch |
 
 > **The defensible demo.** Submit reports live, watch them collapse into one event, open the
 > Verification Receipt and point at which factors are measured and which read `"Telemetry
@@ -321,11 +355,12 @@ INDRA/
 │       ├── app/                    # Next.js App Router pages
 │       └── components/             # Command center UI, Leaflet/MapLibre maps, alert feeds
 ├── data/
-│   └── samples/
-│       └── patna_flood_scenario.json  # 127-report Patna flood verification dataset
+│   └── labelled/
+│       └── reports_v1.csv          # 300 synthetic labelled reports, train/test split
 └── scripts/
-    ├── run_patna_demo.py           # 10-Scene SIH demonstration simulation runner
-    ├── seed_national_data.py       # Batch seeder: 37 events / ~1,200 reports across 10 cities
+    ├── run_patna_demo.py           # Posts 5 reports to the live API, prints what it reads back
+    ├── burst_reports.py            # Load/leak measurement: --count 100 --spread-km 3
+    ├── seed_national_data.py       # Batch seeder (synthetic; refuses to run without --synthetic)
     └── verify-build.sh             # Build verification checks
 ```
 
@@ -430,11 +465,16 @@ npm run dev
 ```
 Open `http://localhost:3000` to access the **INDRA Live Command Center**.
 
-#### 5. Run the 10-Scene Patna Demonstration
+#### 5. Run the Patna Demonstration against the live backend
 ```bash
-python3 scripts/run_patna_demo.py
+backend/.venv/bin/python scripts/run_patna_demo.py
 ```
-Witness 127 incoming chaotic signals condense in real-time into 1 verified critical flood event with a 94% Confidence Receipt.
+Posts five synthetic citizen reports through `POST /api/reports/submit`, waits for the pipeline to
+fuse them, and prints the event, its full verification receipt and the heat map — **every number read
+back from the API**. It exits non-zero if no event is produced, so it doubles as a smoke test.
+
+Requires the backend running (`./start.sh -b`) and `DEMO_MODE=false`, which is now the default. It
+refuses to narrate demo-mode placeholder events as real results.
 
 </details>
 

@@ -8,11 +8,15 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from typing import List
 from pathlib import Path
 import json
 import logging
+
+from app.core.config import get_settings
+
+settings = get_settings()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("indra.api")
@@ -25,6 +29,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("INDRA Platform starting up...")
     consumer_task = None
+    warmup_task = None
     try:
         from app.core.database import init_db
         await init_db()
@@ -39,9 +44,47 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Report consumer startup skipped (non-fatal): {e}")
 
+    # Warm the embedding model, off the event loop, without delaying readiness.
+    #
+    # MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.
+    # Paid on the first real report it froze the entire API — the T14 cold-start
+    # rehearsal saw GET /api/events time out completely, then answer in 0.03 s once
+    # the model was resident. Doing it here, in a thread, on a task nobody awaits,
+    # means /healthz answers immediately and the first citizen report pays nothing.
+    #
+    # Failure is deliberately non-fatal: with no model cache and no network, dedup
+    # falls back to Levenshtein and the platform still runs.
+    async def _warm_embeddings():
+        try:
+            from app.services.dedup import _get_embedding_model
+
+            model = await asyncio.to_thread(_get_embedding_model)
+            if model is None:
+                logger.warning(
+                    "Embedding model unavailable — dedup will use the Levenshtein "
+                    "fallback. Cosine similarity is off for this run."
+                )
+                return
+            # Keyword, not positional: encode()'s second positional argument is
+            # prompt_name in sentence-transformers 6.x, so passing True there
+            # raised "Prompt name 'True' not found". The warm-up then silently
+            # skipped, which the non-fatal WARNING is what caught.
+            await asyncio.to_thread(model.encode, "warmup", convert_to_numpy=True)
+            logger.info("✓ Embedding model warm — first report will not block")
+        except Exception as e:
+            logger.warning(f"Embedding warm-up skipped (non-fatal): {e}")
+
+    warmup_task = asyncio.create_task(_warm_embeddings())
+
     yield
 
     # Shutdown
+    if warmup_task and not warmup_task.done():
+        warmup_task.cancel()
+        try:
+            await warmup_task
+        except (asyncio.CancelledError, Exception):
+            pass
     if consumer_task:
         consumer_task.cancel()
         try:
@@ -58,18 +101,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Enable CORS
+# CORS: an explicit allow-list, not "*".
+#
+# allow_origins=["*"] with allow_credentials=True is forbidden by the CORS spec,
+# and Starlette handles the combination by echoing back whatever Origin it is
+# sent -- so every page on the internet could read this API with the viewer's
+# credentials attached. The list defaults to the dashboard's dev origins; set
+# CORS_ORIGINS in .env to change it.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
-SCENARIO_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "samples" / "patna_flood_scenario.json"
-
 
 class ConnectionManager:
     """Manages real-time WebSocket connections to the Command Center dashboard."""
@@ -128,14 +173,17 @@ async def serve_dashboard():
     """Redirects to the modern INDRA Next.js frontend dashboard on port 3000."""
     return RedirectResponse(url="http://localhost:3000", status_code=307)
 
-@app.get("/legacy", response_class=HTMLResponse)
-async def serve_legacy_dashboard():
-    """Serves the legacy INDRA prototype template."""
-    index_path = TEMPLATES_DIR / "index.html"
-    if index_path.exists():
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read(), status_code=200)
-    return HTMLResponse(content="<h1>INDRA Command Center - Template Loading</h1>", status_code=200)
+# GET /legacy and app/templates/index.html were removed on 20 Sep, for the same
+# reason as /api/scenario above: the page claimed telemetry this system does not
+# have. "IMD AWS Station 42410 registered 92.4mm rain pulse", "CWC Gauge: Ganga
+# level rising 4.2cm/hr at Digha Ghat", "PyTorch Vision detected waist-deep
+# floodwater (Prob: 0.91)", "Photo flood_412.jpg verified by PyTorch CV (0.94
+# water prob)", "127 Signals". There is no IMD or CWC feed, and vision analysis is
+# permanently offline since layer 4 left the scope.
+#
+# It was a static mockup built before the pipeline existed; it exercised no code
+# path and nothing referenced it. The real command center is the Next.js app on
+# port 3000, which reads this API.
 
 @app.get("/api/info")
 async def platform_info():
@@ -149,27 +197,21 @@ async def platform_info():
         "team": "Sixth Sense"
     }
 
-@app.get("/api/scenario")
-async def get_patna_scenario():
-    """Returns the 127-report Patna flood verification scenario dataset."""
-    if SCENARIO_FILE.exists():
-        with open(SCENARIO_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"error": "Scenario dataset not found"}
-
-@app.post("/api/demo/trigger")
-async def trigger_demo():
-    """Broadcasts a live scenario pulse to connected dashboard WebSocket clients."""
-    if SCENARIO_FILE.exists():
-        with open(SCENARIO_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        await ws_manager.broadcast({
-            "type": "DEMO_PULSE",
-            "scenario": data.get("scenario_metadata", {}),
-            "receipt": data.get("verification_receipt", {})
-        })
-        return {"status": "broadcast_sent", "recipients": len(ws_manager.active_connections)}
-    return {"status": "error", "message": "Dataset not found"}
+# GET /api/scenario and POST /api/demo/trigger were removed on 20 Sep.
+#
+# They served data/samples/patna_flood_scenario.json as if it were a real
+# verified event: 127 signals, confidence 0.94, AUTO_PUBLISHED, CRITICAL, "IMD AWS
+# recorded 92mm rainfall", two "CWC river level sensors", ten "verified multimedia
+# evidence". Every one of those was fabricated. There is no IMD or CWC feed (no
+# API keys, decided 16 Sep), vision analysis is permanently offline since layer 4
+# left the scope, and the real pipeline cannot reach 0.94. /api/demo/trigger
+# broadcast it to the dashboard over the live WebSocket as a DEMO_PULSE, beside
+# genuine VERIFIED_EVENT messages.
+#
+# Nothing in frontend/ referenced either route, so removing them changed no
+# behaviour the dashboard depends on. The demo now runs on the real pipeline --
+# see scripts/run_patna_demo.py, which posts reports and reads every number back
+# from the API.
 
 @app.get("/healthz")
 async def health_check():

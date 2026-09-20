@@ -73,6 +73,20 @@ class Settings(BaseSettings):
     # is invisible, while an escalated weak signal costs an operator ten seconds.
     AUTO_PUBLISH_THRESHOLD: float = 0.90
     HUMAN_REVIEW_THRESHOLD: float = 0.60
+    # ── Dedup gates ────────────────────────────────────────────────────────
+    # Moved out of services/dedup.py on 20 Sep with their values unchanged, so
+    # they can be tuned with evidence later instead of being edited in code.
+    #
+    # DEDUP_COSINE_THRESHOLD is deliberately strict. Splitting one incident into
+    # two is recoverable -- corroboration merges them and an operator sees both.
+    # Merging two real incidents hides one of them. Over-reporting to a human is
+    # the safer failure, so this stays high until there is labelled data to move
+    # it with.
+    DEDUP_COSINE_THRESHOLD: float = 0.88
+    DEDUP_GPS_DELTA_KM: float = 1.0
+    DEDUP_TIME_DELTA_MINUTES: int = 15
+    DEDUP_LEVENSHTEIN_THRESHOLD: float = 0.75
+
     DBSCAN_EPS_KM: float = 5.0
     DBSCAN_MIN_SAMPLES: int = 2
     H3_HEX_RESOLUTION: int = 8
@@ -101,6 +115,21 @@ class Settings(BaseSettings):
 
     # ── Frontend ───────────────────────────────────────────────────────────
     FRONTEND_PORT: int = 3000
+
+    # ── CORS ───────────────────────────────────────────────────────────────
+    # Until 20 Sep this was allow_origins=["*"] in main.py, combined with
+    # allow_credentials=True -- a pair the CORS spec forbids, and which Starlette
+    # papers over by echoing whatever Origin it is sent. Any page on the internet
+    # could therefore read this API with the user's credentials attached.
+    #
+    # Comma-separated in .env. The default is the dashboard's dev origins and
+    # nothing else; a real deployment sets its own.
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """CORS_ORIGINS split into a list, blanks dropped."""
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     model_config = {
         "env_file": (str(_REPO_ROOT / ".env"), str(_BACKEND_DIR / ".env")),
