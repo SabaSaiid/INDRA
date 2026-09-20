@@ -267,8 +267,8 @@ def test_confidence_stays_in_range_at_every_coverage(fusion):
         (Severity.CRITICAL, 0.90, Quadrant.CRITICAL_VERIFIED),      # boundary, inclusive
         (Severity.CRITICAL, 0.8999, Quadrant.UNVERIFIED_THREAT),    # just below
         (Severity.HIGH, 0.50, Quadrant.UNVERIFIED_THREAT),
-        (Severity.MODERATE, 0.70, Quadrant.CONFIRMED_MINOR),        # boundary, inclusive
-        (Severity.MODERATE, 0.6999, Quadrant.NOISE),                # just below
+        (Severity.MODERATE, 0.60, Quadrant.CONFIRMED_MINOR),        # boundary, inclusive
+        (Severity.MODERATE, 0.5999, Quadrant.NOISE),                # just below
         (Severity.ADVISORY, 0.95, Quadrant.CONFIRMED_MINOR),
         (Severity.ADVISORY, 0.10, Quadrant.NOISE),
     ],
@@ -290,8 +290,8 @@ def test_unknown_severity_fails_safe_to_unverified_threat(fusion):
         (1.0, ReviewStatus.AUTO_PUBLISHED),
         (0.90, ReviewStatus.AUTO_PUBLISHED),            # boundary, inclusive
         (0.8999, ReviewStatus.PENDING_HUMAN_REVIEW),    # just below
-        (0.70, ReviewStatus.PENDING_HUMAN_REVIEW),      # boundary, inclusive
-        (0.6999, ReviewStatus.QUARANTINED),             # just below
+        (0.60, ReviewStatus.PENDING_HUMAN_REVIEW),      # boundary, inclusive
+        (0.5999, ReviewStatus.QUARANTINED),             # just below
         (0.0, ReviewStatus.QUARANTINED),
     ],
 )

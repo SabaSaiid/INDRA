@@ -75,19 +75,36 @@ async def event_row(db, event_id):
 
 # ── T3: the pipeline writes one audit row per decision ─────────────────────────
 
-async def test_default_thresholds_write_exactly_one_quarantine_row(db):
+async def test_default_thresholds_write_one_row_per_status_change(db):
+    """
+    The audit trail records decisions, not traffic.
+
+    Five reports arrive but only two of them change the event's status, so only
+    two rows are written. Before the review gate moved to 0.60 this test asserted
+    exactly one row, because nothing in the ladder could clear 0.70 — the
+    escalation the product is built around was unreachable with default settings.
+    Now report 5 crosses the gate and the trail shows it.
+    """
     results = await stream(db, CLUSTER_TEXTS)
 
     rows = await audit_rows(db)
-    assert len(rows) == 1
-    [row] = rows
-    assert row["action_taken"] == "QUARANTINE"
-    assert row["operator_id"] == "SYSTEM-PIPELINE"
-    assert row["event_id"] == results[-1]["id"]
-    assert row["details"]["from_status"] is None
-    assert row["details"]["to_status"] == "QUARANTINED"
-    assert row["details"]["report_count"] == 2
-    assert row["details"]["confidence_score"] == pytest.approx(0.5393, abs=1e-4)
+    assert [r["action_taken"] for r in rows] == ["QUARANTINE", "ESCALATE"]
+    assert all(r["operator_id"] == "SYSTEM-PIPELINE" for r in rows)
+    assert all(r["event_id"] == results[-1]["id"] for r in rows)
+
+    first, second = rows
+    assert first["details"]["from_status"] is None
+    assert first["details"]["to_status"] == "QUARANTINED"
+    assert first["details"]["report_count"] == 2
+    assert first["details"]["confidence_score"] == pytest.approx(0.5393, abs=1e-4)
+
+    # 0.6052 clears HUMAN_REVIEW_THRESHOLD (0.60) on the fifth report.
+    assert second["details"]["from_status"] == "QUARANTINED"
+    assert second["details"]["to_status"] == "PENDING_HUMAN_REVIEW"
+    assert second["details"]["report_count"] == 5
+    assert second["details"]["confidence_score"] == pytest.approx(0.6052, abs=1e-4)
+
+    assert await audit.verify_chain(db) == {"valid": True, "checked": 2, "broken_at_seq": None}
 
 
 async def test_a_status_change_on_merge_writes_a_second_row(db, monkeypatch):
@@ -206,13 +223,26 @@ async def test_merges_keep_a_severity_override(db):
 
 
 async def test_without_a_human_decision_status_is_recomputed(db):
+    """
+    With no human decision on record, status follows the score on every merge.
+
+    The claim is "recomputed, not frozen", and it is now demonstrated by a status
+    that actually moves: reports 3 and 4 leave it QUARANTINED, report 5 takes the
+    score to 0.6052 and the gate at 0.60 escalates it. Previously every step
+    stayed QUARANTINED, so the test could not distinguish "recomputed" from
+    "never touched".
+    """
     event_id = await _event_from_first_two(db)
 
     results = await stream(db, CLUSTER_TEXTS[2:])
 
-    assert [r["review_status"] for r in results] == ["QUARANTINED"] * 3
+    assert [r["review_status"] for r in results] == [
+        "QUARANTINED",
+        "QUARANTINED",
+        "PENDING_HUMAN_REVIEW",
+    ]
     status, severity, *_ = await event_row(db, event_id)
-    assert (status, severity) == ("QUARANTINED", "MODERATE")
+    assert (status, severity) == ("PENDING_HUMAN_REVIEW", "MODERATE")
 
 
 async def test_rejected_event_is_untouched_and_new_reports_form_a_new_event(db):

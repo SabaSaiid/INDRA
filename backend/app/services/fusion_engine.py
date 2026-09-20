@@ -7,6 +7,7 @@ assigns quadrant and review_status to verified events.
 import logging
 from typing import Dict, Any, Iterable, List, Optional
 
+from app.core.config import get_settings
 from app.models.enums import Severity, ReviewStatus, Quadrant, SourceType
 
 logger = logging.getLogger("indra.services.fusion_engine")
@@ -195,29 +196,47 @@ class FusionEngine:
         }
 
     def assign_quadrant(
-        self, severity: Severity, confidence: float
+        self,
+        severity: Severity,
+        confidence: float,
+        auto_threshold: Optional[float] = None,
+        review_threshold: Optional[float] = None,
     ) -> Quadrant:
         """
         Quadrant assignment based on severity and confidence.
 
-        - severity ∈ {HIGH, CRITICAL} & C ≥ 0.90 → "Critical Verified Event"
-        - severity ∈ {HIGH, CRITICAL} & C < 0.90 → "Unverified Threat"
-        - severity ∈ {ADVISORY, MODERATE} & C ≥ 0.70 → "Confirmed Minor Event"
+        - severity ∈ {HIGH, CRITICAL} & C ≥ auto_threshold → "Critical Verified Event"
+        - severity ∈ {HIGH, CRITICAL} & C < auto_threshold → "Unverified Threat"
+        - severity ∈ {ADVISORY, MODERATE} & C ≥ review_threshold → "Confirmed Minor Event"
         - else → "Noise"
         - Default (can't determine) → "Unverified Threat" (fail-safe)
+
+        The two thresholds default to the same settings determine_review_status()
+        uses, and that shared default is the point. They used to be hard-coded
+        0.90 / 0.70 here while the review gate was configurable, so lowering
+        HUMAN_REVIEW_THRESHOLD to 0.60 on 20 Sep would have put an event at 0.62
+        into PENDING_HUMAN_REVIEW while this method still called it "Noise" — the
+        Intelligence Matrix labelling the very event it was asking an operator to
+        review as noise. One gate, one number, read from one place.
         """
         try:
+            settings = get_settings()
+            if auto_threshold is None:
+                auto_threshold = settings.AUTO_PUBLISH_THRESHOLD
+            if review_threshold is None:
+                review_threshold = settings.HUMAN_REVIEW_THRESHOLD
+
             high_severities = {Severity.HIGH, Severity.CRITICAL}
             low_severities = {Severity.ADVISORY, Severity.MODERATE}
 
             if severity in high_severities:
-                if confidence >= 0.90:
+                if confidence >= auto_threshold:
                     return Quadrant.CRITICAL_VERIFIED
                 else:
                     return Quadrant.UNVERIFIED_THREAT
 
             if severity in low_severities:
-                if confidence >= 0.70:
+                if confidence >= review_threshold:
                     return Quadrant.CONFIRMED_MINOR
                 else:
                     return Quadrant.NOISE
@@ -242,7 +261,10 @@ class FusionEngine:
         return Quadrant.CONFIRMED_MINOR
 
     def determine_review_status(
-        self, confidence: float, auto_threshold: float = 0.90, review_threshold: float = 0.70
+        self,
+        confidence: float,
+        auto_threshold: Optional[float] = None,
+        review_threshold: Optional[float] = None,
     ) -> ReviewStatus:
         """
         Route event to the appropriate review status based on confidence.
@@ -250,7 +272,18 @@ class FusionEngine:
         - C ≥ auto_threshold → AUTO_PUBLISHED
         - C ≥ review_threshold → PENDING_HUMAN_REVIEW
         - else → QUARANTINED
+
+        Both thresholds default to settings, exactly as assign_quadrant's do, so
+        the two methods can never disagree about where a gate is. They used to
+        carry hard-coded 0.90 / 0.70 literals, which meant a caller that omitted
+        them silently applied a different policy from the pipeline.
         """
+        settings = get_settings()
+        if auto_threshold is None:
+            auto_threshold = settings.AUTO_PUBLISH_THRESHOLD
+        if review_threshold is None:
+            review_threshold = settings.HUMAN_REVIEW_THRESHOLD
+
         if confidence >= auto_threshold:
             return ReviewStatus.AUTO_PUBLISHED
         elif confidence >= review_threshold:

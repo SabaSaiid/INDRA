@@ -60,8 +60,19 @@ class Settings(BaseSettings):
     KAFKA_EVENTS_TOPIC: str = "indra.verified.events"
 
     # ── AI & Verification Thresholds ───────────────────────────────────────
+    # AUTO_PUBLISH_THRESHOLD is deliberately high: publishing a disaster without
+    # a human in the loop is the most expensive mistake this system can make.
+    #
+    # HUMAN_REVIEW_THRESHOLD was lowered 0.70 -> 0.60 on 20 Sep. It is the gate
+    # that decides whether an event reaches an operator at all, and at 0.70 a
+    # genuinely corroborated cluster carrying an official dispatch scored ~0.62
+    # and was binned as QUARANTINED without anyone seeing it. Under
+    # coverage-aware scoring the reachable range for a real multi-source cluster
+    # is roughly 0.54-0.70, so 0.70 sat above almost everything the system can
+    # actually produce. The asymmetry is the argument: a quarantined real flood
+    # is invisible, while an escalated weak signal costs an operator ten seconds.
     AUTO_PUBLISH_THRESHOLD: float = 0.90
-    HUMAN_REVIEW_THRESHOLD: float = 0.70
+    HUMAN_REVIEW_THRESHOLD: float = 0.60
     DBSCAN_EPS_KM: float = 5.0
     DBSCAN_MIN_SAMPLES: int = 2
     H3_HEX_RESOLUTION: int = 8
