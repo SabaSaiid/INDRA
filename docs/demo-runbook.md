@@ -1,0 +1,256 @@
+# INDRA — Demo Runbook
+
+**What this is:** the exact sequence to bring INDRA up from nothing and walk someone through it,
+with the number to expect beside every step and a one-line recovery for each thing that can go
+wrong on the table.
+
+**Last rehearsed from an empty volume: 21 Sep 2026.** Every number below was read off that run.
+
+Read [`nodal-officer-qa.md`](nodal-officer-qa.md) before presenting. This file is what to type;
+that one is what to say.
+
+---
+
+## Before you start
+
+| Check | Command | Expected |
+|---|---|---|
+| External SSD mounted | `ls /Volumes/"Aditya ssd"/Applications/Docker.app` | exists |
+| Docker running | `docker ps` | no error |
+| `DEMO_MODE` | `grep DEMO_MODE .env` | **`false`** |
+
+> **`command not found: docker` means the SSD is unmounted, not that Docker is missing.** Every
+> `/usr/local/bin/docker*` entry is a symlink into the drive. Mount it — do not reinstall.
+> If instead you get `Cannot connect to the Docker daemon`, the drive is there and the daemon is
+> not: `open -a "/Volumes/Aditya ssd/Applications/Docker.app"` and wait.
+
+> **`DEMO_MODE=true` will ruin the demo.** With it on, an empty database answers `GET /api/events`
+> with a fabricated `0.94 / AUTO_PUBLISHED / CRITICAL` event — a score this engine cannot produce.
+> The opening seconds of a live run are exactly when the database is empty. Check it every time.
+
+---
+
+## Cold start
+
+```bash
+cd ~/CODING/sih/INDRA
+
+docker compose down -v          # only for a true cold rehearsal — destroys all data
+docker compose up -d
+```
+
+Wait for three containers to be healthy:
+
+```bash
+docker ps --format '{{.Names}}\t{{.Status}}'
+# indra-postgres   Up (healthy)
+# indra-redis      Up (healthy)
+# indra-redpanda   Up
+```
+
+> **`pg_isready` goes green before `indra_db` exists** on a fresh volume. Do not take it as the
+> signal to migrate. The correct gate is the next command succeeding.
+
+```bash
+cd backend && .venv/bin/alembic upgrade head && cd ..
+# → 0006_anomaly_score_defaults_null (head)
+```
+
+**Do not skip the output of that command.** A silently failed migration leaves a database with no
+schema, and `/healthz` used to answer `healthy` against exactly that (BUG-027). It now checks the
+schema too, but check the migration anyway.
+
+```bash
+./start.sh bg          # or: ./start.sh -b
+```
+
+Verify:
+
+```bash
+curl -s localhost:8000/healthz | jq .status
+# → "healthy"
+```
+
+| `/healthz` says | Meaning | Do |
+|---|---|---|
+| `healthy` | all four checks up | continue |
+| `degraded` (200) | Redis or Open-Meteo down | **continue** — neither is load-bearing, and this is worth showing |
+| `unhealthy` (503) | Postgres or Kafka down | stop and fix; a report would be lost |
+
+**Cold start to a ready API: under 5 minutes**, nearly all of it Docker pulling and the embedding
+model loading. The model is warmed on a background thread, so `/healthz` answers immediately and
+the first report pays nothing.
+
+---
+
+## Scene 1 — The platform is already watching
+
+```bash
+docker exec indra-postgres psql -U indra_user -d indra_db \
+  -c "SELECT station_code, rainfall_mm, recorded_at FROM station_readings ORDER BY station_code;"
+```
+
+Six rows, one per city, written by the station poller within seconds of startup. Measured on
+21 Sep: Kolkata **17.2 mm**, Guwahati 5.6, Chennai 2.4, Delhi 1.5, Mumbai 1.1, Patna 0.2 — real
+differentiated 24-hour accumulations from Open-Meteo, not fixtures.
+
+**What to say:** this is the one external feed that exists, and it is real and live. `anomaly_score`
+is `NULL` on every row because nothing computes it — the column stays empty rather than claiming a
+normal reading from a model that does not run.
+
+---
+
+## Scene 2 — Five citizen reports become one event
+
+```bash
+backend/.venv/bin/python scripts/run_patna_demo.py
+```
+
+The script posts five synthetic citizen reports to `POST /api/reports/submit`, waits for the
+cluster to settle, then reads **every number back out of the API**.
+
+**Expected, reproduced twice on 21 Sep:**
+
+| | Value |
+|---|---|
+| Reports stored | 5 / 5 |
+| Events created | **1** |
+| Severity | `MODERATE` |
+| Review status | **`QUARANTINED`** |
+| Quadrant | `Noise` |
+| Confidence | **0.4984** |
+| Factor coverage | **0.80** |
+| Boundary | Polygon, **39 vertices** |
+| Heat map | 2 H3 cells at res 8, 5 reports |
+
+Receipt:
+
+| Factor | Weight | Score | Points | State |
+|---|---|---|---|---|
+| Weather Station Corroboration | 25% | 0.0080 | 0.0020 | computed |
+| Report Density Analysis | 20% | 0.5483 | 0.1097 | computed |
+| Spatial Coherence Score | 20% | 0.9850 | 0.1970 | computed |
+| Computer Vision Analysis | 15% | — | 0.0 | **offline** |
+| Source Reliability Index | 15% | 0.6000 | 0.0900 | computed |
+| Anomaly Detection Signal | 5% | — | 0.0 | **offline** |
+
+`0.3987 / 0.80 = 0.4984`. The arithmetic is printed so anyone can check it.
+
+Severity: `max(depth_axis, count_axis)` → depth `MODERATE` (50 cm, read from the phrase
+"knee deep"), count `MODERATE` (5 reports).
+
+> **`QUARANTINED` is the correct answer, not a failure.** Say this before anyone asks. Five
+> unverified citizen reports and 0.2 mm of rain is not a verified disaster. The receipt shows
+> exactly which evidence produced that number, and the score rises with independent corroboration
+> and with real rainfall. A system that called this a confirmed flood would be the broken one.
+
+The weather factor scoring 0.008 is **Patna being dry today**, not a failure. If you want a wetter
+story, the Kolkata reading above is 17.2 mm.
+
+---
+
+## Scene 3 — A commander takes the decision
+
+```bash
+TOKEN=$(curl -s -X POST localhost:8000/api/auth/token \
+  -d 'username=commander&password=commander123' | jq -r .access_token)
+
+curl -s -X PATCH localhost:8000/api/events/<EVENT_ID>/review \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"action":"approve","reason":"Control room confirms waterlogging at Kankarbagh"}' | jq .review_status
+# → "HUMAN_APPROVED"
+```
+
+An `EVENT_REVIEWED` message goes out on the WebSocket, and an audit row is chained.
+
+**Try it without the token** — `401`. **With the analyst token** — `403`. That is the point of the
+scene: the decision is gated, attributed and recorded.
+
+```bash
+curl -s localhost:8000/api/events/<EVENT_ID>/provenance \
+  -H "Authorization: Bearer $TOKEN" | jq '.chain, [.reports[].id] | length'
+# → {"valid": true, "checked": N, "broken_at_seq": null}
+```
+
+`confidence_score` is unchanged by the review. The machine's reading and the human's decision are
+recorded separately, on purpose.
+
+---
+
+## Scene 4 — The geography
+
+```bash
+curl -s 'localhost:8000/api/geo/heatmap?resolution=8' | jq '.cells'
+curl -s 'localhost:8000/api/geo/heatmap?resolution=7' | jq '[.cells[].report_count] | add'
+```
+
+Res 8 gives 2 cells summing to 5; res 7 gives 1 cell with 5. **Zooming out is aggregation, not
+re-binning** — the coarser count is the exact sum of its children, nothing smoothed or spread.
+
+`GET /api/events/{id}` returns `boundary_geojson`, a Polygon containing every contributing report.
+
+---
+
+## Scene 5 — Break it on purpose
+
+The most convincing part of the demo, and it takes thirty seconds.
+
+```bash
+docker stop indra-redis
+curl -s localhost:8000/healthz | jq .status      # → "degraded", still HTTP 200
+backend/.venv/bin/python scripts/run_patna_demo.py   # still works
+docker start indra-redis
+```
+
+**What to say:** Redis holds the weather cache and the broadcast-dedup set. Both fall back to
+process memory, so losing it costs cross-restart memory and nothing else. A dependency that can
+take the platform down is one we would have to apologise for.
+
+Optional, if there is time:
+
+```bash
+docker stop indra-postgres
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/healthz   # → 503, in under 5 s
+docker start indra-postgres                                        # recovers, no app restart
+```
+
+---
+
+## Throughput, if asked
+
+```bash
+backend/.venv/bin/python scripts/burst_reports.py --count 100 --spread-km 3 --city patna
+```
+
+Measured: 100/100 accepted and stored, 215 reports/s, submit p50 4 ms / p95 5 ms, connection pool
+Δ+1, RSS Δ+1.9 MB, audit chain still valid.
+
+> **Do not present the burst as a confidence-raising demo.** Confidence *fell* to 0.4555 with 101
+> reports, below the 5-report cluster. That is correct: 100 reports scattered over 3 km have a wide
+> diameter, so spatial coherence drops and outweighs density saturating. A tight cluster is
+> stronger evidence of one incident than a diffuse one. Present it as throughput and leak evidence.
+
+---
+
+## If something goes wrong
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `command not found: docker` | SSD unmounted | Mount the drive. Do not reinstall |
+| `Cannot connect to the Docker daemon` | Daemon stopped | `open -a "/Volumes/Aditya ssd/Applications/Docker.app"` |
+| `/healthz` 503 on `database` | Postgres not up, or no schema | `docker compose up -d`, then `alembic upgrade head` — and read its output |
+| `/healthz` 503 on `streaming_bus` | Redpanda not up | `docker compose up -d`; submit still returns 202 `queued: false` |
+| `/healthz` `degraded` | Redis or Open-Meteo down | **Nothing.** This is fine, and worth showing |
+| Dashboard shows a `0.94` CRITICAL event | `DEMO_MODE=true` | Set it `false` and restart. This is fabricated data |
+| The same report appears twice in the feed | Two backend processes on one broker | Kill one. One process only |
+| First report seems to hang | Embedding model still loading | It is warmed at startup; wait for `✓ Embedding model warm` in the log |
+| An event has no boundary polygon | Polygon computation failed, non-fatal | The event is still correct; say so |
+| Confidence is lower than last rehearsal | Rainfall changed | Correct behaviour — it is live data |
+
+---
+
+## The three sentences to have ready
+
+1. **"The score is 0.4984 out of a coverage of 0.80."** Never one without the other.
+2. **"Quarantined is the right answer here."** Say it before it is asked.
+3. **"That factor is offline, and the receipt says so."** For vision and anomaly, every time.
