@@ -95,6 +95,10 @@ export interface DashboardSummary {
   critical_events_delta_pct: number;
   citizen_reports: number;
   citizen_reports_delta_pct: number;
+  /** Escalated or quarantined — counted separately so "Verified" can mean it. */
+  awaiting_review: number;
+  /** Unexpired CAP warnings currently in force, from the SACHET feed. */
+  active_alerts: number;
 }
 
 export async function fetchDashboardSummary(): Promise<KpiItem[]> {
@@ -141,6 +145,32 @@ export async function fetchDashboardSummary(): Promise<KpiItem[]> {
       color: '#8B5CF6',
       bgColor: '#EDE9FE',
       icon: 'citizens',
+    },
+    // "Verified Events" used to count everything the pipeline had not
+    // rejected, so a quarantined event the engine itself called "Noise" was
+    // advertised as verified. Splitting the tile corrects the number without
+    // hiding anything: what left the first tile appears in this one.
+    {
+      id: 'awaiting-review',
+      label: 'Awaiting Review',
+      value: data.awaiting_review ?? 0,
+      delta: 0,
+      deltaLabel: 'escalated or quarantined',
+      color: '#D97706',
+      bgColor: '#FEF3C7',
+      icon: 'critical',
+    },
+    // Live official warnings in force. These were being polled and stored all
+    // along and appeared nowhere an officer would look.
+    {
+      id: 'active-alerts',
+      label: 'Active Alerts',
+      value: data.active_alerts ?? 0,
+      delta: 0,
+      deltaLabel: 'IMD · CWC · SDMA',
+      color: '#0EA5E9',
+      bgColor: '#E0F2FE',
+      icon: 'verified',
     },
   ];
 }

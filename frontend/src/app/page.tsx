@@ -58,6 +58,11 @@ export default function Home() {
   }, []);
 
   // ── Live KPI and Event Data ───────────────────────────────────────────────
+  // refreshTick is bumped by the WebSocket below. Without it this page fetched
+  // once on mount and never again, so a console labelled "Grid live" sat on a
+  // snapshot until someone reloaded it by hand (BUG-036).
+  const [refreshTick, setRefreshTick] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -96,6 +101,33 @@ export default function Home() {
       }
     })();
     return () => { cancelled = true; };
+  }, [refreshTick]);
+
+  // The backend has broadcast VERIFIED_EVENT since Day 1 and nothing in the
+  // frontend ever listened for it. NEW_REPORT moves the report counters, and
+  // VERIFIED_EVENT is the moment the KPI strip and the event list are
+  // certainly stale, so both trigger a refetch.
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    let socket: WebSocket | null = null;
+
+    try {
+      socket = new WebSocket(`${base.replace(/^http/, 'ws')}/ws/events`);
+      socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT') {
+            setRefreshTick((t) => t + 1);
+          }
+        } catch {
+          // A malformed frame is not a reason to tear the socket down.
+        }
+      };
+    } catch {
+      // No socket just means the dashboard refreshes on navigation, as before.
+    }
+
+    return () => socket?.close();
   }, []);
 
   return (
