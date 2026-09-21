@@ -9,7 +9,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 21 Sep 2026, end of the sprint.**
+**Last updated: 21 Sep 2026, after the Day 8 browser session (BUG-043, BUG-044).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1089,3 +1089,94 @@ And one operational lesson, learned the expensive way: the stack's Docker lives 
 external SSD. It unmounted mid-run, every container vanished, and two Playwright tests
 failed in ways that looked like application bugs. Check `docker ps` before believing a
 failure.
+
+---
+
+# Day 8 — 21 Sep 2026, browser session
+
+Both found the same way the Day 7 batch was: by opening the running console in a real
+browser and looking at it, rather than by reading code or running the suite. The suite
+was **684 passed, 2 skipped** before and after — neither defect is visible to it, because
+both live in the gap between React state and what MapLibre and the DOM actually did with
+that state.
+
+### BUG-043 — The map draws no pins at all until the operator touches a control
+**S1** · Layer 9 · **`FIXED`** by `7fa0f31` · Found by: first screenshot of the dashboard · 21 Sep
+
+Repro: cold-load `http://localhost:3000/` and do nothing.
+Expected: the map draws the pins its own badge is counting.
+Actual: the badge reads **"42 Incidents"**, the roster behind it lists 42 real rows
+(Patna, Bokaro, Bidar …), and the globe shows **zero** markers.
+`document.querySelectorAll('.maplibregl-marker').length` → **0**. Click any view control
+and all 42 appear at once.
+
+This is the whole point of the console, and it was failing silently on every cold load.
+Nothing errored, nothing logged, and the counts on screen were all correct — the map just
+never drew. A nodal officer opening the dashboard would have seen an empty map of India
+next to a badge insisting there were 42 incidents on it.
+
+The cause is a race that `isStyleLoaded()` cannot referee. Instrumenting the real
+sequence gave:
+
+| t (ms) | what ran | `hasMap` | `isStyleLoaded()` | markers |
+|---|---|---|---|---|
+| 0 | pins effect | false | — | 0 |
+| 20 | `onStyleReady` → `renderProminentPins` | true | — | **0** |
+| 76 | pins effect | true | **false** | **42** |
+
+The map's `load` fires at t=20, when the fetch has not returned and there is nothing to
+draw. The markers land at t=76 — and MapLibre still reports `isStyleLoaded() === false`
+there, because sprites, glyphs and the first tiles are in flight long after `load`. The
+effect therefore bailed out, and the `load` it was implicitly waiting on had already
+fired and never fires twice. No third chance existed.
+
+Worth naming: the first fix attempted was to register `map.once('load', …)` from inside
+the effect when the style looked unloaded. It typechecked, linted and was **wrong for the
+same reason** — it waited on an event that was already in the past. The trace above is
+what disproved it. A guard that reads `isStyleLoaded()` is unfixable in place; the
+readiness has to become React state so that its arrival is itself a render.
+
+Fix: a `styleReady` state flag, set in `onStyleReady` (outside the `try`, so a failed
+projection cannot also cost every pin), with the pins effect and the layer-visibility
+effect both gated on it instead of on `isStyleLoaded()`. Whichever finishes last — the
+style or the markers — now triggers the draw.
+Verified: cold load, no interaction → **42 markers**, matching the badge. Switching to
+the India view (`setStyle`, a full style reload) → still 42.
+
+### BUG-044 — Four of the six KPI readings showed a red downward arrow on a flat number
+**S3** · Layer 9 · **`FIXED`** by `54ec0c6` · Found by: same screenshot · 21 Sep
+
+Repro: load the dashboard with any period where a count has not moved.
+Expected: a change of zero reads as no change.
+Actual: **"Verified Events 0 ↓0%"**, **"Critical Events 0 ↓0%"**, **"Awaiting Review 2
+↓0%"**, **"Active Alerts 46 ↓0%"** — a red `↓` on four of six tiles.
+
+`KpiCard.tsx` computed `isPositive = item.delta > 0` and used a single ternary, so zero
+fell into the "down" branch and got the decline colour and the decline arrow. Two of the
+four are worse than a rounding artefact: `awaiting_review` and `active_alerts` have no
+comparison window at all and carry a **hardcoded `delta: 0`** in `api.ts`, so the arrow
+was rendering a trend that is not merely flat but nonexistent.
+
+Small, but it is the class of defect this register exists for: a number that does not
+mean its label. A commander glancing at the strip sees four falling indicators during a
+flood.
+
+Fix: a third `isFlat` state — muted grey, no arrow, plain `0%`.
+Verified in the browser: the six deltas now read `↑100% · 0% · 0% · ↑100% · 0% · 0%`.
+
+### Note, not a bug — `GET /api/reports/recent` returns `[]`
+
+Checked because an empty field-reports layer looked like BUG-037 regressing. It is
+correct: all 14 `raw_reports` rows are either fused into an event (11) or suppressed as
+duplicates (3), and the endpoint's `unfused_only` default excludes both by design. The
+layer is empty because there is nothing unfused to draw, which is the honest answer.
+Worth knowing before the demo: **this layer will be empty on the demo database**, so it
+is not something to point at on screen.
+
+### Note, not a bug — 6 of 46 agency alerts have no coordinates
+
+`lat`/`lng` are `null` for 6 active SACHET alerts, so they are listed but not mapped.
+Their `area_desc` values are mandal- and locality-level (`MRTS`, `krs-unguturu Mandal`,
+`elr-nuzvid, elr-agiripalle, krs-bapulapadu mandals`) — below the district granularity of
+the 737-row gazetteer. 39 of 45 resolving is the gazetteer working as specified, not
+failing. Say so plainly if asked.
