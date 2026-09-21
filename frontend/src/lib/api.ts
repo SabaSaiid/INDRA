@@ -327,11 +327,104 @@ export interface AgencyAlert {
   expires_at: string | null;
   sent_at: string | null;
   has_polygon: boolean;
+  /**
+   * Resolved from area_desc, because NDMA answers 403 on the CAP polygon
+   * endpoint and not one stored alert carries a geometry. Null when the
+   * alert's scope is below district level (state SDMAs issue mandal-level
+   * warnings) — those stay off the map rather than being pinned to a
+   * district centroid they are not actually in.
+   */
+  lat: number | null;
+  lng: number | null;
+  location_label: string | null;
+  /** 'district' | 'state' | null — 'state' means the whole state, not a point. */
+  location_precision: string | null;
+  districts_matched: number;
 }
 
-export async function fetchAgencyAlerts(limit: number = 20): Promise<AgencyAlert[]> {
-  const path = `/api/alerts/agency?limit=${limit}`;
+export async function fetchAgencyAlerts(
+  limit: number = 20,
+  includeExpired = false
+): Promise<AgencyAlert[]> {
+  const path = `/api/alerts/agency?limit=${limit}&include_expired=${includeExpired}`;
   return asArray<AgencyAlert>(await getJson<unknown>(path), path);
+}
+
+/**
+ * Live agency warnings as map markers.
+ *
+ * Alerts with no resolvable location are dropped rather than placed
+ * somewhere plausible, so this can return fewer markers than there are
+ * alerts. That gap is real and the alert list still shows every one.
+ */
+export function agencyAlertsToMapMarkers(alerts: AgencyAlert[]): MapMarker[] {
+  return alerts
+    .filter((a) => a.lat !== null && a.lng !== null)
+    .map((a) => ({
+      id: `alert-${a.id}`,
+      lat: a.lat as number,
+      lng: a.lng as number,
+      city: a.location_label ?? '',
+      state: '',
+      placeLabel:
+        a.location_precision === 'state'
+          ? `${a.location_label} (state-wide)`
+          : formatPlace(a.location_label, null),
+      layer: 'alert' as const,
+      eventType: (a.event || 'Severe Rainfall') as any,
+      severity: (a.severity || 'ADVISORY').toLowerCase() as any,
+      description: a.headline || a.event || 'Agency warning',
+      title: a.sender || 'Agency',
+      verification: 'verified' as any,
+    }));
+}
+
+// ─── Field Reports (raw citizen reports, not yet events) ─────────────────────
+
+export interface FieldReport {
+  id: string;
+  source_type: string;
+  text: string;
+  lat: number;
+  lng: number;
+  district: string | null;
+  state: string | null;
+  created_at: string | null;
+  fused: boolean;
+  duplicate: boolean;
+  depth_cm: number | null;
+}
+
+export async function fetchFieldReports(
+  limit: number = 100,
+  hours: number = 72
+): Promise<FieldReport[]> {
+  const path = `/api/reports/recent?limit=${limit}&hours=${hours}`;
+  return asArray<FieldReport>(await getJson<unknown>(path), path);
+}
+
+/**
+ * Raw reports as map markers.
+ *
+ * These carry `layer: 'report'` and the map must draw them distinctly.
+ * Nothing here has been clustered, corroborated or scored — drawing an
+ * unreviewed citizen claim like a verified event is the one thing a national
+ * console must not do.
+ */
+export function fieldReportsToMapMarkers(reports: FieldReport[]): MapMarker[] {
+  return reports.map((r) => ({
+    id: `report-${r.id}`,
+    lat: r.lat,
+    lng: r.lng,
+    city: r.district ?? '',
+    state: r.state ?? '',
+    placeLabel: formatPlace(r.district, r.state),
+    layer: 'report' as const,
+    eventType: 'Flood' as any,
+    severity: 'advisory' as any,
+    description: r.text,
+    verification: 'under-review' as any,
+  }));
 }
 
 // ─── Teams (Disaster Response Units & Hub) ───────────────────────────────────
