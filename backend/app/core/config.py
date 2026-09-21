@@ -110,6 +110,27 @@ class Settings(BaseSettings):
     # did before Day 6.
     STATION_POLLER_ENABLED: bool = True
     STATION_POLL_INTERVAL_SECONDS: int = 600
+
+    # ── SACHET poller (layer 1: official agency warnings) ──────────────────
+    # NDMA's national CAP feed — the only public route to IMD and CWC warnings
+    # (IMD's own API requires an IP whitelist; CWC publishes none). Off means no
+    # task is started and agency_alerts stays empty; nothing else changes,
+    # because corroboration treats an absent alert as no evidence, not as a
+    # contradiction.
+    SACHET_POLLER_ENABLED: bool = True
+    SACHET_RSS_URL: str = "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml"
+    SACHET_CAP_URL: str = "https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile"
+    SACHET_TIMEOUT_SECONDS: float = 10.0
+    # 5 min. The index is ETag-cached, so a tick with no new alerts is one
+    # conditional request that returns 304 and parses nothing.
+    SACHET_POLL_INTERVAL_SECONDS: int = 300
+    # Cold start has ~99 alerts all new at once. Cap the burst; the remainder
+    # arrives on the next tick rather than hammering a disaster agency's feed.
+    SACHET_MAX_FETCHES_PER_TICK: int = 25
+    SACHET_FETCH_DELAY_SECONDS: float = 0.2
+    # One live Gujarat district ring measured 235 KB. Past this the ring is
+    # decimated and the row records that it was.
+    SACHET_MAX_POLYGON_POINTS: int = 2000
     # How fresh and how near a stored reading must be for the weather factor to
     # prefer it over a live fetch.
     #
