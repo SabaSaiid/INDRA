@@ -52,6 +52,13 @@ class AgencyAlert(Base):
     certainty = Column(String(32), nullable=True)
 
     sent_at = Column(DateTime(timezone=True), nullable=True)
+    # The RSS <pubDate>, kept separate from the CAP <sent>. They are different
+    # fields and they disagree: on one real alert the CAP said 02:24 UTC and the
+    # feed said 02:28. Comparing the feed's timestamp against the stored CAP
+    # timestamp makes every alert look republished on every tick, which refetches
+    # 99 CAP documents and up to 99 polygons forever. Freshness is judged
+    # feed-against-feed.
+    feed_published_at = Column(DateTime(timezone=True), nullable=True)
     effective_at = Column(DateTime(timezone=True), nullable=True)
     onset_at = Column(DateTime(timezone=True), nullable=True)
     # The alert's own lifetime. Corroboration must respect it: an expired warning

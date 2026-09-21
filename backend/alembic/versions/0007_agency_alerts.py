@@ -23,6 +23,10 @@ Design notes worth keeping:
 * `severity` is nullable because CAP allows `Unknown`, and `raw_severity` keeps
   the agency's own word. Mapping `Unknown` onto ADVISORY would manufacture a
   judgement the issuer declined to make.
+* `feed_published_at` is the RSS `pubDate`, stored beside the CAP `sent`. The
+  two disagree — one real alert said 02:24 UTC in its CAP document and 02:28 in
+  the feed — so comparing them to decide "has this been republished?" marks every
+  alert stale on every tick and refetches the whole feed forever.
 * `sender` is free text, not the `Agency` enum — the live feed distinguishes
   `IMD Ahmedabad` from `IMD Mumbai` from `Gujarat-SDMA`, and the enum has three
   values. Recording the issuing office verbatim is the point.
@@ -72,6 +76,7 @@ def upgrade() -> None:
         sa.Column("raw_severity", sa.String(length=32), nullable=True),
         sa.Column("certainty", sa.String(length=32), nullable=True),
         sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("feed_published_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("effective_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("onset_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),

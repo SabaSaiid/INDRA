@@ -199,10 +199,18 @@ def _needs_fetch(item: RssItem, stored: Dict[str, Optional[datetime]]) -> bool:
     True when this identifier is new, or the feed shows it republished since the
     stored copy. Rule 2 in the module docstring.
 
+    **`stored` holds `feed_published_at`, not `sent_at`.** The RSS `pubDate` and
+    the CAP `sent` are different fields and they disagree — one live alert said
+    `2026-09-21T07:54:00+05:30` (02:24 UTC) in its CAP document and
+    `Mon, 21 Sep 2026 02:28:50 GMT` in the feed. Comparing the feed's timestamp
+    against the stored CAP timestamp makes the feed look four minutes newer than
+    the database on every single alert, forever: each tick refetches all 99 CAP
+    documents and all 99 polygons. Freshness is judged feed-against-feed, which
+    is the only comparison where the two values mean the same thing.
+
     An item with no `pubDate` is fetched whenever it is new and skipped once
     stored — without a timestamp there is no way to tell an update from a repeat,
-    and refetching 99 documents every tick to find out is the behaviour this
-    guard exists to prevent.
+    and refetching everything to find out is the behaviour this guard prevents.
     """
     if item.identifier not in stored:
         return True
@@ -233,7 +241,7 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> Tuple[int
         identifiers = [item.identifier for item in items]
         rows = (
             await db.execute(
-                select(AgencyAlert.identifier, AgencyAlert.sent_at).where(
+                select(AgencyAlert.identifier, AgencyAlert.feed_published_at).where(
                     AgencyAlert.identifier.in_(identifiers)
                 )
             )
@@ -314,6 +322,7 @@ async def _upsert(
         "raw_severity": alert.raw_severity,
         "certainty": alert.certainty,
         "sent_at": alert.sent_at or item.published_at,
+        "feed_published_at": item.published_at,
         "effective_at": alert.effective_at,
         "onset_at": alert.onset_at,
         "expires_at": alert.expires_at,
