@@ -312,6 +312,8 @@ export interface UserProfile {
   audits_logged?: number;
   accuracy_rate?: number;
   last_active_at?: string;
+  /** Real ledger actions for this operator, newest first. Empty until they review something. */
+  recent_activities?: OperatorActivity[];
 }
 
 export interface OperatorActivity {
@@ -403,3 +405,54 @@ export const PLACEHOLDER_OPERATOR: UserProfile = {
   duty_status: 'OFF_DUTY',
   avatar_initials: '—',
 };
+
+/**
+ * What each role may actually do, transcribed from the backend's enforced auth
+ * matrix (`backend/tests/test_auth_enforcement.py`, which pins it).
+ *
+ * This replaces `mockRoleSecurity`, which invented "clearance codes" and
+ * "clearance levels" — concepts INDRA has no notion of anywhere in its code.
+ * Everything below is a statement about behaviour the backend really enforces,
+ * so it belongs with the design constants rather than with the deleted fakes.
+ *
+ * Session expiry is the real JWT lifetime (`JWT_EXPIRY_HOURS = 8`, HS256).
+ * Ledger immutability is real too: `services/audit.py` hash-chains every
+ * decision with SHA-256 and `GET /api/events/{id}/provenance` verifies the
+ * chain from genesis.
+ */
+export interface RoleCapability {
+  label: string;
+  granted: boolean;
+}
+
+export const ROLE_CAPABILITIES: Record<string, RoleCapability[]> = {
+  ADMIN: [
+    { label: 'Review & approve events', granted: true },
+    { label: 'Override event severity', granted: true },
+    { label: 'Read provenance ledger', granted: true },
+    { label: 'Submit citizen reports', granted: true },
+  ],
+  COMMANDER: [
+    { label: 'Review & approve events', granted: true },
+    { label: 'Override event severity', granted: true },
+    { label: 'Read provenance ledger', granted: true },
+    { label: 'Submit citizen reports', granted: true },
+  ],
+  ANALYST: [
+    { label: 'Review & approve events', granted: false },
+    { label: 'Override event severity', granted: false },
+    { label: 'Read provenance ledger', granted: true },
+    { label: 'Submit citizen reports', granted: true },
+  ],
+  CITIZEN: [
+    { label: 'Review & approve events', granted: false },
+    { label: 'Override event severity', granted: false },
+    { label: 'Read provenance ledger', granted: false },
+    { label: 'Submit citizen reports', granted: true },
+  ],
+};
+
+/** HS256, 8 h — `JWT_EXPIRY_HOURS` in backend/app/core/config.py. */
+export const SESSION_TOKEN_LIFETIME = '8 h · HS256';
+/** services/audit.py chains every decision; provenance verifies from genesis. */
+export const LEDGER_IMMUTABILITY = 'SHA-256 hash chain';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -34,13 +34,15 @@ import Topbar from '@/components/Topbar';
 import {
   type UserProfile,
   type DutyStatus,
-  mockTeams,
   dutyStatusConfig,
-  mockRoleActivities,
-  mockRoleTelemetry,
-  mockRoleSecurity,
+  type TeamItem,
+  PLACEHOLDER_OPERATOR,
+  ROLE_CAPABILITIES,
+  SESSION_TOKEN_LIFETIME,
+  LEDGER_IMMUTABILITY,
 } from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { fetchTeams } from '@/lib/api';
 import { useSidebar } from '@/lib/useSidebar';
 
 export default function ProfilePage() {
@@ -53,7 +55,7 @@ export default function ProfilePage() {
   } = useSidebar();
 
   const {
-    profile,
+    profile: loadedProfile,
     selectedRole,
     switchRole,
     updateDuty,
@@ -62,8 +64,23 @@ export default function ProfilePage() {
     isSavingProfile,
     availablePersonas,
   } = useOperatorProfile();
+  // Same rule as the sidebar chrome: render the layout, never a plausible
+  // stand-in identity. Every placeholder field is an em-dash.
+  const profile = loadedProfile ?? PLACEHOLDER_OPERATOR;
 
   // Edit Modal State
+  // The operational-unit picker lists the real roster. It used to list a
+  // hardcoded array of teams, so an operator could be "assigned" to a unit that
+  // does not exist in the database.
+  const [teams, setTeams] = useState<TeamItem[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchTeams()
+      .then((rows) => { if (!cancelled) setTeams(rows); })
+      .catch(() => { if (!cancelled) setTeams([]); });
+    return () => { cancelled = true; };
+  }, []);
+
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -107,9 +124,29 @@ export default function ProfilePage() {
   };
 
   const activeStatusCfg = dutyStatusConfig[profile.duty_status as DutyStatus] || dutyStatusConfig.ON_DUTY;
-  const currentActivities = mockRoleActivities[selectedRole] || mockRoleActivities.commander;
-  const currentTelemetry = mockRoleTelemetry[selectedRole] || mockRoleTelemetry.commander;
-  const currentSecurity = mockRoleSecurity[selectedRole] || mockRoleSecurity.commander;
+  // Real ledger actions, real counts, real RBAC. mockRoleActivities /
+  // mockRoleTelemetry / mockRoleSecurity are gone: they invented a tactical
+  // history, an accuracy rate and a "clearance level" that INDRA has no notion
+  // of anywhere in its code.
+  const currentActivities = profile.recent_activities ?? [];
+  const currentTelemetry = [
+    {
+      label: 'Events triaged',
+      value: profile.verified_events_triaged ?? 0,
+      color: 'blue',
+      iconName: 'FileCheck',
+      sublabel: 'approvals and rejections in the ledger',
+    },
+    {
+      label: 'Ledger entries authored',
+      value: profile.audits_logged ?? 0,
+      color: 'purple',
+      iconName: 'Shield',
+      sublabel: 'hash-chained audit records',
+    },
+  ];
+  const roleKey = String(profile.role ?? '').toUpperCase();
+  const currentCapabilities = ROLE_CAPABILITIES[roleKey] ?? [];
 
   // Icon mapping for dynamic telemetry
   const renderTelemetryIcon = (iconName: string) => {
@@ -678,7 +715,7 @@ export default function ProfilePage() {
                     Security &amp; RBAC Clearance
                   </h3>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                    {currentSecurity.clearanceCode}
+                    {profile.operator_id}
                   </span>
                 </div>
 
@@ -688,18 +725,16 @@ export default function ProfilePage() {
                     <span className="font-bold text-slate-800">{profile.role}</span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
-                    <span className="text-slate-500 font-medium">Clearance Level</span>
-                    <span className={`font-bold ${currentSecurity.clearanceColor}`}>
-                      {currentSecurity.clearanceLevel}
-                    </span>
+                    <span className="text-slate-500 font-medium">Agency</span>
+                    <span className="font-bold text-slate-800">{profile.agency}</span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
                     <span className="text-slate-500 font-medium">Session Token Expiry</span>
-                    <span className="font-mono text-slate-700">{currentSecurity.tokenExpiry}</span>
+                    <span className="font-mono text-slate-700">{SESSION_TOKEN_LIFETIME}</span>
                   </div>
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
                     <span className="text-slate-500 font-medium">Ledger Immutability</span>
-                    <span className="font-semibold text-emerald-700">{currentSecurity.ledgerImmutability}</span>
+                    <span className="font-semibold text-emerald-700">{LEDGER_IMMUTABILITY}</span>
                   </div>
                 </div>
 
@@ -709,16 +744,15 @@ export default function ProfilePage() {
                     Authorized Capabilities
                   </span>
                   <div className="space-y-2">
-                    {currentSecurity.permissions.map((perm) => (
+                    {currentCapabilities.map((perm) => (
                       <div
-                        key={perm.key}
+                        key={perm.label}
                         className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100 text-xs"
                       >
                         <div className="min-w-0 pr-2">
-                          <p className="font-semibold text-slate-800 truncate">{perm.name}</p>
-                          <p className="text-[10px] text-slate-400 truncate">{perm.description}</p>
+                          <p className="font-semibold text-slate-800 truncate">{perm.label}</p>
                         </div>
-                        {perm.authorized ? (
+                        {perm.granted ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px] shrink-0">
                             <Check className="w-3 h-3" />
                             Active
@@ -867,7 +901,7 @@ export default function ProfilePage() {
                     <select
                       value={formData.team_code || ''}
                       onChange={(e) => {
-                        const selected = mockTeams.find((t) => t.team_code === e.target.value);
+                        const selected = teams.find((t) => t.team_code === e.target.value);
                         if (selected) {
                           setFormData({
                             ...formData,
@@ -878,7 +912,7 @@ export default function ProfilePage() {
                       }}
                       className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     >
-                      {mockTeams.map((team) => (
+                      {teams.map((team) => (
                         <option key={team.id} value={team.team_code}>
                           {team.team_code} — {team.name} ({team.city}, {team.agency})
                         </option>
