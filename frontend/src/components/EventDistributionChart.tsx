@@ -1,17 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import { type DistributionItem } from '@/lib/ui-config';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { fetchEventDistribution } from '@/lib/api';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   PieChart,
   Pie,
   Cell,
-  Tooltip,
   ResponsiveContainer,
 } from 'recharts';
 import { Layers, ShieldAlert } from 'lucide-react';
@@ -27,43 +27,6 @@ interface EventDistributionChartProps {
   className?: string;
 }
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    name: string;
-    value: number;
-    payload: DistributionItem;
-  }>;
-  total: number;
-}
-
-function CustomDonutTooltip({ active, payload, total }: CustomTooltipProps) {
-  if (active && payload && payload.length) {
-    const data = payload[0];
-    const pct = total > 0 ? ((data.value / total) * 100).toFixed(1) : '0';
-    return (
-      <div className="bg-slate-900/95 backdrop-blur-md text-white text-xs rounded-xl shadow-xl border border-slate-700/80 px-3.5 py-2.5 space-y-1.5 z-50 pointer-events-none">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-2.5 h-2.5 rounded-full shadow-sm"
-            style={{ backgroundColor: data.payload.color }}
-          />
-          <span className="font-semibold text-slate-100">{data.name}</span>
-        </div>
-        <div className="flex items-baseline justify-between gap-4 text-slate-300">
-          <span className="font-mono text-base font-bold text-white tabular-nums">
-            {data.value}
-          </span>
-          <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/50">
-            {pct}% of total
-          </span>
-        </div>
-      </div>
-    );
-  }
-  return null;
-}
-
 export default function EventDistributionChart({
   variant = 'card',
   title = 'Event Distribution',
@@ -77,98 +40,127 @@ export default function EventDistributionChart({
   const [error, setError] = useState<unknown>(null);
   const [loaded, setLoaded] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const { subscribe } = useIndraWebSocket();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   // Fetch live distribution data based on activeTab and timeRange
+  const loadDistribution = useCallback(async (tab: DistributionTab, range: TimeRangeFilter) => {
+    try {
+      const data = await fetchEventDistribution(tab, range);
+      setDistribution(data || []);
+      setError(null);
+    } catch (err) {
+      setDistribution([]);
+      setError(err);
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await fetchEventDistribution(activeTab, timeRange);
-        // Nothing to group is a real answer; it is not a reason to draw a chart
-        // of numbers nobody computed.
-        if (!cancelled) {
-          setDistribution(data);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setDistribution([]);
-          setError(err);
-        }
-      } finally {
-        if (!cancelled) setLoaded(true);
+    loadDistribution(activeTab, timeRange);
+  }, [activeTab, timeRange, loadDistribution]);
+
+  // Real-time synchronization on WebSocket events
+  useEffect(() => {
+    return subscribe('event-distribution-chart', (msg) => {
+      if (['VERIFIED_EVENT', 'EVENT_REVIEWED'].includes(msg.type)) {
+        loadDistribution(activeTab, timeRange);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, timeRange]);
+    });
+  }, [subscribe, activeTab, timeRange, loadDistribution]);
+
+  // Handle Tab Switch and clear hover
+  const handleTabChange = (newTab: DistributionTab) => {
+    if (newTab === activeTab) return;
+    setHoveredIndex(null);
+    setActiveTab(newTab);
+  };
 
   const total = useMemo(() => {
     return distribution.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
   }, [distribution]);
 
-  const activeItem = hoveredIndex !== null ? distribution[hoveredIndex] : null;
+  // Bounds-safe active item
+  const activeItem = useMemo(() => {
+    if (hoveredIndex === null) return null;
+    return distribution[hoveredIndex] || null;
+  }, [hoveredIndex, distribution]);
 
   const content = (
-    <div className={cn('flex flex-col h-full', className)}>
-      {/* Header controls & Tab switcher */}
-      <div className="flex flex-row items-center justify-between gap-1.5 mb-2.5">
+    <div className={cn('flex flex-col h-full min-h-0', className)}>
+      {/* Subheader: Segmented Tab Switcher + Time Range Pills */}
+      <div className="flex items-center justify-between gap-2 mb-2 pb-1 border-b border-[#F0EBE0]">
         {/* Dimension Tabs (Hazard vs Severity) */}
-        <div className="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200/80">
+        <div className="inline-flex p-0.5 rounded-lg bg-[#EFE9DC] border border-[#E0D7C6]">
           <button
             type="button"
-            onClick={() => {
-              setActiveTab('hazard');
-              setHoveredIndex(null);
-            }}
+            onClick={() => handleTabChange('hazard')}
             className={cn(
-              'flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all cursor-pointer',
+              'relative flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer',
               activeTab === 'hazard'
-                ? 'bg-white text-slate-900 shadow-sm font-semibold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'text-[#1B2432] font-semibold'
+                : 'text-[#7A8599] hover:text-[#1B2432]'
             )}
           >
-            <Layers className="w-3 h-3 text-blue-500" />
-            <span>Hazard Type</span>
+            {activeTab === 'hazard' && (
+              <motion.div
+                layoutId="activeDistTabIndicator"
+                className="absolute inset-0 bg-white rounded-md shadow-2xs"
+                transition={{ type: 'spring', bounce: 0.15, duration: 0.35 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-1">
+              <Layers className="w-3 h-3 text-[#4A6670]" />
+              <span>By Hazard</span>
+            </span>
           </button>
+
           <button
             type="button"
-            onClick={() => {
-              setActiveTab('severity');
-              setHoveredIndex(null);
-            }}
+            onClick={() => handleTabChange('severity')}
             className={cn(
-              'flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all cursor-pointer',
+              'relative flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer',
               activeTab === 'severity'
-                ? 'bg-white text-slate-900 shadow-sm font-semibold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'text-[#1B2432] font-semibold'
+                : 'text-[#7A8599] hover:text-[#1B2432]'
             )}
           >
-            <ShieldAlert className="w-3 h-3 text-amber-500" />
-            <span>Severity</span>
+            {activeTab === 'severity' && (
+              <motion.div
+                layoutId="activeDistTabIndicator"
+                className="absolute inset-0 bg-white rounded-md shadow-2xs"
+                transition={{ type: 'spring', bounce: 0.15, duration: 0.35 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3 text-[#B8873A]" />
+              <span>By Severity</span>
+            </span>
           </button>
         </div>
 
         {/* Time range pills */}
-        <div className="flex items-center gap-0.5 text-[10px]">
+        <div className="flex items-center gap-0.5 text-[9px] font-mono">
           {(['24h', '7d', 'all'] as const).map((r) => (
             <button
               key={r}
               type="button"
-              onClick={() => setTimeRange(r)}
+              onClick={() => {
+                setHoveredIndex(null);
+                setTimeRange(r);
+              }}
               className={cn(
-                'px-1.5 py-0.5 rounded font-mono transition-colors cursor-pointer',
+                'px-1.5 py-0.5 rounded transition-all cursor-pointer font-medium',
                 timeRange === r
-                  ? 'bg-slate-900 text-white font-semibold'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-[#1B2432] text-white font-bold shadow-2xs'
+                  : 'text-[#7A8599] hover:text-[#1B2432] hover:bg-[#EFE9DC]'
               )}
             >
-              {r === 'all' ? 'All' : r.toUpperCase()}
+              {r === 'all' ? 'ALL' : r.toUpperCase()}
             </button>
           ))}
         </div>
@@ -189,21 +181,20 @@ export default function EventDistributionChart({
         </div>
       ) : (
       /* Chart and Legend container */
-      <div className="flex flex-row items-center gap-3 flex-1 justify-center">
-        {/* Donut chart — compact 130px */}
-        <div className="relative w-[130px] h-[130px] flex-shrink-0 flex items-center justify-center">
-          {mounted && (
-            <ResponsiveContainer width="100%" height="100%" minWidth={120} minHeight={120}>
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                <Tooltip
-                  content={<CustomDonutTooltip total={total} />}
-                  wrapperStyle={{ outline: 'none' }}
-                />
+      <div className="flex flex-row items-center gap-2.5 flex-1 min-h-0 justify-between">
+        {/* Donut chart with Center Hole Inspection Readout */}
+        <div className="relative w-[128px] h-[128px] flex-shrink-0 flex items-center justify-center">
+          {mounted && total > 0 ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={110} minHeight={110}>
+              <PieChart
+                key={`${activeTab}-${timeRange}`}
+                margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+              >
                 <Pie
                   data={distribution}
                   cx="50%"
                   cy="50%"
-                  innerRadius={36}
+                  innerRadius={38}
                   outerRadius={60}
                   paddingAngle={3}
                   dataKey="value"
@@ -211,9 +202,9 @@ export default function EventDistributionChart({
                   startAngle={90}
                   endAngle={-270}
                   isAnimationActive={true}
-                  animationDuration={800}
+                  animationDuration={600}
                   animationEasing="ease-out"
-                  stroke="#ffffff"
+                  stroke="#F7F3EA"
                   strokeWidth={2}
                   onMouseEnter={(_, index) => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
@@ -223,97 +214,96 @@ export default function EventDistributionChart({
                       key={`cell-${entry.name}-${index}`}
                       fill={entry.color}
                       opacity={
-                        hoveredIndex === null || hoveredIndex === index ? 1 : 0.4
+                        hoveredIndex === null || hoveredIndex === index ? 1 : 0.35
                       }
-                      className="cursor-pointer transition-opacity duration-200"
+                      className="cursor-pointer transition-opacity duration-150"
                     />
                   ))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-          )}
+          ) : total === 0 ? (
+            <div className="w-[104px] h-[104px] rounded-full border border-dashed border-[#D5CDBC] flex flex-col items-center justify-center text-center p-2 bg-[#F7F3EA]/50">
+              <span className="text-base font-bold text-[#A0988A] font-mono">0</span>
+              <span className="text-[8px] text-[#B0A898] uppercase tracking-wider">No events</span>
+            </div>
+          ) : null}
 
-          {/* Center dynamic metric */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-2">
-            <AnimatePresence mode="wait">
+          {/* Dedicated Center Hole Readout (Eliminates floating tooltip collisions) */}
+          {total > 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-1">
               {activeItem ? (
-                <motion.div
-                  key={`hovered-${activeItem.name}`}
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex flex-col items-center"
-                >
+                <div className="flex flex-col items-center justify-center">
                   <span
-                    className="text-lg font-bold tabular-nums"
+                    className="text-lg font-bold tabular-nums font-mono leading-none"
                     style={{ color: activeItem.color }}
                   >
                     {activeItem.value}
                   </span>
-                  <span className="text-[9px] font-medium text-slate-700 truncate max-w-[70px]">
+                  <span className="text-[10px] font-semibold text-[#1B2432] truncate max-w-[68px] mt-0.5 leading-tight">
                     {activeItem.name}
                   </span>
-                  <span className="text-[8px] text-slate-400 font-mono">
-                    {total > 0 ? Math.round((activeItem.value / total) * 100) : 0}%
+                  <span className="text-[9px] text-[#7A8599] font-mono leading-none mt-0.5">
+                    {total > 0 ? Math.round((Number(activeItem.value) / total) * 100) : 0}%
                   </span>
-                </motion.div>
+                </div>
               ) : (
-                <motion.div
-                  key="total-display"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex flex-col items-center"
-                >
-                  <span className="text-xl font-bold text-slate-900 tabular-nums">
+                <div className="flex flex-col items-center justify-center">
+                  <span className="text-xl font-bold text-[#1B2432] tabular-nums font-mono leading-none">
                     {total}
                   </span>
-                  <span className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">
+                  <span className="text-[9px] text-[#7A8599] font-medium uppercase tracking-wider mt-0.5 leading-none">
                     {activeTab === 'hazard' ? 'Incidents' : 'Events'}
                   </span>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Legend — compact items */}
-        <div className="flex-1 w-full space-y-0.5 min-w-[100px] max-h-[130px] overflow-y-auto custom-scrollbar pr-0.5">
-          {distribution.map((item, index) => {
-            const isHovered = hoveredIndex === index;
-            const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
-            return (
-              <div
-                key={item.name}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                className={cn(
-                  'flex items-center justify-between py-0.5 px-1.5 rounded text-[10px] cursor-pointer transition-all',
-                  isHovered
-                    ? 'bg-slate-100 font-medium'
-                    : 'hover:bg-slate-50'
-                )}
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <div
-                    className={cn(
-                      'w-2 h-2 rounded-full flex-shrink-0 transition-transform duration-150',
-                      isHovered && 'scale-125'
-                    )}
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="truncate text-slate-700">{item.name}</span>
-                </div>
+        {/* Legend */}
+        <div className="flex-1 min-w-0 space-y-0.5 max-h-[126px] overflow-y-auto custom-scrollbar pr-0.5">
+          {total === 0 ? (
+            <div className="text-[10px] text-[#A0988A] text-center italic py-6">
+              No incidents recorded in this time range.
+            </div>
+          ) : (
+            distribution.map((item, index) => {
+              const isHovered = hoveredIndex === index;
+              const pct = total > 0 ? Math.round((Number(item.value) / total) * 100) : 0;
+              return (
+                <div
+                  key={item.name}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                  className={cn(
+                    'flex items-center justify-between py-0.5 px-1.5 rounded text-[10px] cursor-pointer transition-colors',
+                    isHovered
+                      ? 'bg-[#EFE9DC] font-medium shadow-2xs'
+                      : 'hover:bg-[#F7F3EA]'
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div
+                      className={cn(
+                        'w-2 h-2 rounded-full flex-shrink-0 transition-transform duration-150',
+                        isHovered && 'scale-125'
+                      )}
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="truncate text-[#1B2432] text-[10px]">{item.name}</span>
+                  </div>
 
-                <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
-                  <span className="text-[9px] font-mono text-slate-400">{pct}%</span>
-                  <span className="font-semibold text-slate-900 tabular-nums min-w-[18px] text-right">{item.value}</span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+                    <span className="text-[9px] font-mono text-[#7A8599]">{pct}%</span>
+                    <span className="font-semibold text-[#1B2432] tabular-nums font-mono min-w-[16px] text-right">
+                      {item.value}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
       )}
@@ -332,11 +322,23 @@ export default function EventDistributionChart({
       transition={{ delay: 0.4 }}
       className="h-full"
     >
-      <Card hover={false} className="h-full flex flex-col p-3.5">
-        <CardHeader title={title} density="compact" className="p-0 pb-1 mb-0" />
+      <Card hover={false} className="h-full flex flex-col p-3" density="compact">
+        <CardHeader
+          density="compact"
+          className="p-0 pb-1.5 mb-0 flex items-center justify-between"
+          title={
+            <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              {title}
+            </span>
+          }
+          action={
+            <span className="text-[10px] font-mono font-medium text-[#7A8599] bg-[#EFE9DC] px-1.5 py-0.5 rounded border border-[#E0D7C6]">
+              {total} Total
+            </span>
+          }
+        />
         {content}
       </Card>
     </motion.div>
   );
 }
-

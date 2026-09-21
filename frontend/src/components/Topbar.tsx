@@ -13,6 +13,7 @@ import {
   Radio,
   Check,
   Settings,
+  AlertTriangle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -24,6 +25,7 @@ import {
 } from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import SettingsDrawer from './SettingsDrawer';
+import ReportSubmissionModal from './ReportSubmissionModal';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -32,12 +34,14 @@ interface TopbarProps {
 export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const {
     profile: loadedProfile,
     selectedRole,
     switchRole,
     updateDuty,
     isUpdatingStatus,
+    isAuthenticated,
   } = useOperatorProfile();
   // See Sidebar: placeholder chrome, not a fabricated operator.
   const currentProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
@@ -106,7 +110,22 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
 
         {/* Right section */}
         <div className="flex items-center gap-3">
-          {/* Grid status moved to WelcomeHeader executive strip — removed duplicate here */}
+          {/* Report Incident button */}
+          <button
+            onClick={() => setReportModalOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#B5482E] text-white text-xs font-semibold hover:bg-[#8C3420] transition-colors shadow-sm"
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Report Incident
+          </button>
+
+          {/* Auth indicator */}
+          {isAuthenticated && (
+            <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200" title={`Authenticated as ${selectedRole}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-medium text-emerald-700">JWT</span>
+            </div>
+          )}
 
           {/* Notifications */}
           <button
@@ -381,6 +400,12 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     <SettingsDrawer
       isOpen={settingsOpen}
       onClose={() => setSettingsOpen(false)}
+    />
+
+    {/* Report Submission Modal */}
+    <ReportSubmissionModal
+      open={reportModalOpen}
+      onClose={() => setReportModalOpen(false)}
     />
     </>
   );

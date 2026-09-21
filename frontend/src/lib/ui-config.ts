@@ -229,6 +229,11 @@ export interface FeedItem {
   sourceLabel: string;
   message: string;
   time: string;
+  city?: string;
+  confidence?: number;
+  eventType?: string;
+  type?: string;
+  timestamp?: string;
 }
 export const severityConfig: Record<SeverityLevel, { label: string; color: string; bg: string; textColor: string }> = {
   critical: { label: 'Critical', color: '#8C2F26', bg: '#F5E8E7', textColor: '#6D1F18' },
