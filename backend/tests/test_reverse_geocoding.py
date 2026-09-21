@@ -16,6 +16,7 @@ from app.services.geocoding import (
     DISTRICT_NEARBY_KM,
     Place,
     district_by_name,
+    locate_area_description,
     load_districts,
     reverse_geocode,
     sanitize_coordinates,
@@ -239,3 +240,76 @@ class TestSanitizeCoordinatesNowNamesThings:
         lat, lng, city, state = sanitize_coordinates(85.13746, 25.59428)
         assert (round(lat, 5), round(lng, 5)) == (25.59428, 85.13746)
         assert (city, state) == ("Patna", "Bihar")
+
+
+class TestAreaDescriptions:
+    """
+    Resolving CAP alerts, which carry prose and no geometry.
+
+    Measured against the 116 area descriptions in the live SACHET corpus:
+    98 resolve (35 of them only to a state), and the 18 that do not are
+    mandal-level scopes or not places at all ("some parts", "MOD TSRA").
+    """
+
+    def test_a_list_of_districts_resolves_to_all_of_them(self):
+        places = locate_area_description(
+            "Chamarajanagara,Kodagu,Mysuru districts of Karnataka"
+        )
+        assert [p.district for p in places] == ["Chamarajanagara", "Kodagu", "Mysuru"]
+        assert {p.state for p in places} == {"Karnataka"}
+
+    def test_a_transliteration_still_resolves(self):
+        """
+        CAP senders spell as they please: the live feed says "Puruliya" and
+        "Pashchim Medinipur" where the gazetteer says "Purulia" and "Paschim
+        Medinipur". Before near-name matching only the first of the three
+        districts in this real description resolved.
+        """
+        places = locate_area_description(
+            "Jhargram,Pashchim Medinipur,Puruliya districts of West Bengal"
+        )
+        assert [p.district for p in places] == [
+            "Jhargram", "Paschim Medinipur", "Purulia",
+        ]
+
+    def test_a_near_name_is_not_matched_across_the_country(self):
+        """
+        Near-name matching is confined to a named state. Without that guard a
+        sender's typo becomes a confident answer somewhere else entirely.
+        """
+        places = locate_area_description("Purulia district of Kerala")
+        assert all(p.state == "Kerala" for p in places)
+
+    def test_a_river_gauge_description_finds_the_district(self):
+        """The live CWC format: river, station, district, state."""
+        places = locate_area_description("Ganga, Bhagalpur, Bhagalpur, Bihar")
+        assert places[0].district == "Bhagalpur"
+        assert places[0].state == "Bihar"
+
+    def test_a_state_wide_alert_resolves_to_the_state_and_says_so(self):
+        places = locate_area_description("6 districts of Kerala")
+        assert len(places) == 1
+        assert places[0].precision == "state"
+        assert places[0].state == "Kerala"
+        assert places[0].district is None
+        assert places[0].label == "Kerala"
+
+    @pytest.mark.parametrize("area_desc", [
+        "atp-bukkarayasamudram, atp-singanamala mandals",
+        "mkp-giddalur Mandal",
+        "some parts",
+        "MOD TSRA",
+        "",
+        None,
+    ])
+    def test_a_scope_below_district_level_resolves_to_nothing(self, area_desc):
+        """
+        Mandals are below this gazetteer's resolution. Returning nothing keeps
+        the alert off the map, which is the right outcome: a mandal pinned to
+        a district centroid is a warning shown in the wrong place.
+        """
+        assert locate_area_description(area_desc) == []
+
+    def test_duplicate_names_are_not_repeated(self):
+        places = locate_area_description("Patna, Patna district, Bihar")
+        assert len(places) == 1
