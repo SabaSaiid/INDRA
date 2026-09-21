@@ -49,7 +49,13 @@ interface ReadingProps {
 
 function Reading({ item, index }: ReadingProps) {
   const animatedValue = useCountUp(item.value, 900 + index * 80);
+  // A zero delta is neither a rise nor a fall. Folding it into the "else"
+  // branch painted "Verified Events 0" and "Active Alerts 45" with a red
+  // downward arrow, which reads as a decline that never happened — and two of
+  // these readings carry a hardcoded delta of 0 because they have no
+  // comparison window at all.
   const isPositive = item.delta > 0;
+  const isFlat = item.delta === 0;
 
   return (
     <motion.div
@@ -77,8 +83,17 @@ function Reading({ item, index }: ReadingProps) {
           className="text-[9px] tabular-nums leading-none"
           style={{ fontFamily: 'JetBrains Mono, monospace' }}
         >
-          <span className={isPositive ? 'text-[#4C7A5B]' : 'text-[#8C2F26]'}>
-            {isPositive ? '↑' : '↓'}{Math.abs(item.delta)}%
+          <span
+            className={
+              isFlat
+                ? 'text-[#7A8599]'
+                : isPositive
+                  ? 'text-[#4C7A5B]'
+                  : 'text-[#8C2F26]'
+            }
+          >
+            {isFlat ? '' : isPositive ? '↑' : '↓'}
+            {Math.abs(item.delta)}%
           </span>
         </p>
         <p className="text-[8px] text-[#B0A898] leading-none mt-0.5 whitespace-nowrap">
