@@ -1,0 +1,5 @@
+id,username,full_name,email,phone,role,agency,operator_id,badge_number,callsign,team_id,team_role,duty_status,avatar_url,bio,last_active_at,created_at
+c23cb1b4-9315-4f7c-b0a4-9056c1f68c7e,admin,System Administrator,,,ADMIN,NDMA,OP-ADMIN-001,NDMA-ADM-001,CONTROL,,Operational Specialist,ON_DUTY,,,2026-09-21T03:26:41.011775+00:00,2026-09-21T03:26:41.011775+00:00
+8f67d7d0-d6d8-4c35-a70c-3260102e8dc2,commander,Incident Commander,,,COMMANDER,SDMA_BIHAR,OP-CMD-001,SDMA-CMD-001,PATNA-ACTUAL,,Operational Specialist,ON_DUTY,,,2026-09-21T03:26:41.011775+00:00,2026-09-21T03:26:41.011775+00:00
+3434bfbc-6395-4536-8d5f-5660c35fd638,analyst,Verification Analyst,,,ANALYST,IMD,OP-ANL-001,IMD-ANL-001,SIGNAL,,Operational Specialist,ON_DUTY,,,2026-09-21T03:26:41.011775+00:00,2026-09-21T03:26:41.011775+00:00
+d9efc880-c2f9-49d1-b210-031f0810f5b4,citizen,Community Reporter,,,CITIZEN,Community Weather Watch,OP-CIT-001,CIT-REP-001,GROUND,,Operational Specialist,OFF_DUTY,,,2026-09-21T03:26:41.011775+00:00,2026-09-21T03:26:41.011775+00:00

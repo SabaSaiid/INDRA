@@ -1,0 +1,20 @@
+INDRA — live data export
+Taken at   : 2026-09-21T03:54:36.068305+00:00
+Source     : localhost:5433/indra_db
+Total rows : 195
+
+This is a snapshot of what the platform actually held at that moment.
+Nothing here is generated, seeded or filled in: a table showing 0 rows
+had no rows. Nothing reads these files back into the platform.
+
+Open indra_live.db with `sqlite3 data/live/indra_live.db`, the CSVs with
+any spreadsheet, and the .geojson files by dragging them onto geojson.io.
+
+Tables
+  raw_reports               9 rows
+  verified_events           1 rows  → verified_events.geojson
+  agency_alerts           102 rows  (no geometry to map)
+  station_readings         78 rows
+  audit_logs                1 rows
+  user_profiles             4 rows
+  teams                     0 rows

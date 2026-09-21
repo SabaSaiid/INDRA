@@ -1,0 +1,2 @@
+id,event_id,operator_id,action_taken,reason,sha256_hash,logged_at,seq,prev_hash,details
+8f19eb03-2f76-498f-860b-856b83dce416,9f4e2c6c-19d9-4854-a362-7fcc1840a931,SYSTEM-PIPELINE,QUARANTINE,INDRA-20260920-001 created: confidence 0.4802 over 4 reports -> QUARANTINED,62b652f0dd1eb9beba59759c4cf8fc2339e9a1c75e56facaab6d429f431bbb3f,2026-09-20T19:54:30.481675+00:00,2,0000000000000000000000000000000000000000000000000000000000000000,"{""severity"": ""MODERATE"", ""to_status"": ""QUARANTINED"", ""from_status"": null, ""report_count"": 4, ""confidence_score"": 0.4802}"
