@@ -879,7 +879,7 @@ invisible to the 520 green tests, and the two most serious are cases where the A
 something the database does not support.
 
 ### BUG-033 — Every event with GPS was served as `"city": "Unknown"`
-**S2** · Layers 3, 8a · **`FIXED`** by `bf31b25` · Found by: looking at the live map · 22 Sep
+**S2** · Layers 3, 8a · **`FIXED`** by `b9d1d0a`, `bf31b25`, `fbbddce`, `0996289`, `53bd41b` · Found by: looking at the live map · 22 Sep
 
 Repro:
 ```bash
@@ -910,7 +910,7 @@ removed. It refuses rather than guesses: a point in the Bay of Bengal resolves t
 Tests: `test_reverse_geocoding.py`, 31 cases weighted toward the refusals.
 
 ### BUG-034 — "Verified Events: 1" was counting a QUARANTINED event whose own quadrant is "Noise"
-**S2** · Layer 8a · `IN-PROGRESS` · Found by: reading the KPI query against the row it counts · 22 Sep
+**S2** · Layer 8a · **`FIXED`** by `9c76db0` (API) and `9c7bd14` (tiles) · Found by: reading the KPI query against the row it counts · 22 Sep
 
 Repro: `curl -s localhost:8000/api/dashboard/summary | jq .verified_events` → `1`, against a
 database whose only event is `INDRA-20260920-001`, confidence **0.4984**, review status
@@ -928,7 +928,7 @@ Fix: count only `AUTO_PUBLISHED` and `HUMAN_APPROVED` as verified, and publish t
 separate `awaiting_review` figure so nothing is hidden by being corrected.
 
 ### BUG-035 — An event's merge window closes 2 h after creation no matter how recently it absorbed a report
-**S2** · Layer 6 · `IN-PROGRESS` · Found by: tracing why 4 of 9 reports produced nothing · 22 Sep
+**S2** · Layer 6 · **`FIXED`** by `fbbddce` (column) and `0996289` (window) · Found by: tracing why 4 of 9 reports produced nothing · 22 Sep
 
 Repro: submit a report near an existing event more than `MERGE_WINDOW_MINUTES` after that event
 was **created**, however recently it was last updated.
@@ -949,7 +949,7 @@ contribute nothing, and the dedup rule is what buried the evidence that they exi
 Fix: an `updated_at` column, maintained on merge, with the window keyed on it.
 
 ### BUG-036 — The dashboard is a snapshot: it never refreshes, and `VERIFIED_EVENT` reaches nothing
-**S2** · Layers 8a, 9 · `IN-PROGRESS` · Found by: submitting a report and watching the console not change · 22 Sep
+**S2** · Layers 8a, 9 · **`FIXED`** by `e60db6d` (map) and `9c7bd14` (KPI strip) · Found by: submitting a report and watching the console not change · 22 Sep
 
 Repro: with the dashboard open, `POST /api/reports/submit` enough corroborating reports to fuse an
 event. Watch the screen.
@@ -965,7 +965,7 @@ never wired up on the other side. **A handover note is not a delivery.**
 Fix: handle `VERIFIED_EVENT` and refetch the affected panels.
 
 ### BUG-037 — 112 live agency alerts are collected, stored, and shown on no map
-**S3** · Layers 1, 8a · `IN-PROGRESS` · Found by: counting what is in the database against what is on screen · 22 Sep
+**S3** · Layers 1, 8a · **`FIXED`** by `ac3beec` (coordinates), `0ef1464` (reports), `e60db6d` (layers) · Found by: counting what is in the database against what is on screen · 22 Sep
 
 Repro: `SELECT count(*) FROM agency_alerts;` → **112** real CAP warnings from CWC, IMD and state
 SDMAs, 23 of them unexpired. Then look at the dashboard, which shows one pin.
@@ -979,7 +979,7 @@ Fix: an agency-alert map layer, drawn distinctly from fused events, plus an acti
 the dashboard.
 
 ### BUG-038 — `.env.example` re-introduces the throttling bug the code comment says cost 96 polygons
-**S3** · Layer 1 · `OPEN` · Found by: diffing `.env.example` against `config.py` · 22 Sep
+**S3** · Layer 1 · **`FIXED`** by `2a2e9c8` · Found by: diffing `.env.example` against `config.py` · 22 Sep
 
 Repro: `cp .env.example .env` on a fresh machine, as `docs/setup.md` instructs.
 Expected: the value the code settled on.
@@ -991,7 +991,7 @@ The reasoning was written down in the right place and the example file was not u
 so the fix survives only for people who never follow the setup guide.
 
 ### BUG-039 — `auto_offset_reset="latest"` silently drops every report published before the backend boots
-**S3** · Layer 2 · `OPEN` · Found by: reading the consumer while tracing the orphaned report · 22 Sep
+**S3** · Layer 2 · **`FIXED`** by `2a2e9c8` · Found by: reading the consumer while tracing the orphaned report · 22 Sep
 
 Repro: on a fresh environment, publish to `indra.raw.reports` before the backend has ever started,
 then start it.
@@ -1003,7 +1003,7 @@ start where the producer leads the consumer, and losing a report without a trace
 this system exists not to do.
 
 ### BUG-040 — The setup guide and the runbook both state the wrong migration head
-**S4** · Docs · `OPEN` · Found by: running `alembic heads` against the documented value · 22 Sep
+**S4** · Docs · **`FIXED`** by `2a2e9c8` · Found by: running `alembic heads` against the documented value · 22 Sep
 
 `docs/setup.md:73` and `docs/demo-runbook.md:53` both say `alembic upgrade head` lands on
 `0006_anomaly_score_defaults_null`. The versions directory contains `0007_agency_alerts` and
@@ -1011,7 +1011,7 @@ this system exists not to do.
 `0007` and `0008` were added.
 
 ### BUG-041 — Two live API keys sit in `.env` that no code reads
-**S4** · Layer 1 · `OPEN` · Found by: checking which `.env` keys are `Settings` fields · 22 Sep
+**S4** · Layer 1 · **`FIXED`** by `2a2e9c8` · Found by: checking which `.env` keys are `Settings` fields · 22 Sep
 
 `.env:54` holds a real `OPENWEATHER_API_KEY` and `.env:56` a real `FIRMS_MAP_KEY`. Neither is a
 field on the `Settings` class, and `model_config` sets `extra: "ignore"`, so both are silently
@@ -1024,3 +1024,68 @@ value in it reads as a configured feed, and the next person to debug a missing w
 start from the assumption that OpenWeather is in the loop. An inert key that looks live is the same
 class of thing as a telemetry field that is always 0.0 (BUG-031) — it is a claim the code does not
 honour.
+
+### BUG-042 — A state hint was dropped precisely when the name looked unambiguous
+**S3** · Layer 3 · **`FIXED`** by `ac3beec` · Found by: **a test written expecting it to pass** · 22 Sep
+
+Recorded because of how it was found. Writing the CAP resolver, I added
+`test_a_near_name_is_not_matched_across_the_country` as a formality — a guard I was
+confident already held. It failed.
+
+Repro: `district_by_name("Purulia", state_hint="Kerala")`
+Expected: `None`. Purulia is in West Bengal; the hint contradicts it.
+Actual: Purulia, West Bengal, returned cheerfully.
+
+`district_by_name` applied its state hint only on the `len(matches) > 1` branch. A name
+matching exactly one district was treated as unambiguous and the hint was discarded —
+so the check was skipped in exactly the case where it was the only evidence of a
+contradiction. The ambiguous names it was written for (Bilaspur, Aurangabad) all worked;
+the unique ones silently did not.
+
+Consequence had it shipped: a CAP alert whose `area_desc` names a district in one state
+and mentions another is placed in the wrong state, on a national console, as an official
+warning. Low frequency, high damage, and invisible — the answer looks perfectly ordinary.
+
+Fix: a state hint constrains every lookup. A hint that contradicts the only match is a
+contradiction, not a detail to discard. Measured on the 116 live SACHET descriptions
+before and after: still 98 resolved, so the guard cost nothing.
+
+## Day 7 tally
+
+| | Count |
+|---|---|
+| Found | **10** (BUG-033 … BUG-042) |
+| Fixed | **10** |
+| `OPEN` S1/S2 at close | **0** |
+
+Suite: **649 → 684** passed, 2 skipped. Frontend: 10/10 Playwright, `tsc --noEmit` and
+`next build` clean.
+
+### What found them, again
+
+Nine of the ten came from **one screenshot of the running console**. Not from the tests —
+520 were green over all of them — and not from reading the code, which had been read
+repeatedly across six days. They came from looking at the thing a nodal officer would
+look at and asking why it said what it said.
+
+The tenth, BUG-042, came from writing a test expecting it to pass. That is the same
+lesson as BUG-020 on Day 4, where a Hinglish detector scored 100% and misread five of
+seven plain English sentences: **the checks worth writing are the ones you are sure will
+pass, because the ones you doubt are already handled.**
+
+Two shapes recurred often enough to name:
+
+1. **A fallback string doing the work of a schema.** `"Unknown"` looked like a handled
+   edge case and was in fact a missing column, a missing resolver and a missing write,
+   wearing one word as a disguise. It survived six days because the synthetic seeder
+   wrote the key the API read, so demo data looked right and only live data was wrong —
+   the exact inverse of the failure mode this project had been guarding against.
+2. **A number that does not mean its label.** "Verified Events: 1" counted an event the
+   system's own engine had quarantined and called noise. BUG-024 was a fabricated event;
+   this was a real event wearing a status nothing ever gave it, which is harder to catch
+   because there is nothing in the response to disbelieve.
+
+And one operational lesson, learned the expensive way: the stack's Docker lives on an
+external SSD. It unmounted mid-run, every container vanished, and two Playwright tests
+failed in ways that looked like application bugs. Check `docker ps` before believing a
+failure.
