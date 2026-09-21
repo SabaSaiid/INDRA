@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
-import { reportsTrend, type TrendDataPoint } from '@/lib/mock-data';
+import { type TrendDataPoint } from '@/lib/ui-config';
+import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { fetchReportsTrend } from '@/lib/api';
 import {
   AreaChart,
@@ -49,7 +50,9 @@ export default function ReportsTrendChart({
 }: ReportsTrendChartProps = {}) {
   const [mounted, setMounted] = useState(false);
   const [dateRange, setDateRange] = useState('7d');
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>(reportsTrend);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+  const [error, setError] = useState<unknown>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -61,11 +64,17 @@ export default function ReportsTrendChart({
     (async () => {
       try {
         const data = await fetchReportsTrend(dateRange);
-        if (!cancelled && data.length > 0) {
+        if (!cancelled) {
           setTrendData(data);
+          setError(null);
         }
-      } catch {
-        // mock data already set
+      } catch (err) {
+        if (!cancelled) {
+          setTrendData([]);
+          setError(err);
+        }
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -88,7 +97,19 @@ export default function ReportsTrendChart({
       </div>
 
       <div className="h-[145px] min-h-[145px] -ml-2">
-        {mounted && (
+        {error ? (
+          <div className="h-full flex items-center justify-center">
+            <ErrorState label="the reports trend" error={error} compact />
+          </div>
+        ) : loaded && trendData.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <EmptyState
+              title="No reports in this range"
+              hint="The trend fills in as reports are submitted."
+              compact
+            />
+          </div>
+        ) : mounted && (
           <ResponsiveContainer width="100%" height="100%" minWidth={250} minHeight={145}>
             <AreaChart data={trendData}>
               <defs>

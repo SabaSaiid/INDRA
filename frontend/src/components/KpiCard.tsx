@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { formatNumber } from '@/lib/utils';
-import { KpiItem } from '@/lib/mock-data';
+import { KpiItem } from '@/lib/ui-config';
 
 // ─── Animated counter hook ────────────────────────────────────────────────────
 

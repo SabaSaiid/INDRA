@@ -4,11 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
-import {
-  eventDistribution,
-  eventSeverityDistribution,
-  type DistributionItem,
-} from '@/lib/mock-data';
+import { type DistributionItem } from '@/lib/ui-config';
+import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { fetchEventDistribution } from '@/lib/api';
 import {
   PieChart,
@@ -76,9 +73,9 @@ export default function EventDistributionChart({
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<DistributionTab>(initialTab);
   const [timeRange, setTimeRange] = useState<TimeRangeFilter>('7d');
-  const [distribution, setDistribution] = useState<DistributionItem[]>(() =>
-    initialTab === 'severity' ? eventSeverityDistribution : eventDistribution
-  );
+  const [distribution, setDistribution] = useState<DistributionItem[]>([]);
+  const [error, setError] = useState<unknown>(null);
+  const [loaded, setLoaded] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -91,15 +88,19 @@ export default function EventDistributionChart({
     (async () => {
       try {
         const data = await fetchEventDistribution(activeTab, timeRange);
-        if (!cancelled && data && data.length > 0) {
-          setDistribution(data);
-        }
-      } catch {
+        // Nothing to group is a real answer; it is not a reason to draw a chart
+        // of numbers nobody computed.
         if (!cancelled) {
-          setDistribution(
-            activeTab === 'severity' ? eventSeverityDistribution : eventDistribution
-          );
+          setDistribution(data);
+          setError(null);
         }
+      } catch (err) {
+        if (!cancelled) {
+          setDistribution([]);
+          setError(err);
+        }
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
     })();
     return () => {
@@ -173,7 +174,21 @@ export default function EventDistributionChart({
         </div>
       </div>
 
-      {/* Chart and Legend container */}
+      {/* Nothing to plot: say so rather than drawing an invented distribution. */}
+      {error ? (
+        <div className="flex-1 flex items-center justify-center">
+          <ErrorState label="the event distribution" error={error} compact />
+        </div>
+      ) : loaded && distribution.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState
+            title="No events to group yet"
+            hint="The breakdown appears once events are verified."
+            compact
+          />
+        </div>
+      ) : (
+      /* Chart and Legend container */
       <div className="flex flex-row items-center gap-3 flex-1 justify-center">
         {/* Donut chart — compact 130px */}
         <div className="relative w-[130px] h-[130px] flex-shrink-0 flex items-center justify-center">
@@ -301,6 +316,7 @@ export default function EventDistributionChart({
           })}
         </div>
       </div>
+      )}
     </div>
   );
 

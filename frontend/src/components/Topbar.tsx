@@ -20,7 +20,8 @@ import { fadeIn } from '@/lib/motion';
 import {
   type DutyStatus,
   dutyStatusConfig,
-} from '@/lib/mock-data';
+  PLACEHOLDER_OPERATOR,
+} from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import SettingsDrawer from './SettingsDrawer';
 
@@ -32,12 +33,14 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const {
-    profile: currentProfile,
+    profile: loadedProfile,
     selectedRole,
     switchRole,
     updateDuty,
     isUpdatingStatus,
   } = useOperatorProfile();
+  // See Sidebar: placeholder chrome, not a fabricated operator.
+  const currentProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Click away listener to close dropdown

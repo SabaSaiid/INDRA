@@ -28,11 +28,10 @@ import {
   type TeamItem,
   type TeamMember,
   type HackathonTeamData,
-  mockTeams,
-  mockSixthSenseTeam,
+
   teamAgencyConfig,
   dutyStatusConfig,
-} from '@/lib/mock-data';
+} from '@/lib/ui-config';
 import { fetchTeams, fetchHackathonTeam, assignTeamToEvent } from '@/lib/api';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
@@ -52,8 +51,10 @@ function TeamsContent() {
   } = useSidebar();
 
   // Teams state
-  const [teams, setTeams] = useState<TeamItem[]>(mockTeams);
-  const [hackathonTeam, setHackathonTeam] = useState<HackathonTeamData>(mockSixthSenseTeam);
+  const [teams, setTeams] = useState<TeamItem[]>([]);
+  const [hackathonTeam, setHackathonTeam] = useState<HackathonTeamData | null>(null);
+  const [teamsError, setTeamsError] = useState<unknown>(null);
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<TeamItem | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -68,16 +69,24 @@ function TeamsContent() {
     let cancelled = false;
     (async () => {
       try {
-        const [teamsData, sihData] = await Promise.all([
+        const [teamsData, sihData] = await Promise.allSettled([
           fetchTeams(),
           fetchHackathonTeam(),
         ]);
         if (!cancelled) {
-          if (teamsData && teamsData.length > 0) setTeams(teamsData);
-          if (sihData) setHackathonTeam(sihData);
+          if (teamsData.status === 'fulfilled') {
+            setTeams(teamsData.value);
+            setTeamsError(null);
+          } else {
+            setTeams([]);
+            setTeamsError(teamsData.reason);
+          }
+          setHackathonTeam(sihData.status === 'fulfilled' ? sihData.value : null);
         }
       } catch (err) {
-        console.warn('Using fallback teams data', err);
+        if (!cancelled) setTeamsError(err);
+      } finally {
+        if (!cancelled) setTeamsLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -504,7 +513,7 @@ function TeamsContent() {
 
               {/* Developer Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {hackathonTeam.members.map((member) => (
+                {(hackathonTeam?.members ?? []).map((member) => (
                   <div
                     key={member.id}
                     className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between"

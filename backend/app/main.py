@@ -85,6 +85,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Station poller startup skipped (non-fatal): {e}")
 
+    # Layer 1's second scheduled feed: NDMA's national CAP feed into
+    # agency_alerts. The first evidence in the platform that INDRA did not
+    # produce itself — IMD, CWC and state SDMA warnings.
+    sachet_task = None
+    try:
+        from app.workers.sachet_poller import start_sachet_poller
+        sachet_task = asyncio.create_task(start_sachet_poller())
+    except Exception as e:
+        logger.warning(f"SACHET poller startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
@@ -107,6 +117,13 @@ async def lifespan(app: FastAPI):
         poller_task.cancel()
         try:
             await poller_task
+        except asyncio.CancelledError:
+            pass
+
+    if sachet_task:
+        sachet_task.cancel()
+        try:
+            await sachet_task
         except asyncio.CancelledError:
             pass
 
@@ -175,6 +192,7 @@ try:
         auth_router,
         teams_router,
         profile_router,
+        alerts_router,
     )
     app.include_router(dashboard_router)
     app.include_router(events_router)
@@ -184,6 +202,7 @@ try:
     app.include_router(auth_router)
     app.include_router(teams_router)
     app.include_router(profile_router)
+    app.include_router(alerts_router)
     logger.info("✓ All API routers mounted successfully")
 except Exception as e:
     logger.warning(f"⚠ Could not mount API routers (non-fatal): {e}")

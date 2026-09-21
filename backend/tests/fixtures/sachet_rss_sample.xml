@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet title="XSL_formatting" type="text/xsl" href="feed.xsl"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>All India: CAP Disaster Alert Feeds</title>
+    <description>CAP Integrated Alert System Warning Updates</description>
+    <language>en</language>
+    <link>https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml</link>
+    <atom:link href="https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml" rel="self" type="application/rss+xml"/>
+    <copyright>public domain</copyright>
+    <pubDate>Tue, 15 Sep 2026 09:02:00 GMT</pubDate>
+    <item>
+      <title>അടുത്ത 3 മണിക്കൂറിൽ PTA, ALP, KTM, IDK, EKM, TSR ഒറ്റപ്പെട്ടയിടങ്ങളിൽ ഇടിമിന്നലോടുകൂടിയ ഇടത്തരം മഴയ്ക്കും 40 kmph വരെ വേഗതയിൽ ശക്തമായ കാറ്റിനും സാധ്യത. 07.50 AM 21/09/2026; IMD - KSDMA</title>
+      <description/>
+      <category>Met</category>
+      <link>https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=1789957059562006</link>
+      <author>controlroom@ndma.gov.in (IMD Thiruvananthapuram)</author>
+      <guid isPermaLink="false">1789957059562006</guid>
+      <pubDate>Mon, 21 Sep 2026 02:28:50 GMT</pubDate>
+    </item>
+<item>
+      <title>Light Rain is very likely to occur at isolated places over Navsari, The Dangs, Valsad, Dadra And Nagar Haveli, Daman in next 3 hours.</title>
+      <description/>
+      <category>Met</category>
+      <link>https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=1789954357601020</link>
+      <author>controlroom@ndma.gov.in (IMD Ahmedabad)</author>
+      <guid isPermaLink="false">1789954357601020</guid>
+      <pubDate>Mon, 21 Sep 2026 02:24:02 GMT</pubDate>
+    </item>
+<item>
+      <title>Light rain is very likely to occur at isolated places over Dadra Nagar Haveli and Daman districts in next 3 hours.</title>
+      <description/>
+      <category>Met</category>
+      <link>https://sachet.ndma.gov.in/cap_public_website/FetchXMLFile?identifier=1789954359023023</link>
+      <author>controlroom@ndma.gov.in (IMD Ahmedabad)</author>
+      <guid isPermaLink="false">1789954359023023</guid>
+      <pubDate>Mon, 21 Sep 2026 01:36:16 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

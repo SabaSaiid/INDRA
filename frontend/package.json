@@ -12,7 +12,9 @@
     "start": "next start",
     "doctor": "bash scripts/doctor.sh",
     "lint": "next lint",
-    "verify-build": "bash scripts/verify-build.sh"
+    "verify-build": "bash scripts/verify-build.sh",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report e2e/report"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.2",
@@ -30,6 +32,7 @@
     "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.7.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",

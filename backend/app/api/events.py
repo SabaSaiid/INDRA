@@ -329,7 +329,10 @@ async def event_distribution(
     params: Dict[str, Any] = {}
     if time_range and time_range != "all":
         hours = 24 if time_range == "24h" else (48 if time_range == "48h" else 168)
-        time_clause = f"AND created_at >= NOW() - INTERVAL '{hours} hours'"
+        # verified_events has no created_at; the column recording when the event
+        # came into being is verified_at. The old name never raised because
+        # DEMO_MODE caught the error and served an invented distribution.
+        time_clause = f"AND verified_at >= NOW() - INTERVAL '{hours} hours'"
 
     if group_by_severity:
         query = text(f"""
@@ -354,11 +357,11 @@ async def event_distribution(
     else:
         query = text(f"""
             SELECT
-                COALESCE(verification_receipt->>'event_type_display', event_type) as display_type,
+                COALESCE(verification_receipt->>'event_type_display', CAST(event_type AS text)) as display_type,
                 COUNT(*) as count
             FROM verified_events
             WHERE review_status != 'REJECTED' {time_clause}
-            GROUP BY COALESCE(verification_receipt->>'event_type_display', event_type)
+            GROUP BY COALESCE(verification_receipt->>'event_type_display', CAST(event_type AS text))
             ORDER BY count DESC
         """)
         color_map = {

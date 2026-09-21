@@ -13,12 +13,13 @@ from app.models.station_readings import StationReading
 from app.models.audit_logs import AuditLog
 from app.models.teams import Team
 from app.models.profiles import UserProfile
+from app.models.agency_alerts import AgencyAlert
 
 __all__ = [
     "SourceType", "EventType", "Severity", "ReviewStatus", "Quadrant",
     "Agency", "AuditAction",
     "TeamStatus", "TeamAgency", "DutyStatus", "OperatorRole",
     "VerifiedEvent", "RawReport", "StationReading", "AuditLog",
-    "Team", "UserProfile",
+    "Team", "UserProfile", "AgencyAlert",
 ]
 

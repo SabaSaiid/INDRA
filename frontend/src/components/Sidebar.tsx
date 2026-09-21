@@ -11,7 +11,8 @@ import {
   dutyStatusConfig,
   type NavItem,
   type DutyStatus,
-} from '@/lib/mock-data';
+  PLACEHOLDER_OPERATOR,
+} from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import {
   CloudLightning,
@@ -31,10 +32,16 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-// Status badge per section header (counts only, high-contrast tactical styling)
+// Status badge per section header.
+//
+// "18 active" and "4 crit" used to be hardcoded here. They rendered beside live
+// KPIs reading 1 verified event and 0 critical events, so the sidebar
+// confidently contradicted the dashboard three inches to its right -- and being
+// chrome rather than a data panel, nobody thought to check it.
+//
+// Only labels that state a mode survive. A count has to be counted, and these
+// are not wired to anything that counts.
 const sectionActionableBadges: Record<string, { label: string; variant: 'live' | 'alert' | 'neutral' }> = {
-  tactical: { label: '18 active', variant: 'live' },
-  intelligence: { label: '4 crit', variant: 'alert' },
   command: { label: 'on duty', variant: 'neutral' },
 };
 
@@ -45,7 +52,10 @@ export default function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { profile } = useOperatorProfile();
+  const { profile: loadedProfile } = useOperatorProfile();
+  // Chrome must render before the identity arrives; PLACEHOLDER_OPERATOR shows
+  // em-dashes, never a plausible name that belongs to nobody.
+  const profile = loadedProfile ?? PLACEHOLDER_OPERATOR;
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 

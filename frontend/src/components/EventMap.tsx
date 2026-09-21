@@ -3,7 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
-import { type MapMarker } from '@/lib/mock-data';
+import { type MapMarker } from '@/lib/ui-config';
 
 // Dynamically import 3D Globe Event Map without SSR
 const GlobeEventMap = dynamic(() => import('@/components/client-only/GlobeEventMap'), {

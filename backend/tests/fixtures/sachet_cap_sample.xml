@@ -1,0 +1,50 @@
+<cap:alert xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">
+<cap:identifier>IN-1789954357601020_20</cap:identifier>
+<cap:sender>Gujarat-SDMA</cap:sender>
+<cap:sent>2026-09-21T07:54:00+05:30</cap:sent>
+<cap:status>Actual</cap:status>
+<cap:msgType>Update</cap:msgType>
+<cap:scope>Public</cap:scope>
+<cap:restriction/>
+<cap:addresses/>
+<cap:note/>
+<cap:references>IMD-Ahmedabad,IN-1789954357601020_49,2026-09-21T07:02:15+05:30</cap:references>
+<cap:incidents/>
+<cap:info>
+<cap:language>en-IN</cap:language>
+<cap:category>Met</cap:category>
+<cap:event>Light Rain</cap:event>
+<cap:urgency>Expected</cap:urgency>
+<cap:severity>Moderate</cap:severity>
+<cap:certainty>Likely</cap:certainty>
+<cap:audience>1</cap:audience>
+<cap:effective>2026-09-21T07:02:00+05:30</cap:effective>
+<cap:onset>2026-09-21T07:54:00+05:30</cap:onset>
+<cap:expires>2026-09-21T10:02:00+05:30</cap:expires>
+<cap:headline>Light Rain is very likely to occur at isolated places over Navsari, The Dangs, Valsad, Dadra And Nagar Haveli, Daman in next 3 hours.</cap:headline>
+<cap:description/>
+<cap:instruction>Please follow SDMA guidelines.</cap:instruction>
+<cap:contact/>
+<cap:parameter>
+<cap:valueName>Polygon URL</cap:valueName>
+<cap:value>https://sachet.ndma.gov.in/cap_public_website/FetchPolygonXMLFile?identifier=1789954357601020</cap:value>
+</cap:parameter>
+<cap:area>
+<cap:areaDesc>Navsari,The Dangs,Valsad districts of Gujarat</cap:areaDesc>
+<cap:geocode>
+<cap:valueName>LGD District Code</cap:valueName>
+<cap:value>444</cap:value>
+</cap:geocode>
+<cap:geocode>
+<cap:valueName>LGD District Code</cap:valueName>
+<cap:value>453</cap:value>
+</cap:geocode>
+<cap:geocode>
+<cap:valueName>LGD District Code</cap:valueName>
+<cap:value>462</cap:value>
+</cap:geocode>
+<cap:altitude>0</cap:altitude>
+<cap:ceiling>0</cap:ceiling>
+</cap:area>
+</cap:info>
+</cap:alert>

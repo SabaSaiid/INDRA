@@ -7,7 +7,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardHeader } from '@/components/ui/card';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
-import { mapMarkers, severityConfig, type MapMarker } from '@/lib/mock-data';
+import { severityConfig, type MapMarker } from '@/lib/ui-config';
 import { fetchEvents, apiEventsToMapMarkers } from '@/lib/api';
 import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
@@ -269,7 +269,10 @@ export default function GlobeEventMap({
   const isGlobeRef = useRef(true);
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
   const [timeRange, setTimeRange] = useState('7d');
-  const [markers, setMarkers] = useState<MapMarker[]>(mapMarkers);
+  // Starts empty. Seeding the globe with invented markers put pins on Indian
+  // cities that had reported nothing.
+  const [markers, setMarkers] = useState<MapMarker[]>([]);
+  const [markersError, setMarkersError] = useState<unknown>(null);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoOrbiting, setIsAutoOrbiting] = useState(false);
@@ -320,12 +323,16 @@ export default function GlobeEventMap({
     (async () => {
       try {
         const events = await fetchEvents({ time_range: timeRange });
-        if (!cancelled && events.length > 0) {
-          const formatted = apiEventsToMapMarkers(events);
-          setMarkers(formatted);
+        // An empty map is the correct picture of an empty database.
+        if (!cancelled) {
+          setMarkers(apiEventsToMapMarkers(events));
+          setMarkersError(null);
         }
-      } catch {
-        // mock fallback
+      } catch (err) {
+        if (!cancelled) {
+          setMarkers([]);
+          setMarkersError(err);
+        }
       }
     })();
     return () => {

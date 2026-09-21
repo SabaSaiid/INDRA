@@ -6,15 +6,15 @@ import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import {
-  recentEvents,
   severityConfig,
   verificationConfig,
   type RecentEvent,
-} from '@/lib/mock-data';
+} from '@/lib/ui-config';
 import { fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import { getRelativeTime } from '@/lib/utils';
 import { getWeatherMedia } from '@/lib/weather-media';
 import { ArrowRight } from 'lucide-react';
+import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 
 // Spine color per severity (Low Pressure palette)
 const spineColor: Record<string, string> = {
@@ -29,17 +29,21 @@ export default function RecentEventsList({
   selectedEventId,
   events: propEvents,
   loading: propLoading,
+  error: propError,
 }: {
   onSelectEvent?: (event: RecentEvent) => void;
   selectedEventId?: string;
   events?: RecentEvent[];
   loading?: boolean;
+  error?: unknown;
 }) {
   const [internalEvents, setInternalEvents] = useState<RecentEvent[]>([]);
   const [internalLoading, setInternalLoading] = useState<boolean>(true);
+  const [internalError, setInternalError] = useState<unknown>(null);
 
   const isControlled = propEvents !== undefined;
   const events = isControlled ? propEvents : internalEvents;
+  const error = isControlled ? propError : internalError;
   const isLoading = propLoading !== undefined ? propLoading : (isControlled ? false : internalLoading);
 
   useEffect(() => {
@@ -48,13 +52,14 @@ export default function RecentEventsList({
     (async () => {
       try {
         const apiEvents = await fetchEvents({ time_range: '7d' });
-        if (!cancelled && apiEvents.length > 0) {
+        // No length check: zero verified events is a fact about the world, not
+        // a failed request.
+        if (!cancelled) {
           setInternalEvents(apiEventsToRecentEvents(apiEvents));
-        } else if (!cancelled) {
-          setInternalEvents(recentEvents);
+          setInternalError(null);
         }
-      } catch {
-        if (!cancelled) setInternalEvents(recentEvents);
+      } catch (err) {
+        if (!cancelled) setInternalError(err);
       } finally {
         if (!cancelled) setInternalLoading(false);
       }
@@ -106,9 +111,17 @@ export default function RecentEventsList({
               </div>
             ))}
           </div>
+        ) : error ? (
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <ErrorState label="recent events" error={error} compact />
+          </div>
         ) : events.length === 0 ? (
-          <div className="flex-1 min-h-0 flex items-center justify-center p-6 text-xs text-[#7A8599]">
-            No recent events recorded in this time range.
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <EmptyState
+              title="No verified events yet"
+              hint="Events appear here once two nearby reports corroborate each other."
+              compact
+            />
           </div>
         ) : (
           <motion.div

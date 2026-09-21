@@ -5,13 +5,13 @@ import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import {
-  liveFeedItems,
   feedSourceConfig,
   type FeedSourceType,
   type FeedItem,
-} from '@/lib/mock-data';
+} from '@/lib/ui-config';
 import { fetchRecentFeed } from '@/lib/api';
 import { ArrowRight } from 'lucide-react';
+import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 
 // Source label abbreviation
 const sourceAbbr: Record<FeedSourceType, string> = {
@@ -22,7 +22,9 @@ const sourceAbbr: Record<FeedSourceType, string> = {
 };
 
 export default function LiveFeed() {
-  const [feedItems, setFeedItems] = useState<FeedItem[]>(liveFeedItems);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [error, setError] = useState<unknown>(null);
+  const [loaded, setLoaded] = useState(false);
 
   // Fetch live feed data
   useEffect(() => {
@@ -30,11 +32,15 @@ export default function LiveFeed() {
     (async () => {
       try {
         const data = await fetchRecentFeed(10);
-        if (!cancelled && data.length > 0) {
+        // An empty feed is a real state: nobody has reported anything yet.
+        if (!cancelled) {
           setFeedItems(data);
+          setError(null);
         }
-      } catch {
-        // mock data already set
+      } catch (err) {
+        if (!cancelled) setError(err);
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -105,6 +111,15 @@ export default function LiveFeed() {
           className="custom-scrollbar overflow-y-auto"
           style={{ maxHeight: '185px' }}
         >
+          {error && feedItems.length === 0 ? (
+            <ErrorState label="the live feed" error={error} compact />
+          ) : loaded && feedItems.length === 0 ? (
+            <EmptyState
+              title="No reports yet"
+              hint="Incoming citizen reports stream in here as they arrive."
+              compact
+            />
+          ) : null}
           {feedItems.map((item) => {
             const source = (item.source || 'news') as FeedSourceType;
             const sourceStyle = feedSourceConfig[source] || feedSourceConfig.news;
