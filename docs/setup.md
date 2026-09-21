@@ -71,7 +71,7 @@ Expect `indra-postgres`, `indra-redis` and `indra-redpanda`.
 cd backend
 python3 -m venv .venv                     # if it does not exist
 .venv/bin/pip install -r requirements.txt
-.venv/bin/alembic upgrade head            # → 0006_anomaly_score_defaults_null (head)
+.venv/bin/alembic upgrade head            # → 0009_event_location (head)
 ```
 
 **Read the output of `alembic upgrade head`.** A silently failed migration leaves a database with

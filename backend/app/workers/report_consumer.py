@@ -154,7 +154,13 @@ async def start_report_consumer():
                 settings.KAFKA_REPORTS_TOPIC,
                 bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
                 group_id="indra-report-processor",
-                auto_offset_reset="latest",
+                # "latest" meant a brand-new consumer group started at the tail
+                # and permanently skipped everything already in the topic — so
+                # on a cold start where the producer ran first, reports were
+                # accepted with a 202 and silently never processed (BUG-039).
+                # This only applies when the group has no committed offset, so
+                # an existing deployment resumes exactly where it left off.
+                auto_offset_reset="earliest",
                 value_deserializer=lambda m: json.loads(m.decode("utf-8")),
             )
             await consumer.start()
