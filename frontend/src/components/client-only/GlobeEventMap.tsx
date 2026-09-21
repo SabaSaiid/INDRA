@@ -334,6 +334,18 @@ export default function GlobeEventMap({
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const [smartDeclutter, setSmartDeclutter] = useState(true);
 
+  // True once the map's style has finished loading and layers may be touched.
+  //
+  // This is deliberately React state and not a `map.isStyleLoaded()` call.
+  // MapLibre keeps reporting `isStyleLoaded() === false` while sprites, glyphs
+  // and the first tiles are still in flight, which is long after the one-shot
+  // `load` event has already fired. Any code that reads `isStyleLoaded()` to
+  // decide whether to draw therefore loses a race it cannot win: it sees
+  // `false`, waits for a `load` that will never come a second time, and gives
+  // up silently. Holding the answer in state instead re-runs the effects that
+  // depend on it at the moment the style really is ready.
+  const [styleReady, setStyleReady] = useState(false);
+
   // Layer toggles
   const [showEventsLayer, setShowEventsLayer] = useState(true);
   const [showCycloneLayer, setShowCycloneLayer] = useState(true);
@@ -1044,6 +1056,9 @@ export default function GlobeEventMap({
       } catch (err) {
         console.error('[INDRA] onStyleReady error:', err);
       }
+      // Announce readiness even if the block above threw, so that a failure to
+      // set the projection cannot also cost us every pin on the map.
+      setStyleReady(true);
     };
 
     if (map.isStyleLoaded()) {
@@ -1118,17 +1133,32 @@ export default function GlobeEventMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
-  // Re-render pins when markers, globe mode, smart declutter, or selection changes
+  // Re-render pins when markers, globe mode, smart declutter, or selection changes.
+  //
+  // This used to read `mapRef.current.isStyleLoaded()` and bail out when it was
+  // false, and nothing ever brought it back. The map's own `load` handler could
+  // not cover for it either: it runs once, at which point the markers have not
+  // arrived, so it drew an empty map and the real markers — which land about
+  // 50 ms later, while the style still reports itself unloaded — were never
+  // drawn at all. The console opened claiming "41 Incidents" and showed none of
+  // them, and the pins appeared only once the operator happened to touch a
+  // control, which re-ran this effect at a point where the style finally
+  // admitted it was loaded.
+  //
+  // Depending on `styleReady` instead makes the arrival of the style a render
+  // that React schedules, so whichever of the two finishes last — the style or
+  // the markers — is the one that triggers the draw.
   useEffect(() => {
-    if (mapRef.current && mapRef.current.isStyleLoaded()) {
-      renderProminentPins();
-    }
-  }, [markersForDisplay, selectedMarker, smartDeclutter, renderProminentPins]);
+    if (!mapRef.current || !styleReady) return;
+    renderProminentPins();
+  }, [markersForDisplay, selectedMarker, smartDeclutter, renderProminentPins, styleReady]);
 
-  // Layer visibility toggles
+  // Layer visibility toggles — gated on `styleReady` for the same reason as the
+  // pins above: `isStyleLoaded()` reports false for long enough after `load`
+  // that a toggle flipped early would be dropped without a trace.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map || !styleReady) return;
 
     if (map.getLayer('cyclone-outer-glow')) {
       map.setLayoutProperty('cyclone-outer-glow', 'visibility', showCycloneLayer ? 'visible' : 'none');
@@ -1141,7 +1171,7 @@ export default function GlobeEventMap({
     }
 
     updateMarkerOcclusion(map, isGlobeRef.current);
-  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, updateMarkerOcclusion]);
+  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, updateMarkerOcclusion, styleReady]);
 
   // Switch basemap style
   const handleBasemapChange = (newBasemap: BasemapMode) => {
