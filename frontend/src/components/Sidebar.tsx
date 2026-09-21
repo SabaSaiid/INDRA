@@ -32,10 +32,16 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-// Status badge per section header (counts only, high-contrast tactical styling)
+// Status badge per section header.
+//
+// "18 active" and "4 crit" used to be hardcoded here. They rendered beside live
+// KPIs reading 1 verified event and 0 critical events, so the sidebar
+// confidently contradicted the dashboard three inches to its right -- and being
+// chrome rather than a data panel, nobody thought to check it.
+//
+// Only labels that state a mode survive. A count has to be counted, and these
+// are not wired to anything that counts.
 const sectionActionableBadges: Record<string, { label: string; variant: 'live' | 'alert' | 'neutral' }> = {
-  tactical: { label: '18 active', variant: 'live' },
-  intelligence: { label: '4 crit', variant: 'alert' },
   command: { label: 'on duty', variant: 'neutral' },
 };
 
