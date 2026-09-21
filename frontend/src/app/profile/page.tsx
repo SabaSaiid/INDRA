@@ -39,7 +39,7 @@ import {
   mockRoleActivities,
   mockRoleTelemetry,
   mockRoleSecurity,
-} from '@/lib/mock-data';
+} from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import { useSidebar } from '@/lib/useSidebar';
 

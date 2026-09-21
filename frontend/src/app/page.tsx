@@ -11,8 +11,9 @@ import RecentEventsList from '@/components/RecentEventsList';
 import EventDistributionChart from '@/components/EventDistributionChart';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import LiveFeed from '@/components/LiveFeed';
-import { kpiData, type KpiItem, recentEvents, type RecentEvent } from '@/lib/mock-data';
+import { type KpiItem, type RecentEvent } from '@/lib/ui-config';
 import { fetchDashboardSummary, fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
+import { ErrorState } from '@/components/ui/empty-state';
 import {
   KpiCardSkeleton,
   MapCardSkeleton,
@@ -29,7 +30,12 @@ export default function Home() {
     openMobile,
     closeMobile,
   } = useSidebar();
-  const [liveKpiData, setLiveKpiData] = useState<KpiItem[]>(kpiData);
+  // No seeded values: an empty dashboard that fills as reports arrive is the
+  // honest state. Seeding with invented KPIs showed confident numbers before a
+  // single request had returned.
+  const [liveKpiData, setLiveKpiData] = useState<KpiItem[]>([]);
+  const [kpiError, setKpiError] = useState<unknown>(null);
+  const [eventsError, setEventsError] = useState<unknown>(null);
   const [events, setEvents] = useState<RecentEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,15 +70,24 @@ export default function Home() {
         if (!cancelled) {
           if (kpiResult.status === 'fulfilled') {
             setLiveKpiData(kpiResult.value);
-          }
-          if (apiEvents.status === 'fulfilled' && apiEvents.value.length > 0) {
-            setEvents(apiEventsToRecentEvents(apiEvents.value));
+            setKpiError(null);
           } else {
-            setEvents(recentEvents);
+            setKpiError(kpiResult.reason);
+          }
+          // An empty list is a result, not a failure: zero verified events means
+          // zero verified events.
+          if (apiEvents.status === 'fulfilled') {
+            setEvents(apiEventsToRecentEvents(apiEvents.value));
+            setEventsError(null);
+          } else {
+            setEventsError(apiEvents.reason);
           }
         }
-      } catch {
-        if (!cancelled) setEvents(recentEvents);
+      } catch (err) {
+        if (!cancelled) {
+          setKpiError(err);
+          setEventsError(err);
+        }
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -148,9 +163,18 @@ export default function Home() {
 
                 {/* Instrument Strip — 4-reading compact KPI bar */}
                 <div className="instrument-strip">
-                  {liveKpiData.map((item, index) => (
-                    <KpiCard key={item.id} item={item} index={index} />
-                  ))}
+                  {kpiError ? (
+                    <ErrorState
+                      label="dashboard totals"
+                      error={kpiError}
+                      compact
+                      className="col-span-full"
+                    />
+                  ) : (
+                    liveKpiData.map((item, index) => (
+                      <KpiCard key={item.id} item={item} index={index} />
+                    ))
+                  )}
                 </div>
 
                 {/*
@@ -175,6 +199,7 @@ export default function Home() {
                           onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
                           events={events}
                           loading={eventsLoading}
+                          error={eventsError}
                         />
                       </div>
                     </div>
@@ -204,6 +229,7 @@ export default function Home() {
                         onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
                         events={events}
                         loading={eventsLoading}
+                        error={eventsError}
                       />
                       <LiveFeed />
                     </div>
@@ -219,6 +245,7 @@ export default function Home() {
                         onSelectEvent={(ev) => setSelectedIncidentId(ev.id)}
                         events={events}
                         loading={eventsLoading}
+                        error={eventsError}
                       />
                     </div>
                     {/* Wide analytics area */}

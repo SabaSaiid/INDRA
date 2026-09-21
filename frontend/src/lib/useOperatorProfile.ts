@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   type UserProfile,
   type DutyStatus,
-  mockUserProfile,
-  mockProfilesMap,
-} from './mock-data';
+
+} from './ui-config';
 import { fetchUserProfile, updateUserProfile } from './api';
 
 const OPERATOR_STORAGE_KEY = 'indra_current_role';
@@ -67,7 +66,10 @@ export const AVAILABLE_OPERATOR_PERSONAS: OperatorPersonaOption[] = [
 
 export function useOperatorProfile() {
   const [selectedRole, setSelectedRoleState] = useState<string>('commander');
-  const [profile, setProfile] = useState<UserProfile>(() => mockProfilesMap['commander'] || mockUserProfile);
+  // null until the backend answers. There is no locally invented operator to
+  // fall back to: an identity the server does not know about is not an identity.
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileError, setProfileError] = useState<unknown>(null);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -78,9 +80,6 @@ export function useOperatorProfile() {
       const stored = localStorage.getItem(OPERATOR_STORAGE_KEY);
       if (stored && stored !== 'commander') {
         setSelectedRoleState(stored);
-        if (mockProfilesMap[stored]) {
-          setProfile(mockProfilesMap[stored]);
-        }
       }
     } catch {
       // ignore
@@ -92,11 +91,14 @@ export function useOperatorProfile() {
     let cancelled = false;
     fetchUserProfile(selectedRole)
       .then((data) => {
-        if (!cancelled && data) {
+        if (!cancelled) {
           setProfile(data);
+          setProfileError(null);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (!cancelled) setProfileError(err);
+      });
     return () => {
       cancelled = true;
     };
@@ -113,34 +115,27 @@ export function useOperatorProfile() {
 
     try {
       const data = await fetchUserProfile(role);
-      const newProfile = data || mockProfilesMap[role] || mockUserProfile;
-      setProfile(newProfile);
+      setProfile(data);
+      setProfileError(null);
       window.dispatchEvent(
         new CustomEvent('indra-operator-change', {
-          detail: { role, profile: newProfile },
+          detail: { role, profile: data },
         })
       );
-    } catch {
-      const fallback = mockProfilesMap[role] || mockUserProfile;
-      setProfile(fallback);
-      window.dispatchEvent(
-        new CustomEvent('indra-operator-change', {
-          detail: { role, profile: fallback },
-        })
-      );
+    } catch (err) {
+      // The role switch still happens; the identity behind it is simply unknown
+      // until the backend answers.
+      setProfile(null);
+      setProfileError(err);
     }
   }, []);
 
   const updateDuty = useCallback(
     async (newStatus: DutyStatus) => {
-      if (newStatus === profile.duty_status) return;
+      if (!profile || newStatus === profile.duty_status) return;
       setIsUpdatingStatus(true);
       const updated: UserProfile = { ...profile, duty_status: newStatus };
       setProfile(updated);
-      if (mockProfilesMap[selectedRole]) {
-        mockProfilesMap[selectedRole].duty_status = newStatus;
-      }
-
       window.dispatchEvent(
         new CustomEvent('indra-operator-change', {
           detail: { role: selectedRole, profile: updated },
@@ -160,6 +155,7 @@ export function useOperatorProfile() {
 
   const updateProfile = useCallback(
     async (formData: Partial<UserProfile>): Promise<UserProfile> => {
+      if (!profile) throw new Error('No operator profile loaded');
       setIsSavingProfile(true);
       const initials = formData.full_name
         ? formData.full_name
@@ -178,9 +174,6 @@ export function useOperatorProfile() {
       };
 
       setProfile(updated);
-      if (mockProfilesMap[selectedRole]) {
-        Object.assign(mockProfilesMap[selectedRole], updated);
-      }
 
       window.dispatchEvent(
         new CustomEvent('indra-operator-change', {
@@ -224,6 +217,7 @@ export function useOperatorProfile() {
 
   return {
     profile,
+    profileError,
     selectedRole,
     switchRole,
     updateDuty,

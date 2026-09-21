@@ -11,7 +11,8 @@ import {
   dutyStatusConfig,
   type NavItem,
   type DutyStatus,
-} from '@/lib/mock-data';
+  PLACEHOLDER_OPERATOR,
+} from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import {
   CloudLightning,
@@ -45,7 +46,10 @@ export default function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { profile } = useOperatorProfile();
+  const { profile: loadedProfile } = useOperatorProfile();
+  // Chrome must render before the identity arrives; PLACEHOLDER_OPERATOR shows
+  // em-dashes, never a plausible name that belongs to nobody.
+  const profile = loadedProfile ?? PLACEHOLDER_OPERATOR;
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 

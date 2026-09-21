@@ -1,21 +1,37 @@
 /**
  * INDRA Platform — API Client
- * Typed fetch functions with mock-data fallback.
- * All functions try/catch and return mock data on failure.
+ *
+ * **Every value returned by this module came from the backend. There are no
+ * fallbacks and no invented rows.**
+ *
+ * This file used to end every function with `catch { return mockData }`, and
+ * several of them treated an empty list as a failure:
+ *
+ *     if (!Array.isArray(data) || data.length === 0) throw new Error('Empty');
+ *     ...
+ *     catch (err) { return fallbackApiEvents; }
+ *
+ * Between them those two lines meant an empty database rendered a *full*
+ * dashboard. The first seconds of a live demo are exactly when the database is
+ * empty, so the screen showed CRITICAL events at 0.94 confidence and
+ * AUTO_PUBLISHED — values the real pipeline cannot currently produce at all,
+ * since the maximum achievable confidence is 0.80 while the vision and anomaly
+ * factors are offline. Nobody could tell the backend was down, because the
+ * failure looked exactly like success.
+ *
+ * The rules now:
+ *
+ * 1. **An empty list is a result, not an error.** `[]` is returned as `[]`. The
+ *    component renders an empty state. An empty dashboard that fills up as
+ *    reports arrive is both honest and a better demonstration.
+ * 2. **A failure throws.** Callers catch it and show an error state that says
+ *    the backend is unreachable. A failure must never be indistinguishable
+ *    from data.
+ * 3. **Nothing in this file may import invented data.** `ui-config` holds types
+ *    and presentation constants only.
  */
 
 import {
-  kpiData,
-  mapMarkers,
-  recentEvents,
-  eventDistribution,
-  eventSeverityDistribution,
-  reportsTrend,
-  liveFeedItems,
-  mockTeams,
-  mockUserProfile,
-  mockProfilesMap,
-  mockSixthSenseTeam,
   type KpiItem,
   type MapMarker,
   type RecentEvent,
@@ -25,10 +41,48 @@ import {
   type TeamItem,
   type UserProfile,
   type HackathonTeamData,
-} from './mock-data';
+} from './ui-config';
 import { sanitizeIncidentCoordinate } from './geo-resolver';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
+/** Thrown when the backend could not be reached or answered with an error. */
+export class ApiError extends Error {
+  readonly status: number | null;
+  readonly endpoint: string;
+
+  constructor(endpoint: string, status: number | null, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.endpoint = endpoint;
+    this.status = status;
+  }
+}
+
+async function getJson<T>(path: string): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });
+  } catch (err) {
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
+  }
+  if (!res.ok) {
+    throw new ApiError(path, res.status, `Backend returned HTTP ${res.status}`);
+  }
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new ApiError(path, res.status, 'Backend returned a malformed response');
+  }
+}
+
+/** An endpoint that should return a list but did not is a backend defect, not data. */
+function asArray<T>(value: unknown, path: string): T[] {
+  if (!Array.isArray(value)) {
+    throw new ApiError(path, 200, 'Expected a list from the backend');
+  }
+  return value as T[];
+}
 
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
@@ -44,59 +98,51 @@ export interface DashboardSummary {
 }
 
 export async function fetchDashboardSummary(): Promise<KpiItem[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/dashboard/summary`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: DashboardSummary = await res.json();
+  const data = await getJson<DashboardSummary>('/api/dashboard/summary');
 
-    return [
-      {
-        id: 'total-reports',
-        label: 'Total Reports',
-        value: data.total_reports,
-        delta: data.total_reports_delta_pct,
-        deltaLabel: 'last 24h',
-        color: '#2563EB',
-        bgColor: '#EFF6FF',
-        icon: 'reports',
-      },
-      {
-        id: 'verified-events',
-        label: 'Verified Events',
-        value: data.verified_events,
-        delta: data.verified_events_delta_pct,
-        deltaLabel: 'last 24h',
-        color: '#10B981',
-        bgColor: '#D1FAE5',
-        icon: 'verified',
-      },
-      {
-        id: 'critical-events',
-        label: 'Critical Events',
-        value: data.critical_events,
-        delta: data.critical_events_delta_pct,
-        deltaLabel: 'last 24h',
-        color: '#EF4444',
-        bgColor: '#FEE2E2',
-        icon: 'critical',
-      },
-      {
-        id: 'citizen-reports',
-        label: 'Citizen Reports',
-        value: data.citizen_reports,
-        delta: data.citizen_reports_delta_pct,
-        deltaLabel: 'last 24h',
-        color: '#8B5CF6',
-        bgColor: '#EDE9FE',
-        icon: 'citizens',
-      },
-    ];
-  } catch (err) {
-    console.warn('[INDRA] fetchDashboardSummary failed, using mock data:', err);
-    return kpiData;
-  }
+  // Colours and labels are design; the numbers are the backend's.
+  return [
+    {
+      id: 'total-reports',
+      label: 'Total Reports',
+      value: data.total_reports,
+      delta: data.total_reports_delta_pct,
+      deltaLabel: 'last 24h',
+      color: '#2563EB',
+      bgColor: '#EFF6FF',
+      icon: 'reports',
+    },
+    {
+      id: 'verified-events',
+      label: 'Verified Events',
+      value: data.verified_events,
+      delta: data.verified_events_delta_pct,
+      deltaLabel: 'last 24h',
+      color: '#10B981',
+      bgColor: '#D1FAE5',
+      icon: 'verified',
+    },
+    {
+      id: 'critical-events',
+      label: 'Critical Events',
+      value: data.critical_events,
+      delta: data.critical_events_delta_pct,
+      deltaLabel: 'last 24h',
+      color: '#EF4444',
+      bgColor: '#FEE2E2',
+      icon: 'critical',
+    },
+    {
+      id: 'citizen-reports',
+      label: 'Citizen Reports',
+      value: data.citizen_reports,
+      delta: data.citizen_reports_delta_pct,
+      deltaLabel: 'last 24h',
+      color: '#8B5CF6',
+      bgColor: '#EDE9FE',
+      icon: 'citizens',
+    },
+  ];
 }
 
 // ─── Events (Map + Recent Events List) ───────────────────────────────────────
@@ -120,25 +166,13 @@ export interface ApiEvent {
   timestamp: string;
 }
 
-export const fallbackApiEvents: ApiEvent[] = mapMarkers.map((m, idx) => ({
-  id: m.id,
-  event_code: `WX-EV-2823${1827 + idx}-A`,
-  eventType: m.eventType,
-  severity: m.severity,
-  confidence_score: m.confidence || Number((0.94 - idx * 0.02).toFixed(2)),
-  verification: m.verification,
-  review_status: m.verification === 'verified' ? 'AUTO_PUBLISHED' : 'PENDING_HUMAN_REVIEW',
-  quadrant: `${m.city} Central Sector`,
-  impact_radius_km: 5.0 + idx * 0.5,
-  lat: m.lat,
-  lng: m.lng,
-  city: m.city,
-  state: m.state,
-  imageGradient: 'linear-gradient(135deg, #2563EB, #1E3A8A)',
-  verified_at: new Date(Date.now() - idx * 3600000).toISOString(),
-  timestamp: new Date(Date.now() - idx * 3600000).toISOString(),
-}));
-
+/**
+ * Request deduplication, kept from the original client: the map and the recent
+ * events list ask for the same URL at the same moment on first paint.
+ *
+ * A rejected promise is evicted immediately. Caching a failure for 15 s would
+ * make a backend that recovered in between look like it was still down.
+ */
 const eventsInFlight = new Map<string, { promise: Promise<ApiEvent[]>; timestamp: number }>();
 const EVENTS_CACHE_TTL_MS = 15000;
 
@@ -150,32 +184,22 @@ export async function fetchEvents(
   if (params?.time_range) searchParams.set('time_range', params.time_range);
   if (params?.bbox) searchParams.set('bbox', params.bbox);
 
-  const url = `${API_BASE}/api/events${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  const path = `/api/events${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
   const now = Date.now();
 
-  const cached = eventsInFlight.get(url);
+  const cached = eventsInFlight.get(path);
   if (cached && now - cached.timestamp < EVENTS_CACHE_TTL_MS) {
     return cached.promise;
   }
 
-  const fetchPromise = (async () => {
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) throw new Error('Empty events response');
-      return data;
-    } catch (err) {
-      console.warn('[INDRA] fetchEvents failed, using mock data:', err);
-      let filtered = fallbackApiEvents;
-      if (params?.severity) {
-        filtered = filtered.filter(e => e.severity.toLowerCase() === params.severity!.toLowerCase());
-      }
-      return filtered;
-    }
-  })();
+  const fetchPromise = getJson<unknown>(path)
+    .then((data) => asArray<ApiEvent>(data, path))
+    .catch((err) => {
+      eventsInFlight.delete(path);
+      throw err;
+    });
 
-  eventsInFlight.set(url, { promise: fetchPromise, timestamp: now });
+  eventsInFlight.set(path, { promise: fetchPromise, timestamp: now });
   return fetchPromise;
 }
 
@@ -222,63 +246,56 @@ export async function fetchEventDistribution(
   groupBy: 'hazard' | 'severity' = 'hazard',
   timeRange: string = '7d'
 ): Promise<DistributionItem[]> {
-  try {
-    const res = await fetch(
-      `${API_BASE}/api/events/distribution?by=${groupBy}&time_range=${timeRange}`,
-      {
-        cache: 'no-store',
-      }
-    );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data || !Array.isArray(data) || data.length === 0) throw new Error('Empty distribution');
-    return data.map((item: any) => {
-      const val = Number(item.value ?? item.count ?? 0);
-      return {
-        name: String(item.name || 'Unknown'),
-        value: val,
-        count: Number(item.count ?? val),
-        color: item.color || '#94A3B8',
-      };
-    });
-  } catch (err) {
-    console.warn('[INDRA] fetchEventDistribution failed, using mock data:', err);
-    return groupBy === 'severity' ? eventSeverityDistribution : eventDistribution;
-  }
+  const path = `/api/events/distribution?by=${groupBy}&time_range=${timeRange}`;
+  const data = asArray<any>(await getJson<unknown>(path), path);
+
+  return data.map((item: any) => {
+    const val = Number(item.value ?? item.count ?? 0);
+    return {
+      name: String(item.name || 'Unknown'),
+      value: val,
+      count: Number(item.count ?? val),
+      color: item.color || '#94A3B8',
+    };
+  });
 }
 
 // ─── Reports Trend (Line Chart) ──────────────────────────────────────────────
 
 export async function fetchReportsTrend(range: string = '7d'): Promise<TrendDataPoint[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/reports/trend?range=${range}`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data || data.length === 0) throw new Error('Empty trend');
-    return data;
-  } catch (err) {
-    console.warn('[INDRA] fetchReportsTrend failed, using mock data:', err);
-    return reportsTrend;
-  }
+  const path = `/api/reports/trend?range=${range}`;
+  return asArray<TrendDataPoint>(await getJson<unknown>(path), path);
 }
 
 // ─── Live Feed ───────────────────────────────────────────────────────────────
 
 export async function fetchRecentFeed(limit: number = 10): Promise<FeedItem[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/feed/recent?limit=${limit}`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data || data.length === 0) throw new Error('Empty feed');
-    return data;
-  } catch (err) {
-    console.warn('[INDRA] fetchRecentFeed failed, using mock data:', err);
-    return liveFeedItems;
-  }
+  const path = `/api/feed/recent?limit=${limit}`;
+  return asArray<FeedItem>(await getJson<unknown>(path), path);
+}
+
+// ─── Agency Alerts (SACHET / NDMA — IMD, CWC and state SDMA warnings) ────────
+
+export interface AgencyAlert {
+  id: string;
+  identifier: string;
+  sender: string | null;
+  event: string | null;
+  severity: string | null;
+  raw_severity: string | null;
+  certainty: string | null;
+  urgency: string | null;
+  headline: string | null;
+  area_desc: string | null;
+  effective_at: string | null;
+  expires_at: string | null;
+  sent_at: string | null;
+  has_polygon: boolean;
+}
+
+export async function fetchAgencyAlerts(limit: number = 20): Promise<AgencyAlert[]> {
+  const path = `/api/alerts/agency?limit=${limit}`;
+  return asArray<AgencyAlert>(await getJson<unknown>(path), path);
 }
 
 // ─── Teams (Disaster Response Units & Hub) ───────────────────────────────────
@@ -288,116 +305,67 @@ export async function fetchTeams(params?: {
   status?: string;
   city?: string;
 }): Promise<TeamItem[]> {
-  try {
-    const searchParams = new URLSearchParams();
-    if (params?.agency) searchParams.set('agency', params.agency);
-    if (params?.status) searchParams.set('status', params.status);
-    if (params?.city) searchParams.set('city', params.city);
+  const searchParams = new URLSearchParams();
+  if (params?.agency) searchParams.set('agency', params.agency);
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.city) searchParams.set('city', params.city);
 
-    const url = `${API_BASE}/api/teams${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data || data.length === 0) return mockTeams;
-    return data;
-  } catch (err) {
-    console.warn('[INDRA] fetchTeams failed, using mock data:', err);
-    let filtered = mockTeams;
-    if (params?.agency) filtered = filtered.filter(t => t.agency.toLowerCase() === params.agency!.toLowerCase());
-    if (params?.status) filtered = filtered.filter(t => t.status.toLowerCase() === params.status!.toLowerCase());
-    if (params?.city) filtered = filtered.filter(t => t.city.toLowerCase().includes(params.city!.toLowerCase()));
-    return filtered;
-  }
+  const path = `/api/teams${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  return asArray<TeamItem>(await getJson<unknown>(path), path);
 }
 
 export async function fetchTeamById(teamId: string): Promise<TeamItem> {
-  try {
-    const res = await fetch(`${API_BASE}/api/teams/${teamId}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn(`[INDRA] fetchTeamById(${teamId}) failed, using mock data:`, err);
-    const match = mockTeams.find(t => t.id === teamId || t.team_code === teamId);
-    return match || mockTeams[0];
-  }
+  return getJson<TeamItem>(`/api/teams/${teamId}`);
 }
 
 export async function assignTeamToEvent(teamId: string, eventId: string | null): Promise<any> {
+  const path = `/api/teams/${teamId}/assign`;
+  let res: Response;
   try {
-    const res = await fetch(`${API_BASE}/api/teams/${teamId}/assign`, {
+    res = await fetch(`${API_BASE}${path}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event_id: eventId }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn(`[INDRA] assignTeamToEvent failed, updating local state:`, err);
-    const team = mockTeams.find(t => t.id === teamId || t.team_code === teamId);
-    if (team) {
-      team.status = eventId ? 'DEPLOYED' : 'AVAILABLE';
-      team.assigned_event_code = eventId ? (eventId.startsWith('WX-') ? eventId : 'WX-EV-28231827-A') : null;
-    }
-    return { status: eventId ? 'DEPLOYED' : 'AVAILABLE' };
+  } catch {
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
   }
+  if (!res.ok) {
+    // A mutation that silently "succeeds" locally is worse than one that fails
+    // loudly: the operator believes a team was dispatched when none was.
+    throw new ApiError(path, res.status, `Assignment failed (HTTP ${res.status})`);
+  }
+  return res.json();
 }
 
 export async function fetchHackathonTeam(): Promise<HackathonTeamData> {
-  try {
-    const res = await fetch(`${API_BASE}/api/teams/hackathon/sixth-sense`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn('[INDRA] fetchHackathonTeam failed, using mock data:', err);
-    return mockSixthSenseTeam;
-  }
+  return getJson<HackathonTeamData>('/api/teams/hackathon/sixth-sense');
 }
 
 // ─── User Profile & Identity ──────────────────────────────────────────────────
 
 export async function fetchUserProfile(username?: string): Promise<UserProfile> {
-  try {
-    const url = username
-      ? `${API_BASE}/api/profile/me?user=${username}`
-      : `${API_BASE}/api/profile/me`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn('[INDRA] fetchUserProfile failed, using mock data:', err);
-    if (username && mockProfilesMap[username]) {
-      return mockProfilesMap[username];
-    }
-    return mockUserProfile;
-  }
+  const path = username ? `/api/profile/me?user=${username}` : '/api/profile/me';
+  return getJson<UserProfile>(path);
 }
 
-export async function updateUserProfile(data: Partial<UserProfile>, username: string = 'commander'): Promise<UserProfile> {
+export async function updateUserProfile(
+  data: Partial<UserProfile>,
+  username: string = 'commander'
+): Promise<UserProfile> {
+  const path = `/api/profile/me?user=${username}`;
+  let res: Response;
   try {
-    const res = await fetch(`${API_BASE}/api/profile/me?user=${username}`, {
+    res = await fetch(`${API_BASE}${path}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn('[INDRA] updateUserProfile failed, updating local mock state:', err);
-    if (data.full_name) {
-      data.avatar_initials = data.full_name
-        .trim()
-        .split(/\s+/)
-        .map((p) => p[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
-    }
-    if (username && mockProfilesMap[username]) {
-      Object.assign(mockProfilesMap[username], data);
-      return mockProfilesMap[username];
-    }
-    Object.assign(mockUserProfile, data);
-    return mockUserProfile;
+  } catch {
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
   }
+  if (!res.ok) {
+    throw new ApiError(path, res.status, `Profile update failed (HTTP ${res.status})`);
+  }
+  return res.json();
 }
-
