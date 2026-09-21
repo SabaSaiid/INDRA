@@ -5,11 +5,32 @@ Validates, sanitizes, and normalizes geographical coordinates for raw reports
 and verified events within Indian territorial boundaries.
 Prevents coordinate inversion (lat/lng swapped) and auto-resolves coordinates
 for incoming reports with missing GPS.
+
+Two directions live here and they are not the same thing:
+
+- **Forward** — `sanitize_coordinates`, backed by `INDIAN_GAZETTEER`, turns a
+  name mentioned in a report into coordinates when the report carried no GPS.
+- **Reverse** — `reverse_geocode`, backed by `data/geo/india_districts.csv`,
+  turns coordinates into a district name. This is the direction the platform
+  spent its whole life without, which is why every real event was served to
+  the console as `"city": "Unknown"`.
+
+The reverse resolver never invents a name. When it cannot place a point it
+returns `None`, and the column stays NULL, so "we do not know where this is"
+stays distinguishable from "somewhere in India" — the same rule the rest of
+the receipt follows for factors that did not run.
 """
 
+import csv
+import logging
 import math
 import re
-from typing import Optional, Tuple, Dict, Any
+from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
+from typing import Optional, Tuple, Dict, Any, List
+
+logger = logging.getLogger("indra.services.geocoding")
 
 # Indian sovereign territory geographic bounding box
 INDIA_MIN_LAT = 6.5
@@ -76,6 +97,202 @@ INDIAN_GAZETTEER: Dict[str, Dict[str, Any]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Reverse geocoding — coordinates to a district name
+# ---------------------------------------------------------------------------
+
+# Built by scripts/build_gazetteer.py; see that file for provenance.
+DISTRICTS_CSV = (
+    Path(__file__).resolve().parents[3] / "data" / "geo" / "india_districts.csv"
+)
+
+# How far a point may sit from the representative point of the nearest district
+# before we stop claiming to know where it is. These two numbers are the whole
+# honesty policy of the resolver, so they are named rather than inlined.
+#
+# 25 km is about the radius of a typical Indian district, so a point that close
+# to the representative point is almost certainly inside it. Past 60 km we are
+# guessing, and past 60 km we decline instead. Both bands are only consulted
+# when no district's bounding box contains the point at all — a containment hit
+# is exact enough to skip distance entirely.
+DISTRICT_CONFIDENT_KM = 25.0
+DISTRICT_NEARBY_KM = 60.0
+
+EARTH_RADIUS_KM = 6371.0088
+
+
+@dataclass(frozen=True)
+class Place:
+    """
+    A resolved location, carrying how it was resolved rather than only what.
+
+    `precision` is the part that matters downstream. A caller that wants to
+    print a label needs to know whether "Patna" means "in Patna district" or
+    "the nearest district we could name is Patna, 40 km away", and the API
+    publishes it for the same reason the confidence receipt publishes factor
+    coverage: a number without its basis invites being read as more than it is.
+    """
+
+    district: str
+    state: str
+    precision: str          # "district" (inside it) | "near" (close to it)
+    distance_km: float
+
+    @property
+    def label(self) -> str:
+        """The human-facing name, which says 'near' when it means near."""
+        return self.district if self.precision == "district" else f"near {self.district}"
+
+
+def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Great-circle distance in kilometres."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    d_phi = p2 - p1
+    d_lambda = math.radians(lng2 - lng1)
+    a = math.sin(d_phi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(d_lambda / 2) ** 2
+    return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(a))
+
+
+@lru_cache(maxsize=1)
+def load_districts() -> List[Dict[str, Any]]:
+    """
+    Read the district gazetteer once per process.
+
+    A missing or unreadable file is logged and yields an empty table rather
+    than raising: a stack that cannot name places is degraded, but a stack
+    that will not boot is down. Every caller already handles `None`.
+    """
+    try:
+        with DISTRICTS_CSV.open(newline="") as handle:
+            rows = [
+                {
+                    "district": row["district"],
+                    "state": row["state"],
+                    "lat": float(row["lat"]),
+                    "lng": float(row["lng"]),
+                    "min_lat": float(row["min_lat"]),
+                    "min_lng": float(row["min_lng"]),
+                    "max_lat": float(row["max_lat"]),
+                    "max_lng": float(row["max_lng"]),
+                }
+                for row in csv.DictReader(handle)
+            ]
+    except (OSError, KeyError, ValueError) as exc:
+        logger.error(
+            f"District gazetteer unreadable at {DISTRICTS_CSV} ({exc}) — "
+            "locations will resolve to None until it is rebuilt with "
+            "scripts/build_gazetteer.py"
+        )
+        return []
+
+    if not rows:
+        logger.error(f"District gazetteer at {DISTRICTS_CSV} is empty")
+    return rows
+
+
+def reverse_geocode(lat: Optional[float], lng: Optional[float]) -> Optional[Place]:
+    """
+    Resolve coordinates to an Indian district, or `None` when we cannot.
+
+    Two passes, in order:
+
+    1. **Bounding-box containment.** Districts whose box contains the point;
+       the nearest representative point among them wins. Boxes overlap freely
+       — a box is a rectangle and a district is not — so containment narrows
+       the field rather than deciding it outright. This is what lets a point
+       in western Kutch resolve to Kutch despite being 100 km from the one
+       point that represents it.
+    2. **Nearest representative point**, banded by the two constants above.
+
+    Returns `None` for a point outside India, and for a point that no box
+    contains and that is more than `DISTRICT_NEARBY_KM` from every district.
+    """
+    if lat is None or lng is None:
+        return None
+    if not is_within_india(lat, lng):
+        return None
+
+    districts = load_districts()
+    if not districts:
+        return None
+
+    containing = [
+        d for d in districts
+        if d["min_lat"] <= lat <= d["max_lat"] and d["min_lng"] <= lng <= d["max_lng"]
+    ]
+
+    if containing:
+        best = min(containing, key=lambda d: _haversine_km(lat, lng, d["lat"], d["lng"]))
+        return Place(
+            district=best["district"],
+            state=best["state"],
+            precision="district",
+            distance_km=round(_haversine_km(lat, lng, best["lat"], best["lng"]), 2),
+        )
+
+    best = min(districts, key=lambda d: _haversine_km(lat, lng, d["lat"], d["lng"]))
+    distance = _haversine_km(lat, lng, best["lat"], best["lng"])
+
+    if distance > DISTRICT_NEARBY_KM:
+        return None
+
+    return Place(
+        district=best["district"],
+        state=best["state"],
+        precision="district" if distance <= DISTRICT_CONFIDENT_KM else "near",
+        distance_km=round(distance, 2),
+    )
+
+
+@lru_cache(maxsize=1)
+def _districts_by_name() -> Dict[str, Dict[str, Any]]:
+    """Lowercased district name to its row, for resolving alerts by name."""
+    return {d["district"].lower(): d for d in load_districts()}
+
+
+def district_by_name(name: str, state_hint: Optional[str] = None) -> Optional[Place]:
+    """
+    Resolve a district by name, for feeds that publish places and not points.
+
+    SACHET CAP alerts are the caller: NDMA answers 403 on the polygon endpoint,
+    so not one of the alerts in the database carries a geometry, but their
+    `area_desc` names districts in plain text ("Chamarajanagara, Kodagu, Mysuru
+    districts of Karnataka"). Their `district_codes` are LGD codes, a
+    vocabulary this gazetteer does not carry, so the name is what we have.
+
+    `state_hint` disambiguates the names that repeat across states — Bilaspur
+    is in both Chhattisgarh and Himachal Pradesh, Aurangabad in both
+    Maharashtra and Bihar. Without a hint an ambiguous name is refused rather
+    than guessed.
+    """
+    if not name:
+        return None
+
+    key = name.strip().lower()
+    if not key:
+        return None
+
+    matches = [d for d in load_districts() if d["district"].lower() == key]
+    if not matches:
+        return None
+
+    if len(matches) > 1:
+        if not state_hint:
+            return None
+        hint = state_hint.strip().lower()
+        matches = [d for d in matches if d["state"].lower() == hint]
+        if len(matches) != 1:
+            return None
+
+    best = matches[0]
+    return Place(
+        district=best["district"],
+        state=best["state"],
+        precision="district",
+        distance_km=0.0,
+    )
+
+
 class OutOfIndiaBoundsError(ValueError):
     """Coordinates were supplied but fall outside India's bounding box."""
 
@@ -140,7 +357,14 @@ def sanitize_coordinates(
                 f_lat, f_lng = f_lng, f_lat
 
             if is_within_india(f_lat, f_lng):
-                return f_lat, f_lng, city_hint or "India Node", ""
+                # Was `city_hint or "India Node"` — a placeholder that made
+                # every GPS-bearing report nameless, which is most of them.
+                # A report with coordinates is the one case where we can say
+                # exactly where it is, so resolve it instead of labelling it.
+                place = reverse_geocode(f_lat, f_lng)
+                if place is not None:
+                    return f_lat, f_lng, city_hint or place.district, place.state
+                return f_lat, f_lng, city_hint or "", ""
 
             if not snap_out_of_bounds:
                 raise OutOfIndiaBoundsError(f_lat, f_lng)
