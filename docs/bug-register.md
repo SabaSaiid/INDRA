@@ -867,3 +867,160 @@ Across 32 defects, the ones that would have broken the demo were found by, in or
 
 The suite grew from 71 tests on Day 1 to **568** and remains necessary and insufficient. Rehearse
 from cold, and probe every number that flatters you.
+
+---
+
+# Day 7 — 22 Sep 2026
+
+The project was declared closed on 21 Sep. It reopened the same evening because the dashboard was
+looked at rather than reasoned about: the single map pin read **"Unknown"** and the console showed
+**9 reports against 1 event**. Nine defects came out of one screenshot. Seven of them were
+invisible to the 520 green tests, and the two most serious are cases where the API states
+something the database does not support.
+
+### BUG-033 — Every event with GPS was served as `"city": "Unknown"`
+**S2** · Layers 3, 8a · **`FIXED`** by `bf31b25` · Found by: looking at the live map · 22 Sep
+
+Repro:
+```bash
+curl -s localhost:8000/api/events | jq '.[0] | {lat, lng, city, state}'
+```
+Expected: `Patna, Bihar` — the centroid `25.59428, 85.13746` is Kankarbagh, Patna.
+Actual: `{"city": "Unknown", "state": ""}`, which the Recent Events panel renders as the literal
+string `"Unknown, "`, trailing comma and all.
+
+Three independent causes, each sufficient on its own:
+
+- **There was no reverse geocoder anywhere in the repo.** `services/geocoding.py` was forward-only
+  — name to coordinates — over a 56-entry hardcoded dict. Nothing could turn a point into a name.
+- **`geocoding.py:143` returned the placeholder `"India Node"`** whenever coordinates were valid,
+  which is the normal case, and never consulted the gazetteer at all.
+- **Neither `raw_reports` nor `verified_events` had any place-name column**, and `api/events.py:278`
+  read `receipt.get("city", "Unknown")` from a receipt key the live pipeline never writes. The
+  *only* writer of that key in the whole repo is `scripts/seed_national_data.py:166` — which is
+  precisely why demo data had names and real data did not, and why nobody caught it.
+
+The last point is the one worth keeping: **the fallback string was doing the work of a schema.**
+`"Unknown"` looked like a handled edge case and was actually a missing column, a missing resolver
+and a missing write, wearing one word as a disguise.
+
+Fix: a committed 737-row district gazetteer with in-polygon points and bounding boxes
+(`b9d1d0a`), `reverse_geocode` / `district_by_name` over it, and the `"India Node"` placeholder
+removed. It refuses rather than guesses: a point in the Bay of Bengal resolves to `None`.
+Tests: `test_reverse_geocoding.py`, 31 cases weighted toward the refusals.
+
+### BUG-034 — "Verified Events: 1" was counting a QUARANTINED event whose own quadrant is "Noise"
+**S2** · Layer 8a · `IN-PROGRESS` · Found by: reading the KPI query against the row it counts · 22 Sep
+
+Repro: `curl -s localhost:8000/api/dashboard/summary | jq .verified_events` → `1`, against a
+database whose only event is `INDRA-20260920-001`, confidence **0.4984**, review status
+**QUARANTINED**, quadrant **Noise**.
+
+Expected: a tile labelled "Verified Events" counts events that were verified.
+Actual: `dashboard.py:74` filters `WHERE review_status != 'REJECTED'`, so `QUARANTINED` and
+`PENDING_HUMAN_REVIEW` are both counted as verified. The system's own scoring called this event
+noise and the dashboard promoted it to verified on the way to the screen.
+
+This is the Day 5 lesson in a new place. BUG-024 was a fabricated event; this is a real event with
+a fabricated status, and it is worse in one respect: there is nothing in the response to disbelieve.
+
+Fix: count only `AUTO_PUBLISHED` and `HUMAN_APPROVED` as verified, and publish the rest as a
+separate `awaiting_review` figure so nothing is hidden by being corrected.
+
+### BUG-035 — An event's merge window closes 2 h after creation no matter how recently it absorbed a report
+**S2** · Layer 6 · `IN-PROGRESS` · Found by: tracing why 4 of 9 reports produced nothing · 22 Sep
+
+Repro: submit a report near an existing event more than `MERGE_WINDOW_MINUTES` after that event
+was **created**, however recently it was last updated.
+Expected: a report 50 m from a live event's centroid joins it.
+Actual: dropped entirely. `_find_mergeable_event` (`pipeline.py:472`) gates on
+`verified_at > NOW() - interval`, and the merge branch at `pipeline.py:917-932` updates the
+receipt, the score and the severity but **never touches `verified_at`**. The column is an
+insert-time default, so it means "created", not "last updated", and the merge window is keyed on
+the wrong clock.
+
+Observed consequence, from the live database: a report arrived 7 h 49 m after the event at a point
+**50 m** from its centroid, against a spatial gate of 5.5 km. Alone among unassigned reports it
+could not satisfy `DBSCAN_MIN_SAMPLES=2`, and the merge window had closed, so it was dropped. The
+three later reports then deduped against *it* (`pipeline.py:749`) and were suppressed —
+`duplicate_of` set, no event, no corroboration. **Four of the nine reports in the database
+contribute nothing, and the dedup rule is what buried the evidence that they existed.**
+
+Fix: an `updated_at` column, maintained on merge, with the window keyed on it.
+
+### BUG-036 — The dashboard is a snapshot: it never refreshes, and `VERIFIED_EVENT` reaches nothing
+**S2** · Layers 8a, 9 · `IN-PROGRESS` · Found by: submitting a report and watching the console not change · 22 Sep
+
+Repro: with the dashboard open, `POST /api/reports/submit` enough corroborating reports to fuse an
+event. Watch the screen.
+Expected: a console labelled "Grid live" shows the event.
+Actual: nothing changes until the page is reloaded by hand. The KPI row, the map and Recent Events
+all fetch once on mount. The only WebSocket consumer in the entire frontend is `LiveFeed.tsx:61`
+and it handles `NEW_REPORT` only — while the backend has been broadcasting `VERIFIED_EVENT` since
+Day 1 (`report_consumer.py:88-96`) to nobody at all.
+
+The Day 1 handover note for the `VERIFIED_EVENT` message type was written and the message was
+never wired up on the other side. **A handover note is not a delivery.**
+
+Fix: handle `VERIFIED_EVENT` and refetch the affected panels.
+
+### BUG-037 — 112 live agency alerts are collected, stored, and shown on no map
+**S3** · Layers 1, 8a · `IN-PROGRESS` · Found by: counting what is in the database against what is on screen · 22 Sep
+
+Repro: `SELECT count(*) FROM agency_alerts;` → **112** real CAP warnings from CWC, IMD and state
+SDMAs, 23 of them unexpired. Then look at the dashboard, which shows one pin.
+
+The SACHET poller works, the parser works, `GET /api/alerts/agency` serves them, and the only page
+that consumes them is Early Warnings. The map and the situation overview — the two surfaces a
+nodal officer actually looks at — show none of it. The most genuinely live data in the system was
+the data least visible.
+
+Fix: an agency-alert map layer, drawn distinctly from fused events, plus an active-alert count on
+the dashboard.
+
+### BUG-038 — `.env.example` re-introduces the throttling bug the code comment says cost 96 polygons
+**S3** · Layer 1 · `OPEN` · Found by: diffing `.env.example` against `config.py` · 22 Sep
+
+Repro: `cp .env.example .env` on a fresh machine, as `docs/setup.md` instructs.
+Expected: the value the code settled on.
+Actual: `.env.example:78` sets `SACHET_MAX_FETCHES_PER_TICK=25`; `config.py:134` defaults to
+**10**, and the comment beside it records that it was lowered *because NDMA answered 403 and 96
+stored polygons were wiped*. Anyone following the documented setup gets the old number back.
+
+The reasoning was written down in the right place and the example file was not updated to match,
+so the fix survives only for people who never follow the setup guide.
+
+### BUG-039 — `auto_offset_reset="latest"` silently drops every report published before the backend boots
+**S3** · Layer 2 · `OPEN` · Found by: reading the consumer while tracing the orphaned report · 22 Sep
+
+Repro: on a fresh environment, publish to `indra.raw.reports` before the backend has ever started,
+then start it.
+Expected: the reports are processed.
+Actual: `report_consumer.py:157` sets `auto_offset_reset="latest"`, so a brand-new consumer group
+begins at the tail and everything already in the topic is skipped permanently. Not what happened
+in the current database — the group's lag is 0 — but it is a guaranteed silent loss on any cold
+start where the producer leads the consumer, and losing a report without a trace is exactly what
+this system exists not to do.
+
+### BUG-040 — The setup guide and the runbook both state the wrong migration head
+**S4** · Docs · `OPEN` · Found by: running `alembic heads` against the documented value · 22 Sep
+
+`docs/setup.md:73` and `docs/demo-runbook.md:53` both say `alembic upgrade head` lands on
+`0006_anomaly_score_defaults_null`. The versions directory contains `0007_agency_alerts` and
+`0008_seed_operator_profiles`; the real head is **`0008`**. Both documents were written on the day
+`0007` and `0008` were added.
+
+### BUG-041 — Two live API keys sit in `.env` that no code reads
+**S4** · Layer 1 · `OPEN` · Found by: checking which `.env` keys are `Settings` fields · 22 Sep
+
+`.env:54` holds a real `OPENWEATHER_API_KEY` and `.env:56` a real `FIRMS_MAP_KEY`. Neither is a
+field on the `Settings` class, and `model_config` sets `extra: "ignore"`, so both are silently
+discarded at load. `.env.example` declares `OPENWEATHER_API_KEY` **twice** (lines 69 and 103) with
+a detailed comment describing an integration that was never written.
+
+Rated S4 and not S3 because `README.md:187` and `docs/setup.md:43` both already say in writing that
+these keys are unread. The defect is that the `.env` file still looks wired: a key with a real
+value in it reads as a configured feed, and the next person to debug a missing weather signal will
+start from the assumption that OpenWeather is in the loop. An inert key that looks live is the same
+class of thing as a telemetry field that is always 0.0 (BUG-031) — it is a claim the code does not
+honour.
