@@ -10,7 +10,7 @@ import {
   verificationConfig,
   type RecentEvent,
 } from '@/lib/ui-config';
-import { fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
+import { fetchEvents, apiEventsToRecentEvents, formatPlace } from '@/lib/api';
 import { getRelativeTime } from '@/lib/utils';
 import { getWeatherMedia } from '@/lib/weather-media';
 import { ArrowRight } from 'lucide-react';
@@ -159,7 +159,7 @@ export default function RecentEventsList({
                   >
                     <Image
                       src={media.src}
-                      alt={`${media.condition} in ${event.city}`}
+                      alt={`${media.condition} in ${event.placeLabel ?? formatPlace(event.city, event.state)}`}
                       width={48}
                       height={36}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -175,7 +175,7 @@ export default function RecentEventsList({
                         className="text-xs font-medium text-ink truncate"
                         style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                       >
-                        {event.city}, {event.state}
+                        {event.placeLabel ?? formatPlace(event.city, event.state)}
                       </p>
                       <span
                         className="text-[9px] font-medium flex-shrink-0"

@@ -182,12 +182,23 @@ export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'low';
 export type VerificationStatus = 'verified' | 'under-review';
 export type EventType = 'Severe Rainfall' | 'Flood' | 'Thunderstorm' | 'Strong Winds' | 'Fog' | 'Urban Flooding' | 'Heavy Rainfall';
 
+/**
+ * Which layer a marker belongs to. The map draws each one differently and
+ * never lets one pass for another: a raw citizen report has not been
+ * clustered, corroborated or scored, and drawing it like a verified event
+ * would put an unreviewed claim on a national console as a fact.
+ */
+export type MapLayer = 'event' | 'alert' | 'report';
+
 export interface MapMarker {
   id: string;
   lat: number;
   lng: number;
   city: string;
   state: string;
+  /** Display name, already hedged and already handling the unresolved case. */
+  placeLabel?: string;
+  layer?: MapLayer;
   eventType: EventType;
   severity: SeverityLevel;
   verification: VerificationStatus;
@@ -203,6 +214,8 @@ export interface RecentEvent {
   id: string;
   city: string;
   state: string;
+  /** Display name, already hedged and already handling the unresolved case. */
+  placeLabel?: string;
   eventType: EventType;
   severity: SeverityLevel;
   verification: VerificationStatus;

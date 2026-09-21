@@ -159,11 +159,40 @@ export interface ApiEvent {
   impact_radius_km: number;
   lat: number;
   lng: number;
-  city: string;
-  state: string;
+  /** District name, or null when the backend could not place the point. */
+  city: string | null;
+  /** State name, or null alongside a null city. */
+  state: string | null;
+  /** 'district' (inside it) | 'near' (close to it) | null (unresolved). */
+  place_precision?: string | null;
   imageGradient: string;
   verified_at: string;
   timestamp: string;
+}
+
+/**
+ * One place name from a district, a state and how sure the backend was.
+ *
+ * Every surface that shows a location goes through this, because each one
+ * used to join the two fields itself and got it subtly wrong: with an empty
+ * state, `{city}, {state}` rendered the literal string "Unknown, ", trailing
+ * comma and all.
+ *
+ * A null name is rendered as an explicit "Location unresolved" rather than
+ * hidden or filled in. The backend only sends null when its gazetteer
+ * genuinely could not place the coordinates, and that is worth showing: an
+ * operator who sees a pin with no name knows to check it, where one who sees
+ * a plausible name has no reason to.
+ */
+export function formatPlace(
+  city?: string | null,
+  state?: string | null,
+  precision?: string | null
+): string {
+  const parts = [city, state].filter((p): p is string => Boolean(p && p.trim()));
+  if (parts.length === 0) return 'Location unresolved';
+  const name = parts.join(', ');
+  return precision === 'near' ? `near ${name}` : name;
 }
 
 /**
@@ -217,12 +246,18 @@ export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
       id: ev.id,
       lat: sanitized.lat,
       lng: sanitized.lng,
-      city: sanitized.city || ev.city,
-      state: sanitized.state || ev.state,
+      city: sanitized.city || ev.city || '',
+      state: sanitized.state || ev.state || '',
+      placeLabel: formatPlace(
+        sanitized.city || ev.city,
+        sanitized.state || ev.state,
+        ev.place_precision
+      ),
       eventType: ev.eventType as any,
       severity: ev.severity as any,
       description: `${ev.eventType} — ${ev.quadrant}`,
       verification: ev.verification as any,
+      layer: 'event' as const,
     };
   });
 }
@@ -230,8 +265,9 @@ export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
 export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
   return events.slice(0, 10).map((ev) => ({
     id: ev.id,
-    city: ev.city,
-    state: ev.state,
+    city: ev.city ?? '',
+    state: ev.state ?? '',
+    placeLabel: formatPlace(ev.city, ev.state, ev.place_precision),
     eventType: ev.eventType as any,
     severity: ev.severity as any,
     verification: ev.verification as any,
