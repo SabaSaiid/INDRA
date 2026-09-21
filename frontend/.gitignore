@@ -34,3 +34,8 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Playwright artefacts: screenshots and reports are per-run evidence, not source.
+e2e/report/
+e2e/screenshots/
+test-results/
