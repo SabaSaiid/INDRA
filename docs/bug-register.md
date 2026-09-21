@@ -1142,6 +1142,9 @@ effect both gated on it instead of on `isStyleLoaded()`. Whichever finishes last
 style or the markers — now triggers the draw.
 Verified: cold load, no interaction → **42 markers**, matching the badge. Switching to
 the India view (`setStyle`, a full style reload) → still 42.
+Test: `the map draws the pins its own badge is counting` in
+`frontend/e2e/dashboard-cold-load.spec.ts` (`3f49460`) — fails against the unfixed
+component, passes with the fix.
 
 ### BUG-044 — Four of the six KPI readings showed a red downward arrow on a flat number
 **S3** · Layer 9 · **`FIXED`** by `54ec0c6` · Found by: same screenshot · 21 Sep
@@ -1163,6 +1166,9 @@ flood.
 
 Fix: a third `isFlat` state — muted grey, no arrow, plain `0%`.
 Verified in the browser: the six deltas now read `↑100% · 0% · 0% · ↑100% · 0% · 0%`.
+Test: `a flat KPI delta is not drawn as a decline` in
+`frontend/e2e/dashboard-cold-load.spec.ts` (`3f49460`), which also rejects the
+opposite mistake of rendering `↑0%`.
 
 ### Note, not a bug — `GET /api/reports/recent` returns `[]`
 
