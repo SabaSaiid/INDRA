@@ -33,9 +33,28 @@ class VerifiedEvent(Base):
     center_point = Column(Geometry("POINT", srid=4326), nullable=True)
     boundary_polygon = Column(Geometry("POLYGON", srid=4326), nullable=True)
     verification_receipt = Column(JSONB, nullable=True)
+
+    # Where the event is, in words. NULL when the resolver declined to name the
+    # point rather than guess at it — see services/geocoding.reverse_geocode.
+    # `place_precision` says whether the centroid was inside this district or
+    # merely near it, so a caller can hedge a label when the resolver hedged.
+    district = Column(String(120), nullable=True)
+    state = Column(String(120), nullable=True)
+    place_precision = Column(String(16), nullable=True)
+
     verified_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
+    )
+    # When the event last changed, which is not when it was created: merging a
+    # report into an existing event rewrites its score and receipt. The merge
+    # window is keyed on this column because keying it on `verified_at` closed
+    # the window two hours after creation however recently the event had
+    # absorbed a report (BUG-035).
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     # Constraints
