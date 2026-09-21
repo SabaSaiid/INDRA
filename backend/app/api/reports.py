@@ -170,11 +170,11 @@ async def submit_report(
 
     # Insert into DB
     insert_query = text("""
-        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, media_url, credibility_score, analysis)
+        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, district, state, media_url, credibility_score, analysis)
         VALUES (
             :id, :source_type, :raw_text, :lat, :lng,
             ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-            :h3_cell, :media_url, :credibility, CAST(:analysis AS jsonb)
+            :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb)
         )
     """)
 
@@ -186,6 +186,11 @@ async def submit_report(
             "lat": valid_lat,
             "lng": valid_lng,
             "h3_cell": h3_cell,
+            # Resolved above and, until now, thrown away on the next line: the
+            # table had no column to put it in, so the ingest path computed a
+            # location it could not keep.
+            "district": resolved_city or None,
+            "state": resolved_state or None,
             "media_url": report.media_url,
             "credibility": credibility,
             "analysis": json.dumps(analysis) if analysis is not None else None,
