@@ -5,6 +5,7 @@ PATCH /api/profile/me — update personal info, callsign, bio, duty status
 GET /api/profile/operators — personnel roster
 """
 
+import logging
 import uuid
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -15,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import oauth2_scheme, verify_token
+
+logger = logging.getLogger("indra.api.profile")
 
 router = APIRouter(prefix="/api/profile", tags=["User Profile"])
 
@@ -35,128 +38,50 @@ class ProfileUpdate(BaseModel):
     team_role: Optional[str] = None
 
 
-# ── Demo Profiles Fallback Store ──────────────────────────────────────────────
-DEMO_PROFILES = {
-    "commander": {
-        "id": "22222222-2222-2222-2222-222222222201",
-        "username": "commander",
-        "full_name": "Rajesh K. Verma",
-        "email": "rajesh.verma@sih-indra.gov.in",
-        "phone": "+91 94311 02847",
-        "role": "COMMANDER",
-        "agency": "SEOC_BIHAR",
-        "operator_id": "OP-EOC-001",
-        "badge_number": "SEOC-PAT-091",
-        "callsign": "SEOC-DIR-01",
-        "team_name": "State Emergency Operations Centre — Bihar / NDMA",
-        "team_code": "TEAM-SEOC-01",
-        "team_role": "Operations Director",
-        "duty_status": "ON_DUTY",
-        "avatar_initials": "RV",
-        "bio": "State Emergency Operations Director coordinating multi-agency disaster response, flood mitigation, and resource dispatch across Eastern India.",
-        "verified_events_triaged": 24,
-        "audits_logged": 19,
-        "accuracy_rate": 96.8,
-        "last_active_at": "2026-09-14T20:45:00Z",
-    },
-    "admin": {
-        "id": "22222222-2222-2222-2222-222222222202",
-        "username": "admin",
-        "full_name": "Saba Saeed",
-        "email": "sabasaid826@gmail.com",
-        "phone": "+91 84347 08060",
-        "role": "ADMIN",
-        "agency": "NDMA",
-        "operator_id": "OP-ADMIN-001",
-        "badge_number": "NDMA-DIR-001",
-        "callsign": "NDMA-DIR-01",
-        "team_name": "NDMA National Aerial Reconnaissance Wing",
-        "team_code": "TEAM-NDMA-NAT01",
-        "team_role": "Platform Administrator & Team Lead",
-        "duty_status": "ON_DUTY",
-        "avatar_initials": "SS",
-        "bio": "Lead System Architect and NDMA Platform Administrator managing the INDRA national big data weather platform.",
-        "verified_events_triaged": 37,
-        "audits_logged": 42,
-        "accuracy_rate": 99.1,
-        "last_active_at": "2026-09-15T11:00:00Z",
-    },
-    "analyst": {
-        "id": "22222222-2222-2222-2222-222222222203",
-        "username": "analyst",
-        "full_name": "Dr. Vikram Sethi",
-        "email": "vikram.sethi@imd.gov.in",
-        "phone": "+91 98710 44210",
-        "role": "ANALYST",
-        "agency": "IMD",
-        "operator_id": "OP-ANL-001",
-        "badge_number": "IMD-MET-552",
-        "callsign": "RADAR-HAWK",
-        "team_name": "IMD Severe Weather Nowcasting Cell",
-        "team_code": "TEAM-IMD-NOW01",
-        "team_role": "Lead Meteorological Analyst",
-        "duty_status": "ON_DUTY",
-        "avatar_initials": "VS",
-        "bio": "IMD Nowcasting specialist focusing on Doppler weather radar echoes and cloudburst probability synthesis.",
-        "verified_events_triaged": 31,
-        "audits_logged": 28,
-        "accuracy_rate": 94.5,
-        "last_active_at": "2026-09-14T20:30:00Z",
-    },
-    "citizen": {
-        "id": "22222222-2222-2222-2222-222222222204",
-        "username": "citizen",
-        "full_name": "Meenal Sinha",
-        "email": "meenal.sinha09@gmail.com",
-        "phone": "+91 93541 18582",
-        "role": "CITIZEN",
-        "agency": "PUBLIC",
-        "operator_id": "OP-CIT-001",
-        "badge_number": "CITIZEN-REP-06",
-        "callsign": "OBSERVER-MEENAL",
-        "team_name": "Community Weather Watch Volunteers",
-        "team_code": "TEAM-COMM-VOL",
-        "team_role": "Volunteer Reporter",
-        "duty_status": "ON_DUTY",
-        "avatar_initials": "MS",
-        "bio": "Registered citizen weather observer and ground-truth volunteer contributing geotagged ground reports and flooding photos.",
-        "verified_events_triaged": 5,
-        "audits_logged": 0,
-        "accuracy_rate": 92.4,
-        "last_active_at": "2026-09-15T10:45:00Z",
-    },
-}
+# ── Operator statistics, computed ────────────────────────────────────────────
+#
+# DEMO_PROFILES and DEMO_ACTIVITIES used to live here: four invented operators
+# with invented statistics. They were returned whenever `user_profiles` had no
+# row — which was always, because nothing ever seeded it — and, worse, their
+# numbers were pasted over a real row when one did exist:
+#
+#     data["verified_events_triaged"] = role_defaults.get(..., 24)
+#     data["accuracy_rate"] = role_defaults.get(..., 96.8)
+#
+# So the operator card advertised a 96.8 % accuracy rate that no code computes.
+# Migration 0008 seeds the four accounts `core/security.py` genuinely
+# authenticates, and the statistics below are counted from the audit ledger.
 
-DEMO_ACTIVITIES = {
-    "commander": [
-        {"id": "act-c-1", "action": "Dispatched Quick Response Taskforce", "target": "WX-EV-28231827-A (Patna Urban Flood)", "time": "18 mins ago", "status": "DISPATCHED"},
-        {"id": "act-c-2", "action": "High-Confidence Triage Signed", "target": "WX-EV-77291044-B (Mumbai Coastal Surge)", "time": "2 hours ago", "status": "VERIFIED"},
-        {"id": "act-c-3", "action": "Manual Override Confirmation", "target": "SIG-10928 (River Gauge Anomaly)", "time": "5 hours ago", "status": "LOGGED"},
-        {"id": "act-c-4", "action": "Shift Roll-Call & Tactical Inspection", "target": "Patna Regional Command Base", "time": "11 hours ago", "status": "ON DUTY"},
-        {"id": "act-c-5", "action": "Evacuation Corridor Authorized", "target": "Sector 4 Embankment Zone", "time": "Yesterday", "status": "COMPLETED"},
-    ],
-    "analyst": [
-        {"id": "act-a-1", "action": "Doppler Radar Echo Cross-Validation", "target": "DWR-PAT-02 (Cloudburst Echo Cluster)", "time": "12 mins ago", "status": "VERIFIED"},
-        {"id": "act-a-2", "action": "Bayesian Prior Recalibration", "target": "AWS-BIH-104 (Rainfall Gauge Drift)", "time": "1 hour ago", "status": "COMPLETED"},
-        {"id": "act-a-3", "action": "False Alarm Signal Quarantined", "target": "SIG-99120 (Acoustic Glitch Triage)", "time": "4 hours ago", "status": "QUARANTINED"},
-        {"id": "act-a-4", "action": "Flash Flood Guidance Synthesis", "target": "South Bihar River Basins", "time": "8 hours ago", "status": "LOGGED"},
-        {"id": "act-a-5", "action": "INSAT-3DR Rapid Scan Overlay", "target": "Eastern Himalayan Frontal Cloud", "time": "Yesterday", "status": "COMPLETED"},
-    ],
-    "admin": [
-        {"id": "act-ad-1", "action": "Platform Security Audit & Integrity Check", "target": "Ledger Block #84920 (SHA-256 Validated)", "time": "8 mins ago", "status": "VERIFIED"},
-        {"id": "act-ad-2", "action": "Taskforce Deployment Roster Reallocated", "target": "TEAM-NDRF-09 & TEAM-SDRF-02", "time": "45 mins ago", "status": "COMPLETED"},
-        {"id": "act-ad-3", "action": "Activated Pan-India Multi-Hazard Gateway", "target": "NDMA Central Node 01", "time": "3 hours ago", "status": "ON DUTY"},
-        {"id": "act-ad-4", "action": "RBAC Policy Matrix Synchronized", "target": "Field Responder Clearance Tier 2", "time": "6 hours ago", "status": "LOGGED"},
-        {"id": "act-ad-5", "action": "PostgreSQL TimeScale Hypertables Reindexed", "target": "Station Readings Cluster (120M Rows)", "time": "Yesterday", "status": "COMPLETED"},
-    ],
-    "citizen": [
-        {"id": "act-ct-1", "action": "Geotagged Waterlogging Report Submitted", "target": "Kankarbagh Main Road, Patna (0.8m Depth)", "time": "25 mins ago", "status": "SUBMITTED"},
-        {"id": "act-ct-2", "action": "Local Drain Overflow Alert Logged", "target": "Ward 12 Municipal Inundation", "time": "3 hours ago", "status": "VERIFIED"},
-        {"id": "act-ct-3", "action": "Community Warning Upvoted", "target": "WX-EV-28231827-A Flash Flood Warning", "time": "5 hours ago", "status": "COMPLETED"},
-        {"id": "act-ct-4", "action": "Ground-Truth Station Reading Confirmed", "target": "Neighborhood Rain Gauge RG-04", "time": "10 hours ago", "status": "LOGGED"},
-        {"id": "act-ct-5", "action": "Evacuation Route Feedback Shared", "target": "Boring Road Relief Shelter Path", "time": "Yesterday", "status": "SUBMITTED"},
-    ],
-}
+STATS_SQL = text(
+    """
+    SELECT
+      count(*) FILTER (WHERE action_taken IN ('HUMAN_APPROVE', 'HUMAN_REJECT'))   AS triaged,
+      count(*)                                                                    AS audits
+    FROM audit_logs
+    WHERE operator_id = :operator_id
+    """
+)
+
+
+async def _operator_stats(db: AsyncSession, operator_id: Optional[str]) -> dict:
+    """
+    Real counts from the audit ledger for one operator.
+
+    `accuracy_rate` is absent on purpose. Nothing in INDRA computes whether a
+    reviewer's decision was later found correct, so any number here would be
+    invented — the same rule that keeps `station_readings.anomaly_score` NULL.
+    """
+    if not operator_id:
+        return {"verified_events_triaged": 0, "audits_logged": 0, "accuracy_rate": None}
+    try:
+        row = (await db.execute(STATS_SQL, {"operator_id": operator_id})).mappings().first()
+    except Exception:
+        return {"verified_events_triaged": 0, "audits_logged": 0, "accuracy_rate": None}
+    return {
+        "verified_events_triaged": int(row["triaged"] or 0) if row else 0,
+        "audits_logged": int(row["audits"] or 0) if row else 0,
+        "accuracy_rate": None,
+    }
 
 
 @router.get("/me")
@@ -201,19 +126,24 @@ async def get_current_user_profile(
             if data["team_id"]:
                 data["team_id"] = str(data["team_id"])
             data["avatar_initials"] = "".join(part[0] for part in data["full_name"].split()[:2]).upper()
-            role_defaults = DEMO_PROFILES.get(username, DEMO_PROFILES["commander"])
-            data["verified_events_triaged"] = role_defaults.get("verified_events_triaged", 24)
-            data["audits_logged"] = role_defaults.get("audits_logged", 19)
-            data["accuracy_rate"] = role_defaults.get("accuracy_rate", 96.8)
-            data["recent_activities"] = DEMO_ACTIVITIES.get(username, DEMO_ACTIVITIES["commander"])
+            data.update(await _operator_stats(db, data.get("operator_id")))
+            data["recent_activities"] = await _recent_activity(db, data.get("operator_id"))
             return data
-    except Exception:
-        pass
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"profile/me lookup failed for {username!r}: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable",
+        )
 
-    # Fallback to demo profile
-    profile = DEMO_PROFILES.get(username, DEMO_PROFILES["commander"]).copy()
-    profile["recent_activities"] = DEMO_ACTIVITIES.get(username, DEMO_ACTIVITIES["commander"])
-    return profile
+    # No row. There is no invented operator to return: an identity the database
+    # does not know about is not an identity.
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"No operator profile for {username!r}",
+    )
 
 
 @router.patch("/me")
@@ -272,44 +202,80 @@ async def update_profile(
     except Exception:
         pass
 
-    # Update demo in-memory fallback
-    if username in DEMO_PROFILES:
-        target = DEMO_PROFILES[username]
-        if update_data.full_name is not None:
-            target["full_name"] = update_data.full_name
-            target["avatar_initials"] = "".join(part[0] for part in update_data.full_name.split()[:2]).upper()
-        if update_data.email is not None:
-            target["email"] = update_data.email
-        if update_data.phone is not None:
-            target["phone"] = update_data.phone
-        if update_data.callsign is not None:
-            target["callsign"] = update_data.callsign
-        if update_data.agency is not None:
-            target["agency"] = update_data.agency
-        if update_data.badge_number is not None:
-            target["badge_number"] = update_data.badge_number
-        if update_data.bio is not None:
-            target["bio"] = update_data.bio
-        if update_data.duty_status is not None:
-            target["duty_status"] = update_data.duty_status.upper()
-        if update_data.team_name is not None:
-            target["team_name"] = update_data.team_name
-        if update_data.team_code is not None:
-            target["team_code"] = update_data.team_code
-        if update_data.team_role is not None:
-            target["team_role"] = update_data.team_role
-        return target
+    # No in-memory mirror. The previous version updated a DEMO_PROFILES dict and
+    # returned it, so a failed UPDATE still answered 200 with the edit applied --
+    # the operator saw their change saved when nothing had been written.
+    return await get_current_user_profile(token=token, user=username, db=db)
 
-    return {"status": "success", "username": username}
+
+ACTIVITY_SQL = text(
+    """
+    SELECT seq, action_taken, reason, details, logged_at, event_id
+    FROM audit_logs
+    WHERE operator_id = :operator_id
+    ORDER BY logged_at DESC
+    LIMIT :limit
+    """
+)
+
+
+async def _recent_activity(db: AsyncSession, operator_id: Optional[str], limit: int = 20) -> List[dict]:
+    """
+    The operator's real actions, read from the hash-chained audit ledger.
+
+    This replaces a hardcoded list of invented "tactical actions". The ledger is
+    the right source precisely because it is the record the platform already
+    treats as authoritative: every HUMAN_APPROVE, HUMAN_REJECT and
+    MANUAL_OVERRIDE is written there by the review endpoint, hash-chained to its
+    predecessor. An empty list means this operator has reviewed nothing yet,
+    which is true of every operator on a fresh stack.
+    """
+    if not operator_id:
+        return []
+    try:
+        rows = (
+            await db.execute(ACTIVITY_SQL, {"operator_id": operator_id, "limit": limit})
+        ).mappings().all()
+    except Exception as e:
+        logger.warning(f"activity lookup failed for {operator_id!r}: {type(e).__name__}: {e}")
+        return []
+
+    return [
+        {
+            "id": str(r["seq"]),
+            "action": r["action_taken"],
+            "target": str(r["event_id"]) if r["event_id"] else "—",
+            "reason": r["reason"],
+            "timestamp": r["logged_at"].isoformat() if r["logged_at"] else None,
+        }
+        for r in rows
+    ]
 
 
 @router.get("/activity")
 async def get_operator_activity(
     user: Optional[str] = Query("commander"),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Return immutable tactical action ledger for specified operator persona."""
+    """The operator's audit-ledger actions. Empty until they review something."""
     username = user or "commander"
-    return DEMO_ACTIVITIES.get(username, DEMO_ACTIVITIES["commander"])
+    try:
+        row = (
+            await db.execute(
+                text("SELECT operator_id FROM user_profiles WHERE username = :u"),
+                {"u": username},
+            )
+        ).mappings().first()
+    except Exception as e:
+        logger.warning(f"activity profile lookup failed: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable"
+        )
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"No operator profile for {username!r}"
+        )
+    return await _recent_activity(db, row["operator_id"])
 
 
 @router.get("/operators")
@@ -325,13 +291,13 @@ async def list_operators(
                 ORDER BY role ASC, full_name ASC
             """)
         )
-        rows = res.mappings().all()
-        if rows:
-            return [dict(r) for r in rows]
-    except Exception:
-        pass
-
-    return list(DEMO_PROFILES.values())
+        # An empty roster is a real answer, not a reason to invent personnel.
+        return [dict(r) for r in res.mappings().all()]
+    except Exception as e:
+        logger.warning(f"operator roster lookup failed: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable"
+        )
 
 
 # ── Operator Platform Preferences Store ───────────────────────────────────────
