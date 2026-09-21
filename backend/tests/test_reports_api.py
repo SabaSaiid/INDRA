@@ -331,3 +331,38 @@ async def test_analysis_never_modifies_raw_text(api, session):
     analysis = _stored_analysis(session)
     assert analysis["cleaned_text"] != messy
     assert "<URL>" in analysis["cleaned_text"]
+
+
+class TestIngestStoresTheLocation:
+    """
+    BUG-033: the ingest path resolved a location and discarded it on the very
+    next line, because raw_reports had no column to put it in. The field-
+    reports map layer needs it, and the resolved name was a dead variable for
+    the whole life of the endpoint.
+    """
+
+    async def test_a_report_with_gps_is_stored_with_its_district(self, api, session):
+        response = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+        assert response.status_code == 202
+
+        stored = session.inserts[0]
+        assert stored["district"] == "Patna"
+        assert stored["state"] == "Bihar"
+
+    async def test_a_report_we_cannot_place_stores_null_not_a_placeholder(
+        self, api, session, monkeypatch
+    ):
+        """
+        NULL, never "Unknown" and never "India Node". A name the database does
+        not have must stay absent so the map can say so.
+        """
+        monkeypatch.setattr(
+            "app.api.reports.sanitize_coordinates",
+            lambda *a, **k: (25.5941, 85.1376, "", ""),
+        )
+        response = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+        assert response.status_code == 202
+
+        stored = session.inserts[0]
+        assert stored["district"] is None
+        assert stored["state"] is None

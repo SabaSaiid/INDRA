@@ -541,3 +541,127 @@ async def test_redelivered_duplicate_is_skipped(db):
     first = await duplicate_of(db, dupe)
     assert await process_report(db, {"id": str(dupe)}) is None
     assert await duplicate_of(db, dupe) == first
+
+
+async def test_an_event_that_keeps_absorbing_reports_keeps_its_merge_window_open(db):
+    """
+    BUG-035: the merge window used to be measured from `verified_at`.
+
+    `verified_at` is an insert-time default that means "created", and the
+    merge branch rewrites an event's score, severity and receipt without ever
+    touching it. So an event closed to new reports MERGE_WINDOW_MINUTES after
+    it was born, however recently it had absorbed one — an ongoing flood
+    stopped accepting corroboration while it was still flooding.
+
+    This is what it cost on the live database: a report 50 metres from the
+    event's centroid, against a spatial gate of 5.5 km, arrived 7 h 49 m late
+    and was dropped. Three further reports then deduped against *it* and were
+    suppressed, so four of nine reports contributed nothing at all.
+
+    The setup pushes `verified_at` far into the past while leaving
+    `updated_at` recent. Under the old rule the late report is refused; under
+    the new one it merges.
+    """
+    for lat, lng, body in CLUSTER_TEXTS[:2]:
+        rid = await insert_report(db, lat, lng, body)
+        await process_report(db, {"id": str(rid)})
+
+    assert await event_count(db) == 1
+    before = (
+        await db.execute(text("SELECT id, confidence_score FROM verified_events"))
+    ).fetchone()
+
+    # Age the creation timestamp well past the window; leave updated_at now.
+    await db.execute(
+        text("""
+            UPDATE verified_events
+            SET verified_at = NOW() - INTERVAL '8 hours',
+                updated_at  = NOW() - INTERVAL '5 minutes'
+        """)
+    )
+    await db.commit()
+
+    late = await insert_report(
+        db, 25.5942, 85.1377, "Water still rising outside the shop, now waist deep"
+    )
+    result = await process_report(db, {"id": str(late)})
+
+    assert result is not None, "a late report near a live event must not be dropped"
+    assert await event_count(db) == 1, "it must merge, not start a rival event"
+
+    linked = (
+        await db.execute(
+            text("SELECT event_id FROM raw_reports WHERE id = CAST(:id AS uuid)"),
+            {"id": str(late)},
+        )
+    ).scalar()
+    assert linked is not None, "the late report must be linked to the event"
+    assert str(linked) == str(before[0])
+
+
+async def test_merging_moves_updated_at_but_leaves_verified_at_alone(db):
+    """
+    The two timestamps mean different things and must keep meaning them.
+
+    `verified_at` is when the event was created; the API's time filters and
+    the KPI deltas all key on it, so a merge must not slide an old event
+    forward into the last-24h window. `updated_at` is when it last changed,
+    which is what the merge window needs.
+    """
+    first = await insert_report(db, *CLUSTER_TEXTS[0][:2], CLUSTER_TEXTS[0][2])
+    await process_report(db, {"id": str(first)})
+    second = await insert_report(db, *CLUSTER_TEXTS[1][:2], CLUSTER_TEXTS[1][2])
+    await process_report(db, {"id": str(second)})
+
+    created, updated = (
+        await db.execute(text("SELECT verified_at, updated_at FROM verified_events"))
+    ).fetchone()
+
+    await db.execute(
+        text("UPDATE verified_events SET verified_at = NOW() - INTERVAL '30 minutes'")
+    )
+    await db.commit()
+    pinned = (
+        await db.execute(text("SELECT verified_at FROM verified_events"))
+    ).scalar()
+
+    third = await insert_report(db, *CLUSTER_TEXTS[2][:2], CLUSTER_TEXTS[2][2])
+    await process_report(db, {"id": str(third)})
+
+    after_created, after_updated = (
+        await db.execute(text("SELECT verified_at, updated_at FROM verified_events"))
+    ).fetchone()
+
+    assert after_created == pinned, "a merge must not move the creation time"
+    assert after_updated > updated, "a merge must move the last-changed time"
+
+
+async def test_an_event_records_where_it_is(db):
+    """
+    BUG-033: events carried coordinates and no name, and the API filled the
+    gap with the string "Unknown" from a receipt key nothing ever wrote.
+    """
+    for lat, lng, body in CLUSTER_TEXTS[:2]:
+        rid = await insert_report(db, lat, lng, body)
+        await process_report(db, {"id": str(rid)})
+
+    district, state, precision, receipt = (
+        await db.execute(
+            text("""
+                SELECT district, state, place_precision, verification_receipt
+                FROM verified_events
+            """)
+        )
+    ).fetchone()
+
+    assert (district, state) == ("Patna", "Bihar")
+    assert precision == "district"
+
+    # The receipt records how the name was reached, not just what it is.
+    assert receipt["location"]["district"] == "Patna"
+    assert receipt["location"]["precision"] == "district"
+    assert receipt["location"]["basis"]
+
+    # And it must not have leaked into provenance, which test_scoring_
+    # determinism pins key-for-key as the record of which factors ran.
+    assert "location" not in receipt["provenance"]
