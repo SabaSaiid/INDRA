@@ -27,6 +27,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.services.geocoding import locate_area_description, place_point
 
 logger = logging.getLogger("indra.api.alerts")
 
@@ -52,6 +53,45 @@ LIST_SQL = """
     ORDER BY COALESCE(sent_at, fetched_at) DESC
     LIMIT :limit
 """
+
+
+def _locate(area_desc) -> dict:
+    """
+    Map coordinates for an alert, from the only location it actually carries.
+
+    None of the stored alerts has a geometry — NDMA answers 403 on the CAP
+    polygon endpoint — and their `district_codes` are LGD codes, a vocabulary
+    the district gazetteer does not speak. What every alert does carry is an
+    `area_desc` in prose, so that is what gets resolved.
+
+    `lat`/`lng` are null when nothing resolves, which is the right answer for
+    the mandal-level scopes the state SDMAs issue: a mandal pinned to a
+    district centroid is a warning drawn in the wrong place. Across the live
+    corpus 98 of 116 descriptions resolve, 35 of them only to a state, and
+    `location_precision` says which is which so the map can draw a state-wide
+    warning differently from a located one.
+    """
+    places = locate_area_description(area_desc)
+    if not places:
+        return {
+            "lat": None,
+            "lng": None,
+            "location_label": None,
+            "location_precision": None,
+            "districts_matched": 0,
+        }
+
+    first = places[0]
+    point = place_point(first)
+    return {
+        "lat": point[0] if point else None,
+        "lng": point[1] if point else None,
+        "location_label": first.label,
+        "location_precision": first.precision,
+        # A CAP alert routinely covers several districts. The marker sits on
+        # the first; this number stops that being read as the whole scope.
+        "districts_matched": len(places),
+    }
 
 
 @router.get("/agency")
@@ -114,6 +154,7 @@ async def list_agency_alerts(
             "headline": r["headline"],
             "area_desc": r["area_desc"],
             "district_codes": r["district_codes"],
+            **_locate(r["area_desc"]),
             "effective_at": r["effective_at"].isoformat() if r["effective_at"] else None,
             "expires_at": r["expires_at"].isoformat() if r["expires_at"] else None,
             "sent_at": r["sent_at"].isoformat() if r["sent_at"] else None,

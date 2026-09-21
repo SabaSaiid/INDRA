@@ -41,6 +41,7 @@ from app.services import audit
 from app.services.dedup import DedupService
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
+from app.services.geocoding import reverse_geocode
 from app.services.text_processing import extract_metadata
 from app.services.weather import rainfall_to_score, weather_score
 
@@ -463,13 +464,22 @@ async def _find_mergeable_event(
     cluster that DBSCAN would have merged had all the reports arrived together
     is merged after the fact too. Rejected events are excluded — an operator
     dismissing an event must not have it silently resurrected.
+
+    The window is measured from `updated_at`, not `verified_at`. `verified_at`
+    is an insert-time default that means "created", and merging into an event
+    rewrites its score and receipt without touching it, so keying the window
+    there closed an event to new reports two hours after it was born however
+    recently it had absorbed one. That is how a report 50 m from a live
+    event's centroid came to be dropped (BUG-035): an ongoing flood stops
+    accepting corroboration while it is still flooding.
     """
     row = (
         await db.execute(
             text("""
                 SELECT id, event_code
                 FROM verified_events
-                WHERE verified_at > NOW() - make_interval(mins => CAST(:window AS int))
+                WHERE COALESCE(updated_at, verified_at)
+                          > NOW() - make_interval(mins => CAST(:window AS int))
                   AND review_status <> 'REJECTED'
                   AND center_point IS NOT NULL
                   AND ST_DWithin(
@@ -902,6 +912,18 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             if human_review:
                 receipt["human_review"] = human_review
 
+        # Name the centroid. This goes in its own receipt block rather than
+        # into `provenance`, which test_scoring_determinism pins key-for-key
+        # because it is the record of which factors ran.
+        place = reverse_geocode(stats["centroid_lat"], stats["centroid_lng"])
+        receipt["location"] = {
+            "district": place.district if place else None,
+            "state": place.state if place else None,
+            "precision": place.precision if place else "unresolved",
+            "distance_km": place.distance_km if place else None,
+            "basis": "nearest district in data/geo/india_districts.csv",
+        }
+
         common = {
             "id": str(event_id),
             "sev": severity.value,
@@ -912,6 +934,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             "lat": stats["centroid_lat"],
             "lng": stats["centroid_lng"],
             "receipt": json.dumps(receipt),
+            # Resolved from the centroid the event is actually being stored at,
+            # so the name and the point can never disagree. None when the
+            # resolver declines, which leaves the columns NULL rather than
+            # asserting a place we could not identify.
+            "district": place.district if place else None,
+            "state": place.state if place else None,
+            "precision": place.precision if place else None,
         }
 
         if existing is not None:
@@ -924,7 +953,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                         quadrant = CAST(:quad AS quadrant_enum),
                         impact_radius_km = :radius,
                         center_point = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-                        verification_receipt = CAST(:receipt AS jsonb)
+                        verification_receipt = CAST(:receipt AS jsonb),
+                        district = :district,
+                        state = :state,
+                        place_precision = :precision,
+                        -- Without this the merge window is keyed on creation
+                        -- time and an active event stops accepting reports.
+                        updated_at = NOW()
                     WHERE id = CAST(:id AS uuid)
                 """),
                 common,
@@ -937,7 +972,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     INSERT INTO verified_events
                         (id, event_code, event_type, severity, confidence_score,
                          review_status, quadrant, impact_radius_km, center_point,
-                         verification_receipt)
+                         verification_receipt, district, state, place_precision,
+                         updated_at)
                     VALUES
                         (CAST(:id AS uuid), :code,
                          CAST(:etype AS event_type_enum),
@@ -947,7 +983,9 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                          CAST(:quad AS quadrant_enum),
                          :radius,
                          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-                         CAST(:receipt AS jsonb))
+                         CAST(:receipt AS jsonb),
+                         :district, :state, :precision,
+                         NOW())
                 """),
                 {**common, "code": event_code, "etype": EventType.URBAN_FLOOD.value},
             )

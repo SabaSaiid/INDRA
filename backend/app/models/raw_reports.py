@@ -33,6 +33,10 @@ class RawReport(Base):
     longitude = Column(Float, nullable=False)
     geom_point = Column(Geometry("POINT", srid=4326), nullable=True)
     h3_res8 = Column(String(20), nullable=True)
+    # Resolved from the report's own coordinates at ingest. NULL when the
+    # resolver declined to name the point — see services/geocoding.
+    district = Column(String(120), nullable=True)
+    state = Column(String(120), nullable=True)
     media_url = Column(String(512), nullable=True)
     credibility_score = Column(Float, nullable=False, default=0.5)
     event_id = Column(

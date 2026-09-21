@@ -161,16 +161,18 @@ export interface SanitizeIncidentOptions {
 export function sanitizeIncidentCoordinate(
   inputLatOrOpts: number | null | undefined | SanitizeIncidentOptions,
   inputLng?: number | null | undefined,
-  cityHint?: string,
-  stateHint?: string,
-  textHint?: string,
+  // Nullable because the backend now sends null for a point it could not
+  // place, rather than the string "Unknown" it used to send.
+  cityHint?: string | null,
+  stateHint?: string | null,
+  textHint?: string | null,
   incidentIndex = 0
 ): { lat: number; lng: number; isResolved: boolean; city: string; state: string } {
   let lat: number;
   let lng: number;
-  let city: string | undefined;
-  let state: string | undefined;
-  let text: string | undefined;
+  let city: string | undefined | null;
+  let state: string | undefined | null;
+  let text: string | undefined | null;
   let idx = 0;
 
   if (typeof inputLatOrOpts === 'object' && inputLatOrOpts !== null) {
@@ -196,13 +198,23 @@ export function sanitizeIncidentCoordinate(
     lng = temp;
   }
 
-  // If already strictly valid within India
+  // If already strictly valid within India, the backend's name is the answer.
+  //
+  // This used to return `city || 'India Node'`. The backend was sending the
+  // literal string "Unknown", which is truthy, so it flowed straight through
+  // and became the map label — and because this branch returns early, the
+  // client gazetteer below was never even consulted. The backend now resolves
+  // the district from the coordinates against a 737-district table and sends
+  // null when it genuinely cannot place a point, so an empty name here means
+  // "not resolvable", not "not looked up". Inventing one would be worse than
+  // leaving it blank: the caller can render "Location unresolved" and be
+  // honest, and it cannot do that if we hand it a plausible-looking name.
   if (isCoordinateWithinIndia(lat, lng)) {
     return {
       lat,
       lng,
       isResolved: false,
-      city: city || 'India Node',
+      city: city || '',
       state: state || '',
     };
   }
@@ -239,9 +251,9 @@ export function sanitizeIncidentCoordinate(
  * Searches the Indian Gazetteer for any city/district name found in the inputs.
  */
 export function resolveLocationFromText(
-  cityHint?: string,
-  stateHint?: string,
-  textHint?: string
+  cityHint?: string | null,
+  stateHint?: string | null,
+  textHint?: string | null
 ): GeoLocation | null {
   const candidates = [cityHint, stateHint, textHint].filter(Boolean) as string[];
   const normalizedString = candidates.join(' ').toLowerCase();

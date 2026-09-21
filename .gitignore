@@ -95,3 +95,6 @@ logs/
 .run/
 scratch/
 tmp/
+
+# Boundary polygons downloaded by scripts/build_gazetteer.py; only the derived CSV is committed
+.gazetteer-cache/

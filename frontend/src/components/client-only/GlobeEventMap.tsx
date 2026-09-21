@@ -8,7 +8,15 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardHeader } from '@/components/ui/card';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { severityConfig, type MapMarker } from '@/lib/ui-config';
-import { fetchEvents, apiEventsToMapMarkers } from '@/lib/api';
+import {
+  fetchEvents,
+  apiEventsToMapMarkers,
+  fetchAgencyAlerts,
+  agencyAlertsToMapMarkers,
+  fetchFieldReports,
+  fieldReportsToMapMarkers,
+} from '@/lib/api';
+import type { MapLayer } from '@/lib/ui-config';
 import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
 import {
@@ -247,6 +255,43 @@ const ndrfBasesGeoJSON: GeoJSON.FeatureCollection = {
   ],
 };
 
+/**
+ * The three kinds of live data this map draws, and how each is marked.
+ *
+ * The glyphs match the pin shapes: a filled circle is a fused, scored event;
+ * a diamond is an official agency warning from SACHET; a hollow circle is a
+ * raw citizen report that has not been clustered or corroborated.
+ */
+const LAYER_CHIPS: {
+  layer: MapLayer;
+  label: string;
+  glyph: string;
+  title: string;
+  onClass: string;
+}[] = [
+  {
+    layer: 'event',
+    label: 'Events',
+    glyph: '\u25CF',
+    title: 'Fused, scored events produced by the verification pipeline',
+    onClass: 'bg-rose-50 text-rose-700 border-rose-200',
+  },
+  {
+    layer: 'alert',
+    label: 'Agency',
+    glyph: '\u25C6',
+    title: 'Live CAP warnings from SACHET — IMD, CWC and state SDMAs',
+    onClass: 'bg-violet-50 text-violet-700 border-violet-200',
+  },
+  {
+    layer: 'report',
+    label: 'Field',
+    glyph: '\u25CB',
+    title: 'Citizen reports not yet fused into an event — unverified',
+    onClass: 'bg-slate-50 text-slate-700 border-slate-300',
+  },
+];
+
 export default function GlobeEventMap({
   selectedEventId,
   onEventSelect,
@@ -273,11 +318,33 @@ export default function GlobeEventMap({
   // cities that had reported nothing.
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [markersError, setMarkersError] = useState<unknown>(null);
+  // Three sources of live data, three layers, each toggleable and each drawn
+  // differently. The map used to show fused events only — one pin — while 112
+  // real agency warnings and every unfused citizen report sat in the database
+  // with nowhere to appear (BUG-037).
+  const [visibleLayers, setVisibleLayers] = useState<Record<MapLayer, boolean>>({
+    event: true,
+    alert: true,
+    report: true,
+  });
+  const [refreshTick, setRefreshTick] = useState(0);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoOrbiting, setIsAutoOrbiting] = useState(false);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const [smartDeclutter, setSmartDeclutter] = useState(true);
+
+  // True once the map's style has finished loading and layers may be touched.
+  //
+  // This is deliberately React state and not a `map.isStyleLoaded()` call.
+  // MapLibre keeps reporting `isStyleLoaded() === false` while sprites, glyphs
+  // and the first tiles are still in flight, which is long after the one-shot
+  // `load` event has already fired. Any code that reads `isStyleLoaded()` to
+  // decide whether to draw therefore loses a race it cannot win: it sees
+  // `false`, waits for a `load` that will never come a second time, and gives
+  // up silently. Holding the answer in state instead re-runs the effects that
+  // depend on it at the moment the style really is ready.
+  const [styleReady, setStyleReady] = useState(false);
 
   // Layer toggles
   const [showEventsLayer, setShowEventsLayer] = useState(true);
@@ -317,28 +384,78 @@ export default function GlobeEventMap({
     }
   }, []);
 
-  // Fetch live events
+  // Fetch all three live layers.
+  //
+  // allSettled, not all: a failure in any one layer must not blank the other
+  // two. The events layer is the only one whose failure is surfaced as an
+  // error, because an empty alert or report layer is a normal state and an
+  // empty event layer on a working stack is not.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const events = await fetchEvents({ time_range: timeRange });
-        // An empty map is the correct picture of an empty database.
-        if (!cancelled) {
-          setMarkers(apiEventsToMapMarkers(events));
-          setMarkersError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setMarkers([]);
-          setMarkersError(err);
-        }
+      const [events, alerts, reports] = await Promise.allSettled([
+        fetchEvents({ time_range: timeRange }),
+        fetchAgencyAlerts(200),
+        fetchFieldReports(200, 72),
+      ]);
+
+      if (cancelled) return;
+
+      const next: MapMarker[] = [];
+      if (events.status === 'fulfilled') {
+        next.push(...apiEventsToMapMarkers(events.value));
+        setMarkersError(null);
+      } else {
+        setMarkersError(events.reason);
       }
+      if (alerts.status === 'fulfilled') {
+        next.push(...agencyAlertsToMapMarkers(alerts.value));
+      }
+      if (reports.status === 'fulfilled') {
+        next.push(...fieldReportsToMapMarkers(reports.value));
+      }
+
+      // An empty map is the correct picture of an empty database.
+      setMarkers(next);
     })();
     return () => {
       cancelled = true;
     };
-  }, [timeRange]);
+  }, [timeRange, refreshTick]);
+
+  // A verified event finishing the pipeline is the one moment this map is
+  // certainly stale. The backend has broadcast VERIFIED_EVENT since Day 1 and
+  // nothing in the frontend has ever listened for it (BUG-036).
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    const wsUrl = base.replace(/^http/, 'ws');
+    let socket: WebSocket | null = null;
+
+    try {
+      socket = new WebSocket(`${wsUrl}/ws/events`);
+      socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT') {
+            setRefreshTick((t) => t + 1);
+          }
+        } catch {
+          // A malformed frame is not a reason to tear down the socket.
+        }
+      };
+    } catch {
+      // No live socket simply means the map refreshes on its own controls.
+    }
+
+    return () => {
+      socket?.close();
+    };
+  }, []);
+
+  const markersForDisplay = React.useMemo(
+    () => markers.filter((m) => visibleLayers[m.layer ?? 'event']),
+    [markers, visibleLayers]
+  );
 
   // Select an incident
   const handleSelectIncident = useCallback(
@@ -493,7 +610,7 @@ export default function GlobeEventMap({
     const isDetailZoom = zoom >= 6.2;
 
     // 1. Process and sanitize all marker coordinates
-    const sanitizedMarkers = markers.map((m) => {
+    const sanitizedMarkers = markersForDisplay.map((m) => {
       const coords = sanitizeIncidentCoordinate({
         lat: m.lat,
         lng: m.lng,
@@ -803,12 +920,28 @@ export default function GlobeEventMap({
             innerEl.appendChild(pulse);
           }
 
+          // Shape carries the layer, not just colour: colour already encodes
+          // severity here, and an operator must be able to tell a scored event
+          // from an unreviewed citizen report at a glance, in greyscale, on a
+          // projector. A filled circle is a fused event, a diamond an official
+          // agency warning, a hollow circle a raw report.
+          const layer = marker.layer ?? 'event';
           const pinHead = document.createElement('div');
           pinHead.style.width = `${headSize}px`;
           pinHead.style.height = `${headSize}px`;
-          pinHead.style.borderRadius = '50%';
-          pinHead.style.backgroundColor = color;
-          pinHead.style.border = isSelected ? '2.5px solid #38bdf8' : '2px solid #ffffff';
+          pinHead.style.borderRadius = layer === 'report' ? '50%' : layer === 'alert' ? '14%' : '50%';
+          if (layer === 'alert') {
+            pinHead.style.transform = 'rotate(45deg)';
+          }
+          // A raw report is drawn hollow. It has not been corroborated or
+          // scored, and a solid pin would read as a finding.
+          pinHead.style.backgroundColor = layer === 'report' ? 'transparent' : color;
+          pinHead.style.border =
+            isSelected
+              ? '2.5px solid #38bdf8'
+              : layer === 'report'
+                ? `2px dashed ${color}`
+                : '2px solid #ffffff';
           pinHead.style.boxShadow = isSelected
             ? '0 0 16px #38bdf8, 0 4px 12px rgba(0,0,0,0.6)'
             : `0 3px 10px rgba(0,0,0,0.5), 0 0 10px ${color}90`;
@@ -818,7 +951,10 @@ export default function GlobeEventMap({
           pinHead.style.fontSize = `${fontSize}px`;
           pinHead.style.position = 'relative';
           pinHead.style.zIndex = '2';
-          pinHead.innerHTML = `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
+          pinHead.innerHTML =
+            layer === 'alert'
+              ? `<span style="transform:rotate(-45deg) translateY(-0.5px);">${emoji}</span>`
+              : `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
           innerEl.appendChild(pinHead);
 
           // City Pill (with smart collision suppression)
@@ -826,7 +962,7 @@ export default function GlobeEventMap({
           cityPill.className = item.hideLabel ? 'indra-city-pill indra-city-pill-hidden' : 'indra-city-pill';
           cityPill.style.color = isSelected ? '#38bdf8' : '#f8fafc';
           cityPill.style.border = isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.25)';
-          cityPill.innerText = marker.city;
+          cityPill.innerText = marker.placeLabel || marker.city || 'Location unresolved';
           innerEl.appendChild(cityPill);
         }
 
@@ -848,7 +984,7 @@ export default function GlobeEventMap({
             <span class="hud-time">${marker.timeAgo || 'Active'}</span>
           </div>
           <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
-          <div class="hud-location">📍 ${marker.city}, ${marker.state}</div>
+          <div class="hud-location">📍 ${marker.placeLabel || [marker.city, marker.state].filter(Boolean).join(', ') || 'Location unresolved'}</div>
           ${marker.action ? `<div class="hud-action">⚡ ${marker.action}</div>` : ''}
         `;
         innerEl.appendChild(tooltip);
@@ -887,7 +1023,7 @@ export default function GlobeEventMap({
     });
 
     updateMarkerOcclusion(map, isGlobeRef.current);
-  }, [markers, selectedMarker, handleSelectIncident, updateMarkerOcclusion, showEventsLayer, smartDeclutter]);
+  }, [markersForDisplay, selectedMarker, handleSelectIncident, updateMarkerOcclusion, showEventsLayer, smartDeclutter]);
 
   useEffect(() => {
     renderProminentPinsRef.current = renderProminentPins;
@@ -920,6 +1056,9 @@ export default function GlobeEventMap({
       } catch (err) {
         console.error('[INDRA] onStyleReady error:', err);
       }
+      // Announce readiness even if the block above threw, so that a failure to
+      // set the projection cannot also cost us every pin on the map.
+      setStyleReady(true);
     };
 
     if (map.isStyleLoaded()) {
@@ -994,17 +1133,32 @@ export default function GlobeEventMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
-  // Re-render pins when markers, globe mode, smart declutter, or selection changes
+  // Re-render pins when markers, globe mode, smart declutter, or selection changes.
+  //
+  // This used to read `mapRef.current.isStyleLoaded()` and bail out when it was
+  // false, and nothing ever brought it back. The map's own `load` handler could
+  // not cover for it either: it runs once, at which point the markers have not
+  // arrived, so it drew an empty map and the real markers — which land about
+  // 50 ms later, while the style still reports itself unloaded — were never
+  // drawn at all. The console opened claiming "41 Incidents" and showed none of
+  // them, and the pins appeared only once the operator happened to touch a
+  // control, which re-ran this effect at a point where the style finally
+  // admitted it was loaded.
+  //
+  // Depending on `styleReady` instead makes the arrival of the style a render
+  // that React schedules, so whichever of the two finishes last — the style or
+  // the markers — is the one that triggers the draw.
   useEffect(() => {
-    if (mapRef.current && mapRef.current.isStyleLoaded()) {
-      renderProminentPins();
-    }
-  }, [markers, selectedMarker, smartDeclutter, renderProminentPins]);
+    if (!mapRef.current || !styleReady) return;
+    renderProminentPins();
+  }, [markersForDisplay, selectedMarker, smartDeclutter, renderProminentPins, styleReady]);
 
-  // Layer visibility toggles
+  // Layer visibility toggles — gated on `styleReady` for the same reason as the
+  // pins above: `isStyleLoaded()` reports false for long enough after `load`
+  // that a toggle flipped early would be dropped without a trace.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map || !styleReady) return;
 
     if (map.getLayer('cyclone-outer-glow')) {
       map.setLayoutProperty('cyclone-outer-glow', 'visibility', showCycloneLayer ? 'visible' : 'none');
@@ -1017,7 +1171,7 @@ export default function GlobeEventMap({
     }
 
     updateMarkerOcclusion(map, isGlobeRef.current);
-  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, updateMarkerOcclusion]);
+  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, updateMarkerOcclusion, styleReady]);
 
   // Switch basemap style
   const handleBasemapChange = (newBasemap: BasemapMode) => {
@@ -1148,10 +1302,10 @@ export default function GlobeEventMap({
               {variant === 'preview' ? 'Tactical Geospatial Grid' : '3D Weather Intelligence Grid'}
             </span>
             {/* Active incident count pill */}
-            {markers.filter(m => m.severity === 'critical' || m.severity === 'high').length > 0 && (
+            {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length > 0 && (
               <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
-                {markers.filter(m => m.severity === 'critical' || m.severity === 'high').length} Active
+                {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length} Active
               </span>
             )}
           </div>
@@ -1269,7 +1423,7 @@ export default function GlobeEventMap({
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                 Active Incidents:
               </span>
-              {markers
+              {markersForDisplay
                 .filter((m) => m.severity === 'critical' || m.severity === 'high')
                 .slice(0, 3)
                 .map((marker) => {
@@ -1310,8 +1464,40 @@ export default function GlobeEventMap({
               title="Toggle Severe Alerts layer"
             >
               <AlertTriangle className="w-3 h-3" />
-              <span>Alerts ({markers.length})</span>
+              <span>Alerts ({markersForDisplay.length})</span>
             </button>
+
+            {/*
+              The three live data layers. Each count is what is actually in the
+              database, and each layer draws a different shape, so a raw citizen
+              report can never be mistaken for a scored event.
+            */}
+            {LAYER_CHIPS.map((chip) => {
+              const count = markers.filter(
+                (m) => (m.layer ?? 'event') === chip.layer
+              ).length;
+              const on = visibleLayers[chip.layer];
+              return (
+                <button
+                  key={chip.layer}
+                  onClick={() =>
+                    setVisibleLayers((prev) => ({ ...prev, [chip.layer]: !prev[chip.layer] }))
+                  }
+                  className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-all flex items-center gap-1 ${
+                    on
+                      ? `${chip.onClass} font-semibold`
+                      : 'bg-white text-slate-400 border-slate-200'
+                  }`}
+                  title={chip.title}
+                  aria-pressed={on}
+                >
+                  <span aria-hidden>{chip.glyph}</span>
+                  <span>
+                    {chip.label} ({count})
+                  </span>
+                </button>
+              );
+            })}
             <button
               onClick={() => setShowCycloneLayer(!showCycloneLayer)}
               className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-all flex items-center gap-1 ${
@@ -1506,7 +1692,7 @@ export default function GlobeEventMap({
                 title="Open Live Incidents Roster"
               >
                 <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                <span className="font-semibold">{markers.length} Incidents</span>
+                <span className="font-semibold">{markersForDisplay.length} Incidents</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
               </button>
             ) : (
@@ -1523,7 +1709,7 @@ export default function GlobeEventMap({
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                      {markers.length} PINS
+                      {markersForDisplay.length} PINS
                     </span>
                     <button
                       onClick={() => setIsRosterOpen(false)}
@@ -1536,7 +1722,7 @@ export default function GlobeEventMap({
                 </div>
 
                 <div className="space-y-1.5 overflow-y-auto custom-scrollbar pr-1 flex-1">
-                  {markers.map((marker) => {
+                  {markersForDisplay.map((marker) => {
                     const isSelected = selectedMarker?.id === marker.id;
                     const color = severityColors[marker.severity] || '#64748B';
                     const emoji = eventTypeEmojis[marker.eventType] || '⚠️';

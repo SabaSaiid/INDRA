@@ -255,7 +255,8 @@ async def list_events(
             id, event_code, event_type, severity, confidence_score,
             review_status, quadrant, impact_radius_km,
             ST_Y(center_point) as lat, ST_X(center_point) as lng,
-            verification_receipt, verified_at
+            verification_receipt, verified_at,
+            district, state, place_precision
         FROM verified_events
         WHERE {where_clause}
         ORDER BY verified_at DESC
@@ -275,8 +276,13 @@ async def list_events(
                 review_raw = row[5]
 
                 receipt = row[10] or {}
-                city = receipt.get("city", "Unknown")
-                state = receipt.get("state", "")
+                # Was receipt.get("city", "Unknown") — read from a receipt key
+                # only the synthetic seeder ever wrote, so every real event
+                # was served as "Unknown". These are columns now, and a name
+                # we do not have is null rather than a word that looks like one.
+                city = row[12]
+                state = row[13]
+                place_precision = row[14]
 
                 events.append({
                     "id": str(row[0]),
@@ -292,6 +298,7 @@ async def list_events(
                     "lng": row[9],
                     "city": city,
                     "state": state,
+                    "place_precision": place_precision,
                     "imageGradient": IMAGE_GRADIENTS.get(event_type_raw, "linear-gradient(135deg, #64748B, #334155)"),
                     "verified_at": row[11].isoformat() if row[11] else None,
                     "timestamp": row[11].isoformat() if row[11] else None,
@@ -421,7 +428,8 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
             review_status, quadrant, impact_radius_km,
             ST_Y(center_point) as lat, ST_X(center_point) as lng,
             ST_AsGeoJSON(boundary_polygon) as boundary_geojson,
-            verification_receipt, verified_at
+            verification_receipt, verified_at,
+            district, state, place_precision
         FROM verified_events
         WHERE event_code = :event_code
            OR id = CAST(:event_uuid AS uuid)
@@ -459,8 +467,10 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
                 "boundary_geojson": row[10],
                 "verification_receipt": receipt,
                 "verified_at": row[12].isoformat() if row[12] else None,
-                "city": receipt.get("city", "Unknown"),
-                "state": receipt.get("state", ""),
+                # Columns, not a receipt key the pipeline never wrote.
+                "city": row[13],
+                "state": row[14],
+                "place_precision": row[15],
             }
     except Exception as e:
         logger.warning(f"Database query failed in get_event_detail: {e}")

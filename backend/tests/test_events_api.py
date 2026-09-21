@@ -142,3 +142,64 @@ async def test_events_list_returns_the_real_row(api, seeded_event):
     assert events[0]["event_code"] == event_code
     assert events[0]["lat"] == pytest.approx(25.5941, abs=1e-4)
     assert events[0]["lng"] == pytest.approx(85.1376, abs=1e-4)
+
+
+class TestLocationIsServedFromColumns:
+    """
+    BUG-033. The events API read the place name out of
+    `verification_receipt->>'city'`, a key only the synthetic seeder ever
+    wrote, so every pipeline-produced event was served as "Unknown" while
+    demo data looked correct. It reads columns now.
+    """
+
+    async def test_an_event_with_a_district_serves_it(self, api, seeded_event):
+        event_id, _ = seeded_event
+
+        async with async_session() as db:
+            await db.execute(
+                text("""
+                    UPDATE verified_events
+                    SET district = 'Patna', state = 'Bihar', place_precision = 'district'
+                    WHERE id = CAST(:id AS uuid)
+                """),
+                {"id": event_id},
+            )
+            await db.commit()
+
+        listed = next(
+            e for e in (await api.get("/api/events")).json() if e["id"] == event_id
+        )
+        assert listed["city"] == "Patna"
+        assert listed["state"] == "Bihar"
+        assert listed["place_precision"] == "district"
+
+        detail = (await api.get(f"/api/events/{event_id}")).json()
+        assert detail["city"] == "Patna"
+        assert detail["place_precision"] == "district"
+
+    async def test_an_unplaced_event_serves_null_not_the_word_unknown(
+        self, api, seeded_event
+    ):
+        """
+        The fixture leaves district NULL. The old code turned that into the
+        string "Unknown", which the frontend then rendered as a place name and
+        could not distinguish from a real one.
+        """
+        event_id, _ = seeded_event
+
+        listed = next(
+            e for e in (await api.get("/api/events")).json() if e["id"] == event_id
+        )
+        assert listed["city"] is None
+        assert listed["state"] is None
+
+        detail = (await api.get(f"/api/events/{event_id}")).json()
+        assert detail["city"] is None
+
+    async def test_the_word_unknown_is_gone_from_the_events_payload(
+        self, api, seeded_event
+    ):
+        import json as _json
+
+        body = _json.dumps((await api.get("/api/events")).json())
+        assert '"Unknown"' not in body

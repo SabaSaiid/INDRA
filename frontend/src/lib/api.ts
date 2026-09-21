@@ -321,6 +321,10 @@ export interface DashboardSummary {
   critical_events_delta_pct: number;
   citizen_reports: number;
   citizen_reports_delta_pct: number;
+  /** Escalated or quarantined — counted separately so "Verified" can mean it. */
+  awaiting_review: number;
+  /** Unexpired CAP warnings currently in force, from the SACHET feed. */
+  active_alerts: number;
 }
 
 export async function fetchDashboardSummary(): Promise<KpiItem[]> {
@@ -368,6 +372,32 @@ export async function fetchDashboardSummary(): Promise<KpiItem[]> {
       bgColor: '#EDE9FE',
       icon: 'citizens',
     },
+    // "Verified Events" used to count everything the pipeline had not
+    // rejected, so a quarantined event the engine itself called "Noise" was
+    // advertised as verified. Splitting the tile corrects the number without
+    // hiding anything: what left the first tile appears in this one.
+    {
+      id: 'awaiting-review',
+      label: 'Awaiting Review',
+      value: data.awaiting_review ?? 0,
+      delta: 0,
+      deltaLabel: 'escalated or quarantined',
+      color: '#D97706',
+      bgColor: '#FEF3C7',
+      icon: 'critical',
+    },
+    // Live official warnings in force. These were being polled and stored all
+    // along and appeared nowhere an officer would look.
+    {
+      id: 'active-alerts',
+      label: 'Active Alerts',
+      value: data.active_alerts ?? 0,
+      delta: 0,
+      deltaLabel: 'IMD · CWC · SDMA',
+      color: '#0EA5E9',
+      bgColor: '#E0F2FE',
+      icon: 'verified',
+    },
   ];
 }
 
@@ -385,12 +415,41 @@ export interface ApiEvent {
   impact_radius_km: number;
   lat: number;
   lng: number;
-  city: string;
-  state: string;
+  /** District name, or null when the backend could not place the point. */
+  city: string | null;
+  /** State name, or null alongside a null city. */
+  state: string | null;
+  /** 'district' (inside it) | 'near' (close to it) | null (unresolved). */
+  place_precision?: string | null;
   imageGradient: string;
   verified_at: string;
   timestamp: string;
   corroborating_reports_count?: number;
+}
+
+/**
+ * One place name from a district, a state and how sure the backend was.
+ *
+ * Every surface that shows a location goes through this, because each one
+ * used to join the two fields itself and got it subtly wrong: with an empty
+ * state, `{city}, {state}` rendered the literal string "Unknown, ", trailing
+ * comma and all.
+ *
+ * A null name is rendered as an explicit "Location unresolved" rather than
+ * hidden or filled in. The backend only sends null when its gazetteer
+ * genuinely could not place the coordinates, and that is worth showing: an
+ * operator who sees a pin with no name knows to check it, where one who sees
+ * a plausible name has no reason to.
+ */
+export function formatPlace(
+  city?: string | null,
+  state?: string | null,
+  precision?: string | null
+): string {
+  const parts = [city, state].filter((p): p is string => Boolean(p && p.trim()));
+  if (parts.length === 0) return 'Location unresolved';
+  const name = parts.join(', ');
+  return precision === 'near' ? `near ${name}` : name;
 }
 
 /**
@@ -444,12 +503,18 @@ export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
       id: ev.id,
       lat: sanitized.lat,
       lng: sanitized.lng,
-      city: sanitized.city || ev.city,
-      state: sanitized.state || ev.state,
+      city: sanitized.city || ev.city || '',
+      state: sanitized.state || ev.state || '',
+      placeLabel: formatPlace(
+        sanitized.city || ev.city,
+        sanitized.state || ev.state,
+        ev.place_precision
+      ),
       eventType: ev.eventType as any,
       severity: ev.severity as any,
       description: `${ev.eventType} — ${ev.quadrant}`,
       verification: ev.verification as any,
+      layer: 'event' as const,
     };
   });
 }
@@ -457,8 +522,9 @@ export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
 export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
   return events.slice(0, 10).map((ev) => ({
     id: ev.id,
-    city: ev.city,
-    state: ev.state,
+    city: ev.city ?? '',
+    state: ev.state ?? '',
+    placeLabel: formatPlace(ev.city, ev.state, ev.place_precision),
     eventType: ev.eventType as any,
     severity: ev.severity as any,
     verification: ev.verification as any,
@@ -518,11 +584,104 @@ export interface AgencyAlert {
   expires_at: string | null;
   sent_at: string | null;
   has_polygon: boolean;
+  /**
+   * Resolved from area_desc, because NDMA answers 403 on the CAP polygon
+   * endpoint and not one stored alert carries a geometry. Null when the
+   * alert's scope is below district level (state SDMAs issue mandal-level
+   * warnings) — those stay off the map rather than being pinned to a
+   * district centroid they are not actually in.
+   */
+  lat: number | null;
+  lng: number | null;
+  location_label: string | null;
+  /** 'district' | 'state' | null — 'state' means the whole state, not a point. */
+  location_precision: string | null;
+  districts_matched: number;
 }
 
-export async function fetchAgencyAlerts(limit: number = 20): Promise<AgencyAlert[]> {
-  const path = `/api/alerts/agency?limit=${limit}`;
+export async function fetchAgencyAlerts(
+  limit: number = 20,
+  includeExpired = false
+): Promise<AgencyAlert[]> {
+  const path = `/api/alerts/agency?limit=${limit}&include_expired=${includeExpired}`;
   return asArray<AgencyAlert>(await getJson<unknown>(path), path);
+}
+
+/**
+ * Live agency warnings as map markers.
+ *
+ * Alerts with no resolvable location are dropped rather than placed
+ * somewhere plausible, so this can return fewer markers than there are
+ * alerts. That gap is real and the alert list still shows every one.
+ */
+export function agencyAlertsToMapMarkers(alerts: AgencyAlert[]): MapMarker[] {
+  return alerts
+    .filter((a) => a.lat !== null && a.lng !== null)
+    .map((a) => ({
+      id: `alert-${a.id}`,
+      lat: a.lat as number,
+      lng: a.lng as number,
+      city: a.location_label ?? '',
+      state: '',
+      placeLabel:
+        a.location_precision === 'state'
+          ? `${a.location_label} (state-wide)`
+          : formatPlace(a.location_label, null),
+      layer: 'alert' as const,
+      eventType: (a.event || 'Severe Rainfall') as any,
+      severity: (a.severity || 'ADVISORY').toLowerCase() as any,
+      description: a.headline || a.event || 'Agency warning',
+      title: a.sender || 'Agency',
+      verification: 'verified' as any,
+    }));
+}
+
+// ─── Field Reports (raw citizen reports, not yet events) ─────────────────────
+
+export interface FieldReport {
+  id: string;
+  source_type: string;
+  text: string;
+  lat: number;
+  lng: number;
+  district: string | null;
+  state: string | null;
+  created_at: string | null;
+  fused: boolean;
+  duplicate: boolean;
+  depth_cm: number | null;
+}
+
+export async function fetchFieldReports(
+  limit: number = 100,
+  hours: number = 72
+): Promise<FieldReport[]> {
+  const path = `/api/reports/recent?limit=${limit}&hours=${hours}`;
+  return asArray<FieldReport>(await getJson<unknown>(path), path);
+}
+
+/**
+ * Raw reports as map markers.
+ *
+ * These carry `layer: 'report'` and the map must draw them distinctly.
+ * Nothing here has been clustered, corroborated or scored — drawing an
+ * unreviewed citizen claim like a verified event is the one thing a national
+ * console must not do.
+ */
+export function fieldReportsToMapMarkers(reports: FieldReport[]): MapMarker[] {
+  return reports.map((r) => ({
+    id: `report-${r.id}`,
+    lat: r.lat,
+    lng: r.lng,
+    city: r.district ?? '',
+    state: r.state ?? '',
+    placeLabel: formatPlace(r.district, r.state),
+    layer: 'report' as const,
+    eventType: 'Flood' as any,
+    severity: 'advisory' as any,
+    description: r.text,
+    verification: 'under-review' as any,
+  }));
 }
 
 // ─── Teams (Disaster Response Units & Hub) ───────────────────────────────────

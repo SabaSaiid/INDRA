@@ -170,11 +170,11 @@ async def submit_report(
 
     # Insert into DB
     insert_query = text("""
-        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, media_url, credibility_score, analysis)
+        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, district, state, media_url, credibility_score, analysis)
         VALUES (
             :id, :source_type, :raw_text, :lat, :lng,
             ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-            :h3_cell, :media_url, :credibility, CAST(:analysis AS jsonb)
+            :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb)
         )
     """)
 
@@ -186,6 +186,11 @@ async def submit_report(
             "lat": valid_lat,
             "lng": valid_lng,
             "h3_cell": h3_cell,
+            # Resolved above and, until now, thrown away on the next line: the
+            # table had no column to put it in, so the ingest path computed a
+            # location it could not keep.
+            "district": resolved_city or None,
+            "state": resolved_state or None,
             "media_url": report.media_url,
             "credibility": credibility,
             "analysis": json.dumps(analysis) if analysis is not None else None,
@@ -239,3 +244,73 @@ async def submit_report(
         status_code=202,
         content={"id": str(report_id), "status": "accepted", "queued": queued},
     )
+
+
+@router.get("/recent")
+async def list_recent_reports(
+    limit: int = Query(100, ge=1, le=500),
+    unfused_only: bool = Query(
+        True,
+        description="Only reports not yet part of an event and not suppressed as duplicates",
+    ),
+    hours: int = Query(72, ge=1, le=720),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Citizen reports with coordinates, for the field-reports map layer.
+
+    These are **raw reports, not events**. Nothing here has been clustered,
+    corroborated or scored, and a caller drawing them must draw them
+    differently from a verified event — the whole point of the layer is to
+    show what has come in that the pipeline has not yet turned into anything.
+
+    `unfused_only` is the default because the fused ones are already on the
+    map as their event. It also excludes reports suppressed as duplicates:
+    counting a duplicate as a separate sighting is the double-count the dedup
+    step exists to prevent, and drawing it would undo that on the screen.
+
+    The layer exists because 4 of the 9 reports in the demo database belong to
+    no event — one that could not reach DBSCAN_MIN_SAMPLES alone, and three
+    suppressed against it — and were therefore invisible everywhere except a
+    total in the KPI strip (BUG-035, BUG-037).
+    """
+    conditions = ["created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
+    if unfused_only:
+        conditions.append("event_id IS NULL")
+        conditions.append("duplicate_of IS NULL")
+
+    query = text(f"""
+        SELECT id, source_type, raw_text, latitude, longitude,
+               district, state, created_at, event_id, duplicate_of, analysis
+        FROM raw_reports
+        WHERE {" AND ".join(conditions)}
+        ORDER BY created_at DESC
+        LIMIT :limit
+    """)
+
+    db_error = None
+    try:
+        rows = (await db.execute(query, {"limit": limit, "hours": hours})).fetchall()
+        return [
+            {
+                "id": str(r[0]),
+                "source_type": r[1],
+                "text": r[2][:300],
+                "lat": r[3],
+                "lng": r[4],
+                "district": r[5],
+                "state": r[6],
+                "created_at": r[7].isoformat() if r[7] else None,
+                "fused": r[8] is not None,
+                "duplicate": r[9] is not None,
+                "depth_cm": (r[10] or {}).get("depth_cm"),
+            }
+            for r in rows
+        ]
+    except Exception as e:
+        logger.warning(f"Database query failed in list_recent_reports: {e}")
+        db_error = e
+
+    # No demo payload: an empty field-reports layer is an honest map, and a
+    # fabricated citizen report is the one thing this console must never draw.
+    return demo_fallback("GET /api/reports/recent", list, list, db_error)

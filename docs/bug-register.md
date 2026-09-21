@@ -9,7 +9,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 21 Sep 2026, end of the sprint.**
+**Last updated: 21 Sep 2026, after the Day 8 browser session (BUG-043, BUG-044).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -867,3 +867,322 @@ Across 32 defects, the ones that would have broken the demo were found by, in or
 
 The suite grew from 71 tests on Day 1 to **568** and remains necessary and insufficient. Rehearse
 from cold, and probe every number that flatters you.
+
+---
+
+# Day 7 — 22 Sep 2026
+
+The project was declared closed on 21 Sep. It reopened the same evening because the dashboard was
+looked at rather than reasoned about: the single map pin read **"Unknown"** and the console showed
+**9 reports against 1 event**. Nine defects came out of one screenshot. Seven of them were
+invisible to the 520 green tests, and the two most serious are cases where the API states
+something the database does not support.
+
+### BUG-033 — Every event with GPS was served as `"city": "Unknown"`
+**S2** · Layers 3, 8a · **`FIXED`** by `b9d1d0a`, `bf31b25`, `fbbddce`, `0996289`, `53bd41b` · Found by: looking at the live map · 22 Sep
+
+Repro:
+```bash
+curl -s localhost:8000/api/events | jq '.[0] | {lat, lng, city, state}'
+```
+Expected: `Patna, Bihar` — the centroid `25.59428, 85.13746` is Kankarbagh, Patna.
+Actual: `{"city": "Unknown", "state": ""}`, which the Recent Events panel renders as the literal
+string `"Unknown, "`, trailing comma and all.
+
+Three independent causes, each sufficient on its own:
+
+- **There was no reverse geocoder anywhere in the repo.** `services/geocoding.py` was forward-only
+  — name to coordinates — over a 56-entry hardcoded dict. Nothing could turn a point into a name.
+- **`geocoding.py:143` returned the placeholder `"India Node"`** whenever coordinates were valid,
+  which is the normal case, and never consulted the gazetteer at all.
+- **Neither `raw_reports` nor `verified_events` had any place-name column**, and `api/events.py:278`
+  read `receipt.get("city", "Unknown")` from a receipt key the live pipeline never writes. The
+  *only* writer of that key in the whole repo is `scripts/seed_national_data.py:166` — which is
+  precisely why demo data had names and real data did not, and why nobody caught it.
+
+The last point is the one worth keeping: **the fallback string was doing the work of a schema.**
+`"Unknown"` looked like a handled edge case and was actually a missing column, a missing resolver
+and a missing write, wearing one word as a disguise.
+
+Fix: a committed 737-row district gazetteer with in-polygon points and bounding boxes
+(`b9d1d0a`), `reverse_geocode` / `district_by_name` over it, and the `"India Node"` placeholder
+removed. It refuses rather than guesses: a point in the Bay of Bengal resolves to `None`.
+Tests: `test_reverse_geocoding.py`, 31 cases weighted toward the refusals.
+
+### BUG-034 — "Verified Events: 1" was counting a QUARANTINED event whose own quadrant is "Noise"
+**S2** · Layer 8a · **`FIXED`** by `9c76db0` (API) and `9c7bd14` (tiles) · Found by: reading the KPI query against the row it counts · 22 Sep
+
+Repro: `curl -s localhost:8000/api/dashboard/summary | jq .verified_events` → `1`, against a
+database whose only event is `INDRA-20260920-001`, confidence **0.4984**, review status
+**QUARANTINED**, quadrant **Noise**.
+
+Expected: a tile labelled "Verified Events" counts events that were verified.
+Actual: `dashboard.py:74` filters `WHERE review_status != 'REJECTED'`, so `QUARANTINED` and
+`PENDING_HUMAN_REVIEW` are both counted as verified. The system's own scoring called this event
+noise and the dashboard promoted it to verified on the way to the screen.
+
+This is the Day 5 lesson in a new place. BUG-024 was a fabricated event; this is a real event with
+a fabricated status, and it is worse in one respect: there is nothing in the response to disbelieve.
+
+Fix: count only `AUTO_PUBLISHED` and `HUMAN_APPROVED` as verified, and publish the rest as a
+separate `awaiting_review` figure so nothing is hidden by being corrected.
+
+### BUG-035 — An event's merge window closes 2 h after creation no matter how recently it absorbed a report
+**S2** · Layer 6 · **`FIXED`** by `fbbddce` (column) and `0996289` (window) · Found by: tracing why 4 of 9 reports produced nothing · 22 Sep
+
+Repro: submit a report near an existing event more than `MERGE_WINDOW_MINUTES` after that event
+was **created**, however recently it was last updated.
+Expected: a report 50 m from a live event's centroid joins it.
+Actual: dropped entirely. `_find_mergeable_event` (`pipeline.py:472`) gates on
+`verified_at > NOW() - interval`, and the merge branch at `pipeline.py:917-932` updates the
+receipt, the score and the severity but **never touches `verified_at`**. The column is an
+insert-time default, so it means "created", not "last updated", and the merge window is keyed on
+the wrong clock.
+
+Observed consequence, from the live database: a report arrived 7 h 49 m after the event at a point
+**50 m** from its centroid, against a spatial gate of 5.5 km. Alone among unassigned reports it
+could not satisfy `DBSCAN_MIN_SAMPLES=2`, and the merge window had closed, so it was dropped. The
+three later reports then deduped against *it* (`pipeline.py:749`) and were suppressed —
+`duplicate_of` set, no event, no corroboration. **Four of the nine reports in the database
+contribute nothing, and the dedup rule is what buried the evidence that they existed.**
+
+Fix: an `updated_at` column, maintained on merge, with the window keyed on it.
+
+### BUG-036 — The dashboard is a snapshot: it never refreshes, and `VERIFIED_EVENT` reaches nothing
+**S2** · Layers 8a, 9 · **`FIXED`** by `e60db6d` (map) and `9c7bd14` (KPI strip) · Found by: submitting a report and watching the console not change · 22 Sep
+
+Repro: with the dashboard open, `POST /api/reports/submit` enough corroborating reports to fuse an
+event. Watch the screen.
+Expected: a console labelled "Grid live" shows the event.
+Actual: nothing changes until the page is reloaded by hand. The KPI row, the map and Recent Events
+all fetch once on mount. The only WebSocket consumer in the entire frontend is `LiveFeed.tsx:61`
+and it handles `NEW_REPORT` only — while the backend has been broadcasting `VERIFIED_EVENT` since
+Day 1 (`report_consumer.py:88-96`) to nobody at all.
+
+The Day 1 handover note for the `VERIFIED_EVENT` message type was written and the message was
+never wired up on the other side. **A handover note is not a delivery.**
+
+Fix: handle `VERIFIED_EVENT` and refetch the affected panels.
+
+### BUG-037 — 112 live agency alerts are collected, stored, and shown on no map
+**S3** · Layers 1, 8a · **`FIXED`** by `ac3beec` (coordinates), `0ef1464` (reports), `e60db6d` (layers) · Found by: counting what is in the database against what is on screen · 22 Sep
+
+Repro: `SELECT count(*) FROM agency_alerts;` → **112** real CAP warnings from CWC, IMD and state
+SDMAs, 23 of them unexpired. Then look at the dashboard, which shows one pin.
+
+The SACHET poller works, the parser works, `GET /api/alerts/agency` serves them, and the only page
+that consumes them is Early Warnings. The map and the situation overview — the two surfaces a
+nodal officer actually looks at — show none of it. The most genuinely live data in the system was
+the data least visible.
+
+Fix: an agency-alert map layer, drawn distinctly from fused events, plus an active-alert count on
+the dashboard.
+
+### BUG-038 — `.env.example` re-introduces the throttling bug the code comment says cost 96 polygons
+**S3** · Layer 1 · **`FIXED`** by `2a2e9c8` · Found by: diffing `.env.example` against `config.py` · 22 Sep
+
+Repro: `cp .env.example .env` on a fresh machine, as `docs/setup.md` instructs.
+Expected: the value the code settled on.
+Actual: `.env.example:78` sets `SACHET_MAX_FETCHES_PER_TICK=25`; `config.py:134` defaults to
+**10**, and the comment beside it records that it was lowered *because NDMA answered 403 and 96
+stored polygons were wiped*. Anyone following the documented setup gets the old number back.
+
+The reasoning was written down in the right place and the example file was not updated to match,
+so the fix survives only for people who never follow the setup guide.
+
+### BUG-039 — `auto_offset_reset="latest"` silently drops every report published before the backend boots
+**S3** · Layer 2 · **`FIXED`** by `2a2e9c8` · Found by: reading the consumer while tracing the orphaned report · 22 Sep
+
+Repro: on a fresh environment, publish to `indra.raw.reports` before the backend has ever started,
+then start it.
+Expected: the reports are processed.
+Actual: `report_consumer.py:157` sets `auto_offset_reset="latest"`, so a brand-new consumer group
+begins at the tail and everything already in the topic is skipped permanently. Not what happened
+in the current database — the group's lag is 0 — but it is a guaranteed silent loss on any cold
+start where the producer leads the consumer, and losing a report without a trace is exactly what
+this system exists not to do.
+
+### BUG-040 — The setup guide and the runbook both state the wrong migration head
+**S4** · Docs · **`FIXED`** by `2a2e9c8` · Found by: running `alembic heads` against the documented value · 22 Sep
+
+`docs/setup.md:73` and `docs/demo-runbook.md:53` both say `alembic upgrade head` lands on
+`0006_anomaly_score_defaults_null`. The versions directory contains `0007_agency_alerts` and
+`0008_seed_operator_profiles`; the real head is **`0008`**. Both documents were written on the day
+`0007` and `0008` were added.
+
+### BUG-041 — Two live API keys sit in `.env` that no code reads
+**S4** · Layer 1 · **`FIXED`** by `2a2e9c8` · Found by: checking which `.env` keys are `Settings` fields · 22 Sep
+
+`.env:54` holds a real `OPENWEATHER_API_KEY` and `.env:56` a real `FIRMS_MAP_KEY`. Neither is a
+field on the `Settings` class, and `model_config` sets `extra: "ignore"`, so both are silently
+discarded at load. `.env.example` declares `OPENWEATHER_API_KEY` **twice** (lines 69 and 103) with
+a detailed comment describing an integration that was never written.
+
+Rated S4 and not S3 because `README.md:187` and `docs/setup.md:43` both already say in writing that
+these keys are unread. The defect is that the `.env` file still looks wired: a key with a real
+value in it reads as a configured feed, and the next person to debug a missing weather signal will
+start from the assumption that OpenWeather is in the loop. An inert key that looks live is the same
+class of thing as a telemetry field that is always 0.0 (BUG-031) — it is a claim the code does not
+honour.
+
+### BUG-042 — A state hint was dropped precisely when the name looked unambiguous
+**S3** · Layer 3 · **`FIXED`** by `ac3beec` · Found by: **a test written expecting it to pass** · 22 Sep
+
+Recorded because of how it was found. Writing the CAP resolver, I added
+`test_a_near_name_is_not_matched_across_the_country` as a formality — a guard I was
+confident already held. It failed.
+
+Repro: `district_by_name("Purulia", state_hint="Kerala")`
+Expected: `None`. Purulia is in West Bengal; the hint contradicts it.
+Actual: Purulia, West Bengal, returned cheerfully.
+
+`district_by_name` applied its state hint only on the `len(matches) > 1` branch. A name
+matching exactly one district was treated as unambiguous and the hint was discarded —
+so the check was skipped in exactly the case where it was the only evidence of a
+contradiction. The ambiguous names it was written for (Bilaspur, Aurangabad) all worked;
+the unique ones silently did not.
+
+Consequence had it shipped: a CAP alert whose `area_desc` names a district in one state
+and mentions another is placed in the wrong state, on a national console, as an official
+warning. Low frequency, high damage, and invisible — the answer looks perfectly ordinary.
+
+Fix: a state hint constrains every lookup. A hint that contradicts the only match is a
+contradiction, not a detail to discard. Measured on the 116 live SACHET descriptions
+before and after: still 98 resolved, so the guard cost nothing.
+
+## Day 7 tally
+
+| | Count |
+|---|---|
+| Found | **10** (BUG-033 … BUG-042) |
+| Fixed | **10** |
+| `OPEN` S1/S2 at close | **0** |
+
+Suite: **649 → 684** passed, 2 skipped. Frontend: 10/10 Playwright, `tsc --noEmit` and
+`next build` clean.
+
+### What found them, again
+
+Nine of the ten came from **one screenshot of the running console**. Not from the tests —
+520 were green over all of them — and not from reading the code, which had been read
+repeatedly across six days. They came from looking at the thing a nodal officer would
+look at and asking why it said what it said.
+
+The tenth, BUG-042, came from writing a test expecting it to pass. That is the same
+lesson as BUG-020 on Day 4, where a Hinglish detector scored 100% and misread five of
+seven plain English sentences: **the checks worth writing are the ones you are sure will
+pass, because the ones you doubt are already handled.**
+
+Two shapes recurred often enough to name:
+
+1. **A fallback string doing the work of a schema.** `"Unknown"` looked like a handled
+   edge case and was in fact a missing column, a missing resolver and a missing write,
+   wearing one word as a disguise. It survived six days because the synthetic seeder
+   wrote the key the API read, so demo data looked right and only live data was wrong —
+   the exact inverse of the failure mode this project had been guarding against.
+2. **A number that does not mean its label.** "Verified Events: 1" counted an event the
+   system's own engine had quarantined and called noise. BUG-024 was a fabricated event;
+   this was a real event wearing a status nothing ever gave it, which is harder to catch
+   because there is nothing in the response to disbelieve.
+
+And one operational lesson, learned the expensive way: the stack's Docker lives on an
+external SSD. It unmounted mid-run, every container vanished, and two Playwright tests
+failed in ways that looked like application bugs. Check `docker ps` before believing a
+failure.
+
+---
+
+# Day 8 — 21 Sep 2026, browser session
+
+Both found the same way the Day 7 batch was: by opening the running console in a real
+browser and looking at it, rather than by reading code or running the suite. The suite
+was **684 passed, 2 skipped** before and after — neither defect is visible to it, because
+both live in the gap between React state and what MapLibre and the DOM actually did with
+that state.
+
+### BUG-043 — The map draws no pins at all until the operator touches a control
+**S1** · Layer 9 · **`FIXED`** by `7fa0f31` · Found by: first screenshot of the dashboard · 21 Sep
+
+Repro: cold-load `http://localhost:3000/` and do nothing.
+Expected: the map draws the pins its own badge is counting.
+Actual: the badge reads **"42 Incidents"**, the roster behind it lists 42 real rows
+(Patna, Bokaro, Bidar …), and the globe shows **zero** markers.
+`document.querySelectorAll('.maplibregl-marker').length` → **0**. Click any view control
+and all 42 appear at once.
+
+This is the whole point of the console, and it was failing silently on every cold load.
+Nothing errored, nothing logged, and the counts on screen were all correct — the map just
+never drew. A nodal officer opening the dashboard would have seen an empty map of India
+next to a badge insisting there were 42 incidents on it.
+
+The cause is a race that `isStyleLoaded()` cannot referee. Instrumenting the real
+sequence gave:
+
+| t (ms) | what ran | `hasMap` | `isStyleLoaded()` | markers |
+|---|---|---|---|---|
+| 0 | pins effect | false | — | 0 |
+| 20 | `onStyleReady` → `renderProminentPins` | true | — | **0** |
+| 76 | pins effect | true | **false** | **42** |
+
+The map's `load` fires at t=20, when the fetch has not returned and there is nothing to
+draw. The markers land at t=76 — and MapLibre still reports `isStyleLoaded() === false`
+there, because sprites, glyphs and the first tiles are in flight long after `load`. The
+effect therefore bailed out, and the `load` it was implicitly waiting on had already
+fired and never fires twice. No third chance existed.
+
+Worth naming: the first fix attempted was to register `map.once('load', …)` from inside
+the effect when the style looked unloaded. It typechecked, linted and was **wrong for the
+same reason** — it waited on an event that was already in the past. The trace above is
+what disproved it. A guard that reads `isStyleLoaded()` is unfixable in place; the
+readiness has to become React state so that its arrival is itself a render.
+
+Fix: a `styleReady` state flag, set in `onStyleReady` (outside the `try`, so a failed
+projection cannot also cost every pin), with the pins effect and the layer-visibility
+effect both gated on it instead of on `isStyleLoaded()`. Whichever finishes last — the
+style or the markers — now triggers the draw.
+Verified: cold load, no interaction → **42 markers**, matching the badge. Switching to
+the India view (`setStyle`, a full style reload) → still 42.
+Test: `the map draws the pins its own badge is counting` in
+`frontend/e2e/dashboard-cold-load.spec.ts` (`3f49460`) — fails against the unfixed
+component, passes with the fix.
+
+### BUG-044 — Four of the six KPI readings showed a red downward arrow on a flat number
+**S3** · Layer 9 · **`FIXED`** by `54ec0c6` · Found by: same screenshot · 21 Sep
+
+Repro: load the dashboard with any period where a count has not moved.
+Expected: a change of zero reads as no change.
+Actual: **"Verified Events 0 ↓0%"**, **"Critical Events 0 ↓0%"**, **"Awaiting Review 2
+↓0%"**, **"Active Alerts 46 ↓0%"** — a red `↓` on four of six tiles.
+
+`KpiCard.tsx` computed `isPositive = item.delta > 0` and used a single ternary, so zero
+fell into the "down" branch and got the decline colour and the decline arrow. Two of the
+four are worse than a rounding artefact: `awaiting_review` and `active_alerts` have no
+comparison window at all and carry a **hardcoded `delta: 0`** in `api.ts`, so the arrow
+was rendering a trend that is not merely flat but nonexistent.
+
+Small, but it is the class of defect this register exists for: a number that does not
+mean its label. A commander glancing at the strip sees four falling indicators during a
+flood.
+
+Fix: a third `isFlat` state — muted grey, no arrow, plain `0%`.
+Verified in the browser: the six deltas now read `↑100% · 0% · 0% · ↑100% · 0% · 0%`.
+Test: `a flat KPI delta is not drawn as a decline` in
+`frontend/e2e/dashboard-cold-load.spec.ts` (`3f49460`), which also rejects the
+opposite mistake of rendering `↑0%`.
+
+### Note, not a bug — `GET /api/reports/recent` returns `[]`
+
+Checked because an empty field-reports layer looked like BUG-037 regressing. It is
+correct: all 14 `raw_reports` rows are either fused into an event (11) or suppressed as
+duplicates (3), and the endpoint's `unfused_only` default excludes both by design. The
+layer is empty because there is nothing unfused to draw, which is the honest answer.
+Worth knowing before the demo: **this layer will be empty on the demo database**, so it
+is not something to point at on screen.
+
+### Note, not a bug — 6 of 46 agency alerts have no coordinates
+
+`lat`/`lng` are `null` for 6 active SACHET alerts, so they are listed but not mapped.
+Their `area_desc` values are mandal- and locality-level (`MRTS`, `krs-unguturu Mandal`,
+`elr-nuzvid, elr-agiripalle, krs-bapulapadu mandals`) — below the district granularity of
+the 737-row gazetteer. 39 of 45 resolving is the gazetteer working as specified, not
+failing. Say so plainly if asked.

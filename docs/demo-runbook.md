@@ -53,7 +53,7 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0006_anomaly_score_defaults_null (head)
+# → 0009_event_location (head)
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
