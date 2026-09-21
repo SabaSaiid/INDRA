@@ -30,7 +30,7 @@ from app.core.config import get_settings
 from app.core.database import async_session
 from app.models.enums import Severity
 from app.workers import sachet_poller
-from app.workers.sachet_poller import fetch_index, poll_once
+from app.workers.sachet_poller import fetch_index, fetch_polygon, poll_once
 
 settings = get_settings()
 
@@ -266,6 +266,64 @@ async def test_a_missing_polygon_stays_null(db):
         )
     ).scalar()
     assert nulls == 3
+
+
+@pytest.mark.integration
+async def test_a_throttled_polygon_fetch_does_not_erase_the_stored_one(db):
+    """
+    The bug that emptied every footprint in the table while reporting success.
+
+    NDMA answers 403 when a client fetches polygons too fast. The first version
+    of the poller could not tell that from "this alert has no polygon", so one
+    throttled pass cleared 96 good rings. A failed fetch must change nothing.
+    """
+    async with _client(_feed()) as c:
+        await poll_once(db, c)
+
+    before = (
+        await db.execute(
+            text("SELECT count(*) FROM agency_alerts WHERE area_polygon IS NOT NULL")
+        )
+    ).scalar()
+    assert before > 0, "fixture should have stored at least one polygon"
+
+    def throttled(request):
+        url = str(request.url)
+        if "rss_india" in url:
+            # A newer pubDate marks every alert as republished, forcing a refetch.
+            return httpx.Response(200, content=RSS.replace(b"02:28:50", b"09:28:50"))
+        if "FetchPolygonXMLFile" in url:
+            return httpx.Response(403)
+        if "FetchXMLFile" in url:
+            return httpx.Response(200, content=CAP)
+        return httpx.Response(404)
+
+    sachet_poller._reset_etag_for_tests()
+    async with _client(throttled) as c:
+        await poll_once(db, c)
+
+    after = (
+        await db.execute(
+            text("SELECT count(*) FROM agency_alerts WHERE area_polygon IS NOT NULL")
+        )
+    ).scalar()
+    assert after == before, "a 403 must not erase a stored footprint"
+
+
+async def test_polygon_status_distinguishes_absent_from_failed():
+    """The distinction the whole PolygonResult type exists to carry."""
+    from app.services.cap_parser import CapAlert
+
+    no_url = CapAlert(identifier="X-1", polygon_url=None)
+    async with _client(lambda r: httpx.Response(200, content=POLYGON)) as c:
+        assert (await fetch_polygon(c, no_url)).status == "absent"
+
+    has_url = CapAlert(identifier="X-2", polygon_url="https://example.test/p")
+    async with _client(lambda r: httpx.Response(403)) as c:
+        assert (await fetch_polygon(c, has_url)).status == "failed"
+    async with _client(lambda r: httpx.Response(200, content=POLYGON)) as c:
+        result = await fetch_polygon(c, has_url)
+    assert result.status == "ok" and result.wkt.startswith("POLYGON((")
 
 
 @pytest.mark.integration

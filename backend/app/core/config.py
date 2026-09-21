@@ -126,8 +126,13 @@ class Settings(BaseSettings):
     SACHET_POLL_INTERVAL_SECONDS: int = 300
     # Cold start has ~99 alerts all new at once. Cap the burst; the remainder
     # arrives on the next tick rather than hammering a disaster agency's feed.
-    SACHET_MAX_FETCHES_PER_TICK: int = 25
-    SACHET_FETCH_DELAY_SECONDS: float = 0.2
+    # Lowered from 25/0.2s after the live feed began answering 403 to the
+    # polygon endpoint partway through a cold start: NDMA throttles a client
+    # that asks too fast, and a 235 KB polygon per alert is not a small ask.
+    # 10 alerts a tick at 1 s spacing fills 99 alerts in ten ticks (~50 min)
+    # without ever being refused.
+    SACHET_MAX_FETCHES_PER_TICK: int = 10
+    SACHET_FETCH_DELAY_SECONDS: float = 1.0
     # One live Gujarat district ring measured 235 KB. Past this the ring is
     # decimated and the row records that it was.
     SACHET_MAX_POLYGON_POINTS: int = 2000

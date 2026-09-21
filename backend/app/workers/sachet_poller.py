@@ -45,7 +45,7 @@ polling would double-write. Same rule as BUG-011.
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import httpx
 from sqlalchemy import func, select
@@ -143,18 +143,39 @@ async def fetch_cap(client: httpx.AsyncClient, item: RssItem) -> Optional[CapAle
     return parse_cap_alert(resp.content)
 
 
-async def fetch_polygon(
-    client: httpx.AsyncClient, alert: CapAlert
-) -> Tuple[Optional[str], bool, Optional[int]]:
+class PolygonResult(NamedTuple):
     """
-    (wkt, thinned, point_count) for an alert's footprint.
+    The outcome of trying to fetch one alert's footprint.
 
-    (None, False, None) when the alert has no polygon URL, the fetch fails, or the
-    ring has fewer than three distinct vertices. A missing footprint is stored as
-    NULL; nothing here invents one from the district codes.
+    `status` exists because "this alert has no polygon" and "I could not fetch
+    this alert's polygon" are different facts with opposite consequences, and
+    collapsing them into a bare `None` cost every stored polygon in the
+    database once already:
+
+    ABSENT  — the CAP document carries no polygon URL. The agency published no
+              footprint, so NULL is the truth and an existing one should be
+              cleared.
+    FAILED  — the request failed or the body was unusable. Nothing is known, so
+              whatever is already stored must be LEFT ALONE. NDMA answers 403
+              when a client fetches too fast; treating that as "the agency
+              withdrew the polygon" wiped 96 good footprints in one pass.
+    OK      — a usable ring.
     """
+
+    status: str  # "ok" | "absent" | "failed"
+    wkt: Optional[str] = None
+    thinned: bool = False
+    points: Optional[int] = None
+
+
+ABSENT = PolygonResult("absent")
+FAILED = PolygonResult("failed")
+
+
+async def fetch_polygon(client: httpx.AsyncClient, alert: CapAlert) -> PolygonResult:
+    """One alert's footprint, with absence distinguished from failure."""
     if not alert.polygon_url:
-        return None, False, None
+        return ABSENT
 
     try:
         resp = await client.get(
@@ -166,17 +187,19 @@ async def fetch_polygon(
         logger.warning(
             f"SACHET polygon fetch failed for {alert.identifier}: {type(e).__name__}: {e}"
         )
-        return None, False, None
+        return FAILED
 
     if resp.status_code != 200:
+        # 403 is NDMA throttling a client that asked too fast, not a withdrawn
+        # warning area.
         logger.warning(
             f"SACHET polygon {alert.identifier} returned HTTP {resp.status_code}"
         )
-        return None, False, None
+        return FAILED
 
     points = parse_polygon_points(resp.content)
     if not points:
-        return None, False, None
+        return FAILED
 
     original = len(points)
     points, was_thinned = thin(points, settings.SACHET_MAX_POLYGON_POINTS)
@@ -185,13 +208,13 @@ async def fetch_polygon(
         logger.warning(
             f"SACHET polygon {alert.identifier} had {original} points but no usable ring"
         )
-        return None, False, None
+        return FAILED
 
     if was_thinned:
         logger.info(
             f"SACHET polygon {alert.identifier} thinned {original} → {len(points)} points"
         )
-    return wkt, was_thinned, original
+    return PolygonResult("ok", wkt, was_thinned, original)
 
 
 def _needs_fetch(item: RssItem, stored: Dict[str, Optional[datetime]]) -> bool:
@@ -262,8 +285,8 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> Tuple[int
                 alert = await fetch_cap(client, item)
                 if alert is None:
                     continue
-                wkt, was_thinned, point_count = await fetch_polygon(client, alert)
-                await _upsert(db, item, alert, wkt, was_thinned, point_count)
+                polygon = await fetch_polygon(client, alert)
+                await _upsert(db, item, alert, polygon)
                 written += 1
             except Exception as e:
                 # Rule 4: one bad alert costs one alert.
@@ -291,9 +314,7 @@ async def _upsert(
     db,
     item: RssItem,
     alert: CapAlert,
-    wkt: Optional[str],
-    was_thinned: bool,
-    point_count: Optional[int],
+    polygon: PolygonResult,
 ) -> None:
     """
     Insert the alert, or update the existing row with the same identifier.
@@ -309,7 +330,7 @@ async def _upsert(
         )
     ).scalar_one_or_none()
 
-    geom = func.ST_GeomFromText(wkt, 4326) if wkt else None
+    geom = func.ST_GeomFromText(polygon.wkt, 4326) if polygon.wkt else None
 
     values = {
         "sender": alert.sender or item.sender_name,
@@ -339,8 +360,8 @@ async def _upsert(
                 identifier=item.identifier,
                 source_feed="SACHET",
                 area_polygon=geom,
-                polygon_thinned=was_thinned,
-                polygon_points=point_count,
+                polygon_thinned=polygon.thinned,
+                polygon_points=polygon.points,
                 **values,
             )
         )
@@ -348,11 +369,25 @@ async def _upsert(
 
     for key, value in values.items():
         setattr(existing, key, value)
-    # A revision that dropped its polygon must not silently keep the old
-    # footprint: the agency's current geometry is the one that is true.
-    existing.area_polygon = geom
-    existing.polygon_thinned = was_thinned
-    existing.polygon_points = point_count
+
+    # The footprint is only touched when this fetch actually learned something.
+    #
+    #   ok     — store the new ring.
+    #   absent — the agency published no polygon this time, so clear the old one;
+    #            their current geometry is the one that is true.
+    #   failed — nothing was learned. Keep what is stored. This branch is the
+    #            whole reason PolygonResult carries a status: the first version
+    #            cleared on any falsy result, so one throttled pass (NDMA
+    #            answers 403 to a fast client) emptied every footprint in the
+    #            table while reporting 99 alerts stored successfully.
+    if polygon.status == "ok":
+        existing.area_polygon = geom
+        existing.polygon_thinned = polygon.thinned
+        existing.polygon_points = polygon.points
+    elif polygon.status == "absent":
+        existing.area_polygon = None
+        existing.polygon_thinned = False
+        existing.polygon_points = None
 
 
 async def start_sachet_poller() -> None:

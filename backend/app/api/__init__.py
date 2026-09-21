@@ -7,6 +7,7 @@ from app.api.geo import router as geo_router
 from app.api.auth import router as auth_router
 from app.api.teams import router as teams_router
 from app.api.profile import router as profile_router
+from app.api.alerts import router as alerts_router
 
 __all__ = [
     "dashboard_router",
@@ -17,5 +18,6 @@ __all__ = [
     "auth_router",
     "teams_router",
     "profile_router",
+    "alerts_router",
 ]
 
