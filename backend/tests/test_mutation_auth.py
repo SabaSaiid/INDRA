@@ -64,6 +64,7 @@ def test_the_route_walk_finds_the_known_mutations():
     assert ("PATCH", "/api/teams/{team_id}/assign") in found
     assert ("PATCH", "/api/profile/me") in found
     assert ("PATCH", "/api/profile/preferences") in found
+    assert ("POST", "/api/reports/official") in found
 
 
 @pytest.mark.parametrize(
