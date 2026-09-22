@@ -38,14 +38,15 @@ that one is what to say.
 cd ~/CODING/sih/INDRA
 
 docker compose down -v          # only for a true cold rehearsal — destroys all data
-docker compose up -d --wait     # returns when all three are healthy (./start.sh infra up does the same)
+docker compose up -d --wait     # returns when Postgres and Redis are healthy and Redpanda is running
+                                # (./start.sh infra up does the same)
 ```
 
 ```bash
 docker ps --format '{{.Names}}\t{{.Status}}'
 # indra-postgres   Up (healthy)
 # indra-redis      Up (healthy)
-# indra-redpanda   Up (healthy)
+# indra-redpanda   Up             ← no healthcheck is defined for it; /healthz checks it instead
 ```
 
 > **Healthy now means `indra_db` exists (BUG-028, fixed 22 Sep).** The Postgres healthcheck used a

@@ -58,7 +58,8 @@ docker compose up -d --wait        # or: ./start.sh infra up — both wait for "
 docker ps --format '{{.Names}}\t{{.Status}}'
 ```
 
-Expect `indra-postgres`, `indra-redis` and `indra-redpanda`, all `(healthy)`.
+Expect `indra-postgres` and `indra-redis` `(healthy)` and `indra-redpanda` `Up` (it has no
+healthcheck; `/healthz` checks it once the API is running).
 
 > **Why `--wait` is enough now (BUG-028).** On a brand-new volume the Postgres entrypoint runs a
 > temporary server on the Unix socket, creates `indra_db`, then restarts. A socket `pg_isready`
