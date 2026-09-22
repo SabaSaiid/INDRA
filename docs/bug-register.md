@@ -335,7 +335,7 @@ Tests: 32 in `test_station_poller.py`. Two real defects found while closing it: 
 BUG-030, both below, both invisible to the tests that had just passed.
 
 ### BUG-009 — Auth guards only the two endpoints added on Day 3
-**S3** · Layer 8a · `WONT-FIX-TODAY` · Found by: Day 3 · 20 Sep
+**S3** · Layer 8a · `WONT-FIX-TODAY` → **`FIXED` 22 Sep** (see Day 9) · Found by: Day 3 · 20 Sep
 
 Repro: `curl -X POST localhost:8000/api/teams` with no token → succeeds.
 Expected: mutations require a token.
@@ -373,7 +373,7 @@ Say: "It runs as a single process by design for this build; horizontal scaling n
 pub/sub for the socket fan-out, which is designed and not built."
 
 ### BUG-012 — DBSCAN clusters in degrees, ~10% anisotropic at Patna's latitude
-**S3** · Layer 5 · `WONT-FIX-TODAY` · Found by: Day 1 · 20 Sep
+**S3** · Layer 5 · `WONT-FIX-TODAY` → **`FIXED` 22 Sep** (see Day 9) · Found by: Day 1 · 20 Sep
 
 Repro: `geo_clustering.py` uses `eps_km * 0.009` as an `eps` in degrees.
 Expected: a metre-true radius (`::geography`).
@@ -386,7 +386,7 @@ doesn't change membership at this scale; moving it to a geography radius is a on
 deliberately didn't make on a day I was changing the scoring."
 
 ### BUG-013 — Dedup cosine threshold 0.88 misses paraphrases
-**S3** · Layer 3 · `WONT-FIX-TODAY` · Found by: Day 1 · 20 Sep
+**S3** · Layer 3 · `WONT-FIX-TODAY` → **`BY-DESIGN`, measured 22 Sep** (see Day 9) · Found by: Day 1 · 20 Sep
 
 Repro: two reports of the same incident in different words score ~0.85 and are both kept.
 Expected: recognised as one.
@@ -568,7 +568,7 @@ rows or asserts the fallback *works* — none of them asked whether the fallback
 a live result.
 
 ### BUG-025 — The demo's "official dispatch crosses 0.60" step is not reachable through the API
-**S2** · Layers 2, 6 · `WONT-FIX-TODAY` (narrative corrected instead) · Found by: running the demo with `--official` · 20 Sep
+**S2** · Layers 2, 6 · `WONT-FIX-TODAY` (narrative corrected instead) → **`FIXED` 22 Sep** (see Day 9) · Found by: running the demo with `--official` · 20 Sep
 
 The escalation half of the planned nodal-officer narrative — *"add one `OFFICIAL_DISPATCH` report,
 source reliability rises 0.60 → 1.00, the score crosses 0.60 into `PENDING_HUMAN_REVIEW`"* — **cannot
@@ -644,7 +644,7 @@ head`"*. A catalogue lookup, not a scan, so it costs nothing.
 Tests: `test_an_unmigrated_database_is_reported_down`, `test_a_migrated_database_is_healthy`.
 
 ### BUG-028 — `pg_isready` returns ready before `indra_db` exists on a fresh volume
-**S3** · Infra · `BY-DESIGN` (documented, with the correct gate) · Found by: the T14 cold-start rehearsal · 21 Sep
+**S3** · Infra · `BY-DESIGN` (documented, with the correct gate) → **`FIXED` 22 Sep** (see Day 9) · Found by: the T14 cold-start rehearsal · 21 Sep
 
 This is *why* BUG-027 happened, and it will happen again to anyone scripting a cold start.
 
@@ -1213,7 +1213,7 @@ Fix: `DEMO_MODE=false` in `/opt/indra/.env`, then `sudo systemctl restart indra-
 effect (`database.py:24`) is SQLAlchemy echoing every SQL statement into the API log.
 
 ### BUG-046 — `next build` fails on `main`, so the server cannot run a production frontend
-**S2** · Layer 9 · **`OPEN`**, handed over — `frontend-handover.md` item 12 · Found by: building on the server, 21 Sep; `tsc --noEmit` on `main`, 22 Sep
+**S2** · Layer 9 · **`FIXED`** by `1004d75` (events page) and `2f411d1` (alerts page) · Found by: building on the server, 21 Sep; `tsc --noEmit` on `main`, 22 Sep
 
 Four type errors, all the same shape: `alerts/page.tsx:180` and `events/page.tsx:92-93` treat
 `city` / `state` (`string | null`) as strings. Came in with `1725a84` through PR #26. `null` is
@@ -1224,3 +1224,158 @@ pages, which is with the frontend owner. It does not change anything the API ret
 
 A correction that goes with it: the Day 7 tally says `next build` was clean. That was true on
 `aditya_22sep_a`; it has not been true on `main` since PR #26 merged.
+
+---
+
+# Day 9, continued — the carried rows closed, and what reading every page found
+
+Branch `aditya_22sep_c`. Backend suite **684 → 746** passed, 2 skipped (62 new tests); dashboard
+**26/26** Playwright tests, 13 of them new. Every row below names its commits and its test.
+
+## The carried rows
+
+### BUG-009 → `FIXED` — every write requires a token
+`32e6135` (teams), `fc51a39` (profile), `7e89ca0` (dashboard sends the token) · Test:
+`test_mutation_auth.py`, 21 tests, **15 of which fail against the previous routers**
+
+The reason it was carried — the dashboard had no login flow — turned out not to hold: the
+dashboard already fetched a JWT for its selected persona for review and provenance. Team creation
+and dispatch now need COMMANDER/ADMIN; profile and preference edits need a token and change only
+the token's own operator. `PATCH /api/profile/me?user=admin` used to let anyone rewrite anyone.
+The test walks the OpenAPI schema, not `app.routes` — FastAPI 0.141 hides included routers there,
+which the test's own guard caught — so a mutation added later without a guard fails the suite.
+Say: "Every write is role-checked and attributed. The demo accounts' passwords ship with the
+dashboard's persona switcher, so this shows roles, not secrecy; a deployment needs a real login."
+
+### BUG-012 → `FIXED` — DBSCAN uses a great-circle radius
+`05da3fa` · Test: `test_dbscan_great_circle.py` (15, boundaries at 4.99/5.01 km both ways, at
+8.5°, 25.6° and 34°N) and `test_geo_clustering.py::test_two_reports_4_8_km_apart_east_west_cluster_at_patna`,
+which fails against the degree-based code
+
+PostGIS has no geography DBSCAN, so the candidates are read from SQL and clustered with
+scikit-learn's haversine DBSCAN in a worker thread; same core/border rule, same return shape. The
+old note had the direction backwards: the neighbourhood was **narrower** east-west (4.5 km), not
+wider. The Patna demo cluster was unchanged — same five reports, same 39-vertex boundary.
+
+### BUG-013 → `BY-DESIGN`, measured — the expectation was wrong
+`d592c25`, `5242364` · Test: `test_dedup_corroboration.py`, 9 tests that pin the threshold from
+both sides (0.85 fails a witness case, 0.93 fails two resubmission cases)
+
+A duplicate is never counted as corroboration, so "catch paraphrases" means "discard witnesses".
+Measured with the production MiniLM: resubmissions (punctuation, case, `URGENT:`, `Fwd:`)
+0.91–0.99; independent witnesses 0.81–0.91. 0.88 catches every resubmission measured and keeps
+four witness pairs of five. The fifth (0.909) is suppressed today — the real limit, which needs a
+reporter identity the anonymous channel does not collect.
+Say: "Dedup exists to catch the same message sent again. A second person in their own words is a
+witness, and we measured that the threshold keeps them."
+
+### BUG-025 → `FIXED` — a trusted source can reach the pipeline, through a token
+`028a87e` (migration `0010`, `submitted_by`), `169c614` (route), `4a77c68` (provenance),
+`4bf0c32` (demo `--official`), `9055d22` (dashboard option) · Test: `test_official_ingest.py`, 9
+
+`POST /api/reports/official`, COMMANDER/ADMIN, stores `OFFICIAL_DISPATCH` with who filed it. The
+public route still cannot claim a source. Live, cold start: five citizen reports scored 0.5146
+`QUARANTINED`; with one dispatch, **0.6065 `PENDING_HUMAN_REVIEW`**, source reliability 1.00 — the
+narrative step this row said could not be shown.
+
+### BUG-028 → `FIXED` — healthy means `indra_db` exists
+`30e49c8` (TCP healthcheck), `89b7b75` (`./start.sh infra up` waits) · Verified by a throwaway
+container: socket `pg_isready` green at 1.1 s on the temporary init server, TCP green at 3.5 s after
+"init process complete". No automated test; it is compose configuration.
+
+### BUG-046 → `FIXED` — `npm run build` passes on the branch
+
+### BUG-045 — still `OPEN`
+The fix is a line in the server's `.env` and a restart; it needs a write on the server, which was
+not made from this session. Commands are in the PR.
+
+## Found 22 Sep by reading every page of the dashboard
+
+None of these was visible to a test, because none of them came from a fallback: they were
+constants written into the pages.
+
+### BUG-047 — The warnings page showed invented government bulletins
+**S1** · Layer 9 · **`FIXED`** by `ae7366e` · Test: `e2e/no-invented-data.spec.ts`
+
+Four hardcoded bulletins credited to IMD, the Cyclone Warning Division, GSI and CWC — a fictional
+"Cyclone Marut", "port signal 8 hoisted", "2,85,000 cusecs" — on every load; any HIGH/CRITICAL
+INDRA event, quarantined ones included, presented as an NDMA "CRITICAL WARNING" with a canned
+evacuation directive; a pulsing "CAP-INDIA BROADCAST ONLINE". Worse than BUG-024: it impersonated
+agencies. The page now shows real SACHET warnings in their issuers' words, and INDRA events
+labelled "not an official warning".
+
+### BUG-048 — The map drew a fictional cyclone track and invented sensor readings
+**S1** · Layer 9 · **`FIXED`** by `bba49c8`
+
+A "Cyclone DANA — Forecast Track" across the Bay of Bengal, on by default; six static "NDRF
+Operational Bases" (Patna labelled 10th Bn — it is the 9th); and, on every pin, "AI Verified",
+"Rainfall 86 mm/h", "Wind Gusts 68 km/h", "Water Level +1.9m Danger", chosen by severity alone.
+
+### BUG-049 — The admin console was entirely static
+**S2** · Layer 9 · **`FIXED`** by `40b14a3` (page), `47f46c3` (`GET /api/audit/recent`) · Test:
+`test_audit_api.py` (7), the e2e health check
+
+"99.98% Uptime · 4 Nodes Active", "BigQuery 14ms · GCP asia-south1", "Zero Breaches · MFA",
+"CLEARANCE: LEVEL 5", ALL SYSTEMS OPERATIONAL whatever the state, and an invented audit trail
+including a CAP broadcast "pushed to Puri district civil authorities".
+
+### BUG-050 — Other pages' invented figures and claims
+**S2** · Layer 9 · **`FIXED`** by `ce4b062` (datasets), `4646eae` (analytics), `c1b67e7` (live map
+header), `0c3363c` (settings), `cb8c6e8`, `ae953d8`, `380ccd6`, `71dccee` (badges, copy, nav)
+
+A dataset catalogue of feeds INDRA does not read, "BIGQUERY ML ENGINE" figures, "Tracking: Cyclone
+DANA", overlay toggles and a data saver nothing read, hardcoded diagnostics, "IMD • NDRF Synced".
+
+### BUG-051 — Team dispatch was fake end to end
+**S2** · Layers 8a, 9 · **`FIXED`** by `32e6135` (backend), `472a972` (dashboard) · Test:
+`test_mutation_auth.py` dispatch cases
+
+The page sent every team to `WX-EV-28231827-A`, the code of a fabricated demo event; the backend
+failed to parse it and answered 200 "Updated in demo store" from an in-memory list, whatever
+`DEMO_MODE` said. A missing team also answered 200 "successfully dispatched". The roster fell back to
+four invented officers.
+
+### BUG-052 — A refused profile or duty save was shown as saved
+**S3** · Layer 9 · **`FIXED`** by `a111d3b`
+
+### BUG-053 — The live feed mislabelled its messages
+**S3** · Layers 8a, 9 · **`FIXED`** by `493a706`, `5a73309`
+
+Every report read "Citizen report"; every event was tagged IMD and "Verified Event", quarantined
+ones included, with a missing confidence defaulting to 85%; every review was credited to
+"Commander".
+
+### BUG-054 — ADVISORY events were labelled Moderate
+**S3** · Layer 9 · **`FIXED`** by `3788016`
+
+### BUG-055 — The demo printed a partial event as final on a cold backend
+**S3** · Demo tooling · **`FIXED`** by `e8b6246` · Found by: running `--official` right after a restart
+
+The model finished warming mid-dedup, the last three reports merged seconds later, and the script
+printed "steady at 3", 0.4748 `QUARANTINED` for an event the database held at 6 reports, 0.6065.
+BUG-026 again. It now waits for every report it sent.
+
+### BUG-056 — A late map `load` wiped every pin
+**S1** · Layer 9 · **`FIXED`** by `38c6785` · Found by: the BUG-043 cold-load e2e test, the moment
+BUG-048's layers were removed
+
+`onStyleReady` fires twice and called the renderer captured at mount, whose marker list was empty.
+Instrumented: 20 pins drawn at t=1720 ms, all wiped at t=1874 ms. The removed layers had delayed
+`load` past the data, hiding it; any slow network could have exposed it.
+
+## Day 9 tally
+
+| | Count |
+|---|---|
+| Carried rows closed | **6** — BUG-009, 012, 025, 028, 046 `FIXED`; BUG-013 `BY-DESIGN`, measured |
+| Found | **12** — BUG-045 … 056 |
+| Fixed | **11** |
+| `OPEN` | **1** — BUG-045, a server config line |
+| Still carried, by design | BUG-010 (truncated tail), BUG-011 (single process), BUG-015 (layer 4), BUG-019 |
+
+### What found them
+
+Reading the pages. The 21 Sep suite asserted the absence of mock-data markers, so it could only
+see invented data that arrived through a fallback; a constant typed into JSX went straight past
+it. And one more time, the rehearsal: BUG-055 appeared only on a backend started seconds earlier,
+and BUG-056 only once a change shifted an event by 150 ms.
