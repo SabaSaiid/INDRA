@@ -65,7 +65,6 @@ export const navItems: NavItem[] = [
     icon: LayoutDashboard,
     href: '/',
     section: 'tactical',
-    shortcut: '⌘1',
     description: 'National overview & key telemetry metrics',
   },
   {
@@ -75,7 +74,6 @@ export const navItems: NavItem[] = [
     href: '/live-map',
     section: 'tactical',
     badge: { text: 'LIVE', variant: 'live' },
-    shortcut: '⌘2',
     description: 'Events, official warnings and reports on a 3D globe',
   },
   {
@@ -84,7 +82,6 @@ export const navItems: NavItem[] = [
     icon: CalendarClock,
     href: '/events',
     section: 'tactical',
-    shortcut: '⌘3',
     description: 'Active severe weather alerts & emergency timeline',
   },
 
@@ -95,7 +92,6 @@ export const navItems: NavItem[] = [
     icon: Bell,
     href: '/alerts',
     section: 'intelligence',
-    shortcut: '⌘4',
     description: 'Official IMD, CWC and SDMA warnings via SACHET',
   },
   {
@@ -104,7 +100,6 @@ export const navItems: NavItem[] = [
     icon: FileText,
     href: '/reports',
     section: 'intelligence',
-    shortcut: '⌘5',
     description: 'Citizen ground truth & verified field intelligence',
   },
   {
@@ -113,7 +108,6 @@ export const navItems: NavItem[] = [
     icon: BarChart3,
     href: '/analytics',
     section: 'intelligence',
-    shortcut: '⌘6',
     description: 'Report volume and event distribution',
   },
   {
@@ -122,7 +116,6 @@ export const navItems: NavItem[] = [
     icon: Database,
     href: '/datasets',
     section: 'intelligence',
-    shortcut: '⌘7',
     description: 'The feeds INDRA reads, and what is not connected',
   },
 
@@ -133,7 +126,6 @@ export const navItems: NavItem[] = [
     icon: Users,
     href: '/teams',
     section: 'command',
-    shortcut: '⌘8',
     description: 'Disaster response battalions & command units',
   },
   {
@@ -142,7 +134,6 @@ export const navItems: NavItem[] = [
     icon: User,
     href: '/profile',
     section: 'command',
-    shortcut: '⌘9',
     description: 'Identity, role and duty status',
   },
   {
@@ -151,7 +142,6 @@ export const navItems: NavItem[] = [
     icon: Shield,
     href: '/admin',
     section: 'command',
-    shortcut: '⌘0',
     description: 'Dependency health, accounts and the audit ledger',
   },
   {
@@ -160,7 +150,6 @@ export const navItems: NavItem[] = [
     icon: Settings,
     href: '/settings',
     section: 'command',
-    shortcut: '⌘,',
     description: 'Tactical GIS, alert siren audio, units & HUD preferences',
   },
 ];

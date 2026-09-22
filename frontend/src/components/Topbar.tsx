@@ -59,12 +59,17 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /* Keyboard shortcut: Cmd+, for settings */
+  /* Keyboard shortcuts: Cmd+, for settings, Cmd+K for search focus */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault();
         setSettingsOpen((prev) => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+        if (searchInput) searchInput.focus();
       }
     };
     window.addEventListener('keydown', handleKeyDown);

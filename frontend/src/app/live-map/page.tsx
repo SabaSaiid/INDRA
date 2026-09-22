@@ -63,7 +63,7 @@ export default function LiveMapPage() {
       {/* Main Content Area */}
       <div
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[280px]'
+          sidebarCollapsed ? 'md:ml-[68px]' : 'md:ml-[272px]'
         }`}
       >
         <Topbar onMobileMenuOpen={openMobile} />
