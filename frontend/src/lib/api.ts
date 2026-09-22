@@ -351,6 +351,11 @@ export interface DashboardSummary {
   active_alerts: number;
 }
 
+/** The summary's raw counts, for pages that quote a figure rather than a KPI tile. */
+export async function fetchSummaryCounts(): Promise<DashboardSummary> {
+  return getJson<DashboardSummary>('/api/dashboard/summary');
+}
+
 export async function fetchDashboardSummary(): Promise<KpiItem[]> {
   const data = await getJson<DashboardSummary>('/api/dashboard/summary');
 
