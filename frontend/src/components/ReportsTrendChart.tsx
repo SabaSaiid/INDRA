@@ -83,7 +83,7 @@ export default function ReportsTrendChart({
   const chartContent = (
     <div className={className}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-text-secondary font-medium">Incident & Sensor Volume</span>
+        <span className="text-[10px] text-text-secondary font-medium">Reports per day</span>
         <select
           value={dateRange}
           onChange={(e) => setDateRange(e.target.value)}
