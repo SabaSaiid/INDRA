@@ -234,7 +234,7 @@ export interface TrendDataPoint {
   date: string;
   reports: number;
 }
-export type FeedSourceType = 'citizen' | 'social' | 'imd' | 'news';
+export type FeedSourceType = 'citizen' | 'official' | 'social' | 'imd' | 'news' | 'event' | 'review';
 
 export interface FeedItem {
   id: string;
@@ -265,6 +265,9 @@ export const feedSourceConfig: Record<FeedSourceType, { color: string; bg: strin
   social: { color: '#4A5568', bg: '#F3F4F6' },
   imd: { color: '#B8873A', bg: '#FBF2E4' },
   news: { color: '#8C2F26', bg: '#F5E8E7' },
+  official: { color: '#1B2432', bg: '#E8E2D4' },
+  event: { color: '#8C2F26', bg: '#FEE2E2' },
+  review: { color: '#065F46', bg: '#D1FAE5' },
 };
 
 // ─── Team & Profile Types & Configuration ─────────────────────────────────────

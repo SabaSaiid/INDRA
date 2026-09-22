@@ -18,6 +18,7 @@ import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 // Source styling and abbreviations
 const sourceConfig: Record<string, { color: string; bg: string; abbr: string }> = {
   citizen: { color: '#4A6670', bg: '#EDF1F3', abbr: 'CTZN' },
+  official: { color: '#1B2432', bg: '#E8E2D4', abbr: 'OFCL' },
   social:  { color: '#B8873A', bg: '#F7F2E7', abbr: 'SOCI' },
   imd:     { color: '#8C2F26', bg: '#F5EBEA', abbr: 'IMD' },
   news:    { color: '#7A8599', bg: '#EEF0F4', abbr: 'NEWS' },
@@ -61,33 +62,48 @@ export default function LiveFeed() {
         hour12: false,
       });
 
+      // Each branch reads the fields the backend actually sends
+      // (report_consumer.py and events.py). They used to label every report a
+      // citizen's, tag every event "IMD" and "Verified Event" — quarantined
+      // ones included — default a missing confidence to an invented 85 %, and
+      // credit every review to "Commander" because the operator id was read
+      // from the wrong level of the message.
       if (msg.type === 'NEW_REPORT' && msg.report) {
         const rep = msg.report;
+        const official = rep.source_type === 'OFFICIAL_DISPATCH';
         const newItem: FeedItem = {
           id: rep.id || `ws-rep-${Date.now()}`,
-          source: (rep.source_type === 'sensor' ? 'imd' : 'citizen') as FeedSourceType,
-          sourceLabel: rep.source_type === 'sensor' ? 'Sensor pulse' : 'Citizen report',
-          message: rep.text || rep.raw_text || 'Ground incident report received',
+          source: official ? 'official' : 'citizen',
+          sourceLabel: official ? 'Official dispatch' : 'Citizen report',
+          message: rep.raw_text || rep.text || 'Report received',
           time: nowTime,
         };
         setFeedItems((prev) => [newItem, ...prev.slice(0, 14)]);
       } else if (msg.type === 'VERIFIED_EVENT' && msg.event) {
         const ev = msg.event;
-        const confPct = Math.round((ev.confidence_score || 0.85) * 100);
+        const parts = [
+          ev.report_count != null ? `${ev.report_count} reports` : null,
+          ev.review_status ? String(ev.review_status).replace(/_/g, ' ').toLowerCase() : null,
+          typeof ev.confidence_score === 'number'
+            ? `${Math.round(ev.confidence_score * 100)}% confidence`
+            : null,
+        ].filter(Boolean);
         const newItem: FeedItem = {
-          id: ev.id || `ws-ev-${Date.now()}`,
-          source: 'imd' as FeedSourceType,
-          sourceLabel: 'Verified Event',
-          message: `${ev.event_type || ev.eventType || 'Event'} cluster formed in ${ev.city || 'Area'} (${confPct}% conf)`,
+          id: `ws-ev-${ev.id || Date.now()}-${Date.now()}`,
+          source: 'event',
+          sourceLabel: ev.merged ? 'Event updated' : 'Event formed',
+          message: `${ev.event_code || 'Event'}: ${parts.join(' · ')}`,
           time: nowTime,
         };
         setFeedItems((prev) => [newItem, ...prev.slice(0, 14)]);
-      } else if (msg.type === 'EVENT_REVIEWED') {
+      } else if (msg.type === 'EVENT_REVIEWED' && msg.event) {
         const newItem: FeedItem = {
           id: `ws-rev-${Date.now()}`,
-          source: 'imd' as FeedSourceType,
-          sourceLabel: 'Audit Action',
-          message: `${msg.event_code || 'Event'} marked ${msg.review_status || msg.action || 'REVIEWED'} by ${msg.operator_id || 'Commander'}`,
+          source: 'review',
+          sourceLabel: 'Operator review',
+          message: `${msg.event.event_code || 'Event'} → ${msg.event.review_status || 'reviewed'} by ${
+            msg.review?.operator_id || 'an operator'
+          }`,
           time: nowTime,
         };
         setFeedItems((prev) => [newItem, ...prev.slice(0, 14)]);
