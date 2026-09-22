@@ -234,24 +234,33 @@ def wait_for_event(deadline_s=45):
     )
 
 
-def settle(event, quiet_for=4.0, limit_s=30.0):
+def settle(event, expected, limit_s=45.0):
     """
-    Wait until the event stops growing before printing it.
+    Wait until every submitted report has joined the event before printing it.
 
     Reports are consumed one at a time, so a cluster is still absorbing members
     for a few seconds after the first event appears. Printed too early the demo
     shows "3 reports, confidence 0.4585" and a refresh a moment later shows
     "5 reports, 0.4984" — which looks like the number is unstable when it is
-    simply still arriving. Measured on a local stack: all five land within ~8s.
+    simply still arriving.
 
-    Polls the receipt's cluster size until it has held steady for `quiet_for`
-    seconds. It reads verification_receipt.cluster.size rather than a top-level
+    This used to stop after the size had held for 4 s. On a freshly started
+    backend that is not enough: on 22 Sep the embedding model finished warming
+    while the fourth report was in dedup, the last three merged several seconds
+    later, and the script printed "steady at 3" and 0.4748 for an event that
+    was already 6 reports and 0.6065 in the database. It knows how many reports
+    it sent, so it now waits for that many.
+
+    It reads verification_receipt.cluster.size rather than a top-level
     report_count, because GET /api/events/{id} does not return one — a first
     version of this function polled `detail["report_count"]`, got None every time,
     and reported "steady at None report(s)" while measuring nothing at all.
+
+    If fewer arrive within `limit_s` (dedup can legitimately suppress one), it
+    says how many of how many joined and prints what the API has.
     """
-    print(f"  Letting the cluster settle (quiet for {quiet_for:.0f}s)")
-    last, stable_since = None, time.monotonic()
+    print(f"  Waiting for all {expected} reports to join the event")
+    last = None
     started = time.monotonic()
 
     while time.monotonic() - started < limit_s:
@@ -270,13 +279,16 @@ def settle(event, quiet_for=4.0, limit_s=30.0):
         if count != last:
             if last is not None:
                 print(f"    cluster size {last} → {count}")
-            last, stable_since = count, time.monotonic()
-        elif time.monotonic() - stable_since >= quiet_for:
-            print(f"    ✓ steady at {count} report(s)\n")
+            last = count
+        if count >= expected:
+            print(f"    ✓ all {count} report(s) in, after {time.monotonic() - started:.1f}s\n")
             return
         time.sleep(1.0)
 
-    print(f"    … still changing after {limit_s:.0f}s; printing anyway\n")
+    print(
+        f"    … {last} of {expected} reports joined within {limit_s:.0f}s; printing what the API has.\n"
+        "      The rest are still in the pipeline, or were suppressed as duplicates.\n"
+    )
 
 
 def show_event(event):
@@ -374,7 +386,7 @@ def main():
     if args.official:
         submit_official(OFFICIAL_REPORT)
     event, _ = wait_for_event(args.wait)
-    settle(event)
+    settle(event, expected=len(reports) + (1 if args.official else 0))
     detail = show_event(event)
     show_heatmap()
 
