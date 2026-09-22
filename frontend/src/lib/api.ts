@@ -338,6 +338,38 @@ export async function submitCitizenReport(
   }
 }
 
+/**
+ * File a report from a trusted field source (a control room, an SDRF team)
+ * through POST /api/reports/official (BUG-025). Needs a Commander or Admin
+ * persona; the backend stores it as OFFICIAL_DISPATCH with the operator's name,
+ * which lifts the cluster's source reliability to 1.00. The public route above
+ * can never claim a source, by design.
+ */
+export async function submitOfficialReport(
+  report: ReportSubmission,
+  operatorUsername: string = currentPersona()
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const authHeaders = await getAuthHeaders(operatorUsername);
+    const res = await fetch(`${API_BASE}/api/reports/official`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(report),
+    });
+    if (res.status === 401 || res.status === 403) {
+      return { success: false, error: 'Filing an official dispatch needs a Commander or Admin persona' };
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      return { success: false, error: err.detail || `HTTP ${res.status}` };
+    }
+    return { success: true, data: await res.json() };
+  } catch (err: any) {
+    console.warn('[INDRA] submitOfficialReport failed:', err);
+    return { success: false, error: err?.message || 'Network error' };
+  }
+}
+
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
 export interface DashboardSummary {
