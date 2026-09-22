@@ -23,7 +23,7 @@ import Topbar from '@/components/Topbar';
 import EventVerificationModal from '@/components/EventVerificationModal';
 import { useSidebar } from '@/lib/useSidebar';
 import { fadeIn, staggerContainer } from '@/lib/motion';
-import { fetchEvents, type ApiEvent } from '@/lib/api';
+import { fetchEvents, formatPlace, type ApiEvent } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 
 interface UnifiedAlert {
@@ -173,11 +173,13 @@ export default function AlertsPage() {
         id: ev.event_code || `EV-${ev.id.slice(0, 8)}`,
         eventId: ev.id,
         level: isCritical ? 'RED' : 'ORANGE',
-        title: `${isCritical ? 'CRITICAL WARNING' : 'HIGH ADVISORY'}: ${ev.eventType} in ${ev.city}`,
+        title: `${isCritical ? 'CRITICAL WARNING' : 'HIGH ADVISORY'}: ${ev.eventType} in ${formatPlace(ev.city, ev.state, ev.place_precision)}`,
         agency: `NDMA • ${ev.state} Emergency Operation Centre`,
         issuedAt: getRelativeTimeString(ev.timestamp),
         validUntil: 'Active Incident Response',
-        zones: [ev.city, ev.state, `${ev.impact_radius_km} km radius`],
+        zones: [ev.city, ev.state, `${ev.impact_radius_km} km radius`].filter(
+          (z): z is string => Boolean(z)
+        ),
         description: `Verified ${ev.eventType.toLowerCase()} anomaly corroborated by ${
           ev.corroborating_reports_count || 1
         } sensor/citizen reports with ${Math.round(ev.confidence_score * 100)}% algorithmic confidence. Coordinates: ${(ev.lat ?? 0).toFixed(3)}°N, ${(ev.lng ?? 0).toFixed(3)}°E.`,
