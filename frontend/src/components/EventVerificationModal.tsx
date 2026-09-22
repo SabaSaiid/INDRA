@@ -31,6 +31,7 @@ import {
 import {
   fetchEventDetail,
   fetchEventProvenance,
+  formatPlace,
   reviewEvent,
   type EventDetail,
   type ProvenanceData,
@@ -127,6 +128,11 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
 
   const receipt = detail?.verification_receipt || provenance?.event?.verification_receipt || {};
   const factors = receipt.factors || [];
+  // The share of the designed model that actually reported (0.80 while vision
+  // and anomaly are offline), and the points it scored. The score means
+  // nothing without its coverage, so the two are shown together.
+  const coverage: number | null = typeof receipt.factor_coverage === 'number' ? receipt.factor_coverage : null;
+  const totalWeighted: number | null = typeof receipt.total_weighted === 'number' ? receipt.total_weighted : null;
   const confidenceScore = detail?.confidence_score ?? provenance?.event?.confidence_score ?? 0;
   const confidencePct = Math.round(confidenceScore * 100);
   const reviewStatus = detail?.review_status ?? provenance?.event?.review_status ?? 'QUARANTINED';
@@ -194,11 +200,16 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   <div className="text-right">
                     <div className="text-2xl font-black text-[#3C2415] font-mono">{confidencePct}%</div>
                     <div className="text-[10px] text-[#8C7A6B]">Confidence</div>
+                    {coverage !== null && (
+                      <div data-testid="factor-coverage" className="text-[10px] font-semibold text-[#6B5E53]">
+                        coverage {Math.round(coverage * 100)}% of the model
+                      </div>
+                    )}
                   </div>
                 </div>
                 {detail && (
                   <div className="flex items-center gap-4 text-xs text-[#6B5E53]">
-                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {detail.city}{detail.state ? `, ${detail.state}` : ''}</span>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {formatPlace(detail.city, detail.state, detail.place_precision)}</span>
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {detail.verified_at ? new Date(detail.verified_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</span>
                   </div>
                 )}
@@ -237,7 +248,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 <div className="space-y-2">
                   {factors.length > 0 ? factors.map((f: any, i: number) => {
                     const cfg = FACTOR_CONFIG[f.factor] || { icon: <Eye className="w-4 h-4" />, color: '#64748B', bgColor: '#F1F5F9' };
-                    const isOffline = f.evidence === 'Telemetry factor offline';
+                    // The receipt says so directly since Day 5; the evidence text is
+                    // the fallback for receipts stored before then.
+                    const isOffline = f.state === 'offline' || f.evidence === 'Telemetry factor offline';
                     const pct = Math.round(f.score * 100);
                     return (
                       <div key={i} className={`bg-white rounded-lg border border-[#E8E2D4] p-3 ${isOffline ? 'opacity-60' : ''}`}>
@@ -273,6 +286,14 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                       <span className="text-[10px]">Receipt data is generated when the backend pipeline processes reports into events.</span>
                     </div>
                   )}
+                  {factors.length > 0 && coverage !== null && totalWeighted !== null && coverage > 0 && (
+                    <div data-testid="receipt-arithmetic" className="rounded-lg bg-[#EDE8DD] px-3 py-2 text-[11px] font-mono text-[#3C2415]">
+                      {totalWeighted.toFixed(4)} points ÷ {coverage.toFixed(2)} coverage = {(totalWeighted / coverage).toFixed(4)}
+                      <span className="block text-[10px] text-[#8C7A6B] font-sans">
+                        Offline factors carry no weight; the score is the mean over the factors that reported.
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -287,6 +308,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                             <div className="flex-1">
                               <div className="flex items-center gap-1.5 mb-1">
                                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F0EBE0] text-[#6B5E53]">{r.source_type}</span>
+                                {r.submitted_by && (
+                                  <span className="text-[10px] text-[#6B5E53]">filed by {r.submitted_by}</span>
+                                )}
                                 <span className="text-[10px] text-[#8C7A6B]">#{i + 1}</span>
                               </div>
                               <p className="text-xs text-[#3C2415] leading-relaxed line-clamp-2">{r.raw_text}</p>

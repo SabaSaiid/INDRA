@@ -197,8 +197,10 @@ export interface EventDetail {
   boundary_geojson: string | null;
   verification_receipt: Record<string, any>;
   verified_at: string;
-  city: string;
-  state: string;
+  /** Null when the backend could not place the event (see formatPlace). */
+  city: string | null;
+  state: string | null;
+  place_precision?: string | null;
 }
 
 export async function fetchEventDetail(eventId: string): Promise<EventDetail | null> {
@@ -222,6 +224,8 @@ export interface ProvenanceReport {
   longitude: number;
   credibility_score: number;
   created_at: string;
+  /** Operator who filed an OFFICIAL_DISPATCH; null for an anonymous citizen report. */
+  submitted_by?: string | null;
 }
 
 export interface AuditEntry {
