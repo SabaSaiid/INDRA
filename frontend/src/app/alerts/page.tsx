@@ -1,99 +1,90 @@
 'use client';
 
+/**
+ * Warnings page.
+ *
+ * Two kinds of card, never mixed up:
+ *
+ * 1. **Official warnings** — CAP alerts issued by IMD, CWC and state SDMAs,
+ *    collected from NDMA's SACHET feed by the backend poller
+ *    (GET /api/alerts/agency). These are real government warnings, shown with
+ *    the issuing agency's own words.
+ * 2. **INDRA events** — HIGH or CRITICAL events the platform fused from
+ *    reports, shown with their true review status. INDRA does not issue
+ *    warnings (the alert engine was cancelled), so these are labelled as events
+ *    and are never credited to an agency.
+ *
+ * This page used to append four hardcoded bulletins credited to IMD, the
+ * Cyclone Warning Division, GSI and CWC — a fictional "Cyclone Marut", "port
+ * signal 8 hoisted", "2,85,000 cusecs" — to every load, and to present any
+ * HIGH or CRITICAL event, quarantined ones included, as a "CRITICAL WARNING"
+ * from an "NDMA Emergency Operation Centre", with a canned evacuation
+ * directive attached.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-  Bell,
-  AlertOctagon,
   AlertTriangle,
-  Info,
   ShieldAlert,
-  Radio,
-  ExternalLink,
-  MapPin,
   Clock,
   ChevronRight,
   Search,
   Loader2,
   ShieldCheck,
   RefreshCw,
+  Radio,
+  MapPin,
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import EventVerificationModal from '@/components/EventVerificationModal';
 import { useSidebar } from '@/lib/useSidebar';
 import { fadeIn, staggerContainer } from '@/lib/motion';
-import { fetchEvents, formatPlace, type ApiEvent } from '@/lib/api';
+import {
+  fetchEvents,
+  fetchAgencyAlerts,
+  formatPlace,
+  type ApiEvent,
+  type AgencyAlert,
+} from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 
-interface UnifiedAlert {
-  id: string;
-  eventId?: string;
-  level: 'RED' | 'ORANGE' | 'YELLOW';
+type Level = 'RED' | 'ORANGE' | 'YELLOW';
+
+interface WarningCard {
+  key: string;
+  kind: 'official' | 'indra';
+  level: Level;
   title: string;
-  agency: string;
+  /** Who said it: the CAP sender, or "INDRA" for a fused event. */
+  source: string;
   issuedAt: string;
-  validUntil: string;
-  zones: string[];
+  validUntil: string | null;
+  area: string;
   description: string;
-  actionRequired: string;
+  /** Extra facts shown as small chips: CAP urgency/certainty, review status. */
+  facts: string[];
+  eventId?: string;
   confidenceScore?: number;
-  reportCount?: number;
-  isLiveEvent?: boolean;
 }
 
-const OFFICIAL_BULLETINS: UnifiedAlert[] = [
-  {
-    id: 'ALT-IMD-2026-901',
-    level: 'RED',
-    title: 'RED WARNING: Severe Atmospheric Flash Flood & Cloudburst Potential',
-    agency: 'IMD Eastern Regional Centre',
-    issuedAt: '12 mins ago',
-    validUntil: '15 Sep 2026, 06:00 IST',
-    zones: ['Patna', 'Vaishali', 'Muzaffarpur', 'Samastipur'],
-    description:
-      'Continuous hyper-localized precipitation exceeding 120mm/hr detected by Doppler radar. Extreme inundation imminent in low-lying river catchments.',
-    actionRequired: 'Immediate evacuation of floodplains and deployment of NDRF quick-response teams.',
-  },
-  {
-    id: 'ALT-IMD-2026-902',
-    level: 'RED',
-    title: 'CYCLONIC STORM WARNING: Cyclone "Marut" Coastal Landfall Advisory',
-    agency: 'Cyclone Warning Division, New Delhi',
-    issuedAt: '45 mins ago',
-    validUntil: '15 Sep 2026, 18:00 IST',
-    zones: ['Puri', 'Jagatsinghpur', 'Kendrapara', 'Bhadrak'],
-    description:
-      'Very Severe Cyclonic Storm with sustained winds 130-150 km/h gusting to 165 km/h. Tidal surge up to 2.5m anticipated during high tide.',
-    actionRequired: 'Port signal 8 hoisted. Fishermen advised total suspension of fishing operations.',
-  },
-  {
-    id: 'ALT-IMD-2026-903',
-    level: 'ORANGE',
-    title: 'ORANGE ALERT: Landslide & Hill Slope Debris Discharge',
-    agency: 'Geological Survey of India & IMD Trivandrum',
-    issuedAt: '2h ago',
-    validUntil: '15 Sep 2026, 12:00 IST',
-    zones: ['Wayanad', 'Idukki', 'Kozhikode Ghats'],
-    description:
-      'Soil moisture saturation index at 98.4%. High susceptibility to slope slips along NH-766.',
-    actionRequired: 'Night travel prohibited on ghat roads. NDRF team pre-positioned at Meppadi.',
-  },
-  {
-    id: 'ALT-IMD-2026-904',
-    level: 'ORANGE',
-    title: 'ORANGE ALERT: Upper Yamuna River Water Discharge Advisory',
-    agency: 'Central Water Commission (CWC)',
-    issuedAt: '3h ago',
-    validUntil: '16 Sep 2026, 00:00 IST',
-    zones: ['Hathnikund to Delhi Lowlands'],
-    description:
-      'Hathnikund barrage released 2,85,000 cusecs water upstream. Water levels expected to breach danger mark (205.33m) by tomorrow dawn.',
-    actionRequired: 'Relocation of cattle and riverside settlements in Shahdara & Mayur Vihar.',
-  },
-];
+const REVIEW_LABEL: Record<string, string> = {
+  AUTO_PUBLISHED: 'Auto-published',
+  HUMAN_APPROVED: 'Approved by an operator',
+  PENDING_HUMAN_REVIEW: 'Awaiting operator review',
+  QUARANTINED: 'Quarantined — not verified',
+};
 
-function getRelativeTimeString(ts: string): string {
+function levelForSeverity(severity: string | null | undefined): Level {
+  const s = (severity || '').toUpperCase();
+  if (s === 'CRITICAL') return 'RED';
+  if (s === 'HIGH') return 'ORANGE';
+  return 'YELLOW';
+}
+
+function relativeTime(ts: string | null): string {
+  if (!ts) return 'time not given';
   const diff = Date.now() - new Date(ts).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'just now';
@@ -103,21 +94,78 @@ function getRelativeTimeString(ts: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function getDirectiveForEvent(type: string, severity: string): string {
-  const t = (type || '').toLowerCase();
-  if (t.includes('flood') || t.includes('waterlog')) {
-    return severity.toUpperCase() === 'CRITICAL'
-      ? 'Execute Stage-3 flood evacuation protocols. Dispatch SDRF rescue boats and establish relief shelters in elevated zones.'
-      : 'Issue high-water advisories; restrict vehicular movement along underpasses and river banks.';
-  }
-  if (t.includes('cyclone') || t.includes('wind') || t.includes('storm')) {
-    return 'Suspend coastal and maritime operations. Issue CAP alert to district sirens; secure critical power installations.';
-  }
-  if (t.includes('landslide')) {
-    return 'Enforce total vehicular stoppage along vulnerable ghat corridors. Pre-position heavy earthmoving machinery.';
-  }
-  return 'Mobilize local disaster response units. Maintain active Doppler radar feed and cross-verify civilian reports.';
+function istTime(ts: string | null): string | null {
+  if (!ts) return null;
+  return (
+    new Date(ts).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }) + ' IST'
+  );
 }
+
+function officialCard(a: AgencyAlert): WarningCard {
+  const facts = [
+    a.raw_severity ? `CAP severity: ${a.raw_severity}` : 'Severity not rated by the issuer',
+    a.urgency ? `Urgency: ${a.urgency}` : null,
+    a.certainty ? `Certainty: ${a.certainty}` : null,
+  ].filter((f): f is string => Boolean(f));
+  return {
+    key: `alert-${a.id}`,
+    kind: 'official',
+    level: levelForSeverity(a.severity),
+    title: a.event || 'Warning',
+    source: a.sender || 'Issuing agency not named',
+    issuedAt: relativeTime(a.sent_at),
+    validUntil: istTime(a.expires_at),
+    area: a.area_desc || a.location_label || 'Area not given',
+    description: a.headline || '',
+    facts,
+  };
+}
+
+function indraCard(ev: ApiEvent): WarningCard {
+  const status = REVIEW_LABEL[ev.review_status] || ev.review_status;
+  const reports = ev.corroborating_reports_count;
+  return {
+    key: `event-${ev.id}`,
+    kind: 'indra',
+    level: levelForSeverity(ev.severity),
+    title: `${ev.eventType} — ${ev.severity.toUpperCase()} severity`,
+    source: 'INDRA',
+    issuedAt: relativeTime(ev.timestamp || ev.verified_at),
+    validUntil: null,
+    area: formatPlace(ev.city, ev.state, ev.place_precision),
+    description:
+      reports != null
+        ? `Fused from ${reports} report${reports === 1 ? '' : 's'}. ${status}.`
+        : `${status}.`,
+    facts: [status, ev.event_code],
+    eventId: ev.id,
+    confidenceScore: ev.confidence_score,
+  };
+}
+
+const LEVEL_STYLE: Record<Level, { border: string; strip: string; badge: string }> = {
+  RED: {
+    border: 'border-rose-200 hover:border-rose-300',
+    strip: '5px solid #8C2F26',
+    badge: 'bg-rose-600 text-white',
+  },
+  ORANGE: {
+    border: 'border-amber-200 hover:border-amber-300',
+    strip: '5px solid #B8873A',
+    badge: 'bg-amber-500 text-slate-950',
+  },
+  YELLOW: {
+    border: 'border-yellow-200 hover:border-yellow-300',
+    strip: '5px solid #CA8A04',
+    badge: 'bg-yellow-300 text-slate-950',
+  },
+};
 
 export default function AlertsPage() {
   const {
@@ -127,87 +175,69 @@ export default function AlertsPage() {
     openMobile,
     closeMobile,
   } = useSidebar();
-  const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
+  const [selectedLevel, setSelectedLevel] = useState<'ALL' | Level>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [agencyAlerts, setAgencyAlerts] = useState<AgencyAlert[]>([]);
   const [events, setEvents] = useState<ApiEvent[]>([]);
+  const [alertsFailed, setAlertsFailed] = useState(false);
+  const [eventsFailed, setEventsFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [verificationEventId, setVerificationEventId] = useState<string | null>(null);
   const { subscribe } = useIndraWebSocket();
 
-  const loadAlertsData = useCallback(async () => {
-    try {
-      const data = await fetchEvents({ time_range: '7d' });
-      setEvents(data);
-    } catch {
-      // fallback
+  const loadWarnings = useCallback(async () => {
+    const [alertsResult, eventsResult] = await Promise.allSettled([
+      fetchAgencyAlerts(100),
+      fetchEvents({ time_range: '7d' }),
+    ]);
+    if (alertsResult.status === 'fulfilled') {
+      setAgencyAlerts(alertsResult.value);
+      setAlertsFailed(false);
+    } else {
+      setAlertsFailed(true);
+    }
+    if (eventsResult.status === 'fulfilled') {
+      setEvents(eventsResult.value);
+      setEventsFailed(false);
+    } else {
+      setEventsFailed(true);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    loadAlertsData();
-  }, [loadAlertsData]);
+    loadWarnings();
+  }, [loadWarnings]);
 
-  // Real-time WebSocket updates
   useEffect(() => {
     return subscribe('alerts-page', (msg) => {
-      if (['VERIFIED_EVENT', 'EVENT_REVIEWED', 'NEW_REPORT'].includes(msg.type)) {
-        loadAlertsData();
+      if (['VERIFIED_EVENT', 'EVENT_REVIEWED'].includes(msg.type)) {
+        loadWarnings();
       }
     });
-  }, [subscribe, loadAlertsData]);
+  }, [subscribe, loadWarnings]);
 
-  // Synthesize alerts from live backend events + official bulletins
-  const allAlerts = useMemo<UnifiedAlert[]>(() => {
-    const liveAlerts: UnifiedAlert[] = [];
+  const cards = useMemo<WarningCard[]>(() => {
+    const official = agencyAlerts.map(officialCard);
+    const severe = events
+      .filter((ev) => ['CRITICAL', 'HIGH'].includes((ev.severity || '').toUpperCase()))
+      .map(indraCard);
+    const rank: Record<Level, number> = { RED: 0, ORANGE: 1, YELLOW: 2 };
+    return [...official, ...severe].sort((a, b) => rank[a.level] - rank[b.level]);
+  }, [agencyAlerts, events]);
 
-    // Filter events that qualify for emergency alerts (CRITICAL or HIGH)
-    const severeEvents = events.filter((ev) => {
-      const s = (ev.severity || '').toUpperCase();
-      return s === 'CRITICAL' || s === 'HIGH';
-    });
-
-    for (const ev of severeEvents) {
-      const isCritical = ev.severity.toUpperCase() === 'CRITICAL';
-      liveAlerts.push({
-        id: ev.event_code || `EV-${ev.id.slice(0, 8)}`,
-        eventId: ev.id,
-        level: isCritical ? 'RED' : 'ORANGE',
-        title: `${isCritical ? 'CRITICAL WARNING' : 'HIGH ADVISORY'}: ${ev.eventType} in ${formatPlace(ev.city, ev.state, ev.place_precision)}`,
-        agency: `NDMA • ${ev.state} Emergency Operation Centre`,
-        issuedAt: getRelativeTimeString(ev.timestamp),
-        validUntil: 'Active Incident Response',
-        zones: [ev.city, ev.state, `${ev.impact_radius_km} km radius`].filter(
-          (z): z is string => Boolean(z)
-        ),
-        description: `Verified ${ev.eventType.toLowerCase()} anomaly corroborated by ${
-          ev.corroborating_reports_count || 1
-        } sensor/citizen reports with ${Math.round(ev.confidence_score * 100)}% algorithmic confidence. Coordinates: ${(ev.lat ?? 0).toFixed(3)}°N, ${(ev.lng ?? 0).toFixed(3)}°E.`,
-        actionRequired: getDirectiveForEvent(ev.eventType, ev.severity),
-        confidenceScore: ev.confidence_score,
-        reportCount: ev.corroborating_reports_count,
-        isLiveEvent: true,
-      });
-    }
-
-    // Merge live alerts first, followed by official meteorological bulletins
-    return [...liveAlerts, ...OFFICIAL_BULLETINS];
-  }, [events]);
-
-  const filteredAlerts = allAlerts.filter((alt) => {
-    if (selectedLevel !== 'ALL' && alt.level !== selectedLevel) return false;
+  const filtered = cards.filter((c) => {
+    if (selectedLevel !== 'ALL' && c.level !== selectedLevel) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const matchTitle = alt.title.toLowerCase().includes(q);
-      const matchDesc = alt.description.toLowerCase().includes(q);
-      const matchZones = alt.zones.some((z) => z.toLowerCase().includes(q));
-      if (!matchTitle && !matchDesc && !matchZones) return false;
+      return [c.title, c.description, c.area, c.source].some((f) => f.toLowerCase().includes(q));
     }
     return true;
   });
 
-  const redCount = allAlerts.filter((a) => a.level === 'RED').length;
-  const orangeCount = allAlerts.filter((a) => a.level === 'ORANGE').length;
+  const count = (level: Level) => cards.filter((c) => c.level === level).length;
+  const officialCount = cards.filter((c) => c.kind === 'official').length;
+  const indraCount = cards.length - officialCount;
 
   return (
     <div className="min-h-screen bg-[#F7F3EA] text-[#1B2432]">
@@ -226,58 +256,71 @@ export default function AlertsPage() {
         <Topbar onMobileMenuOpen={openMobile} />
 
         <main className="p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
-          {/* Executive Header Banner */}
+          {/* Header */}
           <div className="bg-gradient-to-r from-[#8C2F26] via-[#73241C] to-[#1B2432] text-white p-5 rounded-2xl border border-[#B5482E]/30 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <ShieldAlert className="w-5 h-5 text-rose-300 animate-pulse" />
+                <ShieldAlert className="w-5 h-5 text-rose-300" />
                 <h1
                   className="text-xl font-bold tracking-wide"
                   style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                 >
-                  Early Warning &amp; Hazard Bulletins
+                  Warnings &amp; Severe Events
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-200 border border-rose-400/40 animate-pulse">
-                  {redCount} CRITICAL WARNINGS
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-rose-100 border border-white/20">
+                  {officialCount} official in force
                 </span>
-                {orangeCount > 0 && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 border border-amber-400/40">
-                    {orangeCount} ADVISORIES
+                {indraCount > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-amber-100 border border-white/20">
+                    {indraCount} severe INDRA events
                   </span>
                 )}
               </div>
-              <p className="text-xs text-rose-100/80">
-                Official NDMA, IMD, CWC broadcasts synchronized with real-time INDRA 6-factor verified anomaly telemetry.
+              <p className="text-xs text-rose-100/80 max-w-3xl">
+                Official warnings are issued by IMD, CWC and state SDMAs and collected from NDMA&apos;s
+                SACHET feed. INDRA events are fused from reports and carry their review status.
+                INDRA itself does not issue warnings.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/30 backdrop-blur-md border border-rose-400/30 text-xs font-mono text-rose-200">
-                <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-                CAP-INDIA BROADCAST ONLINE
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/30 border border-white/20 text-xs font-mono text-rose-100">
+                <Radio className="w-3.5 h-3.5" />
+                {alertsFailed ? 'SACHET feed unavailable' : 'SACHET feed via backend poller'}
               </div>
               <button
                 onClick={() => {
                   setLoading(true);
-                  loadAlertsData();
+                  loadWarnings();
                 }}
                 disabled={loading}
                 className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
-                title="Refresh alerts"
+                title="Refresh"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
 
-          {/* Controls: Filter Pills & Search */}
+          {(alertsFailed || eventsFailed) && (
+            <div
+              role="alert"
+              className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-xs font-semibold text-rose-700"
+            >
+              {alertsFailed && 'Official warnings could not be loaded from the backend. '}
+              {eventsFailed && 'INDRA events could not be loaded from the backend.'}
+            </div>
+          )}
+
+          {/* Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              {[
-                { id: 'ALL', label: `ALL BULLETINS (${allAlerts.length})` },
-                { id: 'RED', label: `🔴 RED WARNINGS (${redCount})` },
-                { id: 'ORANGE', label: `🟠 ORANGE ALERTS (${orangeCount})` },
-              ].map((lvl) => (
+              {([
+                { id: 'ALL', label: `ALL (${cards.length})` },
+                { id: 'RED', label: `RED (${count('RED')})` },
+                { id: 'ORANGE', label: `ORANGE (${count('ORANGE')})` },
+                { id: 'YELLOW', label: `YELLOW (${count('YELLOW')})` },
+              ] as const).map((lvl) => (
                 <button
                   key={lvl.id}
                   onClick={() => setSelectedLevel(lvl.id)}
@@ -298,133 +341,97 @@ export default function AlertsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter by city, state, or hazard..."
+                placeholder="Filter by district, agency or hazard..."
                 className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white border border-[#E8E2D4] text-xs text-[#1B2432] placeholder-[#A0988A] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-2xs"
               />
             </div>
           </div>
 
-          {/* Alerts Cards List */}
-          {loading && allAlerts.length === 0 ? (
+          {/* Cards */}
+          {loading && cards.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-[#E8E2D4]">
               <Loader2 className="w-8 h-8 text-[#B5482E] animate-spin mb-3" />
-              <p className="text-sm font-medium text-[#7A8599]">Synchronizing alert telemetry with backend...</p>
+              <p className="text-sm font-medium text-[#7A8599]">Loading warnings from the backend...</p>
             </div>
-          ) : filteredAlerts.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="p-8 text-center bg-white rounded-2xl border border-[#E8E2D4] text-[#7A8599] text-sm">
-              No hazard bulletins found matching your filter criteria.
+              {cards.length === 0
+                ? 'No official warnings are in force and no severe INDRA events are open.'
+                : 'Nothing matches this filter.'}
             </div>
           ) : (
-            <motion.div
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-              className="space-y-4"
-            >
-              {filteredAlerts.map((alt) => {
-                const isRed = alt.level === 'RED';
-
+            <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-4">
+              {filtered.map((c) => {
+                const style = LEVEL_STYLE[c.level];
                 return (
                   <motion.div
-                    key={alt.id}
+                    key={c.key}
                     variants={fadeIn}
-                    className={`rounded-2xl border p-5 shadow-xs bg-white transition-all ${
-                      isRed
-                        ? 'border-rose-200 hover:border-rose-300 hover:shadow-md'
-                        : 'border-amber-200 hover:border-amber-300 hover:shadow-md'
-                    }`}
-                    style={{
-                      borderLeft: isRed ? '5px solid #8C2F26' : '5px solid #B8873A',
-                    }}
+                    data-kind={c.kind}
+                    className={`rounded-2xl border p-5 shadow-xs bg-white transition-all hover:shadow-md ${style.border}`}
+                    style={{ borderLeft: style.strip }}
                   >
-                    {/* Card Top Strip */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <span
-                          className={`text-xs font-black font-mono px-2.5 py-0.5 rounded-md ${
-                            isRed
-                              ? 'bg-rose-600 text-white'
-                              : 'bg-amber-500 text-slate-950 font-bold'
-                          }`}
-                        >
-                          {alt.level} ALERT
+                        <span className={`text-xs font-black font-mono px-2.5 py-0.5 rounded-md ${style.badge}`}>
+                          {c.level}
                         </span>
-                        <span className="font-mono text-xs text-[#7A8599] font-medium">
-                          {alt.id}
-                        </span>
-                        <span className="text-xs text-[#7A8599]">
-                          • {alt.agency}
-                        </span>
-                        {alt.isLiveEvent && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Live Telemetry Event
+                        {c.kind === 'official' ? (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#1B2432] text-white">
+                            OFFICIAL WARNING
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#F7F3EA] text-[#4A5568] border border-[#E8E2D4]">
+                            INDRA EVENT · not an official warning
                           </span>
                         )}
+                        <span className="text-xs text-[#4A5568] font-semibold">{c.source}</span>
                       </div>
 
                       <div className="flex items-center gap-2 text-xs font-mono text-[#7A8599]">
                         <Clock className="w-3.5 h-3.5 text-[#A0988A]" />
-                        <span>Issued {alt.issuedAt}</span>
-                        <span>• Valid: {alt.validUntil}</span>
+                        <span>
+                          {c.kind === 'official' ? 'Issued' : 'Updated'} {c.issuedAt}
+                        </span>
+                        {c.validUntil && <span>• Valid until {c.validUntil}</span>}
                       </div>
                     </div>
 
-                    {/* Headline */}
                     <h2
                       className="text-base font-bold text-[#1B2432] mb-2 leading-snug"
                       style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                     >
-                      {alt.title}
+                      {c.title}
                     </h2>
 
-                    {/* Description */}
-                    <p className="text-xs sm:text-sm text-[#4A5568] mb-3.5 leading-relaxed">
-                      {alt.description}
-                    </p>
+                    {c.description && (
+                      <p className="text-xs sm:text-sm text-[#4A5568] mb-3.5 leading-relaxed">{c.description}</p>
+                    )}
 
-                    {/* Impacted Districts */}
-                    <div className="flex flex-wrap items-center gap-1.5 mb-3.5">
-                      <span className="text-xs font-semibold text-[#1B2432]">
-                        Impacted Districts:
-                      </span>
-                      {alt.zones.map((zone) => (
+                    <div className="flex items-start gap-1.5 mb-3 text-xs text-[#4A5568]">
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 text-[#A0988A] flex-shrink-0" />
+                      <span>{c.area}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {c.facts.map((fact) => (
                         <span
-                          key={zone}
-                          className="text-xs font-mono bg-[#F7F3EA] text-[#4A5568] px-2.5 py-0.5 rounded-md border border-[#E8E2D4]"
+                          key={fact}
+                          className="text-[11px] font-mono bg-[#F7F3EA] text-[#4A5568] px-2 py-0.5 rounded-md border border-[#E8E2D4]"
                         >
-                          {zone}
+                          {fact}
                         </span>
                       ))}
                     </div>
 
-                    {/* Operational Directive Box */}
-                    <div
-                      className={`rounded-xl p-3 text-xs flex items-start gap-2.5 mb-3 ${
-                        isRed
-                          ? 'bg-rose-50/70 border border-rose-200 text-rose-950'
-                          : 'bg-amber-50/70 border border-amber-200 text-amber-950'
-                      }`}
-                    >
-                      <AlertOctagon
-                        className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                          isRed ? 'text-rose-600' : 'text-amber-600'
-                        }`}
-                      />
-                      <div className="leading-relaxed">
-                        <span className="font-bold">Required Operational Directive: </span>
-                        {alt.actionRequired}
-                      </div>
-                    </div>
-
-                    {/* Action Bar */}
-                    {alt.eventId && (
-                      <div className="pt-2 border-t border-[#F0EBE0] flex items-center justify-between">
-                        <span className="text-[11px] font-mono text-[#7A8599]">
-                          Corroborated by {alt.reportCount || 1} reports • Confidence {Math.round((alt.confidenceScore || 0) * 100)}%
+                    {c.eventId && (
+                      <div className="mt-3 pt-2 border-t border-[#F0EBE0] flex items-center justify-between">
+                        <span className="text-[11px] font-mono text-[#7A8599] flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Confidence {Math.round((c.confidenceScore || 0) * 100)}%
                         </span>
                         <button
-                          onClick={() => setVerificationEventId(alt.eventId!)}
+                          onClick={() => setVerificationEventId(c.eventId!)}
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#F7F3EA] hover:bg-[#F0EBE0] text-[#1B2432] text-xs font-medium border border-[#E8E2D4] transition-colors"
                         >
                           <ShieldCheck className="w-3.5 h-3.5 text-[#B5482E]" />
@@ -441,11 +448,10 @@ export default function AlertsPage() {
         </main>
       </div>
 
-      {/* Verification Receipt Modal */}
       <EventVerificationModal
         eventId={verificationEventId}
         onClose={() => setVerificationEventId(null)}
-        onEventUpdated={() => loadAlertsData()}
+        onEventUpdated={() => loadWarnings()}
       />
     </div>
   );
