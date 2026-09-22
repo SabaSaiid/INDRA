@@ -335,6 +335,21 @@ open_browser() {
     ) &
 }
 
+# --- Start Docker Infra and wait for it ---
+# `up -d` returns as soon as the containers exist, which on a fresh volume is
+# seconds before Postgres has created indra_db (BUG-028). Compose v2's --wait
+# blocks until every service with a healthcheck reports healthy, so whatever
+# runs next (alembic, the API) finds a database that is really there.
+# docker-compose v1 has no --wait; it keeps the old behaviour.
+compose_up_and_wait() {
+    local DOCKER_CMD="$1"
+    if [[ "$DOCKER_CMD" == "docker compose" ]]; then
+        $DOCKER_CMD -f "$DOCKER_COMPOSE_FILE" up -d --wait --wait-timeout 120
+    else
+        $DOCKER_CMD -f "$DOCKER_COMPOSE_FILE" up -d
+    fi
+}
+
 # --- Check Docker Infra ---
 check_docker_infra() {
     local DOCKER_CMD
@@ -367,7 +382,7 @@ ensure_docker_infra() {
     else
         if [[ "$WITH_INFRA" == true ]]; then
             echo "${CYAN}Spinning up Docker Infrastructure (PostGIS, Redis, Redpanda)...${RESET}"
-            $DOCKER_CMD -f "$DOCKER_COMPOSE_FILE" up -d
+            compose_up_and_wait "$DOCKER_CMD"
         else
             echo "${DIM}ℹ Docker containers not detected. Run './start.sh infra up' or pass '--with-infra' to start them.${RESET}"
         fi
@@ -731,8 +746,11 @@ cmd_infra() {
     case "$action" in
         up|start)
             echo "${BOLD}▶ Starting INDRA Docker Infrastructure (PostGIS, Redis, Redpanda)...${RESET}"
-            $DOCKER_CMD -f "$DOCKER_COMPOSE_FILE" up -d
-            echo "${GREEN}✓ Infrastructure containers started.${RESET}"
+            if ! compose_up_and_wait "$DOCKER_CMD"; then
+                echo "${RED}✘ Infrastructure did not become healthy. Check: $DOCKER_CMD ps${RESET}"
+                exit 1
+            fi
+            echo "${GREEN}✓ Infrastructure containers started and healthy.${RESET}"
             ;;
         down|stop)
             echo "${BOLD}▶ Stopping INDRA Docker Infrastructure...${RESET}"

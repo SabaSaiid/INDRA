@@ -3,33 +3,51 @@ INDRA Platform — Teams API
 Operational Disaster Response Units (NDRF, SDRF, IMD, CWC) and Team Sixth Sense Showcase
 """
 
+import logging
 import uuid
 from typing import Optional, List
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.demo import demo_fallback
+from app.core.security import TokenData, require_roles
+from app.models.enums import TeamAgency, TeamStatus
+
+logger = logging.getLogger("indra.api.teams")
+
+# Creating and dispatching a unit are operational decisions, so they carry the
+# same gate as reviewing an event (BUG-009). An analyst reads; a commander acts.
+_can_dispatch = require_roles("COMMANDER", "ADMIN")
 
 router = APIRouter(prefix="/api/teams", tags=["Teams"])
 
 
 # ── Pydantic Schemas ──────────────────────────────────────────────────────────
 class TeamCreate(BaseModel):
-    team_code: str
-    name: str
-    agency: str  # NDRF, SDRF, IMD, CWC, NDMA, MUNICIPAL
-    city: str
-    state: str
-    lead_name: str
-    lead_phone: Optional[str] = None
-    radio_callsign: Optional[str] = None
-    specialization: Optional[str] = None
-    status: Optional[str] = "AVAILABLE"
-    members_count: Optional[int] = 12
+    team_code: str = Field(min_length=1, max_length=30)
+    name: str = Field(min_length=1, max_length=120)
+    agency: TeamAgency  # NDRF, SDRF, IMD, CWC, NDMA, MUNICIPAL
+    city: str = Field(min_length=1, max_length=80)
+    state: str = Field(min_length=1, max_length=80)
+    lead_name: str = Field(min_length=1, max_length=100)
+    lead_phone: Optional[str] = Field(None, max_length=30)
+    radio_callsign: Optional[str] = Field(None, max_length=40)
+    specialization: Optional[str] = Field(None, max_length=200)
+    status: TeamStatus = TeamStatus.AVAILABLE
+    members_count: int = Field(12, ge=1, le=1000)
+
+    # The enums are upper case; the old str fields upper-cased whatever came
+    # in, so "ndrf" keeps working. An unknown agency is now a 422 rather than
+    # a database error surfacing as a 500.
+    @field_validator("agency", "status", mode="before")
+    @classmethod
+    def _upper(cls, value):
+        return value.upper() if isinstance(value, str) else value
 
 
 class TeamAssignRequest(BaseModel):
@@ -445,10 +463,11 @@ async def get_team(
 async def create_team(
     team_in: TeamCreate,
     db: AsyncSession = Depends(get_db),
+    operator: TokenData = Depends(_can_dispatch),
 ):
-    """Create a new emergency response unit."""
+    """Create a new emergency response unit. COMMANDER or ADMIN."""
+    new_id = uuid.uuid4()
     try:
-        new_id = uuid.uuid4()
         await db.execute(
             text("""
                 INSERT INTO teams (
@@ -463,21 +482,32 @@ async def create_team(
                 "id": new_id,
                 "team_code": team_in.team_code.upper(),
                 "name": team_in.name,
-                "agency": team_in.agency.upper(),
+                "agency": team_in.agency.value,
                 "city": team_in.city,
                 "state": team_in.state,
                 "lead_name": team_in.lead_name,
                 "lead_phone": team_in.lead_phone,
                 "radio_callsign": team_in.radio_callsign,
                 "specialization": team_in.specialization,
-                "status": team_in.status.upper() if team_in.status else "AVAILABLE",
-                "members_count": team_in.members_count or 12,
+                "status": team_in.status.value,
+                "members_count": team_in.members_count,
             },
         )
         await db.commit()
-        return {"id": str(new_id), "team_code": team_in.team_code, "status": "created"}
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Team code {team_in.team_code.upper()!r} already exists",
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create team: {e}")
+        # The exception text used to be returned to the client verbatim.
+        logger.error(f"create_team failed: {type(e).__name__}: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    logger.info(f"Team {team_in.team_code.upper()} created by {operator.sub}")
+    return {"id": str(new_id), "team_code": team_in.team_code.upper(), "status": "created"}
 
 
 @router.patch("/{team_id}/assign")
@@ -485,56 +515,74 @@ async def assign_team(
     team_id: str,
     payload: TeamAssignRequest,
     db: AsyncSession = Depends(get_db),
+    operator: TokenData = Depends(_can_dispatch),
 ):
-    """Assign or unassign a team to a verified event."""
-    try:
-        new_status = "DEPLOYED" if payload.event_id else "AVAILABLE"
-        event_uuid = uuid.UUID(payload.event_id) if payload.event_id else None
+    """
+    Assign a team to a verified event, or unassign it with event_id null.
+    COMMANDER or ADMIN.
 
+    A dispatch that did not happen must not answer as if it had. This used to
+    return 200 for a team that does not exist, and on any database error it
+    edited an in-memory DEMO_TEAMS list instead and answered "Updated in demo
+    store" — whatever DEMO_MODE said. The operator saw a unit dispatched when
+    nothing had been written.
+    """
+    event_uuid = None
+    if payload.event_id:
         try:
-            tid_uuid = uuid.UUID(team_id)
+            event_uuid = uuid.UUID(payload.event_id)
         except (ValueError, AttributeError):
-            tid_uuid = None
+            raise HTTPException(status_code=422, detail="event_id is not a valid UUID")
 
-        if tid_uuid:
-            where_sql = "id = :tid"
-            param_val = tid_uuid
-        else:
-            where_sql = "team_code = :tid"
-            param_val = team_id
+    try:
+        tid_uuid = uuid.UUID(team_id)
+    except (ValueError, AttributeError):
+        tid_uuid = None
+    where_sql = "id = :tid" if tid_uuid else "team_code = :tid"
+    new_status = "DEPLOYED" if event_uuid else "AVAILABLE"
 
-        await db.execute(
-            text(f"""
-                UPDATE teams
-                SET assigned_event_id = :event_id,
-                    status = CAST(:status AS team_status_enum)
-                WHERE {where_sql}
-            """),
-            {
-                "tid": param_val,
-                "event_id": event_uuid,
-                "status": new_status,
-            },
-        )
+    try:
+        if event_uuid:
+            exists = (
+                await db.execute(
+                    text("SELECT 1 FROM verified_events WHERE id = :eid"),
+                    {"eid": event_uuid},
+                )
+            ).first()
+            if not exists:
+                raise HTTPException(status_code=404, detail="Event not found")
+
+        updated = (
+            await db.execute(
+                text(f"""
+                    UPDATE teams
+                    SET assigned_event_id = :event_id,
+                        status = CAST(:status AS team_status_enum)
+                    WHERE {where_sql}
+                    RETURNING id
+                """),
+                {"tid": tid_uuid or team_id, "event_id": event_uuid, "status": new_status},
+            )
+        ).first()
+        if not updated:
+            await db.rollback()
+            raise HTTPException(status_code=404, detail="Team not found")
         await db.commit()
-
-        return {
-            "team_id": team_id,
-            "assigned_event_id": payload.event_id,
-            "status": new_status,
-            "message": f"Team {team_id} successfully {'dispatched' if payload.event_id else 'returned to base'}",
-        }
+    except HTTPException:
+        raise
     except Exception as e:
-        # If in-memory demo
-        for t in DEMO_TEAMS:
-            if t["id"] == team_id or t["team_code"] == team_id:
-                t["status"] = "DEPLOYED" if payload.event_id else "AVAILABLE"
-                t["assigned_event_code"] = payload.event_id
-                return {
-                    "team_id": team_id,
-                    "assigned_event_id": payload.event_id,
-                    "status": t["status"],
-                    "message": "Updated in demo store",
-                }
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"assign_team failed: {type(e).__name__}: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=503, detail="Database unavailable")
 
+    logger.info(
+        f"Team {team_id} {'dispatched to ' + str(event_uuid) if event_uuid else 'returned to base'}"
+        f" by {operator.sub}"
+    )
+    return {
+        "team_id": team_id,
+        "assigned_event_id": payload.event_id,
+        "status": new_status,
+        "assigned_by": operator.sub,
+        "message": f"Team {team_id} successfully {'dispatched' if event_uuid else 'returned to base'}",
+    }

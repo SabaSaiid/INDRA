@@ -4,7 +4,9 @@
 with the number to expect beside every step and a one-line recovery for each thing that can go
 wrong on the table.
 
-**Last rehearsed from an empty volume: 21 Sep 2026.** Every number below was read off that run.
+**Last rehearsed from an empty volume: 21 Sep 2026; re-run from an empty database on 22 Sep
+2026.** Every number below was read off those runs. Where the two days differ it is the live
+rainfall, and both are shown.
 
 Read [`nodal-officer-qa.md`](nodal-officer-qa.md) before presenting. This file is what to type;
 that one is what to say.
@@ -36,24 +38,25 @@ that one is what to say.
 cd ~/CODING/sih/INDRA
 
 docker compose down -v          # only for a true cold rehearsal — destroys all data
-docker compose up -d
+docker compose up -d --wait     # returns when Postgres and Redis are healthy and Redpanda is running
+                                # (./start.sh infra up does the same)
 ```
-
-Wait for three containers to be healthy:
 
 ```bash
 docker ps --format '{{.Names}}\t{{.Status}}'
 # indra-postgres   Up (healthy)
 # indra-redis      Up (healthy)
-# indra-redpanda   Up
+# indra-redpanda   Up             ← no healthcheck is defined for it; /healthz checks it instead
 ```
 
-> **`pg_isready` goes green before `indra_db` exists** on a fresh volume. Do not take it as the
-> signal to migrate. The correct gate is the next command succeeding.
+> **Healthy now means `indra_db` exists (BUG-028, fixed 22 Sep).** The Postgres healthcheck used a
+> socket `pg_isready`, which went green on the entrypoint's temporary init server before the
+> database was created. It now probes over TCP, which only the real server listens on. The
+> migration below is still the proof — read its output.
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0009_event_location (head)
+# → 0010_report_submitted_by (head)
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
@@ -109,19 +112,23 @@ backend/.venv/bin/python scripts/run_patna_demo.py
 The script posts five synthetic citizen reports to `POST /api/reports/submit`, waits for the
 cluster to settle, then reads **every number back out of the API**.
 
-**Expected, reproduced twice on 21 Sep:**
+**Expected** (21 Sep reproduced twice; 22 Sep once, from an empty database):
 
-| | Value |
-|---|---|
-| Reports stored | 5 / 5 |
-| Events created | **1** |
-| Severity | `MODERATE` |
-| Review status | **`QUARANTINED`** |
-| Quadrant | `Noise` |
-| Confidence | **0.4984** |
-| Factor coverage | **0.80** |
-| Boundary | Polygon, **39 vertices** |
-| Heat map | 2 H3 cells at res 8, 5 reports |
+| | 21 Sep | 22 Sep |
+|---|---|---|
+| Reports stored | 5 / 5 | 5 / 5 |
+| Events created | **1** | **1** |
+| Severity | `MODERATE` | `MODERATE` |
+| Review status | **`QUARANTINED`** | **`QUARANTINED`** |
+| Quadrant | `Noise` | `Noise` |
+| Confidence | **0.4984** | **0.5146** |
+| Factor coverage | **0.80** | **0.80** |
+| Boundary | Polygon, **39 vertices** | Polygon, **39 vertices** |
+| Heat map | 2 H3 cells at res 8, 5 reports | the same |
+
+Only the weather factor moved: **0.0080** on 21 Sep, **0.0600** on 22 Sep, when Patna was wetter.
+Every other factor was identical, including after the clustering radius became a true
+great-circle distance on 22 Sep.
 
 Receipt:
 
@@ -134,7 +141,8 @@ Receipt:
 | Source Reliability Index | 15% | 0.6000 | 0.0900 | computed |
 | Anomaly Detection Signal | 5% | — | 0.0 | **offline** |
 
-`0.3987 / 0.80 = 0.4984`. The arithmetic is printed so anyone can check it.
+`0.3987 / 0.80 = 0.4984` (21 Sep); `0.4117 / 0.80 = 0.5146` (22 Sep). The arithmetic is printed
+so anyone can check it, and the dashboard's receipt shows it too.
 
 Severity: `max(depth_axis, count_axis)` → depth `MODERATE` (50 cm, read from the phrase
 "knee deep"), count `MODERATE` (5 reports).
@@ -146,6 +154,47 @@ Severity: `max(depth_axis, count_axis)` → depth `MODERATE` (50 cm, read from t
 
 The weather factor scoring 0.008 is **Patna being dry today**, not a failure. If you want a wetter
 story, the Kolkata reading above is 17.2 mm.
+
+The script waits until **every report it sent has joined the event** (up to 45 s) before printing.
+On a backend started seconds earlier, the last few reports wait for the embedding model to warm:
+expect a line like `cluster size 2 → 5`. If fewer ever join, it says so instead of printing a
+partial event as final.
+
+---
+
+## Scene 2b — One official dispatch, and the event reaches a human
+
+On an **empty database** (on top of Scene 2 it merges into the same event, which is fine to show
+but gives different numbers):
+
+```bash
+backend/.venv/bin/python scripts/run_patna_demo.py --official
+```
+
+The same five citizen reports, plus one report filed **as the commander** through
+`POST /api/reports/official`: *"District control room confirms waterlogging at Kankarbagh, SDRF
+team en route."* It is stored as `OFFICIAL_DISPATCH` with `submitted_by = commander`. From the
+dashboard, the same thing is the **Report Incident** button with *"File as an official dispatch"*
+ticked, which only a Commander or Admin persona sees.
+
+**Measured 22 Sep, cold start:**
+
+| | Value |
+|---|---|
+| Reports in the event | **6** (5 citizen + 1 official) |
+| Review status | **`PENDING_HUMAN_REVIEW`** |
+| Quadrant | `Confirmed Minor Event` |
+| Confidence | **0.6065** (`0.4852 / 0.80`) |
+| Source Reliability | **1.0000** (0.6000 with citizens only) |
+| Report Density | 0.6159 (6 reports) |
+| Boundary | Polygon, 40 vertices |
+
+**What to say:** a citizen cannot claim to be official — the public route stores `CITIZEN_APP`
+whatever the request says. A trusted report comes through a route that needs a commander's token
+and records who filed it; open the event's **Reports** tab and it says *"filed by commander"*. One
+trusted report did not publish anything: it moved the event across 0.60 into a human's queue.
+
+Try it as the analyst persona: the checkbox is not offered, and the API answers `403`.
 
 ---
 
@@ -244,6 +293,8 @@ Measured: 100/100 accepted and stored, 215 reports/s, submit p50 4 ms / p95 5 ms
 | Dashboard shows a `0.94` CRITICAL event | `DEMO_MODE=true` | Set it `false` and restart. This is fabricated data |
 | The same report appears twice in the feed | Two backend processes on one broker | Kill one. One process only |
 | First report seems to hang | Embedding model still loading | It is warmed at startup; wait for `✓ Embedding model warm` in the log |
+| The demo prints `… N of M reports joined` | Reports still in the pipeline, or suppressed as duplicates | Re-run the read with `curl localhost:8000/api/events`; the script waited 45 s and said so rather than guessing |
+| The map's badge counts incidents but no pins show | A late map `load` wiped the pins (BUG-043 race, fixed 22 Sep) | Should not recur; if it does, switch view once and report it |
 | An event has no boundary polygon | Polygon computation failed, non-fatal | The event is still correct; say so |
 | Confidence is lower than last rehearsal | Rainfall changed | Correct behaviour — it is live data |
 

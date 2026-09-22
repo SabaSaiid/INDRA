@@ -24,10 +24,6 @@ export interface IndraSettings {
   defaultBasemap: BasemapPreset;
   globeAutoRotate: boolean;
   globeRotationSpeed: number; // 0.5 to 3
-  showDopplerOverlay: boolean;
-  showCycloneVectors: boolean;
-  showRiverBasins: boolean;
-  showNdrfUnits: boolean;
   highFpsMode: boolean;
 
   // 2. Alerts, Siren Audio & Notifications
@@ -54,9 +50,6 @@ export interface IndraSettings {
   reducedMotion: boolean;
 
   // 5. Network & Field Station Mode
-  lowBandwidthDataSaver: boolean;
-  offlineTileCaching: boolean;
-  apiDataSource: 'live' | 'mock';
 
   // Metadata
   lastSavedAt: string;
@@ -68,10 +61,6 @@ export const DEFAULT_SETTINGS: IndraSettings = {
   defaultBasemap: 'satellite',
   globeAutoRotate: false,
   globeRotationSpeed: 1,
-  showDopplerOverlay: true,
-  showCycloneVectors: true,
-  showRiverBasins: true,
-  showNdrfUnits: true,
   highFpsMode: true,
 
   // Alerts & Audio
@@ -98,9 +87,6 @@ export const DEFAULT_SETTINGS: IndraSettings = {
   reducedMotion: false,
 
   // Network & Field
-  lowBandwidthDataSaver: false,
-  offlineTileCaching: true,
-  apiDataSource: 'live',
 
   lastSavedAt: new Date().toISOString(),
 };

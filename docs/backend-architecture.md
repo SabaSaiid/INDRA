@@ -5,7 +5,7 @@ the exact path a citizen report takes from an HTTP request to a pin on the dashb
 [`ARCHITECTURE.md`](ARCHITECTURE.md), which covers the whole nine-layer system; this file is only
 `backend/`.
 
-**Last verified against the code and a running stack: 21 Sep 2026.**
+**Last verified against the code and a running stack: 22 Sep 2026.**
 
 Scope note, once: layers **4 (AI/ML)** and **8b (the alert engine)** left this backend's scope on
 20 Sep and are **cancelled, not deferred**. Nothing below is waiting on them.
@@ -28,7 +28,7 @@ indra.raw.reports  (Redpanda)
    │
    ├─ 1. dedup            MiniLM cosine ≥ 0.88 AND ≤ 1 km AND ≤ 15 min
    │                      a duplicate is marked duplicate_of and stops here
-   ├─ 2. cluster          PostGIS ST_ClusterDBSCAN, eps 5 km, min 2 samples
+   ├─ 2. cluster          DBSCAN, great-circle eps 5 km, min 2 samples (off the event loop)
    ├─ 3. stats            centroid, radius, max pairwise distance, in metres
    ├─ 4. weather          station_readings within 3 h and 25 km  ─── miss → live Open-Meteo
    ├─ 5. score            6-factor receipt, re-normalised over the factors that reported
@@ -64,12 +64,15 @@ backend/app/
 ├── api/                 one router per domain, each prefixed /api/<domain>
 │   ├── dashboard.py     GET /summary
 │   ├── events.py        GET "", /distribution, /{id}, PATCH /{id}/review, GET /{id}/provenance
-│   ├── reports.py       GET /trend, POST /submit
+│   ├── reports.py       GET /trend, GET /recent, POST /submit (anonymous, always
+│   │                    CITIZEN_APP), POST /official (COMMANDER/ADMIN → OFFICIAL_DISPATCH)
 │   ├── feed.py          GET /recent
 │   ├── geo.py           GET /heatmap
 │   ├── auth.py          POST /token
-│   ├── teams.py         team records
-│   └── profile.py       operator records
+│   ├── teams.py         team records; create and dispatch need COMMANDER/ADMIN
+│   ├── profile.py       operator records; a token edits only its own profile
+│   ├── alerts.py        GET /agency, /agency/{id}/polygon — official SACHET warnings
+│   └── audit.py         GET /recent — newest ledger rows, whole chain verified
 ├── models/              SQLAlchemy ORM, one file per table, plus enums.py for every
 │                        controlled vocabulary (SourceType, Severity, ReviewStatus,
 │                        Quadrant, Agency, AuditAction, OperatorRole, …)
@@ -78,8 +81,9 @@ backend/app/
 │   │                    kill the consumer loop.
 │   ├── fusion_engine.py compute_receipt / assign_quadrant / determine_review_status.
 │   ├── dedup.py         the three-gate AND. MiniLM encode runs in a thread.
-│   ├── geo_clustering.py DBSCAN, H3 assignment, cluster stats, report→event linking.
-│   ├── geocoding.py     coordinate sanitising against India's bounds, 56-city gazetteer.
+│   ├── geo_clustering.py DBSCAN (haversine), H3 assignment, cluster stats, report→event linking.
+│   ├── geocoding.py     India bounds check; forward and reverse geocoding over the
+│   │                    737-district gazetteer (data/geo/india_districts.csv).
 │   ├── credibility.py   source prior × text quality, per report.
 │   ├── text_processing.py cleaning, language detection, depth and place extraction.
 │   │                    Regex and dictionaries. No model.
@@ -90,7 +94,8 @@ backend/app/
 │   └── health.py        the four real dependency checks behind /healthz.
 ├── workers/
 │   ├── report_consumer.py  aiokafka consumer driving the pipeline.
-│   └── station_poller.py   the scheduled Open-Meteo feed into station_readings.
+│   ├── station_poller.py   the scheduled Open-Meteo feed into station_readings.
+│   └── sachet_poller.py    NDMA SACHET CAP warnings into agency_alerts, every 5 min.
 └── ml/                  FROZEN. event_classifier.py is trained, measured below its
                          acceptance gate, and returns None. Out of scope since 20 Sep.
 ```
@@ -150,13 +155,15 @@ the point. The receipt names the winning axis and the phrase it read.
 
 | Store | What it holds | What happens without it |
 |---|---|---|
-| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `audit_logs`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
+| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
 | **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit returns 202 `queued: false`, `/healthz` 503. **Critical** |
 | **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s) and the broadcast-dedup set (`bcast:{id}`, TTL 24 h) | both fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
 | **Object storage** | nothing — configured in `.env`, not deployed | n/a |
 
-Six migrations, `0001` … `0006`. `audit_logs` carries a row-level trigger rejecting `UPDATE` and
-`DELETE`.
+Ten migrations, `0001` … `0010` (`0010_report_submitted_by` records who filed an official
+report). `audit_logs` carries a row-level trigger rejecting `UPDATE` and `DELETE`. On a fresh
+volume, Postgres is reported healthy only once it listens on TCP, which is after `indra_db` exists
+(BUG-028); `./start.sh infra up` waits for that.
 
 ### The audit chain
 
@@ -181,8 +188,9 @@ decisions rather than traffic. A reviewer writes `HUMAN_APPROVE` / `HUMAN_REJECT
 | Kafka report consumer | lifespan | Retries with backoff; logs the broker being offline once, not per attempt |
 | Embedding warm-up | lifespan, in a thread | Non-fatal. Without it the first report blocked the **entire** event loop for ~13 s — the API stopped answering, not just that report |
 | Station poller | lifespan, if `STATION_POLLER_ENABLED` | Every tick wrapped; a failure logs one WARNING and the next tick retries |
+| SACHET poller | lifespan, if `SACHET_POLLER_ENABLED` | Same: every tick wrapped, at most `SACHET_MAX_FETCHES_PER_TICK` CAP documents a tick |
 
-All three are cancelled and **awaited** at shutdown, which is what keeps
+All four are cancelled and **awaited** at shutdown, which is what keeps
 `Task was destroyed but it is pending!` out of the logs.
 
 > **One backend process.** WebSocket fan-out is an in-process list, the poller has no leader
@@ -209,7 +217,7 @@ The settings worth knowing: `DEMO_MODE` (default **false**, and it must stay fal
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                   # 684 passed, 2 skipped
+.venv/bin/pytest -q                                   # 746 passed, 2 skipped
 .venv/bin/pytest -q -m "not integration"              # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```

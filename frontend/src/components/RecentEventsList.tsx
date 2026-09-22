@@ -220,7 +220,8 @@ export default function RecentEventsList({
                 <span className="text-[10px]">↓</span>
               </>
             ) : (
-              'IMD • NDRF Synced'
+              // This read 'IMD • NDRF Synced': INDRA has no link to either.
+              'Live from the INDRA API'
             )}
           </span>
         </div>

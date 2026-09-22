@@ -77,11 +77,14 @@ class Settings(BaseSettings):
     # Moved out of services/dedup.py on 20 Sep with their values unchanged, so
     # they can be tuned with evidence later instead of being edited in code.
     #
-    # DEDUP_COSINE_THRESHOLD is deliberately strict. Splitting one incident into
-    # two is recoverable -- corroboration merges them and an operator sees both.
-    # Merging two real incidents hides one of them. Over-reporting to a human is
-    # the safer failure, so this stays high until there is labelled data to move
-    # it with.
+    # DEDUP_COSINE_THRESHOLD is deliberately strict. A report marked duplicate
+    # is suppressed and never counts as corroboration, so dedup exists to catch
+    # the same message sent again, not a second citizen describing the same
+    # flood in their own words -- that is a witness. Measured 22 Sep with the
+    # production model: resubmissions 0.91-0.99, independent witnesses
+    # 0.81-0.91. 0.88 catches every resubmission measured and keeps most
+    # witnesses; lowering it discards witnesses (BUG-013,
+    # tests/test_dedup_corroboration.py pins both sides).
     DEDUP_COSINE_THRESHOLD: float = 0.88
     DEDUP_GPS_DELTA_KM: float = 1.0
     DEDUP_TIME_DELTA_MINUTES: int = 15

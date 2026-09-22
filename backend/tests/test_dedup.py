@@ -78,12 +78,11 @@ def test_paraphrase_is_NOT_caught_at_the_current_088_threshold(dedup):
 
     Measured 16 Sep: cosine = 0.8151, which is below COSINE_THRESHOLD = 0.88,
     so this paraphrase is NOT deduplicated. The day plan assumed it would be.
-    Documenting the real behaviour rather than the hoped-for one — if Day 2
-    lowers the threshold to catch paraphrases, this test flips to True and says
-    so loudly instead of changing silently.
 
-    See test_embeddings_separate_paraphrase_from_unrelated below for why 0.88
-    is arguably too strict.
+    22 Sep: and it should not be. A duplicate is suppressed and never counts
+    as corroboration, so a paraphrase from a second citizen is a second
+    witness, not noise. BUG-013 is closed on that basis; the measurement that
+    settles it is in test_dedup_corroboration.py.
     """
     result = dedup.is_duplicate(
         "Water rising near Kankarbagh road",
@@ -107,8 +106,10 @@ def test_embeddings_separate_paraphrase_from_unrelated(dedup):
         two distinct reports     cosine 0.519
         unrelated civic issue    cosine 0.136
 
-    Anything in roughly 0.75-0.80 would catch paraphrases while still keeping
-    distinct reports apart. Left as a Day 2 tuning decision, not changed here.
+    16 Sep this read as the case for lowering the threshold to ~0.75-0.80.
+    22 Sep it is not: catching paraphrases suppresses independent witnesses,
+    and at 0.85 two of five measured witness pairs would already have been
+    lost. See test_dedup_corroboration.py (BUG-013).
     """
     from app.services.dedup import _cosine_similarity, _get_embedding_model
 

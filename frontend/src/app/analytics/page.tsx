@@ -1,23 +1,44 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import {
-  BarChart3,
-  TrendingUp,
-  Cpu,
-  Activity,
-  Zap,
-  Layers,
-  Database,
-  Calendar,
-} from 'lucide-react';
+/**
+ * Analytics. The two charts always read the backend; the figures above them
+ * used to be invented — a "BIGQUERY ML ENGINE" at "28ms" inference latency, a
+ * "96.4%" model confidence index, "1.42M" Doppler radar points per second,
+ * "37" precipitation anomalies and "4.82 TB" of IMD and ISRO data a day, none
+ * of which INDRA has. They are now counts from GET /api/dashboard/summary.
+ */
+
+import React, { useEffect, useState } from 'react';
+import { BarChart3, TrendingUp, Activity, Layers, Database, ShieldAlert } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { useSidebar } from '@/lib/useSidebar';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import EventDistributionChart from '@/components/EventDistributionChart';
-import { fadeIn } from '@/lib/motion';
+import { fetchSummaryCounts, type DashboardSummary } from '@/lib/api';
+
+function Figure({
+  label,
+  value,
+  note,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  icon: React.ElementType;
+}) {
+  return (
+    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+        <span>{label}</span>
+        <Icon className="w-4 h-4 text-slate-400" />
+      </div>
+      <div className="text-2xl font-bold text-slate-900">{value}</div>
+      <div className="text-[11px] text-slate-500 font-medium mt-1">{note}</div>
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
   const {
@@ -27,6 +48,18 @@ export default function AnalyticsPage() {
     openMobile,
     closeMobile,
   } = useSidebar();
+
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSummaryCounts()
+      .then((s) => { if (!cancelled) { setSummary(s); setFailed(false); } })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const show = (n: number | undefined) => (summary && n != null ? n.toLocaleString('en-IN') : '—');
 
   return (
     <div className="min-h-screen bg-surface">
@@ -50,71 +83,50 @@ export default function AnalyticsPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <BarChart3 className="w-5 h-5 text-cyan-400" />
-                <h1 className="text-xl font-bold font-mono">
-                  TELEMETRY ANALYTICS &amp; PREDICTIVE MODELS
-                </h1>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                  BIGQUERY ML ENGINE
-                </span>
+                <h1 className="text-xl font-bold font-mono">ANALYTICS</h1>
               </div>
               <p className="text-xs text-slate-400">
-                Continuous spatio-temporal time-series forecasting, Doppler radar correlation, and deep anomaly detection.
+                Report volume and event distribution, counted from the live database.
               </p>
             </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-mono text-cyan-300">
-                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                <span>INFERENCE LATENCY: 28ms</span>
-              </div>
+            <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-mono text-cyan-300">
+              <Database className="w-3.5 h-3.5 text-cyan-400" />
+              <span>PostgreSQL + PostGIS</span>
             </div>
           </div>
 
-          {/* Metric KPI cards */}
+          {failed && (
+            <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-xs font-semibold text-rose-700">
+              The summary could not be loaded from the backend.
+            </div>
+          )}
+
+          {/* Figures from GET /api/dashboard/summary */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span>Model Confidence Index</span>
-                <TrendingUp className="w-4 h-4 text-emerald-500" />
-              </div>
-              <div className="text-2xl font-bold text-slate-900">96.4%</div>
-              <div className="text-[11px] text-emerald-600 font-medium mt-1">
-                +1.8% vs last cyclone cycle
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span>Radar Doppler Points / Sec</span>
-                <Activity className="w-4 h-4 text-blue-500" />
-              </div>
-              <div className="text-2xl font-bold text-slate-900">1.42M</div>
-              <div className="text-[11px] text-blue-600 font-medium mt-1">
-                Real-time sweep ingestion
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span>Precipitation Anomalies</span>
-                <Zap className="w-4 h-4 text-amber-500" />
-              </div>
-              <div className="text-2xl font-bold text-slate-900">37 Detected</div>
-              <div className="text-[11px] text-amber-600 font-medium mt-1">
-                Hyper-local storm cells
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span>Data Processed (24h)</span>
-                <Database className="w-4 h-4 text-indigo-500" />
-              </div>
-              <div className="text-2xl font-bold text-slate-900">4.82 TB</div>
-              <div className="text-[11px] text-indigo-600 font-medium mt-1">
-                IMD + ISRO INSAT-3D Feeds
-              </div>
-            </div>
+            <Figure
+              label="Reports stored"
+              value={show(summary?.total_reports)}
+              note={summary ? `${summary.total_reports_delta_pct >= 0 ? '+' : ''}${summary.total_reports_delta_pct}% in the last 24 h` : 'all sources'}
+              icon={Activity}
+            />
+            <Figure
+              label="Verified events"
+              value={show(summary?.verified_events)}
+              note="Auto-published or approved by an operator"
+              icon={TrendingUp}
+            />
+            <Figure
+              label="Awaiting review"
+              value={show(summary?.awaiting_review)}
+              note="Escalated or quarantined"
+              icon={Layers}
+            />
+            <Figure
+              label="Official warnings in force"
+              value={show(summary?.active_alerts)}
+              note="IMD, CWC and SDMA CAP alerts via SACHET"
+              icon={ShieldAlert}
+            />
           </div>
 
           {/* Charts Row */}
@@ -122,7 +134,7 @@ export default function AnalyticsPage() {
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
               <h2 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-blue-600" />
-                Hourly Incident &amp; Telemetry Volume
+                Reports per day
               </h2>
               <ReportsTrendChart variant="embedded" />
             </div>
@@ -130,7 +142,7 @@ export default function AnalyticsPage() {
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
               <h2 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600" />
-                Meteorological Hazard &amp; Severity Distribution
+                Events by hazard and severity
               </h2>
               <EventDistributionChart variant="embedded" />
             </div>

@@ -22,7 +22,8 @@ SOURCE_MAP = {
     "TWITTER_IMD": {"source": "social", "sourceLabel": "Social media"},
     "AWS_SENSOR": {"source": "imd", "sourceLabel": "AWS Sensor"},
     "CWC_GAUGE": {"source": "imd", "sourceLabel": "CWC Gauge"},
-    "OFFICIAL_DISPATCH": {"source": "news", "sourceLabel": "Official Dispatch"},
+    # Filed through the authenticated route (BUG-025). It was drawn as "news".
+    "OFFICIAL_DISPATCH": {"source": "official", "sourceLabel": "Official dispatch"},
 }
 
 DEMO_FEED: List[Dict[str, Any]] = [

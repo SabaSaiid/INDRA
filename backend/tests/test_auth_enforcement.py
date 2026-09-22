@@ -1,9 +1,10 @@
 """
-T7 (Day 3) — the auth enforcement matrix.
+T7 (Day 3) — the auth enforcement matrix for the two decision endpoints.
 
-Only the two Day 3 endpoints are guarded. Every endpoint the dashboard already
-calls stays open until the frontend has a login flow, so this file also pins
-that GET /api/events answers 200 whatever token (or none) is sent.
+Reads stay open: this file also pins that GET /api/events answers 200 whatever
+token (or none) is sent. Since 22 Sep every other mutation is guarded too —
+teams, dispatch, profile, preferences — and `test_mutation_auth.py` walks the
+routes to keep it that way (BUG-009).
 """
 
 import uuid

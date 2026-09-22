@@ -32,7 +32,15 @@ import {
   teamAgencyConfig,
   dutyStatusConfig,
 } from '@/lib/ui-config';
-import { fetchTeams, fetchHackathonTeam, assignTeamToEvent } from '@/lib/api';
+import {
+  fetchTeams,
+  fetchTeamById,
+  fetchHackathonTeam,
+  assignTeamToEvent,
+  fetchEvents,
+  formatPlace,
+  type ApiEvent,
+} from '@/lib/api';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
 
@@ -63,6 +71,14 @@ function TeamsContent() {
   const [agencyFilter, setAgencyFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isUpdatingDispatch, setIsUpdatingDispatch] = useState(false);
+  // Dispatch targets are real events. The page used to send every team to the
+  // hardcoded code 'WX-EV-28231827-A' — the id of a fabricated demo event —
+  // which the backend only "accepted" through an in-memory demo store.
+  const [activeEvents, setActiveEvents] = useState<ApiEvent[]>([]);
+  const [dispatchEventId, setDispatchEventId] = useState<string>('');
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  // null while the roster is loading; [] when the unit has no personnel rows.
+  const [roster, setRoster] = useState<TeamMember[] | null>(null);
 
   // Fetch teams & hackathon data
   useEffect(() => {
@@ -92,6 +108,14 @@ function TeamsContent() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchEvents({ time_range: '7d' })
+      .then((rows) => { if (!cancelled) setActiveEvents(rows); })
+      .catch(() => { if (!cancelled) setActiveEvents([]); });
+    return () => { cancelled = true; };
+  }, []);
+
   // Filtered operational teams
   const filteredTeams = useMemo(() => {
     return teams.filter((team) => {
@@ -117,39 +141,47 @@ function TeamsContent() {
     return { totalTeams, deployedTeams, totalResponders, standbyUnits };
   }, [teams]);
 
-  // Toggle dispatch state for a team
-  const handleToggleDispatch = async (team: TeamItem) => {
-    setIsUpdatingDispatch(true);
-    const isCurrentlyDeployed = team.status === 'DEPLOYED';
-    const newEventId = isCurrentlyDeployed ? null : 'WX-EV-28231827-A';
+  const applyTeamUpdate = (teamId: string, patch: Partial<TeamItem>) => {
+    setTeams((prev) => prev.map((t) => (t.id === teamId ? { ...t, ...patch } : t)));
+    setSelectedTeam((prev) => (prev && prev.id === teamId ? { ...prev, ...patch } : prev));
+  };
 
+  // Dispatch to the event the operator picked. Nothing changes on screen until
+  // the backend has written it; a refusal is shown, not swallowed.
+  const handleDispatch = async (team: TeamItem, eventId: string) => {
+    const target = activeEvents.find((ev) => ev.id === eventId);
+    if (!target) return;
+    setIsUpdatingDispatch(true);
+    setDispatchError(null);
     try {
-      await assignTeamToEvent(team.id, newEventId);
-      setTeams((prev) =>
-        prev.map((t) =>
-          t.id === team.id
-            ? {
-                ...t,
-                status: isCurrentlyDeployed ? 'AVAILABLE' : 'DEPLOYED',
-                assigned_event_code: isCurrentlyDeployed ? null : 'WX-EV-28231827-A',
-                assigned_event_type: isCurrentlyDeployed ? null : 'URBAN_FLOOD',
-              }
-            : t
-        )
-      );
-      if (selectedTeam && selectedTeam.id === team.id) {
-        setSelectedTeam((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: isCurrentlyDeployed ? 'AVAILABLE' : 'DEPLOYED',
-                assigned_event_code: isCurrentlyDeployed ? null : 'WX-EV-28231827-A',
-              }
-            : null
-        );
-      }
+      await assignTeamToEvent(team.id, target.id);
+      applyTeamUpdate(team.id, {
+        status: 'DEPLOYED',
+        assigned_event_id: target.id,
+        assigned_event_code: target.event_code,
+        assigned_event_type: target.eventType,
+      });
+      setDispatchEventId('');
     } catch (err) {
-      console.error('Failed to toggle dispatch', err);
+      setDispatchError(err instanceof Error ? err.message : 'Dispatch failed');
+    } finally {
+      setIsUpdatingDispatch(false);
+    }
+  };
+
+  const handleRecall = async (team: TeamItem) => {
+    setIsUpdatingDispatch(true);
+    setDispatchError(null);
+    try {
+      await assignTeamToEvent(team.id, null);
+      applyTeamUpdate(team.id, {
+        status: 'AVAILABLE',
+        assigned_event_id: null,
+        assigned_event_code: null,
+        assigned_event_type: null,
+      });
+    } catch (err) {
+      setDispatchError(err instanceof Error ? err.message : 'Recall failed');
     } finally {
       setIsUpdatingDispatch(false);
     }
@@ -157,7 +189,14 @@ function TeamsContent() {
 
   const openTeamDetail = (team: TeamItem) => {
     setSelectedTeam(team);
+    setDispatchEventId('');
+    setDispatchError(null);
+    setRoster(null);
     setIsDetailOpen(true);
+    // The list endpoint carries no members; the detail endpoint does.
+    fetchTeamById(team.id)
+      .then((detail) => setRoster(detail.members ?? []))
+      .catch(() => setRoster([]));
   };
 
   return (
@@ -321,6 +360,15 @@ function TeamsContent() {
                 </div>
               </div>
 
+              {dispatchError && !isDetailOpen && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-xs font-semibold text-rose-700"
+                >
+                  {dispatchError}
+                </div>
+              )}
+
               {/* Grid of Team Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredTeams.map((team) => {
@@ -449,7 +497,7 @@ function TeamsContent() {
                         </button>
 
                         <button
-                          onClick={() => handleToggleDispatch(team)}
+                          onClick={() => (isDeployed ? handleRecall(team) : openTeamDetail(team))}
                           disabled={isUpdatingDispatch}
                           className={`py-2 px-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1 ${
                             isDeployed
@@ -640,15 +688,21 @@ function TeamsContent() {
                 {/* Member Roster */}
                 <div className="space-y-2">
                   <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
-                    Unit Personnel Roster ({selectedTeam.members?.length || 4} Officers)
+                    Unit Personnel Roster{roster ? ` (${roster.length} on record)` : ''}
                   </h4>
                   <div className="space-y-2">
-                    {(selectedTeam.members || [
-                      { id: 'm1', full_name: selectedTeam.lead_name, team_role: 'Operations Lead', duty_status: selectedTeam.status, callsign: selectedTeam.radio_callsign, badge_number: `${selectedTeam.agency}-001` },
-                      { id: 'm2', full_name: 'Sub-Inspector Ankit Kumar', team_role: 'Tactical GIS Officer', duty_status: selectedTeam.status, callsign: 'TACT-02', badge_number: `${selectedTeam.agency}-004` },
-                      { id: 'm3', full_name: 'Inspector Meera Sen', team_role: 'Medical Liaison', duty_status: selectedTeam.status, callsign: 'MEDIC-01', badge_number: `${selectedTeam.agency}-007` },
-                      { id: 'm4', full_name: 'Specialist Rahul Das', team_role: 'Dewatering Operator', duty_status: selectedTeam.status, callsign: 'PUMP-03', badge_number: `${selectedTeam.agency}-012` },
-                    ]).map((member, idx) => (
+                    {/* The roster is user_profiles rows linked to this team. It used
+                        to fall back to four invented officers whenever the list
+                        carried no members, which was always. */}
+                    {roster === null && (
+                      <p className="text-xs text-slate-400">Loading roster…</p>
+                    )}
+                    {roster !== null && roster.length === 0 && (
+                      <p className="text-xs text-slate-500">
+                        No personnel records are linked to this unit.
+                      </p>
+                    )}
+                    {(roster ?? []).map((member, idx) => (
                       <div
                         key={idx}
                         className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-100 shadow-sm text-xs"
@@ -677,6 +731,12 @@ function TeamsContent() {
                 </div>
               </div>
 
+              {dispatchError && (
+                <p role="alert" className="px-6 pb-2 text-xs font-semibold text-rose-600">
+                  {dispatchError}
+                </p>
+              )}
+
               {/* Modal Footer */}
               <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
                 <button
@@ -686,17 +746,41 @@ function TeamsContent() {
                   Close
                 </button>
 
-                <button
-                  onClick={() => handleToggleDispatch(selectedTeam)}
-                  disabled={isUpdatingDispatch}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
-                    selectedTeam.status === 'DEPLOYED'
-                      ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                      : 'bg-primary hover:bg-primary-hover text-white'
-                  }`}
-                >
-                  {selectedTeam.status === 'DEPLOYED' ? 'Recall Unit to Base' : 'Deploy to Active Event'}
-                </button>
+                {selectedTeam.status === 'DEPLOYED' ? (
+                  <button
+                    onClick={() => handleRecall(selectedTeam)}
+                    disabled={isUpdatingDispatch}
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
+                  >
+                    Recall Unit to Base
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <select
+                      aria-label="Event to deploy to"
+                      value={dispatchEventId}
+                      onChange={(e) => setDispatchEventId(e.target.value)}
+                      disabled={activeEvents.length === 0 || isUpdatingDispatch}
+                      className="max-w-[220px] px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-700"
+                    >
+                      <option value="">
+                        {activeEvents.length ? 'Choose an event…' : 'No active events'}
+                      </option>
+                      {activeEvents.map((ev) => (
+                        <option key={ev.id} value={ev.id}>
+                          {ev.event_code} · {ev.eventType} · {formatPlace(ev.city, ev.state, ev.place_precision)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => handleDispatch(selectedTeam, dispatchEventId)}
+                      disabled={!dispatchEventId || isUpdatingDispatch}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm bg-primary hover:bg-primary-hover text-white disabled:opacity-50"
+                    >
+                      Deploy to Event
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

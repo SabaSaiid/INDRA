@@ -155,6 +155,30 @@ export function clearAuthToken(username: string) {
   tokenCache.delete(username);
 }
 
+/** Where useOperatorProfile keeps the selected persona. */
+export const OPERATOR_STORAGE_KEY = 'indra_current_role';
+
+/**
+ * The persona the operator has selected in the switcher, for calls made from
+ * pages that do not hold the profile hook. Falls back to 'commander', the
+ * switcher's own default, when storage is unavailable.
+ */
+export function currentPersona(): string {
+  try {
+    return localStorage.getItem(OPERATOR_STORAGE_KEY) || 'commander';
+  } catch {
+    return 'commander';
+  }
+}
+
+/** A readable reason for a refused mutation, so the UI can say why. */
+function mutationError(path: string, status: number, action: string): ApiError {
+  if (status === 401) return new ApiError(path, status, `${action} failed: not signed in`);
+  if (status === 403) return new ApiError(path, status, `${action} needs a Commander or Admin persona`);
+  if (status === 404) return new ApiError(path, status, `${action} failed: not found`);
+  return new ApiError(path, status, `${action} failed (HTTP ${status})`);
+}
+
 // ─── Event Detail ────────────────────────────────────────────────────────────
 
 export interface EventDetail {
@@ -173,8 +197,10 @@ export interface EventDetail {
   boundary_geojson: string | null;
   verification_receipt: Record<string, any>;
   verified_at: string;
-  city: string;
-  state: string;
+  /** Null when the backend could not place the event (see formatPlace). */
+  city: string | null;
+  state: string | null;
+  place_precision?: string | null;
 }
 
 export async function fetchEventDetail(eventId: string): Promise<EventDetail | null> {
@@ -198,6 +224,8 @@ export interface ProvenanceReport {
   longitude: number;
   credibility_score: number;
   created_at: string;
+  /** Operator who filed an OFFICIAL_DISPATCH; null for an anonymous citizen report. */
+  submitted_by?: string | null;
 }
 
 export interface AuditEntry {
@@ -310,6 +338,38 @@ export async function submitCitizenReport(
   }
 }
 
+/**
+ * File a report from a trusted field source (a control room, an SDRF team)
+ * through POST /api/reports/official (BUG-025). Needs a Commander or Admin
+ * persona; the backend stores it as OFFICIAL_DISPATCH with the operator's name,
+ * which lifts the cluster's source reliability to 1.00. The public route above
+ * can never claim a source, by design.
+ */
+export async function submitOfficialReport(
+  report: ReportSubmission,
+  operatorUsername: string = currentPersona()
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const authHeaders = await getAuthHeaders(operatorUsername);
+    const res = await fetch(`${API_BASE}/api/reports/official`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(report),
+    });
+    if (res.status === 401 || res.status === 403) {
+      return { success: false, error: 'Filing an official dispatch needs a Commander or Admin persona' };
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      return { success: false, error: err.detail || `HTTP ${res.status}` };
+    }
+    return { success: true, data: await res.json() };
+  } catch (err: any) {
+    console.warn('[INDRA] submitOfficialReport failed:', err);
+    return { success: false, error: err?.message || 'Network error' };
+  }
+}
+
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
 export interface DashboardSummary {
@@ -325,6 +385,11 @@ export interface DashboardSummary {
   awaiting_review: number;
   /** Unexpired CAP warnings currently in force, from the SACHET feed. */
   active_alerts: number;
+}
+
+/** The summary's raw counts, for pages that quote a figure rather than a KPI tile. */
+export async function fetchSummaryCounts(): Promise<DashboardSummary> {
+  return getJson<DashboardSummary>('/api/dashboard/summary');
 }
 
 export async function fetchDashboardSummary(): Promise<KpiItem[]> {
@@ -704,13 +769,25 @@ export async function fetchTeamById(teamId: string): Promise<TeamItem> {
   return getJson<TeamItem>(`/api/teams/${teamId}`);
 }
 
-export async function assignTeamToEvent(teamId: string, eventId: string | null): Promise<any> {
+/**
+ * Dispatch a team to an event (its UUID), or recall it with null.
+ *
+ * Needs a COMMANDER or ADMIN token since BUG-009, so it is sent as the
+ * operator's selected persona; an analyst or citizen persona gets a 403 with a
+ * reason the page can show.
+ */
+export async function assignTeamToEvent(
+  teamId: string,
+  eventId: string | null,
+  operatorUsername: string = currentPersona()
+): Promise<any> {
   const path = `/api/teams/${teamId}/assign`;
+  const authHeaders = await getAuthHeaders(operatorUsername);
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ event_id: eventId }),
     });
   } catch {
@@ -719,7 +796,7 @@ export async function assignTeamToEvent(teamId: string, eventId: string | null):
   if (!res.ok) {
     // A mutation that silently "succeeds" locally is worse than one that fails
     // loudly: the operator believes a team was dispatched when none was.
-    throw new ApiError(path, res.status, `Assignment failed (HTTP ${res.status})`);
+    throw mutationError(path, res.status, eventId ? 'Dispatch' : 'Recall');
   }
   return res.json();
 }
@@ -735,23 +812,115 @@ export async function fetchUserProfile(username?: string): Promise<UserProfile> 
   return getJson<UserProfile>(path);
 }
 
+/**
+ * Save the persona's own profile. The backend edits the token's subject and
+ * nothing else (BUG-009), so the persona is who is authenticated, not a query
+ * parameter naming whose profile to change.
+ */
 export async function updateUserProfile(
   data: Partial<UserProfile>,
-  username: string = 'commander'
+  username: string = currentPersona()
 ): Promise<UserProfile> {
-  const path = `/api/profile/me?user=${username}`;
+  const path = '/api/profile/me';
+  const authHeaders = await getAuthHeaders(username);
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify(data),
     });
   } catch {
     throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
   }
   if (!res.ok) {
-    throw new ApiError(path, res.status, `Profile update failed (HTTP ${res.status})`);
+    throw mutationError(path, res.status, 'Profile update');
   }
   return res.json();
+}
+
+// ─── Platform health, operators and the audit ledger (admin console) ─────────
+
+export interface HealthCheck {
+  status: 'up' | 'down';
+  latency_ms?: number;
+  critical: boolean;
+  error?: string;
+}
+
+export interface HealthReport {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  checks: Record<string, HealthCheck>;
+}
+
+/**
+ * GET /healthz. Read even when it answers 503: an unhealthy report is exactly
+ * what the admin console must be able to show, so only an unreachable backend
+ * throws.
+ */
+export async function fetchHealth(): Promise<HealthReport> {
+  const path = '/healthz';
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });
+  } catch {
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
+  }
+  try {
+    return (await res.json()) as HealthReport;
+  } catch {
+    throw new ApiError(path, res.status, 'Backend returned a malformed health report');
+  }
+}
+
+export interface OperatorAccount {
+  username: string;
+  full_name: string;
+  role: string;
+  agency: string;
+  operator_id: string;
+  duty_status: string;
+}
+
+export async function fetchOperators(): Promise<OperatorAccount[]> {
+  const path = '/api/profile/operators';
+  return asArray<OperatorAccount>(await getJson<unknown>(path), path);
+}
+
+export interface AuditRow {
+  seq: number;
+  action_taken: string;
+  operator_id: string;
+  event_id: string | null;
+  reason: string | null;
+  logged_at: string | null;
+  sha256_hash: string;
+}
+
+export interface AuditLedger {
+  chain: { valid: boolean; checked: number; broken_at_seq: number | null };
+  total: number;
+  rows: AuditRow[];
+}
+
+/** GET /api/audit/recent — ANALYST, COMMANDER or ADMIN persona. */
+export async function fetchAuditLedger(
+  limit: number = 20,
+  operatorUsername: string = currentPersona()
+): Promise<AuditLedger> {
+  const path = `/api/audit/recent?limit=${limit}`;
+  const authHeaders = await getAuthHeaders(operatorUsername);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { cache: 'no-store', headers: { ...authHeaders } });
+  } catch {
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
+  }
+  if (res.status === 403) {
+    throw new ApiError(path, 403, 'Reading the audit ledger needs an Analyst, Commander or Admin persona');
+  }
+  if (!res.ok) {
+    throw mutationError(path, res.status, 'Reading the audit ledger');
+  }
+  return (await res.json()) as AuditLedger;
 }

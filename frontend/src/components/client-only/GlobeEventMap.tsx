@@ -26,8 +26,6 @@ import {
   Minimize2,
   Compass,
   Layers,
-  CloudRain,
-  Waves,
   Zap,
   Wind,
   CloudFog,
@@ -220,40 +218,21 @@ const eventTypeEmojis: Record<string, string> = {
   'Fog': '🌫️',
 };
 
-// Bay of Bengal Cyclone Track Coordinates
-const cycloneTrackGeoJSON: GeoJSON.FeatureCollection = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      properties: { name: 'Cyclone DANA — Forecast Track' },
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [92.5, 11.2],
-          [90.4, 13.8],
-          [88.6, 16.2],
-          [87.1, 18.5],
-          [86.2, 20.4],
-          [85.8, 21.8],
-        ],
-      },
-    },
-  ],
-};
+/** What a marker's status honestly is, by layer. It used to read "AI Verified" for all of them. */
+function markerStatusLabel(marker: MapMarker): string {
+  const layer = marker.layer ?? 'event';
+  if (layer === 'alert') return 'Official warning';
+  if (layer === 'report') return 'Unverified citizen report';
+  // Rejected events are dropped by the API, so an event here is one of these two.
+  return marker.verification === 'verified' ? 'Verified event' : 'Event under review';
+}
 
-// NDRF Operational Bases across India
-const ndrfBasesGeoJSON: GeoJSON.FeatureCollection = {
-  type: 'FeatureCollection',
-  features: [
-    { type: 'Feature', properties: { name: '10th Bn NDRF (Patna)', city: 'Patna' }, geometry: { type: 'Point', coordinates: [85.05, 25.65] } },
-    { type: 'Feature', properties: { name: '1st Bn NDRF (Guwahati)', city: 'Guwahati' }, geometry: { type: 'Point', coordinates: [91.68, 26.12] } },
-    { type: 'Feature', properties: { name: '5th Bn NDRF (Pune)', city: 'Pune' }, geometry: { type: 'Point', coordinates: [73.85, 18.52] } },
-    { type: 'Feature', properties: { name: '8th Bn NDRF (Ghaziabad)', city: 'Ghaziabad' }, geometry: { type: 'Point', coordinates: [77.45, 28.67] } },
-    { type: 'Feature', properties: { name: '4th Bn NDRF (Arakkonam)', city: 'Chennai Region' }, geometry: { type: 'Point', coordinates: [79.67, 13.08] } },
-    { type: 'Feature', properties: { name: '2nd Bn NDRF (Kolkata)', city: 'Kolkata' }, geometry: { type: 'Point', coordinates: [88.42, 22.58] } },
-  ],
-};
+function markerSourceLabel(marker: MapMarker): string {
+  const layer = marker.layer ?? 'event';
+  if (layer === 'alert') return marker.title ? `${marker.title} via SACHET` : 'SACHET (CAP)';
+  if (layer === 'report') return 'Citizen report';
+  return 'INDRA fusion';
+}
 
 /**
  * The three kinds of live data this map draws, and how each is marked.
@@ -348,8 +327,6 @@ export default function GlobeEventMap({
 
   // Layer toggles
   const [showEventsLayer, setShowEventsLayer] = useState(true);
-  const [showCycloneLayer, setShowCycloneLayer] = useState(true);
-  const [showNdrfLayer, setShowNdrfLayer] = useState(true);
 
   // Live telemetry state
   const [telemetry, setTelemetry] = useState({
@@ -494,59 +471,6 @@ export default function GlobeEventMap({
       }
     }
   }, [selectedEventId, markers, handleSelectIncident]);
-
-  // Sync Vector Layers (Cyclone DANA & NDRF Bases)
-  const syncVectorLayers = useCallback((map: maplibregl.Map) => {
-    // Cyclone DANA Trajectory
-    if (!map.getSource('cyclone-track-source')) {
-      map.addSource('cyclone-track-source', {
-        type: 'geojson',
-        data: cycloneTrackGeoJSON,
-      });
-
-      map.addLayer({
-        id: 'cyclone-outer-glow',
-        type: 'line',
-        source: 'cyclone-track-source',
-        paint: {
-          'line-color': '#f59e0b',
-          'line-width': 8,
-          'line-opacity': 0.35,
-        },
-      });
-
-      map.addLayer({
-        id: 'cyclone-inner-track',
-        type: 'line',
-        source: 'cyclone-track-source',
-        paint: {
-          'line-color': '#ef4444',
-          'line-width': 3,
-          'line-dasharray': [2, 2],
-        },
-      });
-    }
-
-    // NDRF Bases Layer
-    if (!map.getSource('ndrf-bases-source')) {
-      map.addSource('ndrf-bases-source', {
-        type: 'geojson',
-        data: ndrfBasesGeoJSON,
-      });
-
-      map.addLayer({
-        id: 'ndrf-bases-layer',
-        type: 'circle',
-        source: 'ndrf-bases-source',
-        paint: {
-          'circle-radius': 6,
-          'circle-color': '#0ea5e9',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-    }
-  }, []);
 
   // Update Horizon Occlusion for Markers on 3D Globe
   const updateMarkerOcclusion = useCallback(
@@ -1048,11 +972,16 @@ export default function GlobeEventMap({
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
+    // Through the ref, never the closure. This handler is registered once, at
+    // mount, and fires twice (style.load, then load). Calling the
+    // renderProminentPins captured here used the empty marker list it saw at
+    // mount: measured on 22 Sep, the pins effect drew 20 markers at t=1720 ms
+    // and the late `load` at t=1874 ms cleared all 20 and drew none, leaving
+    // the badge counting pins the map did not show (BUG-043 again).
     const onStyleReady = () => {
       try {
         map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
-        syncVectorLayers(map);
-        renderProminentPins();
+        renderProminentPinsRef.current();
       } catch (err) {
         console.error('[INDRA] onStyleReady error:', err);
       }
@@ -1160,18 +1089,8 @@ export default function GlobeEventMap({
     const map = mapRef.current;
     if (!map || !styleReady) return;
 
-    if (map.getLayer('cyclone-outer-glow')) {
-      map.setLayoutProperty('cyclone-outer-glow', 'visibility', showCycloneLayer ? 'visible' : 'none');
-    }
-    if (map.getLayer('cyclone-inner-track')) {
-      map.setLayoutProperty('cyclone-inner-track', 'visibility', showCycloneLayer ? 'visible' : 'none');
-    }
-    if (map.getLayer('ndrf-bases-layer')) {
-      map.setLayoutProperty('ndrf-bases-layer', 'visibility', showNdrfLayer ? 'visible' : 'none');
-    }
-
     updateMarkerOcclusion(map, isGlobeRef.current);
-  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, updateMarkerOcclusion, styleReady]);
+  }, [showEventsLayer, updateMarkerOcclusion, styleReady]);
 
   // Switch basemap style
   const handleBasemapChange = (newBasemap: BasemapMode) => {
@@ -1182,8 +1101,7 @@ export default function GlobeEventMap({
     map.setStyle(BASEMAP_STYLES[newBasemap]);
     map.once('style.load', () => {
       map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
-      syncVectorLayers(map);
-      renderProminentPins();
+      renderProminentPinsRef.current();
     });
   };
 
@@ -1498,31 +1416,6 @@ export default function GlobeEventMap({
                 </button>
               );
             })}
-            <button
-              onClick={() => setShowCycloneLayer(!showCycloneLayer)}
-              className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-all flex items-center gap-1 ${
-                showCycloneLayer
-                  ? 'bg-amber-50 text-amber-700 border-amber-200 font-semibold'
-                  : 'bg-white text-slate-400 border-slate-200'
-              }`}
-              title="Toggle Cyclone Track layer"
-            >
-              <span>🌀</span>
-              <span>Cyclone</span>
-            </button>
-            <button
-              onClick={() => setShowNdrfLayer(!showNdrfLayer)}
-              className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-all flex items-center gap-1 ${
-                showNdrfLayer
-                  ? 'bg-sky-50 text-sky-700 border-sky-200 font-semibold'
-                  : 'bg-white text-slate-400 border-slate-200'
-              }`}
-              title="Toggle NDRF Taskforce bases"
-            >
-              <Shield className="w-3 h-3" />
-              <span>NDRF Bases</span>
-            </button>
-
             {/* Smart Declutter & Collision Avoidance Toggle */}
             <button
               onClick={() => setSmartDeclutter(!smartDeclutter)}
@@ -1598,8 +1491,8 @@ export default function GlobeEventMap({
                     >
                       {severityConfig[selectedMarker.severity]?.label || selectedMarker.severity}
                     </span>
-                    <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> AI Verified
+                    <span className="text-[11px] text-slate-300 font-mono flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> {markerStatusLabel(selectedMarker)}
                     </span>
                   </div>
                   <button
@@ -1616,7 +1509,7 @@ export default function GlobeEventMap({
                 {/* City & Event Title */}
                 <h4 className="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
                   <span>{eventTypeEmojis[selectedMarker.eventType] || '⚠️'}</span>
-                  <span>{selectedMarker.city}, {selectedMarker.state}</span>
+                  <span>{selectedMarker.placeLabel || selectedMarker.city || 'Location unresolved'}</span>
                 </h4>
                 <p className="text-xs font-semibold text-blue-400 mt-0.5 flex items-center gap-1">
                   <Target className="w-3.5 h-3.5" />
@@ -1626,30 +1519,18 @@ export default function GlobeEventMap({
                   {selectedMarker.description}
                 </p>
 
-                {/* Real-time Telemetry Grid */}
+                {/* What this marker is. This grid used to show "Rainfall 86 mm/h",
+                    "Wind Gusts 68 km/h" and "Water Level +1.9m Danger" for every
+                    marker, chosen from its severity alone: INDRA has no wind or
+                    water-level sensor, and the rainfall it does read is a 24-hour
+                    total in the event's receipt, not a rate. */}
                 <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-800 text-[11px]">
                   <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
                     <div className="text-slate-400 flex items-center gap-1 text-[10px]">
-                      <CloudRain className="w-3 h-3 text-blue-400" /> Rainfall
+                      <Layers className="w-3 h-3 text-blue-400" /> Source
                     </div>
                     <div className="font-mono font-bold text-white mt-0.5">
-                      {selectedMarker.severity === 'critical' ? '86 mm/h' : '48 mm/h'}
-                    </div>
-                  </div>
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
-                      <Wind className="w-3 h-3 text-amber-400" /> Wind Gusts
-                    </div>
-                    <div className="font-mono font-bold text-white mt-0.5">
-                      {selectedMarker.severity === 'critical' ? '68 km/h' : '34 km/h'}
-                    </div>
-                  </div>
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
-                      <Waves className="w-3 h-3 text-rose-400" /> Water Level
-                    </div>
-                    <div className="font-mono font-bold text-white mt-0.5">
-                      {selectedMarker.severity === 'critical' ? '+1.9m Danger' : 'Normal'}
+                      {markerSourceLabel(selectedMarker)}
                     </div>
                   </div>
                   <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
@@ -1664,13 +1545,15 @@ export default function GlobeEventMap({
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 mt-3 pt-2">
-                  <button
-                    onClick={() => (window.location.href = '/teams')}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Dispatch NDRF</span>
-                  </button>
+                  {(selectedMarker.layer ?? 'event') === 'event' && (
+                    <button
+                      onClick={() => (window.location.href = '/teams')}
+                      className="flex-1 py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
+                    >
+                      <Shield className="w-3.5 h-3.5" />
+                      <span>Dispatch a team</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => flyToHotspot([selectedMarker.lng, selectedMarker.lat], 8.2, 55, 20)}
                     className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"

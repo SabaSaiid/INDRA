@@ -18,7 +18,7 @@ import Topbar from '@/components/Topbar';
 import EventVerificationModal from '@/components/EventVerificationModal';
 import { useSidebar } from '@/lib/useSidebar';
 import { fadeIn, staggerContainer } from '@/lib/motion';
-import { fetchEvents, type ApiEvent } from '@/lib/api';
+import { fetchEvents, formatPlace, type ApiEvent } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 
 const SEVERITY_BADGE: Record<string, string> = {
@@ -88,9 +88,12 @@ export default function EventsPage() {
     if (filterSeverity !== 'ALL' && ev.severity.toUpperCase() !== filterSeverity) return false;
     if (search) {
       const q = search.toLowerCase();
+      // city and state are null when the backend could not place the point
+      // (BUG-033 made that honest); such an event can still match on its
+      // type or code.
       if (
-        !ev.city.toLowerCase().includes(q) &&
-        !ev.state.toLowerCase().includes(q) &&
+        !(ev.city ?? '').toLowerCase().includes(q) &&
+        !(ev.state ?? '').toLowerCase().includes(q) &&
         !ev.eventType.toLowerCase().includes(q) &&
         !ev.event_code.toLowerCase().includes(q)
       ) return false;
@@ -211,7 +214,7 @@ export default function EventsPage() {
                           </span>
                         </div>
                         <h3 className="font-semibold text-slate-900 text-base">
-                          {ev.eventType} — {ev.quadrant || `${ev.city} Sector`}
+                          {ev.eventType} — {ev.quadrant || formatPlace(ev.city, ev.state, ev.place_precision)}
                         </h3>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -223,7 +226,7 @@ export default function EventsPage() {
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4 bg-slate-50 p-3 rounded-xl">
                       <div className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{ev.city}, {ev.state}</span>
+                        <span>{formatPlace(ev.city, ev.state, ev.place_precision)}</span>
                       </div>
                       <div className="flex items-center gap-1.5 font-mono text-[11px]">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />

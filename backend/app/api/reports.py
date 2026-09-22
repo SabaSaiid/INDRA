@@ -3,6 +3,8 @@ INDRA Platform — Reports API
 GET  /api/reports/trend?range=7d  — daily total_reports for the trend chart
 POST /api/reports/submit          — stores the report, pushes to Redpanda, returns 202
                                     (503 if it could not be stored)
+POST /api/reports/official        — the same, for an authenticated COMMANDER/ADMIN,
+                                    stored as OFFICIAL_DISPATCH with who filed it
 """
 
 import uuid
@@ -20,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.config import get_settings
 from app.core.demo import demo_fallback
+from app.core.security import TokenData, require_roles
 from app.services.credibility import compute_credibility
 from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
 from app.services.text_processing import clean_text, detect_language, extract_metadata
@@ -127,13 +130,15 @@ async def reports_trend(
     return demo_fallback("GET /api/reports/trend", lambda: DEMO_TREND, list, db_error)
 
 
-@router.post("/submit", status_code=202)
-async def submit_report(
+async def _ingest(
     report: ReportSubmission,
-    db: AsyncSession = Depends(get_db),
-):
+    db: AsyncSession,
+    source_type: str,
+    submitted_by: Optional[str],
+) -> JSONResponse:
     """
-    Accepts a citizen report, persists to DB, pushes to Redpanda topic.
+    Store one report and publish it. Shared by the citizen and official routes,
+    which differ only in the source they are allowed to claim.
 
     * Stored and published → 202, `"queued": true`.
     * Stored, publish failed → 202, `"queued": false`. The row exists but the
@@ -156,7 +161,6 @@ async def submit_report(
         raise HTTPException(status_code=422, detail=str(e))
 
     report_id = uuid.uuid4()
-    source_type = "CITIZEN_APP"
     credibility = compute_credibility(source_type, report.text)
 
     # Compute geom_point and H3 cell
@@ -170,11 +174,11 @@ async def submit_report(
 
     # Insert into DB
     insert_query = text("""
-        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, district, state, media_url, credibility_score, analysis)
+        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, district, state, media_url, credibility_score, analysis, submitted_by)
         VALUES (
             :id, :source_type, :raw_text, :lat, :lng,
             ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-            :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb)
+            :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by
         )
     """)
 
@@ -194,6 +198,7 @@ async def submit_report(
             "media_url": report.media_url,
             "credibility": credibility,
             "analysis": json.dumps(analysis) if analysis is not None else None,
+            "submitted_by": submitted_by,
         })
         await db.commit()
     except Exception as e:
@@ -242,7 +247,54 @@ async def submit_report(
 
     return JSONResponse(
         status_code=202,
-        content={"id": str(report_id), "status": "accepted", "queued": queued},
+        content={
+            "id": str(report_id),
+            "status": "accepted",
+            "queued": queued,
+            "source_type": source_type,
+        },
+    )
+
+
+@router.post("/submit", status_code=202)
+async def submit_report(
+    report: ReportSubmission,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Accepts a citizen report, persists to DB, pushes to Redpanda topic.
+
+    Anonymous, and always `CITIZEN_APP`. The source is fixed here rather than
+    read from the request: if a client could name its own source, anyone could
+    claim OFFICIAL_DISPATCH and hand themselves the highest reliability in the
+    model (BUG-025). Trusted sources use POST /api/reports/official.
+    """
+    return await _ingest(report, db, source_type="CITIZEN_APP", submitted_by=None)
+
+
+@router.post("/official", status_code=202)
+async def submit_official_report(
+    report: ReportSubmission,
+    db: AsyncSession = Depends(get_db),
+    operator: TokenData = Depends(require_roles("COMMANDER", "ADMIN")),
+):
+    """
+    A report from a trusted field source — a district control room, an SDRF
+    team — filed by an authenticated COMMANDER or ADMIN (BUG-025).
+
+    Stored as `OFFICIAL_DISPATCH`, source reliability 1.00, with the operator's
+    token subject in `submitted_by`. Everything after storage is the citizen
+    path: the same coordinate checks, the same dedup, clustering and scoring.
+    One official report in a cluster lifts the Source Reliability factor to
+    1.00, because that factor is the maximum over the cluster's sources; it
+    does not bypass corroboration, weather or human review.
+
+    The route is exactly as trusted as the account behind it. The demo accounts
+    are published in the dashboard for its persona switcher, so in this build
+    it shows the mechanism — role-gated and attributed — not a secret.
+    """
+    return await _ingest(
+        report, db, source_type="OFFICIAL_DISPATCH", submitted_by=operator.sub
     )
 
 

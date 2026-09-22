@@ -1,7 +1,7 @@
 # INDRA — Setup
 
 **What this is:** how to get the stack running from a fresh clone. Verified end to end on
-21 Sep 2026.
+21 Sep 2026; migration head, health gate and test counts re-checked 22 Sep.
 
 If you only want to *run the demo*, this page plus [`demo-runbook.md`](demo-runbook.md) is
 everything.
@@ -54,14 +54,18 @@ The backend reads the **repo-root `.env`**. A `backend/.env`, if one exists, sil
 ## 2. Infrastructure
 
 ```bash
-docker compose up -d
+docker compose up -d --wait        # or: ./start.sh infra up — both wait for "healthy"
 docker ps --format '{{.Names}}\t{{.Status}}'
 ```
 
-Expect `indra-postgres`, `indra-redis` and `indra-redpanda`.
+Expect `indra-postgres` and `indra-redis` `(healthy)` and `indra-redpanda` `Up` (it has no
+healthcheck; `/healthz` checks it once the API is running).
 
-> **`pg_isready` reports ready before `indra_db` exists** on a brand-new volume. Do not use it as
-> the signal that the database is usable — the migration succeeding is the real gate.
+> **Why `--wait` is enough now (BUG-028).** On a brand-new volume the Postgres entrypoint runs a
+> temporary server on the Unix socket, creates `indra_db`, then restarts. A socket `pg_isready`
+> went green on that temporary server, before the database existed. The healthcheck now probes
+> over TCP, which only the real server listens on, so `healthy` means `indra_db` is there. Still
+> read the migration output below.
 
 ---
 
@@ -71,7 +75,7 @@ Expect `indra-postgres`, `indra-redis` and `indra-redpanda`.
 cd backend
 python3 -m venv .venv                     # if it does not exist
 .venv/bin/pip install -r requirements.txt
-.venv/bin/alembic upgrade head            # → 0009_event_location (head)
+.venv/bin/alembic upgrade head            # → 0010_report_submitted_by (head)
 ```
 
 **Read the output of `alembic upgrade head`.** A silently failed migration leaves a database with
@@ -109,7 +113,7 @@ API answers immediately; wait for `✓ Embedding model warm` before timing anyth
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                        # 684 passed, 2 skipped
+.venv/bin/pytest -q                                        # 746 passed, 2 skipped
 .venv/bin/pytest -q -m "not integration"                   # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```
@@ -126,7 +130,9 @@ backend/.venv/bin/python scripts/run_patna_demo.py
 ```
 
 Five synthetic citizen reports → one verified event, with every number read back out of the API.
-Expected output and the full walkthrough: [`demo-runbook.md`](demo-runbook.md).
+Add `--official` to file one more report as the commander through the authenticated route and
+watch source reliability go to 1.00. Expected output and the full walkthrough:
+[`demo-runbook.md`](demo-runbook.md).
 
 Load test, if you want one:
 
@@ -141,10 +147,15 @@ backend/.venv/bin/python scripts/burst_reports.py --count 100 --spread-km 3 --ci
 
 ## 6. Frontend
 
-Owned by the rest of the team; the backend does not modify it.
+Owned by the rest of the team. (On 22 Sep, on request, the backend side fixed a list of defects
+in it; they are written up in [`frontend-handover.md`](frontend-handover.md).)
 
 ```bash
 cd frontend && npm install && npm run dev      # http://localhost:3000
+
+# production build and the browser tests (backend on :8000 first)
+npm run build                                  # type check + lint + build
+npx playwright test                            # 26 tests, serves the build on :3000
 ```
 
 The backend's CORS list defaults to `http://localhost:3000` and `http://127.0.0.1:3000`. If you

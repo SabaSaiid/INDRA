@@ -1,21 +1,68 @@
 # Handover — Backend → Dashboard
 
 **From:** Aditya (layers 1–3, 5, 6, 7, 8a) · **To:** whoever owns `INDRA/frontend/`
-**Covers:** every backend change from 16–21 Sep 2026 that the dashboard can see, plus the `main` build failure found 22 Sep (item 12).
+**Covers:** every backend change from 16–22 Sep 2026 that the dashboard can see, and — new on
+22 Sep — **what was changed inside `frontend/` that day, and why** (section 0).
 
 **Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
 request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
 the mock-data fallbacks, added the live map layers and self-refresh, and fixed BUG-043/044 (see
-`git log --author=kraditya9241 -- frontend/`). Item 12 below is **not** among them and is yours.
-This file supersedes the three notes that used to live in `aditya/`
+`git log --author=kraditya9241 -- frontend/`). On 22 Sep, again on request, a larger set of
+frontend fixes followed — section 0 lists every one. This file supersedes the three notes that used to live in `aditya/`
 (`handover-verified-event-ws.md`, `handover-review-provenance.md`,
 `handover-20sep-geo-and-confidence.md`); they stay where they are as history.
 
-Most of this is new data you can use. **Two** items need a change — item 8 (`ADVISORY` chip) and
-item 12 (the production build fails on `main`) — and one is visible immediately whether you act on
-it or not — item 9.
+Most of this is new data you can use. The two items that needed a change — item 8 (`ADVISORY`)
+and item 12 (the production build) — are **done** as of 22 Sep, as is item 11 (gating the API).
+Item 9 is visible whether you act on it or not.
 
 Full endpoint shapes: [`api-contract.md`](api-contract.md).
+
+---
+
+## 0. What changed in `frontend/` on 22 Sep, and why
+
+Every change below is a separate commit on `aditya_22sep_c`, with the reason in its message.
+The common thread: **the dashboard showed things INDRA does not have.** The 21 Sep work removed
+invented data that arrived through fallbacks; these were constants written straight into pages,
+which no fallback test could see. They were found by reading every page.
+
+**Invented content removed**
+
+| Where | What it showed | What it shows now |
+|---|---|---|
+| Warnings page (`alerts/page.tsx`) | Four hardcoded bulletins credited to IMD, the Cyclone Warning Division, GSI and CWC ("Cyclone Marut", "port signal 8 hoisted"); any HIGH/CRITICAL event, quarantined ones included, as an NDMA "CRITICAL WARNING" with a canned evacuation order; "CAP-INDIA BROADCAST ONLINE" | Real SACHET warnings (`GET /api/alerts/agency`) in the issuer's words, and severe INDRA events labelled *"not an official warning"* with their true review status |
+| Map (`GlobeEventMap.tsx`) | A "Cyclone DANA — Forecast Track", six "NDRF Operational Bases" (one mislabelled), and for every pin "AI Verified", "Rainfall 86 mm/h", "Wind Gusts 68 km/h", "Water Level +1.9m Danger" chosen by severity | Those layers are gone; the pin panel gives the marker's real status, source and coordinates |
+| Admin (`admin/page.tsx`) | "99.98% Uptime", "BigQuery 14ms", "Zero Breaches · MFA", "CLEARANCE: LEVEL 5", an invented audit trail | `/healthz` per dependency, the operator accounts, and the newest ledger rows with the chain verified (`GET /api/audit/recent`) |
+| Data sources (`datasets/page.tsx`) | A catalogue of IMD radar, INSAT-3DR, CWC gauges and a BigQuery lakehouse, all "STREAMING_HEALTHY" | The five feeds INDRA reads, where each lands, and a "not connected" list |
+| Analytics, live map header | "BIGQUERY ML ENGINE", "96.4%", "1.42M Doppler points/s", "Tracking: Cyclone DANA", "NDRF Units: 8 Deployed" | Counts from `/api/dashboard/summary`, events, teams |
+| Settings page and drawer | Toggles for radar, cyclone, river-basin and NDRF layers, a "satellite data saver", a live-vs-mock switch, a "~6.4 MB" cache meter, hardcoded diagnostics | Removed (none was read by anything); diagnostics run `/healthz`. Seven dead keys left `useSettings` |
+| Small things | "IMD • NDRF Synced", "Grid Synced", "Verified Identity", sensor/radar/satellite copy, nav descriptions | Accurate text |
+
+**Behaviour fixed**
+
+- **Build**: the four nullable-place type errors (item 12) — `npm run build` passes.
+- **Dispatch** sent every team to the fabricated event code `WX-EV-28231827-A`; it now picks a live
+  event, sends the persona's token, changes the card only after the backend has written it, and
+  shows a refusal. The roster no longer falls back to four invented officers.
+- **Profile and duty saves** reverted nothing on failure ("cached locally"); now they put the
+  server's version back and say why.
+- **Map pins**: a late `load` event wiped every pin (a stale closure left by the BUG-043 fix);
+  both style handlers now call the latest renderer.
+- **Receipt**: coverage under the score and the points ÷ coverage arithmetic (item 3); offline
+  factors read from `state` (item 4); "filed by …" on official reports.
+- **Report modal**: a Commander/Admin persona can tick *"File as an official dispatch"*
+  (`POST /api/reports/official`).
+- **Live feed**: messages read the fields the backend sends; official dispatches are `OFCL`.
+- **Severity**: `advisory` has its own label; the recent-events list showed it as Moderate.
+
+**New in `lib/api.ts`**: `currentPersona()`, `OPERATOR_STORAGE_KEY`, `fetchHealth()`,
+`fetchOperators()`, `fetchAuditLedger()`, `fetchSummaryCounts()`, `submitOfficialReport()`;
+`EventDetail.city/state` are typed nullable.
+
+**Tests**: `e2e/no-invented-data.spec.ts` walks all eleven pages for the removed values, and checks
+the warnings and admin pages against the API. If a real feature later needs one of those strings
+(a real IMD radar integration, say), update the list in the same commit. 26/26 pass.
 
 ---
 
@@ -112,7 +159,7 @@ as an AI reading.
 
 ---
 
-## 8. ⚠ The one change that is actually needed: `ADVISORY` severity
+## 8. ✅ Done: `ADVISORY` severity
 
 The backend now grades severity from what reports say, and **`ADVISORY` is reachable and common** —
 most fresh clusters are two to four reports with no depth quoted. The dashboard's severity filter
@@ -121,6 +168,10 @@ cannot be filtered or filtered out.**
 
 Please add an `ADVISORY` chip. No backend change is involved. Quadrant handling is unaffected —
 `assign_quadrant` already groups ADVISORY with MODERATE.
+
+**22 Sep:** the events page's chips already included `ADVISORY` (from PR #26). What was still wrong
+was the label: `SeverityLevel` had no `advisory`, so the recent-events list fell back to
+*Moderate*. It now has its own entry.
 
 ---
 
@@ -162,16 +213,18 @@ alongside `AUTO_PUBLISHED`.
 
 ---
 
-## 11. Proposed, not done: gating the rest of the API
+## 11. ✅ Done: every write requires a token
 
-Every endpoint the dashboard calls today is open, including the mutations (`POST /api/teams`,
-`PATCH /api/teams/{id}/assign`, `PATCH /api/profile/*`). They should require a token once the
-dashboard has a login flow. **That flow is yours to build, so this is a proposal, not a change** —
-tell me when you want it and I will gate them in one commit. Tracked as BUG-009.
+Since 22 Sep: `POST /api/teams` and `PATCH /api/teams/{id}/assign` need COMMANDER or ADMIN;
+`PATCH /api/profile/me` and `/preferences` need any token and edit **only the token's own
+operator** (`?user=` is ignored); `POST /api/reports/official` needs COMMANDER or ADMIN. The
+dashboard already fetched a JWT for its selected persona, so no login screen was needed — the
+calls now send it. A real login flow is still the right end state: the demo passwords ship with the
+persona switcher.
 
 ---
 
-## 12. ⚠ `next build` fails on `main` — four type errors, all nullable place names
+## 12. ✅ Fixed 22 Sep: `next build` failed on `main` — four type errors, all nullable place names
 
 Found 21 Sep on the team server, re-checked on `main` (`dc99a76`) on 22 Sep with
 `npx tsc --noEmit`:
@@ -192,6 +245,9 @@ say "Unnamed location").
 Until it builds, the team server runs the dashboard with `next dev`, which skips the type check.
 Once `npm run build` passes, the server unit switches to `next start`.
 
+**Fixed on `aditya_22sep_c`** (`1004d75`, `2f411d1`) by rendering unnamed places through
+`formatPlace()` — "Location unresolved" — and dropping null chips. `npm run build` is clean.
+
 **Test:** `cd frontend && npx tsc --noEmit && npm run build` — both exit 0.
 
 ---
@@ -200,7 +256,7 @@ Once `npm run build` passes, the server unit switches to `next start`.
 
 | | |
 |---|---|
-| **Alerts** — no SMS, email, dispatch or `GET /api/alerts` | Cancelled 20 Sep. If the UI has an alerts panel, it has no backend and never will |
+| **INDRA-issued alerts** — no SMS, email or broadcast | Cancelled 20 Sep. The warnings page shows *official* SACHET warnings (`GET /api/alerts/agency`); INDRA itself issues none |
 | **Risk zones** | Not built, not scheduled |
 | **Image / vision analysis** | Out of scope. `media_url` is stored as a string and nothing opens it |
 | **Anomaly detection** | Out of scope. Permanently `offline` in the receipt |

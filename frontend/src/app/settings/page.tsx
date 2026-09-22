@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings,
@@ -19,7 +19,6 @@ import {
   Clock,
   Radio,
   Wifi,
-  WifiOff,
   RotateCcw,
   Download,
   Upload,
@@ -58,6 +57,7 @@ import {
   formatCoordinates,
 } from '@/lib/useSettings';
 import { fadeIn, staggerContainer } from '@/lib/motion';
+import { fetchHealth, type HealthReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
@@ -72,6 +72,17 @@ export default function SettingsPage() {
   const { settings, updateSettings, resetSettings, testAlarm } = useSettings();
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [health, setHealth] = useState<HealthReport | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchHealth()
+      .then((h) => { if (!cancelled) { setHealth(h); setHealthError(null); } })
+      .catch((err) => {
+        if (!cancelled) setHealthError(err instanceof Error ? err.message : 'Backend unreachable');
+      });
+    return () => { cancelled = true; };
+  }, []);
   const [activeSection, setActiveSection] = useState<'all' | 'map' | 'alerts' | 'units' | 'hud' | 'network' | 'backup'>('all');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -105,7 +116,7 @@ export default function SettingsPage() {
       try {
         const parsed = JSON.parse(event.target?.result as string);
         updateSettings(parsed);
-        showToast('Configuration imported successfully across all nodes');
+        showToast('Configuration imported');
       } catch {
         showToast('Failed to parse settings JSON file');
       }
@@ -196,7 +207,7 @@ export default function SettingsPage() {
               { id: 'alerts', label: '🚨 Audio & Siren' },
               { id: 'units', label: '📐 Units & Grid' },
               { id: 'hud', label: '🖥️ Command HUD' },
-              { id: 'network', label: '🛰️ Field Satellite' },
+              { id: 'network', label: '🌐 Network' },
               { id: 'backup', label: '⚙️ Backup & Diagnostics' },
             ].map((cat) => (
               <button
@@ -232,7 +243,7 @@ export default function SettingsPage() {
                       <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
                         Tactical Geospatial &amp; Map Defaults
                       </h2>
-                      <p className="text-[11px] text-[#7A8599]">Projection curvature, Doppler radar, and basemap layers</p>
+                      <p className="text-[11px] text-[#7A8599]">Projection, basemap and globe behaviour</p>
                     </div>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
@@ -310,40 +321,16 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Layer Overlays */}
-                <div>
-                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
-                    Default Tactical Overlays
-                  </label>
-                  <div className="bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl divide-y divide-[#E8E2D4]">
-                    {[
-                      { key: 'showDopplerOverlay' as const, label: 'Doppler Weather Radar Heatmap', desc: 'Precipitation reflectivity overlay' },
-                      { key: 'showCycloneVectors' as const, label: 'Cyclone Track & Velocity Vectors', desc: 'Cone of uncertainty and gale radii' },
-                      { key: 'showRiverBasins' as const, label: 'River Catchment Inundation Polygons', desc: 'Major flood-risk water basins' },
-                      { key: 'showNdrfUnits' as const, label: 'NDRF Rescue Unit Dispatches', desc: 'Field battalion live GPS coordinates' },
-                    ].map((item) => (
-                      <div key={item.key} className="p-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold text-[#1E2A3B]">{item.label}</p>
-                          <p className="text-[10px] text-[#7A8599]">{item.desc}</p>
-                        </div>
-                        <button
-                          onClick={() => updateSettings({ [item.key]: !settings[item.key] })}
-                          className={cn(
-                            'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                            settings[item.key] ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm',
-                              settings[item.key] ? 'translate-x-4' : 'translate-x-0'
-                            )}
-                          />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                {/* Map layers. Four toggles used to sit here — a Doppler radar
+                    heatmap, cyclone track vectors, river catchment polygons and
+                    live NDRF battalion GPS — that nothing read and no feed backs. */}
+                <div className="p-3 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl">
+                  <p className="text-xs font-semibold text-[#1E2A3B]">Map layers</p>
+                  <p className="text-[10px] text-[#7A8599] mt-0.5">
+                    The map draws three live layers: INDRA events, official warnings from SACHET,
+                    and citizen reports not yet part of an event. Show or hide them with the chips
+                    on the map itself.
+                  </p>
                 </div>
 
                 {/* Auto Rotation */}
@@ -856,91 +843,24 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-                        Field Satellite &amp; Network Bandwidth
+                        Network &amp; Data Source
                       </h2>
-                      <p className="text-[11px] text-[#7A8599]">Data compression for 2G/3G emergency field stations</p>
+                      <p className="text-[11px] text-[#7A8599]">Where the dashboard&apos;s data comes from</p>
                     </div>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
-                    BANDWIDTH SAVER
+                    NETWORK
                   </span>
                 </div>
 
-                {/* Low Bandwidth Toggle */}
-                <div className="p-4 bg-[#FBF2E4] rounded-xl border border-[#E8C0B5] flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <WifiOff className="w-4 h-4 text-[#B5482E]" />
-                      <p className="text-xs font-bold text-[#1E2A3B]">Field Satellite Low-Bandwidth Mode</p>
-                    </div>
-                    <p className="text-[11px] text-[#4A5568] leading-relaxed">
-                      Optimizes performance on Inmarsat or 2G connections by compressing GIS radar GeoTIFFs and halting live animations.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => updateSettings({ lowBandwidthDataSaver: !settings.lowBandwidthDataSaver })}
-                    className={cn(
-                      'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-1',
-                      settings.lowBandwidthDataSaver ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'inline-block h-5 w-5 transform rounded-full bg-white transition shadow-sm',
-                        settings.lowBandwidthDataSaver ? 'translate-x-5' : 'translate-x-0'
-                      )}
-                    />
-                  </button>
-                </div>
-
-                {/* Local Cache Meter */}
-                <div className="p-3.5 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-[#1E2A3B]">Offline GIS Radar Tile Cache</span>
-                    <span className="font-mono text-[#B5482E] font-bold">~6.4 MB used</span>
-                  </div>
-                  <div className="w-full h-2 bg-[#D8D0C0] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#B5482E] rounded-full w-[14%]" />
-                  </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] text-[#7A8599]">IndexedDB Local Storage</span>
-                    <button
-                      onClick={() => showToast('Local offline GIS tile cache purged')}
-                      className="text-xs text-[#B5482E] hover:text-[#A03D25] font-medium hover:underline"
-                    >
-                      Purge Offline Cache
-                    </button>
-                  </div>
-                </div>
-
-                {/* Data Source Mode */}
-                <div>
-                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
-                    Backend Telemetry Cluster
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { id: 'live', label: 'FastAPI Production Node', desc: 'Direct REST/WebSocket feed from IMD ingestion engine' },
-                      { id: 'mock', label: 'Autonomous Mock Engine', desc: 'Simulated high-frequency incident generation' },
-                    ].map((src) => {
-                      const isSelected = settings.apiDataSource === src.id;
-                      return (
-                        <button
-                          key={src.id}
-                          onClick={() => updateSettings({ apiDataSource: src.id as any })}
-                          className={cn(
-                            'p-2.5 rounded-xl border text-left transition-all',
-                            isSelected
-                              ? 'bg-[#FBF2E4] border-[#B5482E] text-[#1E2A3B] shadow-sm'
-                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:border-[#D8D0C0]'
-                          )}
-                        >
-                          <p className="text-xs font-semibold text-[#1E2A3B]">{src.label}</p>
-                          <p className="text-[10px] text-[#7A8599]">{src.desc}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Data source. A "live vs Autonomous Mock Engine" choice used to sit
+                    here; nothing read it, and the dashboard has no mock data. */}
+                <div className="p-3 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl">
+                  <p className="text-xs font-semibold text-[#1E2A3B]">Data source</p>
+                  <p className="text-[10px] text-[#7A8599] mt-0.5">
+                    Every panel reads the live INDRA API and WebSocket. There is no mock mode: an
+                    empty database shows as empty, and an unreachable backend says so.
+                  </p>
                 </div>
               </motion.div>
             )}
@@ -970,25 +890,30 @@ export default function SettingsPage() {
                   </span>
                 </div>
 
-                {/* Node Diagnostic Pings */}
+                {/* Live dependency checks from /healthz. These three cells used to
+                    read "12ms • ONLINE", "BigQuery GIS CONNECTED" and "INSAT-3DR
+                    Stream ACTIVE" whatever the state of anything. */}
                 <div className="space-y-2">
                   <span className="text-xs font-semibold text-[#1E2A3B] block">
-                    Telemetry Cluster Health Status
+                    Backend health (/healthz)
                   </span>
-                  <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-                    <div className="p-2.5 rounded-xl bg-[#F0EBE0]/70 border border-[#E8E2D4]">
-                      <span className="text-[10px] text-[#7A8599] block">FastAPI Backend</span>
-                      <span className="text-[#4C7A5B] font-bold">12ms • ONLINE</span>
+                  {healthError ? (
+                    <p className="text-xs text-[#8C2F26] font-semibold">{healthError}</p>
+                  ) : !health ? (
+                    <p className="text-xs text-[#7A8599]">Checking…</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                      {Object.entries(health.checks).map(([name, check]) => (
+                        <div key={name} className="p-2.5 rounded-xl bg-[#F0EBE0]/70 border border-[#E8E2D4]">
+                          <span className="text-[10px] text-[#7A8599] block">{name}</span>
+                          <span className={cn('font-bold', check.status === 'up' ? 'text-[#4C7A5B]' : 'text-[#8C2F26]')}>
+                            {check.status === 'up' ? 'UP' : 'DOWN'}
+                            {check.latency_ms != null ? ` • ${check.latency_ms} ms` : ''}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="p-2.5 rounded-xl bg-[#F0EBE0]/70 border border-[#E8E2D4]">
-                      <span className="text-[10px] text-[#7A8599] block">BigQuery GIS</span>
-                      <span className="text-[#4C7A5B] font-bold">CONNECTED</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-[#F0EBE0]/70 border border-[#E8E2D4]">
-                      <span className="text-[10px] text-[#7A8599] block">INSAT-3DR Stream</span>
-                      <span className="text-[#4C7A5B] font-bold">ACTIVE</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Export / Import */}

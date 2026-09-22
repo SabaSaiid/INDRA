@@ -7,7 +7,7 @@ about this backend. Each one has a number, a file or a test behind it.
 faking it.* Every answer below follows from that, including the uncomfortable ones. If you are
 ever unsure what to say, say what is true and say where it is written down.
 
-**Verified 21 Sep 2026.**
+**Verified 21 Sep 2026; updated 22 Sep after the official-dispatch route and the dashboard audit.**
 
 ---
 
@@ -21,9 +21,11 @@ Six weighted factors. The score is the weighted mean **over the factors that act
 confidence = Σ_online(weight × score) / Σ_online(weight)
 ```
 
-For the demo event: `0.3987 / 0.80 = 0.4984`. The receipt prints every factor, its weight, its
-score, its points and whether it was `computed` or `offline`, so the arithmetic can be checked on
-the spot.
+For the demo event on 21 Sep: `0.3987 / 0.80 = 0.4984`. On 22 Sep Patna was wetter, and the same
+five reports gave `0.4117 / 0.80 = 0.5146`; the weather factor is live, so expect the number to
+move between rehearsals. The receipt prints every factor, its weight, its score, its points and
+whether it was `computed` or `offline`, so the arithmetic can be checked on the spot. The
+dashboard's receipt now shows the coverage under the score and the division beneath the factors.
 
 ### What does `factor_coverage` mean?
 
@@ -47,8 +49,11 @@ A platform that called that a verified disaster would be the broken one.
 
 Watch what it does instead: it quarantines the event and puts it in front of a human, and the
 receipt shows exactly which evidence produced the number. **Add more independent reports and the
-density factor rises. Add real rainfall and the weather factor rises.** Both are visible, live, in
-the receipt.
+density factor rises. Add real rainfall and the weather factor rises. Add a report from a trusted
+source and source reliability rises.** Measured 22 Sep: the five Patna reports scored 0.5146,
+`QUARANTINED`; the same five plus one official dispatch filed by the commander scored **0.6065,
+`PENDING_HUMAN_REVIEW`** — source reliability 0.60 → 1.00, and the event crossed into a human's
+queue. All of it visible, live, in the receipt (`run_patna_demo.py --official`).
 
 ### Could you not just raise the numbers?
 
@@ -96,14 +101,22 @@ audited.
 
 ### Where are the alerts? Who gets the SMS?
 
-**Nobody. There is no alert engine.** No SMS, no email, no dispatch integration, no
-`GET /api/alerts`. It was scoped, then cancelled on 20 Sep rather than half-built.
+**Nobody. There is no alert engine.** INDRA sends no SMS, no email and no CAP broadcast, and has no
+dispatch integration. It was scoped, then cancelled on 20 Sep rather than half-built.
+
+What the Warnings page shows is **official warnings that others issued**: IMD, CWC and state SDMA
+CAP alerts, collected every 5 minutes from NDMA's SACHET feed (`GET /api/alerts/agency`) and
+credited to their issuers in their own words. INDRA's own severe events appear beside them,
+labelled *"INDRA event · not an official warning"* with their review status.
+
+Be ready for this one: until 22 Sep that page also showed four invented bulletins credited to IMD,
+CWC and GSI — including a fictional "Cyclone Marut" — and presented INDRA events as NDMA warnings,
+and the map drew a fictional cyclone track. All of it was found by reading every page and removed
+the same day (BUG-047 to BUG-050 in the register). A browser test now fails if any of it returns.
 
 The honest version of this platform's promise stops at: an event is verified, scored, explained,
 and put in front of a commander who takes the decision. Automated dispatch on top of a 0.50
 confidence score would be the most expensive mistake this system could make.
-
-Nothing in the UI, the API or these documents claims an alert was sent.
 
 ---
 
@@ -113,9 +126,11 @@ Nothing in the UI, the API or these documents claims an alert was sent.
 
 Four things, in order:
 
-1. **Deduplication** — one incident reposted five times is one event, not five. A suppressed
-   duplicate is never counted as corroboration and **never grades severity**, so a reposted
-   alarming text cannot inflate an event.
+1. **Deduplication** — the same message sent five times counts once. A suppressed duplicate is
+   never counted as corroboration and **never grades severity**, so a reposted alarming text
+   cannot inflate an event. A *second person* describing the same flood in their own words is
+   kept: that is a witness. Measured 22 Sep with the production model, resubmissions score
+   0.91–0.99 and independent witnesses 0.81–0.91 against the 0.88 threshold (BUG-013).
 2. **Coordinate validation** — anything outside India's bounds is rejected with a 422 and never
    stored. It is not snapped to the map.
 3. **The corroboration rule** — a single report does not make an event. DBSCAN needs at least two.
@@ -128,10 +143,12 @@ Each source type carries a reliability prior — official dispatch 1.00, CWC 0.9
 station 0.90, citizen app 0.60, social 0.50 — and each report is also scored on text quality. One
 source cannot auto-publish an event on its own.
 
-**Be precise about a limit here:** today every report submitted through the public endpoint is
-stamped `CITIZEN_APP`, so source reliability reads 0.60 in a live demo and cannot be moved by the
-text of a report. That is deliberate — letting a client declare itself an official source would
-make the factor meaningless. It is recorded as BUG-025.
+**A citizen cannot claim to be official.** The public endpoint stamps every report `CITIZEN_APP`
+whatever the request says. A trusted report comes through `POST /api/reports/official`, which needs
+a Commander or Admin token and stores who filed it; provenance shows that name beside the report.
+Be precise about the limit: the route is as trusted as the account behind it, and the demo
+accounts' passwords are part of the dashboard's persona switcher. This build shows the mechanism
+(role-gated, attributed), not a secret (BUG-025, closed 22 Sep).
 
 ### How do you know the audit trail wasn't edited?
 
@@ -199,8 +216,8 @@ real keys.
 
 ### How do you know any of this works?
 
-**684 automated tests**, run against a separate database, green with the network off. But the more
-honest answer is the second half:
+**746 automated backend tests**, run against a separate database, green with the network off, and
+**26 browser tests** against the running dashboard. But the more honest answer is the second half:
 
 **Every one of the most serious defects in this project was invisible to a green suite.** With 518
 tests passing, the demo would still have opened on a fabricated `0.94 / AUTO_PUBLISHED` event,
@@ -211,18 +228,24 @@ days until a cold rehearsal timed out. A rainfall poller stored one hour of rain
 expected a day of it, and 29 passing tests agreed with it, because they tested the response and
 the defect was in the request.
 
+On 22 Sep the same lesson came from the other side: the dashboard carried invented figures written
+straight into its pages — an uptime, a radar feed, official bulletins — which no fallback test
+could see because nothing fell back. They were found by reading every page, and the browser suite
+now names each one.
+
 So: tests, plus rehearsing from an empty volume, plus disbelieving any number that flatters us.
 All three are in the [bug register](bug-register.md), with dates.
 
 ### What would you do next, with more time?
 
-In order: gate the rest of the API behind the login flow the dashboard does not have yet; anchor
-the audit chain's head hash externally so a truncated tail is detectable; re-project the clustering
-into metres instead of degrees (~10% anisotropy at Patna's latitude); and get labelled data good
-enough to move the dedup threshold off 0.88 with evidence rather than by feel.
+In order: a real login instead of demo accounts whose passwords ship with the dashboard; anchor
+the audit chain's head hash externally so a truncated tail is detectable; a reporter identity for
+the citizen channel, so dedup can tell the same person repeating from a second witness; and shared
+pub/sub for the WebSocket fan-out, so more than one backend process can run.
 
-All four are written down with severities in the [bug register](bug-register.md). None of them is
-a surprise.
+Three items from the old version of this list were done on 22 Sep: every write is now token-gated,
+clustering uses a true great-circle radius instead of degrees, and the dedup threshold was
+measured and kept. All of it is in the [bug register](bug-register.md). None of it is a surprise.
 
 ### What is the single weakest part?
 

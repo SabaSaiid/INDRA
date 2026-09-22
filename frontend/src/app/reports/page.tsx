@@ -130,7 +130,8 @@ export default function ReportsPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                Multi-channel verification pipeline combining citizen crowdsourced observations, IoT hydro-sensors, Doppler radar, and satellite telemetry.
+                Citizen reports and official dispatches as they arrive. Each is checked for
+                location and duplicates, then clustered and scored with live rainfall.
               </p>
             </div>
 

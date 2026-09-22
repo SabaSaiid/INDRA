@@ -24,6 +24,7 @@ Usage
     ./start.sh -b                       # backend must be running (-b = background)
     .venv/bin/python ../scripts/run_patna_demo.py
     .venv/bin/python ../scripts/run_patna_demo.py --corroborate  # one extra report
+    .venv/bin/python ../scripts/run_patna_demo.py --official     # + one official dispatch
 
 Exit code is non-zero if the demo did not produce an event, so it can be used as
 a smoke test rather than only read by a human.
@@ -34,6 +35,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 API = "http://localhost:8000"
@@ -60,16 +62,25 @@ REPORTS = [
 # The hardcoding is deliberate and correct -- if a client could declare its own
 # source_type, anyone could claim OFFICIAL_DISPATCH and award itself the model's
 # highest trust weight, and the factor would measure what a reporter says about
-# itself. Raising source reliability needs an authenticated ingest path for trusted
-# sources, which is not built. See bug.md BUG-025.
-#
-# So this flag does what it can honestly do: add corroboration, which on a dry day
-# is the lever that actually moves the score.
+# itself. So this flag adds corroboration, which on a dry day is the lever that
+# moves the score. Raising source reliability is --official, below.
 EXTRA_REPORT = (
     25.5948,
     85.1381,
     "More water collecting near the Kankarbagh community hall, still rising",
 )
+
+# One field dispatch, sent with --official through the authenticated route
+# (POST /api/reports/official, BUG-025). The script logs in as the demo
+# commander, so the report is stored OFFICIAL_DISPATCH with submitted_by
+# "commander" and lifts source reliability to 1.00. It is still one report in
+# the cluster: it does not bypass corroboration, weather or review.
+OFFICIAL_REPORT = (
+    25.5949,
+    85.1381,
+    "District control room confirms waterlogging at Kankarbagh, SDRF team en route",
+)
+COMMANDER = ("commander", "commander123")
 
 RULE = "─" * 72
 
@@ -80,13 +91,12 @@ RULE = "─" * 72
 DEMO_EVENT_CODE_PREFIX = "WX-EV-"
 
 
-def _request(method, path, payload=None, timeout=10):
+def _request(method, path, payload=None, timeout=10, headers=None):
     url = f"{API}{path}"
     data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request(
-        url, data=data, method=method,
-        headers={"Content-Type": "application/json"} if data else {},
-    )
+    all_headers = {"Content-Type": "application/json"} if data else {}
+    all_headers.update(headers or {})
+    req = urllib.request.Request(url, data=data, method=method, headers=all_headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         body = r.read().decode()
         return r.status, (json.loads(body) if body else None)
@@ -132,6 +142,37 @@ def submit(reports):
         print(f"    ✓ {res['id'][:8]}  {queued}  {body[:46]}")
     print()
     return ids
+
+
+def login(username, password):
+    """A bearer token from POST /api/auth/token (form-encoded, OAuth2 password flow)."""
+    form = urllib.parse.urlencode({"username": username, "password": password}).encode()
+    req = urllib.request.Request(
+        f"{API}/api/auth/token", data=form, method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.loads(r.read().decode())["access_token"]
+    except urllib.error.HTTPError as e:
+        _die(f"login as {username!r} failed with HTTP {e.code}")
+
+
+def submit_official(report):
+    lat, lng, body = report
+    token = login(*COMMANDER)
+    print(f"  Filing one official dispatch as {COMMANDER[0]!r}")
+    try:
+        status, res = _request(
+            "POST", "/api/reports/official",
+            {"latitude": lat, "longitude": lng, "text": body},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    except urllib.error.HTTPError as e:
+        _die(f"official submit returned {e.code}")
+    print(f"    ✓ {res['id'][:8]}  {res['source_type']}  {body[:46]}")
+    print()
+    return res["id"]
 
 
 def _is_computed(event):
@@ -193,24 +234,33 @@ def wait_for_event(deadline_s=45):
     )
 
 
-def settle(event, quiet_for=4.0, limit_s=30.0):
+def settle(event, expected, limit_s=45.0):
     """
-    Wait until the event stops growing before printing it.
+    Wait until every submitted report has joined the event before printing it.
 
     Reports are consumed one at a time, so a cluster is still absorbing members
     for a few seconds after the first event appears. Printed too early the demo
     shows "3 reports, confidence 0.4585" and a refresh a moment later shows
     "5 reports, 0.4984" — which looks like the number is unstable when it is
-    simply still arriving. Measured on a local stack: all five land within ~8s.
+    simply still arriving.
 
-    Polls the receipt's cluster size until it has held steady for `quiet_for`
-    seconds. It reads verification_receipt.cluster.size rather than a top-level
+    This used to stop after the size had held for 4 s. On a freshly started
+    backend that is not enough: on 22 Sep the embedding model finished warming
+    while the fourth report was in dedup, the last three merged several seconds
+    later, and the script printed "steady at 3" and 0.4748 for an event that
+    was already 6 reports and 0.6065 in the database. It knows how many reports
+    it sent, so it now waits for that many.
+
+    It reads verification_receipt.cluster.size rather than a top-level
     report_count, because GET /api/events/{id} does not return one — a first
     version of this function polled `detail["report_count"]`, got None every time,
     and reported "steady at None report(s)" while measuring nothing at all.
+
+    If fewer arrive within `limit_s` (dedup can legitimately suppress one), it
+    says how many of how many joined and prints what the API has.
     """
-    print(f"  Letting the cluster settle (quiet for {quiet_for:.0f}s)")
-    last, stable_since = None, time.monotonic()
+    print(f"  Waiting for all {expected} reports to join the event")
+    last = None
     started = time.monotonic()
 
     while time.monotonic() - started < limit_s:
@@ -229,13 +279,16 @@ def settle(event, quiet_for=4.0, limit_s=30.0):
         if count != last:
             if last is not None:
                 print(f"    cluster size {last} → {count}")
-            last, stable_since = count, time.monotonic()
-        elif time.monotonic() - stable_since >= quiet_for:
-            print(f"    ✓ steady at {count} report(s)\n")
+            last = count
+        if count >= expected:
+            print(f"    ✓ all {count} report(s) in, after {time.monotonic() - started:.1f}s\n")
             return
         time.sleep(1.0)
 
-    print(f"    … still changing after {limit_s:.0f}s; printing anyway\n")
+    print(
+        f"    … {last} of {expected} reports joined within {limit_s:.0f}s; printing what the API has.\n"
+        "      The rest are still in the pipeline, or were suppressed as duplicates.\n"
+    )
 
 
 def show_event(event):
@@ -319,17 +372,21 @@ def show_heatmap():
 def main():
     ap = argparse.ArgumentParser(description="Run the Patna demo against a live backend.")
     ap.add_argument("--corroborate", action="store_true",
-                    help="submit one extra corroborating report, raising the report-density "
-                         "factor (source reliability cannot be raised through this endpoint "
-                         "-- see bug.md BUG-025)")
+                    help="submit one extra corroborating citizen report, raising the "
+                         "report-density factor")
+    ap.add_argument("--official", action="store_true",
+                    help="also file one official dispatch as the demo commander through "
+                         "POST /api/reports/official, lifting source reliability to 1.00")
     ap.add_argument("--wait", type=int, default=45, help="seconds to wait for an event")
     args = ap.parse_args()
 
     preflight()
     reports = list(REPORTS) + ([EXTRA_REPORT] if args.corroborate else [])
     submit(reports)
+    if args.official:
+        submit_official(OFFICIAL_REPORT)
     event, _ = wait_for_event(args.wait)
-    settle(event)
+    settle(event, expected=len(reports) + (1 if args.official else 0))
     detail = show_event(event)
     show_heatmap()
 
@@ -340,12 +397,11 @@ def main():
         print("  Quarantined is the correct verdict, not a failure — and the receipt above")
         print("  shows exactly which evidence produced it.")
         print()
-        print("  What would raise it: more independent reports (the density factor), or")
-        print("  real rainfall (the weather factor, live from Open-Meteo — today it scored")
-        print("  near zero because Patna is dry). Source reliability reads 0.60 and cannot")
-        print("  move in a live run: the citizen app is the only ingest route built, and")
-        print("  letting a client declare itself an official source would make that factor")
-        print("  meaningless. See bug.md BUG-025.")
+        print("  What would raise it: more independent reports (the density factor), real")
+        print("  rainfall (the weather factor, live from Open-Meteo), or a report from a")
+        print("  trusted source. Citizens cannot claim that last one — the public route is")
+        print("  always CITIZEN_APP — so it comes through POST /api/reports/official, which")
+        print("  needs a commander's token and records who filed it (--official).")
     elif status == "PENDING_HUMAN_REVIEW":
         print("  Read: corroborated enough to reach an operator, not enough to publish")
         print("  itself. An operator now approves or rejects it via")
