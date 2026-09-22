@@ -797,3 +797,89 @@ export async function updateUserProfile(
   }
   return res.json();
 }
+
+// ─── Platform health, operators and the audit ledger (admin console) ─────────
+
+export interface HealthCheck {
+  status: 'up' | 'down';
+  latency_ms?: number;
+  critical: boolean;
+  error?: string;
+}
+
+export interface HealthReport {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  checks: Record<string, HealthCheck>;
+}
+
+/**
+ * GET /healthz. Read even when it answers 503: an unhealthy report is exactly
+ * what the admin console must be able to show, so only an unreachable backend
+ * throws.
+ */
+export async function fetchHealth(): Promise<HealthReport> {
+  const path = '/healthz';
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });
+  } catch {
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
+  }
+  try {
+    return (await res.json()) as HealthReport;
+  } catch {
+    throw new ApiError(path, res.status, 'Backend returned a malformed health report');
+  }
+}
+
+export interface OperatorAccount {
+  username: string;
+  full_name: string;
+  role: string;
+  agency: string;
+  operator_id: string;
+  duty_status: string;
+}
+
+export async function fetchOperators(): Promise<OperatorAccount[]> {
+  const path = '/api/profile/operators';
+  return asArray<OperatorAccount>(await getJson<unknown>(path), path);
+}
+
+export interface AuditRow {
+  seq: number;
+  action_taken: string;
+  operator_id: string;
+  event_id: string | null;
+  reason: string | null;
+  logged_at: string | null;
+  sha256_hash: string;
+}
+
+export interface AuditLedger {
+  chain: { valid: boolean; checked: number; broken_at_seq: number | null };
+  total: number;
+  rows: AuditRow[];
+}
+
+/** GET /api/audit/recent — ANALYST, COMMANDER or ADMIN persona. */
+export async function fetchAuditLedger(
+  limit: number = 20,
+  operatorUsername: string = currentPersona()
+): Promise<AuditLedger> {
+  const path = `/api/audit/recent?limit=${limit}`;
+  const authHeaders = await getAuthHeaders(operatorUsername);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { cache: 'no-store', headers: { ...authHeaders } });
+  } catch {
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
+  }
+  if (res.status === 403) {
+    throw new ApiError(path, 403, 'Reading the audit ledger needs an Analyst, Commander or Admin persona');
+  }
+  if (!res.ok) {
+    throw mutationError(path, res.status, 'Reading the audit ledger');
+  }
+  return (await res.json()) as AuditLedger;
+}
