@@ -76,7 +76,7 @@ export const navItems: NavItem[] = [
     section: 'tactical',
     badge: { text: 'LIVE', variant: 'live' },
     shortcut: '⌘2',
-    description: '3D interactive globe & Doppler radar feeds',
+    description: 'Events, official warnings and reports on a 3D globe',
   },
   {
     id: 'events',
@@ -96,7 +96,7 @@ export const navItems: NavItem[] = [
     href: '/alerts',
     section: 'intelligence',
     shortcut: '⌘4',
-    description: 'Flash flood, cyclone & IMD hazard bulletins',
+    description: 'Official IMD, CWC and SDMA warnings via SACHET',
   },
   {
     id: 'reports',
@@ -114,7 +114,7 @@ export const navItems: NavItem[] = [
     href: '/analytics',
     section: 'intelligence',
     shortcut: '⌘6',
-    description: 'BigQuery trend models & multi-source correlations',
+    description: 'Report volume and event distribution',
   },
   {
     id: 'datasets',
@@ -123,7 +123,7 @@ export const navItems: NavItem[] = [
     href: '/datasets',
     section: 'intelligence',
     shortcut: '⌘7',
-    description: 'IMD raster data, satellite imagery & GIS archives',
+    description: 'The feeds INDRA reads, and what is not connected',
   },
 
   // Command & Roster
@@ -143,7 +143,7 @@ export const navItems: NavItem[] = [
     href: '/profile',
     section: 'command',
     shortcut: '⌘9',
-    description: 'Credentials, security clearance & duty roster',
+    description: 'Identity, role and duty status',
   },
   {
     id: 'admin',
@@ -152,7 +152,7 @@ export const navItems: NavItem[] = [
     href: '/admin',
     section: 'command',
     shortcut: '⌘0',
-    description: 'System governance, RBAC permissions & node telemetry',
+    description: 'Dependency health, accounts and the audit ledger',
   },
   {
     id: 'settings',
