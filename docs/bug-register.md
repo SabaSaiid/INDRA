@@ -1186,3 +1186,41 @@ Their `area_desc` values are mandal- and locality-level (`MRTS`, `krs-unguturu M
 `elr-nuzvid, elr-agiripalle, krs-bapulapadu mandals`) — below the district granularity of
 the 737-row gazetteer. 39 of 45 resolving is the gazetteer working as specified, not
 failing. Say so plainly if asked.
+
+---
+
+# Day 9 — 22 Sep 2026, the team server
+
+Found by checking the shared server (`15.252.50.176`) against the runbook before seeding it for a
+rehearsal. Neither defect is in the backend code; both are in what is deployed.
+
+### BUG-045 — The team server serves fabricated events: `DEMO_MODE=true` in the deployed `.env`
+**S1** · Layer 8a / infra · **`OPEN`** (a one-line config fix, pending) · Found by: comparing the server `.env` to the runbook before seeding · 22 Sep
+
+Repro: `curl -s http://15.252.50.176:8000/api/events`
+Expected: `[]` — the server database holds **0** verified events.
+Actual: `ev-patna-01`, **`0.94 / AUTO_PUBLISHED / critical`**, `verified_at 2026-09-15T11:45:00Z`,
+followed by a fabricated `0.88` Guwahati cloudburst.
+
+This is BUG-024 again, not in the code (`config.py:164` defaults to `False`, `.env.example:58` says
+`false`) but in the server's hand-written `.env`, which was never compared against `.env.example`.
+The KPI endpoint is honest (`verified_events: 0`), so the map and the counter disagree on screen.
+**If you tested against the server between 21 and 22 Sep, the Patna 0.94 and Guwahati 0.88 events
+you saw were not real.**
+
+Fix: `DEMO_MODE=false` in `/opt/indra/.env`, then `sudo systemctl restart indra-api`;
+`/api/events` must return `[]`. The same edit should set `ENVIRONMENT=production` — its only
+effect (`database.py:24`) is SQLAlchemy echoing every SQL statement into the API log.
+
+### BUG-046 — `next build` fails on `main`, so the server cannot run a production frontend
+**S2** · Layer 9 · **`OPEN`**, handed over — `frontend-handover.md` item 12 · Found by: building on the server, 21 Sep; `tsc --noEmit` on `main`, 22 Sep
+
+Four type errors, all the same shape: `alerts/page.tsx:180` and `events/page.tsx:92-93` treat
+`city` / `state` (`string | null`) as strings. Came in with `1725a84` through PR #26. `null` is
+correct from the API since BUG-033. The server works around it with `next dev`.
+
+Say: "The test server serves the dashboard in development mode because of a type error in two
+pages, which is with the frontend owner. It does not change anything the API returns."
+
+A correction that goes with it: the Day 7 tally says `next build` was clean. That was true on
+`aditya_22sep_a`; it has not been true on `main` since PR #26 merged.

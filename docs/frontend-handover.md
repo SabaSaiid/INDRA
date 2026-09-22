@@ -1,15 +1,19 @@
 # Handover — Backend → Dashboard
 
 **From:** Aditya (layers 1–3, 5, 6, 7, 8a) · **To:** whoever owns `INDRA/frontend/`
-**Covers:** every backend change from 16–21 Sep 2026 that the dashboard can see.
+**Covers:** every backend change from 16–21 Sep 2026 that the dashboard can see, plus the `main` build failure found 22 Sep (item 12).
 
-**`frontend/` was never touched.** `git diff --stat` across all of these branches shows zero
-frontend paths. This file supersedes the three notes that used to live in `aditya/`
+**Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
+request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
+the mock-data fallbacks, added the live map layers and self-refresh, and fixed BUG-043/044 (see
+`git log --author=kraditya9241 -- frontend/`). Item 12 below is **not** among them and is yours.
+This file supersedes the three notes that used to live in `aditya/`
 (`handover-verified-event-ws.md`, `handover-review-provenance.md`,
 `handover-20sep-geo-and-confidence.md`); they stay where they are as history.
 
-**Nothing here breaks the dashboard.** Most of it is new data you can use. Exactly **one** item
-needs a change — item 8 — and one is visible immediately whether you act on it or not — item 9.
+Most of this is new data you can use. **Two** items need a change — item 8 (`ADVISORY` chip) and
+item 12 (the production build fails on `main`) — and one is visible immediately whether you act on
+it or not — item 9.
 
 Full endpoint shapes: [`api-contract.md`](api-contract.md).
 
@@ -164,6 +168,31 @@ Every endpoint the dashboard calls today is open, including the mutations (`POST
 `PATCH /api/teams/{id}/assign`, `PATCH /api/profile/*`). They should require a token once the
 dashboard has a login flow. **That flow is yours to build, so this is a proposal, not a change** —
 tell me when you want it and I will gate them in one commit. Tracked as BUG-009.
+
+---
+
+## 12. ⚠ `next build` fails on `main` — four type errors, all nullable place names
+
+Found 21 Sep on the team server, re-checked on `main` (`dc99a76`) on 22 Sep with
+`npx tsc --noEmit`:
+
+```
+src/app/alerts/page.tsx(180,17): error TS2322: Type 'string | null' is not assignable to type 'string'.
+src/app/alerts/page.tsx(180,26): error TS2322: Type 'string | null' is not assignable to type 'string'.
+src/app/events/page.tsx(92,10):  error TS18047: 'ev.city' is possibly 'null'.
+src/app/events/page.tsx(93,10):  error TS18047: 'ev.state' is possibly 'null'.
+```
+
+They came in with `1725a84` through the `frontend-20sep` merge (PR #26). `city` and `state` are
+`string | null` **on purpose**: since BUG-033 the backend reverse-geocodes every event and returns
+`null` when a point is offshore or outside every district, rather than inventing a name. So the
+fix is here, not in the API: decide what each page shows for an unnamed place (drop the chip, or
+say "Unnamed location").
+
+Until it builds, the team server runs the dashboard with `next dev`, which skips the type check.
+Once `npm run build` passes, the server unit switches to `next start`.
+
+**Test:** `cd frontend && npx tsc --noEmit && npm run build` — both exit 0.
 
 ---
 
