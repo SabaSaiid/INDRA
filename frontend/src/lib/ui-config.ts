@@ -178,7 +178,7 @@ export interface KpiItem {
   bgColor: string;
   icon: 'reports' | 'verified' | 'critical' | 'citizens';
 }
-export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'low';
+export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'advisory' | 'low';
 export type VerificationStatus = 'verified' | 'under-review';
 export type EventType = 'Severe Rainfall' | 'Flood' | 'Thunderstorm' | 'Strong Winds' | 'Fog' | 'Urban Flooding' | 'Heavy Rainfall';
 
@@ -252,6 +252,10 @@ export const severityConfig: Record<SeverityLevel, { label: string; color: strin
   critical: { label: 'Critical', color: '#8C2F26', bg: '#F5E8E7', textColor: '#6D1F18' },
   high: { label: 'High', color: '#B8873A', bg: '#FBF2E4', textColor: '#8A611E' },
   moderate: { label: 'Moderate', color: '#4A6670', bg: '#E6EFF1', textColor: '#374E57' },
+  // The backend grades most fresh clusters ADVISORY (two to four reports, no
+  // depth quoted). Without this entry the recent-events list fell back to
+  // 'moderate' and showed every advisory event as Moderate.
+  advisory: { label: 'Advisory', color: '#7A8599', bg: '#EEF0F4', textColor: '#4A5568' },
   low: { label: 'Low', color: '#6B7280', bg: '#F3F4F6', textColor: '#4B5563' },
 };
 
