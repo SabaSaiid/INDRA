@@ -777,7 +777,7 @@ async def event_provenance(
             await db.execute(
                 text("""
                     SELECT id, source_type, raw_text, latitude, longitude,
-                           credibility_score, created_at
+                           credibility_score, created_at, submitted_by
                     FROM raw_reports
                     WHERE event_id = CAST(:id AS uuid)
                     ORDER BY created_at, id
@@ -812,6 +812,9 @@ async def event_provenance(
                 "longitude": r[4],
                 "credibility_score": r[5],
                 "created_at": r[6].isoformat() if r[6] else None,
+                # Who vouched for an OFFICIAL_DISPATCH (BUG-025); null for an
+                # anonymous citizen report.
+                "submitted_by": r[7],
             }
             for r in reports
         ],
