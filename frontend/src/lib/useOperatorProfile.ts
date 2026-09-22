@@ -5,9 +5,13 @@ import {
   type UserProfile,
   type DutyStatus,
 } from './ui-config';
-import { fetchUserProfile, updateUserProfile, getAuthToken, clearAuthToken } from './api';
-
-const OPERATOR_STORAGE_KEY = 'indra_current_role';
+import {
+  fetchUserProfile,
+  updateUserProfile,
+  getAuthToken,
+  clearAuthToken,
+  OPERATOR_STORAGE_KEY,
+} from './api';
 
 export interface OperatorPersonaOption {
   id: string;
