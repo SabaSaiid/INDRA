@@ -972,10 +972,16 @@ export default function GlobeEventMap({
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
+    // Through the ref, never the closure. This handler is registered once, at
+    // mount, and fires twice (style.load, then load). Calling the
+    // renderProminentPins captured here used the empty marker list it saw at
+    // mount: measured on 22 Sep, the pins effect drew 20 markers at t=1720 ms
+    // and the late `load` at t=1874 ms cleared all 20 and drew none, leaving
+    // the badge counting pins the map did not show (BUG-043 again).
     const onStyleReady = () => {
       try {
         map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
-        renderProminentPins();
+        renderProminentPinsRef.current();
       } catch (err) {
         console.error('[INDRA] onStyleReady error:', err);
       }
@@ -1095,7 +1101,7 @@ export default function GlobeEventMap({
     map.setStyle(BASEMAP_STYLES[newBasemap]);
     map.once('style.load', () => {
       map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
-      renderProminentPins();
+      renderProminentPinsRef.current();
     });
   };
 
