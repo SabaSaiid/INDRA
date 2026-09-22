@@ -15,8 +15,16 @@ services:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Over TCP, not the Unix socket (BUG-028). On a fresh volume the entrypoint
+    # runs a temporary server on the socket only, creates indra_db and the
+    # PostGIS extension, then shuts it down and starts the real one. A socket
+    # probe goes green on the temporary server — before indra_db exists, and
+    # seconds before that server is killed. The real server is the first to
+    # listen on TCP, so healthy now means the database is there to migrate.
+    # Measured on a fresh container: socket green at 1.1 s, TCP at 3.5 s,
+    # after "PostgreSQL init process complete".
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U indra_user -d indra_db"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U indra_user -d indra_db"]
       interval: 5s
       timeout: 5s
       retries: 5
