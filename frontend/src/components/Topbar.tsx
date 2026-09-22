@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
-  Bell,
   ChevronDown,
   Menu,
   User,
@@ -13,7 +12,9 @@ import {
   Radio,
   Check,
   Settings,
-  AlertTriangle,
+  ShieldAlert,
+  Plus,
+  Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -26,6 +27,7 @@ import {
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
+import NotificationPopover from './NotificationPopover';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -43,11 +45,10 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     isUpdatingStatus,
     isAuthenticated,
   } = useOperatorProfile();
-  // See Sidebar: placeholder chrome, not a fabricated operator.
   const currentProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Click away listener to close dropdown
+  /* Click-away close for profile dropdown */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -58,7 +59,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Keyboard shortcut: Cmd+, for settings
+  /* Keyboard shortcut: Cmd+, for settings */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
@@ -86,6 +87,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
       style={{ background: 'rgba(247, 243, 234, 0.95)', backdropFilter: 'blur(16px)' }}
     >
       <div className="flex items-center justify-between h-[50px] px-4 lg:px-6">
+
         {/* Mobile menu button */}
         <button
           onClick={onMobileMenuOpen}
@@ -102,45 +104,43 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             <input
               type="text"
               placeholder="Search location, event or report…"
-              className="w-full h-8 pl-10 pr-4 rounded-md bg-[#F0EBE0] border border-[#E8E2D4] text-sm text-ink placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all"
+              className="w-full h-8 pl-10 pr-16 rounded-md bg-[#F0EBE0] border border-[#E8E2D4] text-sm text-ink placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all"
               aria-label="Search"
             />
+            {/* Search shortcut hint */}
+            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#B0A898] bg-[#E8E2D4] border border-[#D8D0C4] px-1.5 py-0.5 rounded hidden sm:block select-none">
+              /
+            </kbd>
           </div>
         </div>
 
         {/* Right section */}
-        <div className="flex items-center gap-3">
-          {/* Report Incident button */}
+        <div className="flex items-center gap-1.5">
+
+          {/* Report Incident — primary CTA */}
           <button
             onClick={() => setReportModalOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#B5482E] text-white text-xs font-semibold hover:bg-[#8C3420] transition-colors shadow-sm"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#B5482E]/40"
+            style={{ background: 'linear-gradient(135deg, #C05030 0%, #B5482E 100%)' }}
+            aria-label="Report an incident"
+            id="report-incident-btn"
           >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Report Incident
+            {/* On wider screens show full label; on narrow show icon + short label */}
+            <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">Report Incident</span>
+            <Plus className="w-3 h-3 sm:hidden" />
           </button>
 
-          {/* Auth indicator */}
-          {isAuthenticated && (
-            <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200" title={`Authenticated as ${selectedRole}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-medium text-emerald-700">JWT</span>
-            </div>
-          )}
+          {/* Divider */}
+          <div className="hidden sm:block h-5 w-px bg-[#E8E2D4] mx-0.5" aria-hidden="true" />
 
-          {/* Notifications */}
-          <button
-            className="relative p-2 rounded-md hover:bg-[#F0EBE0] transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5 text-[#7A8599]" />
-            {/* Alert dot */}
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#8C2F26]" />
-          </button>
+          {/* Notification Bell — now interactive */}
+          <NotificationPopover />
 
           {/* Settings trigger */}
           <button
             onClick={() => setSettingsOpen(true)}
-            className="relative p-2 rounded-md hover:bg-[#F0EBE0] transition-colors text-[#7A8599] hover:text-ink group"
+            className="p-2 rounded-md hover:bg-[#F0EBE0] transition-colors text-[#7A8599] hover:text-ink group focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
             aria-label="Platform Settings"
             title="System Settings & HUD Preferences (⌘,)"
           >
@@ -151,14 +151,14 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2.5 pl-2.5 pr-2 py-1.5 rounded-md hover:bg-[#F0EBE0] transition-colors border border-transparent hover:border-[#E8E2D4]"
+              className="flex items-center gap-2 pl-2 pr-2 py-1.5 rounded-md hover:bg-[#F0EBE0] transition-colors border border-transparent hover:border-[#E8E2D4] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
               aria-expanded={profileOpen}
               aria-haspopup="true"
             >
-              {/* Avatar */}
+              {/* Avatar with duty dot */}
               <div className="relative">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#F7F3EA] text-xs font-semibold shadow-sm"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[#F7F3EA] text-[11px] font-semibold shadow-sm"
                   style={{ background: '#26314A' }}
                   suppressHydrationWarning
                 >
@@ -171,10 +171,10 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 />
               </div>
 
-              {/* Name metadata */}
-              <div className="hidden sm:block text-left">
+              {/* Name metadata — desktop only */}
+              <div className="hidden md:block text-left">
                 <p
-                  className="text-xs font-semibold text-ink leading-tight truncate max-w-[140px]"
+                  className="text-xs font-semibold text-ink leading-tight truncate max-w-[120px]"
                   title={currentProfile.full_name}
                   suppressHydrationWarning
                 >
@@ -186,13 +186,11 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               </div>
 
               <ChevronDown
-                className={`w-3.5 h-3.5 text-[#7A8599] hidden sm:block transition-transform duration-200 ${
-                  profileOpen ? 'rotate-180' : ''
-                }`}
+                className={`w-3.5 h-3.5 text-[#7A8599] hidden md:block transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`}
               />
             </button>
 
-            {/* Profile dropdown */}
+            {/* ── Profile dropdown ──────────────────────────────────── */}
             <AnimatePresence>
               {profileOpen && (
                 <motion.div
@@ -200,56 +198,68 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-80 sm:w-96 rounded-lg border border-[#E8E2D4] overflow-hidden z-50 divide-y divide-[#E8E2D4]"
-                  style={{ background: '#FDFAF5', boxShadow: '0 8px 24px rgba(30,42,59,0.12)' }}
+                  className="absolute right-0 mt-2 w-80 sm:w-[360px] rounded-xl border border-[#E8E2D4] overflow-hidden z-50 divide-y divide-[#E8E2D4] shadow-[0_8px_32px_rgba(30,42,59,0.14)]"
+                  style={{ background: '#FDFAF5' }}
                 >
-                  {/* Header: Operator card */}
+                  {/* ── Section 1: Identity & Security ─────────────── */}
                   <div className="p-4" style={{ background: '#F7F3EA' }}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-11 h-11 rounded-lg flex items-center justify-center font-semibold text-base"
-                          style={{ background: '#26314A', color: '#F7F3EA' }}
-                        >
-                          {currentProfile.avatar_initials || 'RV'}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold text-ink leading-snug">
-                            {currentProfile.full_name}
-                          </h4>
-                          <p className="text-xs text-[#7A8599]">
-                            {currentProfile.email || 'operator@sih-indra.gov.in'}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[#E8E2D4] text-[#4A5568]">
-                              {currentProfile.operator_id}
-                            </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
-                              {currentProfile.agency}
-                            </span>
-                          </div>
+                    <div className="flex items-start gap-3">
+                      {/* Large avatar */}
+                      <div
+                        className="w-11 h-11 rounded-xl flex items-center justify-center font-semibold text-base flex-shrink-0"
+                        style={{ background: '#26314A', color: '#F7F3EA' }}
+                      >
+                        {currentProfile.avatar_initials || 'RV'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold text-ink leading-snug truncate" suppressHydrationWarning>
+                          {currentProfile.full_name}
+                        </h4>
+                        <p className="text-xs text-[#7A8599] truncate" suppressHydrationWarning>
+                          {currentProfile.email || 'operator@sih-indra.gov.in'}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E8E2D4] text-[#4A5568]">
+                            {currentProfile.operator_id}
+                          </span>
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
+                            {currentProfile.agency}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Radio callsign */}
                     {currentProfile.callsign && (
-                      <div className="mt-2 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-md bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
+                      <div className="mt-3 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
                         <span className="flex items-center gap-1.5 font-medium">
                           <Radio className="w-3.5 h-3.5 text-[#7A8599]" />
-                          Radio Designation:
+                          Radio Designation
                         </span>
-                        <span
-                          className="font-semibold text-ink tracking-wider"
-                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
-                        >
+                        <span className="font-semibold text-ink tracking-wider" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                           {currentProfile.callsign}
                         </span>
                       </div>
                     )}
+
+                    {/* Auth / session status — relocated from topbar */}
+                    <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium"
+                      style={isAuthenticated
+                        ? { background: 'rgba(52,211,153,0.07)', borderColor: 'rgba(52,211,153,0.25)', color: '#2D6A4F' }
+                        : { background: 'rgba(122,133,153,0.07)', borderColor: 'rgba(122,133,153,0.2)', color: '#4A5568' }
+                      }
+                    >
+                      <Lock className="w-3 h-3 flex-shrink-0" style={{ color: isAuthenticated ? '#10B981' : '#7A8599' }} />
+                      <span className="flex-1">
+                        {isAuthenticated ? `Secure Session (JWT HS256)` : 'Session inactive'}
+                      </span>
+                      {isAuthenticated && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                      )}
+                    </div>
                   </div>
 
-                  {/* Duty Status Selector */}
+                  {/* ── Section 2: Duty Status Selector ────────────── */}
                   <div className="p-3.5">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[11px] font-semibold tracking-wider uppercase text-[#7A8599]">
@@ -267,18 +277,13 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                           <button
                             key={st}
                             onClick={() => handleDutyChange(st)}
-                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                              isSelected
-                                ? 'text-[#F7F3EA]'
-                                : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              isSelected ? 'text-[#F7F3EA]' : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
                             }`}
                             style={isSelected ? { background: '#26314A' } : {}}
                           >
                             <span className="flex items-center gap-1.5">
-                              <span
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }}
-                              />
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
                               {cfg.label}
                             </span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
@@ -288,31 +293,31 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     </div>
                   </div>
 
-                  {/* Role Switcher (RBAC Demo) */}
+                  {/* ── Section 3: Role Switcher (RBAC Demo) ────────── */}
                   <div className="p-3.5" style={{ background: '#F7F3EA' }}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[11px] font-semibold tracking-wider uppercase text-[#7A8599] flex items-center gap-1">
                         <Shield className="w-3 h-3 text-[#7A8599]" />
-                        Switch Role (RBAC Demo)
+                        Switch Role
                       </span>
-                      <span className="text-[10px] text-[#B0A898]">SIH Testing</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FBF2E4] text-[#8A611E] border border-[#D4B87A]">
+                        SIH RBAC DEMO
+                      </span>
                     </div>
                     <div className="grid grid-cols-4 gap-1">
                       {[
                         { id: 'commander', label: 'Ops Lead' },
-                        { id: 'analyst',   label: 'Analyst' },
-                        { id: 'admin',     label: 'Admin'  },
-                        { id: 'citizen',   label: 'Citizen' },
+                        { id: 'analyst',   label: 'Analyst'  },
+                        { id: 'admin',     label: 'Admin'    },
+                        { id: 'citizen',   label: 'Citizen'  },
                       ].map((r) => {
                         const isSelected = selectedRole === r.id;
                         return (
                           <button
                             key={r.id}
                             onClick={() => switchRole(r.id)}
-                            className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-                              isSelected
-                                ? 'text-[#F7F3EA] font-semibold'
-                                : 'bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
+                            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                              isSelected ? 'text-[#F7F3EA] font-semibold' : 'bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
                             }`}
                             style={isSelected ? { background: '#B5482E' } : {}}
                           >
@@ -323,12 +328,12 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     </div>
                   </div>
 
-                  {/* Navigation links */}
+                  {/* ── Section 4: Navigation Links ──────────────────── */}
                   <div className="p-2 space-y-0.5">
                     <Link
                       href="/profile"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
                         <User className="w-4 h-4 text-[#7A8599]" />
@@ -340,7 +345,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     <Link
                       href="/teams"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
                         <Users className="w-4 h-4 text-[#7A8599]" />
@@ -352,7 +357,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     <Link
                       href="/teams?tab=hackathon"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
                         <Award className="w-4 h-4 text-[#B8873A]" />
@@ -364,11 +369,8 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     </Link>
 
                     <button
-                      onClick={() => {
-                        setProfileOpen(false);
-                        setSettingsOpen(true);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
+                      onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
                     >
                       <span className="flex items-center gap-2.5">
                         <Settings className="w-4 h-4 text-[#7A8599]" />
