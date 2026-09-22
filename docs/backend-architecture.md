@@ -209,7 +209,7 @@ The settings worth knowing: `DEMO_MODE` (default **false**, and it must stay fal
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                   # 568 passed, 2 skipped
+.venv/bin/pytest -q                                   # 684 passed, 2 skipped
 .venv/bin/pytest -q -m "not integration"              # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```

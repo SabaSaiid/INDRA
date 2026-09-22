@@ -109,7 +109,7 @@ API answers immediately; wait for `✓ Embedding model warm` before timing anyth
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                        # 568 passed, 2 skipped
+.venv/bin/pytest -q                                        # 684 passed, 2 skipped
 .venv/bin/pytest -q -m "not integration"                   # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```

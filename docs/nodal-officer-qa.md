@@ -199,7 +199,7 @@ real keys.
 
 ### How do you know any of this works?
 
-**568 automated tests**, run against a separate database, green with the network off. But the more
+**684 automated tests**, run against a separate database, green with the network off. But the more
 honest answer is the second half:
 
 **Every one of the most serious defects in this project was invisible to a green suite.** With 518

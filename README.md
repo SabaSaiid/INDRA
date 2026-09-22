@@ -199,7 +199,7 @@ Legend: ✅ built · 🟡 partial · ⬛ out of scope
 dedup → spatial clustering → deterministic confidence scoring (with real Open-Meteo rainfall, read
 from this platform's own polled table) → a persisted event with a boundary polygon and a
 hash-chained audit row → live WebSocket push, and a commander can approve it through an auth-gated
-review endpoint.* That path is covered by **568 automated tests** (568 passed, 2 skipped, run
+review endpoint.* That path is covered by **684 automated tests** (684 passed, 2 skipped, run
 against a separate test database, and green with the network off).
 
 What is **not** built is the perception layer, most external feeds, and the entire alerting tier.
