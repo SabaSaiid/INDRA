@@ -62,6 +62,11 @@ class RawReport(Base):
     # services/pipeline.py::_report_texts.
     analysis = Column(JSONB, nullable=True)
 
+    # Token subject of the operator who filed this report through the
+    # authenticated route (POST /api/reports/official, migration 0010). NULL
+    # for citizen reports, which are anonymous by design.
+    submitted_by = Column(String(50), nullable=True)
+
     # Constraints
     __table_args__ = (
         CheckConstraint(
