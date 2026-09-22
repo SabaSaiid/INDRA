@@ -233,17 +233,15 @@ export default function ProfilePage() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-black text-text-primary tracking-tight">Operator Profile</h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  Verified Identity
-                </span>
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  Grid Synced
+                {/* These read "Verified Identity" and a pulsing "Grid Synced". The
+                    accounts are the four seeded demo operators. */}
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                  <CheckCircle2 className="w-3 h-3 text-slate-500" />
+                  Demo account
                 </span>
               </div>
               <p className="text-sm text-text-secondary mt-1">
-                Command credentials, active emergency unit affiliation, and cryptographic telemetry.
+                Identity, role, duty status and the actions this operator has taken in the audit ledger.
               </p>
             </div>
 

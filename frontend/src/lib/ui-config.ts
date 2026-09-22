@@ -427,7 +427,8 @@ export const PLACEHOLDER_OPERATOR: UserProfile = {
 
 /**
  * What each role may actually do, transcribed from the backend's enforced auth
- * matrix (`backend/tests/test_auth_enforcement.py`, which pins it).
+ * matrix (`backend/tests/test_auth_enforcement.py` and, since 22 Sep,
+ * `test_mutation_auth.py`, `test_official_ingest.py` and `test_audit_api.py`).
  *
  * This replaces `mockRoleSecurity`, which invented "clearance codes" and
  * "clearance levels" — concepts INDRA has no notion of anywhere in its code.
@@ -448,25 +449,37 @@ export const ROLE_CAPABILITIES: Record<string, RoleCapability[]> = {
   ADMIN: [
     { label: 'Review & approve events', granted: true },
     { label: 'Override event severity', granted: true },
-    { label: 'Read provenance ledger', granted: true },
+    { label: 'Create & dispatch response teams', granted: true },
+    { label: 'File official dispatch reports', granted: true },
+    { label: 'Read provenance & the audit ledger', granted: true },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
   COMMANDER: [
     { label: 'Review & approve events', granted: true },
     { label: 'Override event severity', granted: true },
-    { label: 'Read provenance ledger', granted: true },
+    { label: 'Create & dispatch response teams', granted: true },
+    { label: 'File official dispatch reports', granted: true },
+    { label: 'Read provenance & the audit ledger', granted: true },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
   ANALYST: [
     { label: 'Review & approve events', granted: false },
     { label: 'Override event severity', granted: false },
-    { label: 'Read provenance ledger', granted: true },
+    { label: 'Create & dispatch response teams', granted: false },
+    { label: 'File official dispatch reports', granted: false },
+    { label: 'Read provenance & the audit ledger', granted: true },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
   CITIZEN: [
     { label: 'Review & approve events', granted: false },
     { label: 'Override event severity', granted: false },
-    { label: 'Read provenance ledger', granted: false },
+    { label: 'Create & dispatch response teams', granted: false },
+    { label: 'File official dispatch reports', granted: false },
+    { label: 'Read provenance & the audit ledger', granted: false },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
 };
