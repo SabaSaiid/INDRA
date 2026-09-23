@@ -232,6 +232,7 @@ try:
         profile_router,
         alerts_router,
         audit_router,
+        meta_router,
     )
     app.include_router(dashboard_router)
     app.include_router(events_router)
@@ -243,6 +244,7 @@ try:
     app.include_router(profile_router)
     app.include_router(alerts_router)
     app.include_router(audit_router)
+    app.include_router(meta_router)
     logger.info("✓ All API routers mounted successfully")
 except Exception as e:
     logger.warning(f"⚠ Could not mount API routers (non-fatal): {e}")
