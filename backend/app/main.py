@@ -220,34 +220,36 @@ ws_manager = ConnectionManager()
 
 
 # ── Mount API Routers ──────────────────────────────────────────────────────────
-try:
-    from app.api import (
-        dashboard_router,
-        events_router,
-        reports_router,
-        feed_router,
-        geo_router,
-        auth_router,
-        teams_router,
-        profile_router,
-        alerts_router,
-        audit_router,
-        meta_router,
-    )
-    app.include_router(dashboard_router)
-    app.include_router(events_router)
-    app.include_router(reports_router)
-    app.include_router(feed_router)
-    app.include_router(geo_router)
-    app.include_router(auth_router)
-    app.include_router(teams_router)
-    app.include_router(profile_router)
-    app.include_router(alerts_router)
-    app.include_router(audit_router)
-    app.include_router(meta_router)
-    logger.info("✓ All API routers mounted successfully")
-except Exception as e:
-    logger.warning(f"⚠ Could not mount API routers (non-fatal): {e}")
+# Deliberately not wrapped in try/except (BUG-063). It used to be, and a router
+# that failed to import then unmounted every route while the process ran on:
+# /healthz, defined in this file, still answered "healthy" and systemd saw a
+# running service, but every dashboard call was a 404. An import error must
+# stop the app where the traceback can be read.
+from app.api import (
+    dashboard_router,
+    events_router,
+    reports_router,
+    feed_router,
+    geo_router,
+    auth_router,
+    teams_router,
+    profile_router,
+    alerts_router,
+    audit_router,
+    meta_router,
+)
+app.include_router(dashboard_router)
+app.include_router(events_router)
+app.include_router(reports_router)
+app.include_router(feed_router)
+app.include_router(geo_router)
+app.include_router(auth_router)
+app.include_router(teams_router)
+app.include_router(profile_router)
+app.include_router(alerts_router)
+app.include_router(audit_router)
+app.include_router(meta_router)
+logger.info("✓ All API routers mounted successfully")
 
 
 

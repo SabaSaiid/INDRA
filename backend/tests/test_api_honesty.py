@@ -221,3 +221,37 @@ def test_no_html_templates_are_served_from_the_backend():
 
     assert not (app_dir / "templates").exists()
     assert list(app_dir.rglob("*.html")) == []
+
+
+# ── BUG-063: a router that cannot be imported stops the app ───────────────────
+
+def test_every_router_is_mounted():
+    from app.main import app
+
+    paths = set(app.openapi()["paths"])
+    for path in (
+        "/api/events", "/api/reports/submit", "/api/reports/track/{docket}",
+        "/api/meta/filters", "/api/geo/heatmap", "/api/audit/recent", "/healthz",
+    ):
+        assert path in paths, path
+
+
+def test_a_router_that_fails_to_import_stops_the_app():
+    """
+    Run in a fresh interpreter with one router made unimportable. Before the
+    fix the app imported anyway, with no /api routes at all and a green
+    /healthz; now the import error reaches whoever started it.
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    result = subprocess.run(
+        [sys.executable, "-c", "import sys; sys.modules['app.api.meta'] = None; import app.main"],
+        cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert result.returncode != 0
+    assert "ImportError" in result.stderr or "ModuleNotFoundError" in result.stderr
