@@ -138,7 +138,9 @@ def submit(reports):
         if status != 202:
             _die(f"submit returned {status} for {body[:40]!r}")
         ids.append(res["id"])
-        queued = "queued" if res.get("queued") else "NOT queued (broker down)"
+        # Not queued is not lost (BUG-060): the outbox relay publishes it when
+        # the broker is back, and the report joins the event then.
+        queued = "queued" if res.get("queued") else "stored; waiting for Kafka"
         print(f"    ✓ {res['id'][:8]}  {queued}  {body[:46]}")
     print()
     return ids

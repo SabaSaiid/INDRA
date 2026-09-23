@@ -192,8 +192,10 @@ def main():
 
     submit_s = time.monotonic() - started
     print()
+    # Not queued no longer means lost (BUG-060): the report and its message are
+    # stored together and the outbox relay publishes it once Kafka answers.
     print(f"  submitted     {accepted} accepted, {rejected} rejected, "
-          f"{not_queued} accepted-but-not-queued")
+          f"{not_queued} stored-and-waiting-for-kafka")
     print(f"  wall time     {submit_s:.1f}s  ({args.count / submit_s:.1f} reports/s)")
     if latencies:
         latencies.sort()
