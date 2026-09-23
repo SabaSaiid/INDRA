@@ -48,6 +48,8 @@ import {
   Pause,
   MapPin,
   FileSpreadsheet,
+  Info,
+  Terminal,
 } from 'lucide-react';
 
 export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
@@ -196,6 +198,7 @@ const severityColors: Record<string, string> = {
   critical: '#EF4444',
   high: '#F59E0B',
   moderate: '#3B82F6',
+  advisory: '#94A3B8',
   low: '#64748B',
 };
 
@@ -204,6 +207,7 @@ const severityRank: Record<string, number> = {
   critical: 4,
   high: 3,
   moderate: 2,
+  advisory: 1,
   low: 1,
 };
 
@@ -312,6 +316,16 @@ export default function GlobeEventMap({
   const [isAutoOrbiting, setIsAutoOrbiting] = useState(false);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const [smartDeclutter, setSmartDeclutter] = useState(true);
+  // Issue 5: Debug HUD is opt-in, not shown by default.
+  const [showTechReadout, setShowTechReadout] = useState(false);
+  // Issue 2: Collapsible map legend.
+  const [legendOpen, setLegendOpen] = useState(false);
+  // Issue 3: Cluster popover state — which cluster is expanded and where to place it.
+  const [clusterPopover, setClusterPopover] = useState<{
+    items: MapMarker[];
+    position: { x: number; y: number };
+    maxSeverity: string;
+  } | null>(null);
 
   // True once the map's style has finished loading and layers may be touched.
   //
@@ -570,9 +584,11 @@ export default function GlobeEventMap({
         maxSeverity: sm.marker.severity,
         hideLabel: true,
       }));
-    } else if (isCompactZoom && smartDeclutter) {
-      // Tier 2: Subcontinental Overview (2.4 <= zoom < 4.2) with Smart Declutter
-      // Project to screen space
+    } else {
+      // Tier 2+ (zoom >= 2.4): Screen-space clustering and collision avoidance.
+      // Issue 4: clustering now runs at ALL zoom tiers above space-orbit, not
+      // just Tier 2. The radius shrinks as the user zooms in so badges that are
+      // genuinely far apart on screen stop merging.
       const projected = sanitizedMarkers.map((sm) => {
         const pt = map.project([sm.coords.lng, sm.coords.lat]);
         return {
@@ -583,7 +599,8 @@ export default function GlobeEventMap({
         };
       });
 
-      const CLUSTER_RADIUS = 44; // pixels
+      // Shrink cluster radius as zoom increases — tight at detail level.
+      const CLUSTER_RADIUS = isCompactZoom ? 44 : isDetailZoom ? 28 : 36;
 
       for (let i = 0; i < projected.length; i++) {
         if (projected[i].assigned) continue;
@@ -655,7 +672,7 @@ export default function GlobeEventMap({
         }
       }
 
-      // Label collision suppression for unclustered pins in Tier 2
+      // Label collision suppression for unclustered pins
       const singlePins = itemsToRender.filter((c) => !c.isCluster);
       singlePins.sort((a, b) => {
         if (a.items[0].marker.id === selectedMarker?.id) return -1;
@@ -684,16 +701,10 @@ export default function GlobeEventMap({
           }
         }
       }
-    } else {
-      // Tier 3 & 4: Regional / Detail (zoom >= 4.2) or Raw density mode
-      itemsToRender = sanitizedMarkers.map((sm) => ({
-        isCluster: false,
-        items: [sm],
-        center: sm.coords,
-        maxSeverity: sm.marker.severity,
-        hideLabel: false,
-      }));
     }
+
+    // Issue 1: Sort so higher-severity clusters render last (on top in DOM).
+    itemsToRender.sort((a, b) => (severityRank[a.maxSeverity] || 1) - (severityRank[b.maxSeverity] || 1));
 
     // 3. Render DOM Elements for each item
     itemsToRender.forEach((item) => {
@@ -702,7 +713,9 @@ export default function GlobeEventMap({
         const clusterEl = document.createElement('div');
         clusterEl.className = 'indra-tactical-marker select-none';
         clusterEl.style.cursor = 'pointer';
-        clusterEl.style.zIndex = '12';
+        // Issue 1: z-index by severity so urgent clusters always render on top.
+        const sevRank = severityRank[item.maxSeverity] || 1;
+        clusterEl.style.zIndex = String(10 + sevRank * 2); // critical=18, high=16, moderate=14, low=12
 
         const innerEl = document.createElement('div');
         innerEl.className = 'indra-marker-inner';
@@ -711,18 +724,55 @@ export default function GlobeEventMap({
         const color = severityColors[item.maxSeverity] || '#EF4444';
         const dominantEmoji = eventTypeEmojis[item.items[0].marker.eventType] || '⚠️';
 
+        // Issue 1: Badge size and background scale with severity.
+        const isCritical = item.maxSeverity === 'critical';
+        const isHigh = item.maxSeverity === 'high';
+        const badgePadding = isCritical ? '5px 12px 5px 8px' : isHigh ? '4px 10px 4px 7px' : '3px 8px 3px 6px';
+        const badgeBg = isCritical ? '#DC2626' : isHigh ? '#D97706' : 'rgba(30, 42, 59, 0.96)';
+        const badgeFontSize = isCritical ? '13px' : isHigh ? '12px' : '11px';
+
         const clusterBadge = document.createElement('div');
         clusterBadge.className = 'indra-marker-cluster';
         clusterBadge.style.borderColor = color;
+        clusterBadge.style.backgroundColor = badgeBg;
+        clusterBadge.style.padding = badgePadding;
         clusterBadge.style.boxShadow = `0 4px 14px rgba(0,0,0,0.6), 0 0 12px ${color}80`;
         clusterBadge.innerHTML = `
-          <span class="indra-marker-cluster-pulse" style="background-color: ${color};"></span>
-          <span style="font-size: 11px;">${dominantEmoji}</span>
-          <span style="font-size: 11px; font-weight: 800; color: #ffffff; margin-left: 2px;">${item.items.length}</span>
+          <span class="indra-marker-cluster-pulse" style="background-color: ${isCritical || isHigh ? '#fff' : color};"></span>
+          <span style="font-size: ${badgeFontSize};">${dominantEmoji}</span>
+          <span style="font-size: ${badgeFontSize}; font-weight: 800; color: #ffffff; margin-left: 2px;">${item.items.length}</span>
         `;
         innerEl.appendChild(clusterBadge);
 
-        // Cluster Tooltip
+        // Cluster Tooltip — deduplicated summary (Issue 3).
+        // Group by (city, eventType, severity) to avoid repeated identical rows.
+        const groups: Record<string, { city: string; eventType: string; severity: string; count: number; emoji: string }> = {};
+        item.items.forEach(m => {
+          const key = `${m.marker.city}|${m.marker.eventType}|${m.marker.severity}`;
+          if (!groups[key]) {
+            groups[key] = {
+              city: m.marker.city,
+              eventType: m.marker.eventType,
+              severity: m.marker.severity,
+              count: 0,
+              emoji: eventTypeEmojis[m.marker.eventType] || '⚠️',
+            };
+          }
+          groups[key].count++;
+        });
+        const groupEntries = Object.values(groups);
+
+        // Severity breakdown for header.
+        const sevBreakdown: Record<string, number> = {};
+        item.items.forEach(m => {
+          const s = m.marker.severity || 'low';
+          sevBreakdown[s] = (sevBreakdown[s] || 0) + 1;
+        });
+        const sevSummary = Object.entries(sevBreakdown)
+          .sort(([, a], [, b]) => b - a)
+          .map(([s, n]) => `${n} ${s}`)
+          .join(', ');
+
         const tooltip = document.createElement('div');
         tooltip.className = 'indra-hud-popup';
         tooltip.style.position = 'absolute';
@@ -732,17 +782,18 @@ export default function GlobeEventMap({
         tooltip.style.opacity = '0';
         tooltip.style.pointerEvents = 'none';
         tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-        tooltip.style.zIndex = '25';
-        tooltip.style.width = '220px';
+        tooltip.style.zIndex = '35';
+        tooltip.style.width = '230px';
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${item.maxSeverity}">${item.maxSeverity} CLUSTER</span>
-            <span class="hud-time">${item.items.length} Incidents</span>
+            <span class="hud-time">${item.items.length} incidents</span>
           </div>
           <div class="hud-title" style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
-            ${item.items.map(m => `<div>${eventTypeEmojis[m.marker.eventType] || '⚠️'} <strong>${m.marker.city}</strong>: ${m.marker.eventType}</div>`).join('')}
+            ${groupEntries.map(g => `<div>${g.emoji} <strong>${g.city || 'Unknown'}</strong>: ${g.eventType}${g.count > 1 ? ` ×${g.count}` : ''}</div>`).join('')}
           </div>
-          <div class="hud-action" style="margin-top: 6px;">⚡ Click to expand cluster</div>
+          <div style="font-size: 10px; color: rgba(247,243,234,0.6); margin-top: 3px;">${sevSummary}</div>
+          <div class="hud-action" style="margin-top: 6px;">⚡ Click for details</div>
         `;
         innerEl.appendChild(tooltip);
 
@@ -750,23 +801,29 @@ export default function GlobeEventMap({
           innerEl.style.transform = 'scale(1.15) translateY(-2px)';
           tooltip.style.opacity = '1';
           tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
-          clusterEl.style.zIndex = '18';
+          clusterEl.style.zIndex = '30';
         });
 
         clusterEl.addEventListener('mouseleave', () => {
           innerEl.style.transform = 'scale(1) translateY(0)';
           tooltip.style.opacity = '0';
           tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
-          clusterEl.style.zIndex = '12';
+          clusterEl.style.zIndex = String(10 + sevRank * 2);
         });
 
+        // Issue 3: Click opens a popover with deduplicated detail instead of
+        // just zooming. The popover is rendered in React via clusterPopover state.
         clusterEl.addEventListener('click', (e) => {
           e.stopPropagation();
-          map.flyTo({
-            center: [item.center.lng, item.center.lat],
-            zoom: Math.min(map.getZoom() + 1.8, 6.8),
-            duration: 1500,
-            essential: true,
+          const rect = mapContainerRef.current?.getBoundingClientRect();
+          const markerPos = item.screenPos || { x: 0, y: 0 };
+          // Smart positioning: if the popover would go off the right/bottom edge, flip.
+          const popX = rect ? Math.min(markerPos.x, rect.width - 300) : markerPos.x;
+          const popY = rect ? Math.min(markerPos.y, rect.height - 260) : markerPos.y;
+          setClusterPopover({
+            items: item.items.map(m => m.marker),
+            position: { x: Math.max(8, popX), y: Math.max(8, popY) },
+            maxSeverity: item.maxSeverity,
           });
         });
 
@@ -782,17 +839,20 @@ export default function GlobeEventMap({
           lat: item.center.lat,
         });
       } else {
-        // --- RENDER SINGLE PIN ---
+        // --- RENDER SINGLE PIN (Issue 2: unified pill-badge system) ---
         const { marker, coords } = item.items[0];
         const color = severityColors[marker.severity] || '#64748B';
         const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
         const isSelected = selectedMarker?.id === marker.id;
         const isPulsing = marker.severity === 'critical' || marker.severity === 'high' || isSelected;
+        const layer = marker.layer ?? 'event';
+        // Issue 1: z-index by severity rank, matching cluster approach.
+        const pinSevRank = severityRank[marker.severity] || 1;
 
         const markerEl = document.createElement('div');
         markerEl.className = 'indra-tactical-marker select-none';
         markerEl.style.cursor = 'pointer';
-        markerEl.style.zIndex = isSelected ? '15' : marker.severity === 'critical' ? '10' : marker.severity === 'high' ? '8' : '5';
+        markerEl.style.zIndex = isSelected ? '22' : String(8 + pinSevRank * 2);
 
         const innerEl = document.createElement('div');
         innerEl.className = 'indra-marker-inner';
@@ -828,64 +888,60 @@ export default function GlobeEventMap({
             innerEl.appendChild(microPulse);
           }
         } else {
-          // --- Tier 2, 3, 4: Tactical Pin Head with Emoji ---
-          const headSize = isCompactZoom ? 20 : isDetailZoom ? 30 : 24;
-          const fontSize = isCompactZoom ? 10 : isDetailZoom ? 14 : 12;
+          // --- Tier 2, 3, 4: Unified Pill Badge (Issue 2) ---
+          // All markers use the same pill shape. Layer is indicated by a prefix
+          // glyph (● event, ◆ alert, ○ report) and border style:
+          //   - Events: solid border, filled background
+          //   - Alerts: solid border, filled background, diamond prefix
+          //   - Reports: dashed border, transparent background (unverified)
+          const isReport = layer === 'report';
+          const isAlert = layer === 'alert';
+          const layerGlyph = isAlert ? '◆' : isReport ? '○' : '●';
+          const badgeBg = isReport ? 'rgba(30,42,59,0.92)' : color;
+          const badgeBorder = isSelected
+            ? '1.5px solid #38bdf8'
+            : isReport
+              ? `1.5px dashed ${color}`
+              : '1.5px solid rgba(255,255,255,0.5)';
 
           if (isPulsing) {
             const pulse = document.createElement('div');
             pulse.className = `pulse-ring pulse-ring-${marker.severity}`;
-            pulse.style.width = `${headSize + 10}px`;
-            pulse.style.height = `${headSize + 10}px`;
-            pulse.style.top = '-5px';
+            pulse.style.width = '34px';
+            pulse.style.height = '22px';
+            pulse.style.top = '-4px';
             pulse.style.left = '50%';
             pulse.style.transform = 'translateX(-50%)';
             pulse.style.pointerEvents = 'none';
+            pulse.style.borderRadius = '9999px';
             innerEl.appendChild(pulse);
           }
 
-          // Shape carries the layer, not just colour: colour already encodes
-          // severity here, and an operator must be able to tell a scored event
-          // from an unreviewed citizen report at a glance, in greyscale, on a
-          // projector. A filled circle is a fused event, a diamond an official
-          // agency warning, a hollow circle a raw report.
-          const layer = marker.layer ?? 'event';
-          const pinHead = document.createElement('div');
-          pinHead.style.width = `${headSize}px`;
-          pinHead.style.height = `${headSize}px`;
-          pinHead.style.borderRadius = layer === 'report' ? '50%' : layer === 'alert' ? '14%' : '50%';
-          if (layer === 'alert') {
-            pinHead.style.transform = 'rotate(45deg)';
-          }
-          // A raw report is drawn hollow. It has not been corroborated or
-          // scored, and a solid pin would read as a finding.
-          pinHead.style.backgroundColor = layer === 'report' ? 'transparent' : color;
-          pinHead.style.border =
-            isSelected
-              ? '2.5px solid #38bdf8'
-              : layer === 'report'
-                ? `2px dashed ${color}`
-                : '2px solid #ffffff';
-          pinHead.style.boxShadow = isSelected
+          const pillBadge = document.createElement('div');
+          pillBadge.className = 'indra-marker-cluster';
+          pillBadge.style.backgroundColor = badgeBg;
+          pillBadge.style.border = badgeBorder;
+          pillBadge.style.boxShadow = isSelected
             ? '0 0 16px #38bdf8, 0 4px 12px rgba(0,0,0,0.6)'
-            : `0 3px 10px rgba(0,0,0,0.5), 0 0 10px ${color}90`;
-          pinHead.style.display = 'flex';
-          pinHead.style.alignItems = 'center';
-          pinHead.style.justifyContent = 'center';
-          pinHead.style.fontSize = `${fontSize}px`;
-          pinHead.style.position = 'relative';
-          pinHead.style.zIndex = '2';
-          pinHead.innerHTML =
-            layer === 'alert'
-              ? `<span style="transform:rotate(-45deg) translateY(-0.5px);">${emoji}</span>`
-              : `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
-          innerEl.appendChild(pinHead);
+            : `0 3px 10px rgba(0,0,0,0.5), 0 0 8px ${color}60`;
+          pillBadge.style.padding = isCompactZoom ? '2px 6px' : '3px 8px 3px 6px';
+          pillBadge.style.fontSize = isCompactZoom ? '10px' : '11px';
+          pillBadge.innerHTML = `
+            <span style="font-size: 8px; opacity: 0.7; margin-right: 1px;">${layerGlyph}</span>
+            <span>${emoji}</span>
+          `;
+          innerEl.appendChild(pillBadge);
 
           // City Pill (with smart collision suppression)
+          // Issue 4: use word-wrap instead of truncating mid-word.
           const cityPill = document.createElement('div');
           cityPill.className = item.hideLabel ? 'indra-city-pill indra-city-pill-hidden' : 'indra-city-pill';
           cityPill.style.color = isSelected ? '#38bdf8' : '#f8fafc';
           cityPill.style.border = isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.25)';
+          cityPill.style.maxWidth = '130px';
+          cityPill.style.overflow = 'hidden';
+          cityPill.style.textOverflow = 'ellipsis';
+          cityPill.style.wordBreak = 'break-word';
           cityPill.innerText = marker.placeLabel || marker.city || 'Location unresolved';
           innerEl.appendChild(cityPill);
         }
@@ -900,12 +956,13 @@ export default function GlobeEventMap({
         tooltip.style.opacity = '0';
         tooltip.style.pointerEvents = 'none';
         tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-        tooltip.style.zIndex = '25';
+        tooltip.style.zIndex = '35'; // Issue 4: above all badges
         tooltip.style.width = '210px';
+        const layerLabel = layer === 'alert' ? '◆ Agency' : layer === 'report' ? '○ Report' : '● Event';
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
-            <span class="hud-time">${marker.timeAgo || 'Active'}</span>
+            <span class="hud-time">${marker.timeAgo || layerLabel}</span>
           </div>
           <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
           <div class="hud-location">📍 ${marker.placeLabel || [marker.city, marker.state].filter(Boolean).join(', ') || 'Location unresolved'}</div>
@@ -917,14 +974,14 @@ export default function GlobeEventMap({
           innerEl.style.transform = 'scale(1.22) translateY(-4px)';
           tooltip.style.opacity = '1';
           tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
-          markerEl.style.zIndex = '18';
+          markerEl.style.zIndex = '30'; // Issue 4: hovered pin above all non-hovered
         });
 
         markerEl.addEventListener('mouseleave', () => {
           innerEl.style.transform = isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1) translateY(0)';
           tooltip.style.opacity = '0';
           tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
-          markerEl.style.zIndex = isSelected ? '15' : marker.severity === 'critical' ? '10' : marker.severity === 'high' ? '8' : '5';
+          markerEl.style.zIndex = isSelected ? '22' : String(8 + pinSevRank * 2);
         });
 
         markerEl.addEventListener('click', (e) => {
@@ -1223,11 +1280,11 @@ export default function GlobeEventMap({
             <span className="text-sm font-semibold text-slate-800 truncate">
               {variant === 'preview' ? 'Tactical Geospatial Grid' : '3D Weather Intelligence Grid'}
             </span>
-            {/* Active incident count pill */}
+            {/* Issue 8: clarify this is a severity filter, not a total count */}
             {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length > 0 && (
               <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
-                {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length} Active
+                {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length} urgent
               </span>
             )}
           </div>
@@ -1383,10 +1440,11 @@ export default function GlobeEventMap({
                   ? 'bg-rose-50 text-rose-700 border-rose-200 font-semibold'
                   : 'bg-white text-slate-400 border-slate-200'
               }`}
-              title="Toggle Severe Alerts layer"
+              title="Toggle all map pins on/off"
             >
               <AlertTriangle className="w-3 h-3" />
-              <span>Alerts ({markersForDisplay.length})</span>
+              {/* Issue 8: label matches what this actually controls */}
+              <span>All pins ({markersForDisplay.length})</span>
             </button>
 
             {/*
@@ -1579,7 +1637,8 @@ export default function GlobeEventMap({
                 title="Open Live Incidents Roster"
               >
                 <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                <span className="font-semibold">{markersForDisplay.length} Incidents</span>
+                {/* Issue 8: clarify this is total map pins, not a filtered count */}
+                <span className="font-semibold">{markersForDisplay.length} map pins</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
               </button>
             ) : (
@@ -1613,6 +1672,7 @@ export default function GlobeEventMap({
                     const isSelected = selectedMarker?.id === marker.id;
                     const color = severityColors[marker.severity] || '#64748B';
                     const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
+                    const layerGlyph = marker.layer === 'alert' ? '◆' : marker.layer === 'report' ? '○' : '●';
 
                     return (
                       <button
@@ -1628,6 +1688,7 @@ export default function GlobeEventMap({
                           <span className="text-sm">{emoji}</span>
                           <div className="truncate">
                             <div className="text-xs font-semibold text-white group-hover:text-blue-300 truncate">
+                              <span className="text-[9px] opacity-60 mr-1">{layerGlyph}</span>
                               {marker.city}, {marker.state}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate">
@@ -1647,38 +1708,273 @@ export default function GlobeEventMap({
             )}
           </div>
 
-          {/* Real-time Telemetry HUD (Bottom-Left) */}
-          <div className="absolute bottom-3 left-3 z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
-            <span className="flex items-center gap-1 text-emerald-400 font-bold">
-              <Radio className="w-3 h-3 animate-pulse" />
-              {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300">
-              ZOOM <strong className="text-white">{telemetry.zoom}</strong>
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300">
-              {telemetry.lat >= 0 ? `${telemetry.lat}°N` : `${Math.abs(telemetry.lat)}°S`},{' '}
-              {telemetry.lng >= 0 ? `${telemetry.lng}°E` : `${Math.abs(telemetry.lng)}°W`}
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300">
-              PITCH <strong className="text-white">{telemetry.pitch}°</strong>
-            </span>
-            {isAutoOrbiting && (
-              <>
-                <span className="text-slate-600">|</span>
-                <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.12°/F</span>
-              </>
+          {/* Issue 3: Cluster detail popover — rendered in React to avoid DOM duplication issues */}
+          <AnimatePresence>
+            {clusterPopover && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.15 }}
+                className="absolute z-40"
+                style={{ left: clusterPopover.position.x, top: clusterPopover.position.y }}
+              >
+                <div className="w-72 bg-slate-900/97 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4">
+                  {/* Close + header */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        backgroundColor: severityColors[clusterPopover.maxSeverity] || '#64748B',
+                        color: '#fff',
+                      }}
+                    >
+                      {clusterPopover.maxSeverity} cluster
+                    </span>
+                    <button
+                      onClick={() => setClusterPopover(null)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Severity breakdown */}
+                  {(() => {
+                    const sevB: Record<string, number> = {};
+                    clusterPopover.items.forEach(m => {
+                      sevB[m.severity] = (sevB[m.severity] || 0) + 1;
+                    });
+                    return (
+                      <div className="text-[10px] text-slate-400 mb-2 flex flex-wrap gap-1.5">
+                        {Object.entries(sevB)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([s, n]) => (
+                            <span
+                              key={s}
+                              className="px-1.5 py-0.5 rounded border"
+                              style={{
+                                borderColor: severityColors[s] || '#64748B',
+                                color: severityColors[s] || '#64748B',
+                              }}
+                            >
+                              {n} {s}
+                            </span>
+                          ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Deduplicated incident list */}
+                  {/* Issue 3: If items share (city, eventType, severity), group them to
+                      avoid repeated identical rows. If no distinguishing data exists
+                      beyond these three fields, show an honest summary rather than
+                      fabricating detail. A future backend field (e.g. incident_ids[]
+                      per cluster) would allow truly itemized detail here. */}
+                  <div className="space-y-1.5 max-h-[200px] overflow-y-auto custom-scrollbar">
+                    {(() => {
+                      const groups: Record<string, { city: string; eventType: string; severity: string; count: number; emoji: string; descriptions: string[] }> = {};
+                      clusterPopover.items.forEach(m => {
+                        const key = `${m.city}|${m.eventType}|${m.severity}`;
+                        if (!groups[key]) {
+                          groups[key] = {
+                            city: m.city,
+                            eventType: m.eventType,
+                            severity: m.severity,
+                            count: 0,
+                            emoji: eventTypeEmojis[m.eventType] || '⚠️',
+                            descriptions: [],
+                          };
+                        }
+                        groups[key].count++;
+                        if (m.description && !groups[key].descriptions.includes(m.description)) {
+                          groups[key].descriptions.push(m.description);
+                        }
+                      });
+                      return Object.values(groups).map((g, i) => (
+                        <div
+                          key={i}
+                          className="p-2 rounded-lg bg-slate-800/70 border border-slate-700/50"
+                        >
+                          <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                            <span>{g.emoji}</span>
+                            <span>{g.city || 'Unknown'}</span>
+                            {g.count > 1 && (
+                              <span className="text-[10px] font-mono text-slate-400">×{g.count}</span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            {g.eventType} · <span style={{ color: severityColors[g.severity] || '#64748B' }}>{g.severity}</span>
+                          </div>
+                          {g.descriptions.length > 1 && (
+                            <div className="text-[10px] text-slate-500 mt-1 line-clamp-2">
+                              {g.descriptions[0]}
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+
+                  {/* Link to events page */}
+                  <Link
+                    href="/events"
+                    className="mt-3 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
+                  >
+                    View all in Incident Events
+                    <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Click outside map to dismiss cluster popover */}
+          {clusterPopover && (
+            <div
+              className="absolute inset-0 z-[38]"
+              onClick={() => setClusterPopover(null)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setClusterPopover(null); }}
+              tabIndex={-1}
+              role="presentation"
+            />
+          )}
+
+          {/* Issue 2: Collapsible map legend — shows severity colors, layer shapes, hazard icons */}
+          <div className="absolute bottom-3 right-3 z-20">
+            {!legendOpen ? (
+              <button
+                onClick={() => setLegendOpen(true)}
+                className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-slate-900 text-white backdrop-blur-xl px-2.5 py-1.5 rounded-lg border border-slate-700/80 shadow-lg text-[10px] font-medium transition-all hover:scale-105"
+                title="Show map legend"
+              >
+                <Info className="w-3.5 h-3.5 text-slate-400" />
+                <span>Legend</span>
+              </button>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="w-56 bg-slate-900/95 text-white backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700/80 p-3"
+              >
+                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Map Legend</span>
+                  <button
+                    onClick={() => setLegendOpen(false)}
+                    className="p-0.5 rounded text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Severity scale */}
+                <div className="mb-2">
+                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1">Severity</div>
+                  <div className="space-y-1">
+                    {[
+                      { label: 'Critical', color: '#EF4444' },
+                      { label: 'High', color: '#F59E0B' },
+                      { label: 'Moderate', color: '#3B82F6' },
+                      { label: 'Low', color: '#64748B' },
+                    ].map((s) => (
+                      <div key={s.label} className="flex items-center gap-2 text-[10px]">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                        <span className="text-slate-300">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Layer types */}
+                <div className="mb-2 pt-1.5 border-t border-slate-800">
+                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1">Layer</div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className="text-white font-bold w-3 text-center">●</span>
+                      <span className="text-slate-300">Fused event</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className="text-white font-bold w-3 text-center">◆</span>
+                      <span className="text-slate-300">Agency warning</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className="text-white font-bold w-3 text-center">○</span>
+                      <span className="text-slate-300">Citizen report</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hazard icons */}
+                <div className="pt-1.5 border-t border-slate-800">
+                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1">Hazard</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(eventTypeEmojis).map(([type, icon]) => (
+                      <span
+                        key={type}
+                        className="flex items-center gap-1 text-[10px] text-slate-300 bg-slate-800/60 px-1.5 py-0.5 rounded"
+                        title={type}
+                      >
+                        <span>{icon}</span>
+                        <span className="truncate max-w-[60px]">{type.replace('Severe ', '').replace('Heavy ', '')}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
             )}
           </div>
 
-          {/* Tactical Geo-Anchor Status Banner */}
-          <div className="absolute bottom-3 right-3 sm:right-auto sm:left-[430px] z-10 pointer-events-none bg-slate-900/80 text-slate-300 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-800 text-[10px] font-mono flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Horizon Occlusion Active (Pins Hide On Far Side)</span>
-          </div>
+          {/* Issue 5: Technical readout — hidden by default, toggled by a small button */}
+          {showTechReadout && (
+            <>
+              {/* Real-time Telemetry HUD (Bottom-Left) */}
+              <div className="absolute bottom-12 left-3 z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <Radio className="w-3 h-3 animate-pulse" />
+                  {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
+                </span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-300">
+                  ZOOM <strong className="text-white">{telemetry.zoom}</strong>
+                </span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-300">
+                  {telemetry.lat >= 0 ? `${telemetry.lat}°N` : `${Math.abs(telemetry.lat)}°S`},{' '}
+                  {telemetry.lng >= 0 ? `${telemetry.lng}°E` : `${Math.abs(telemetry.lng)}°W`}
+                </span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-300">
+                  PITCH <strong className="text-white">{telemetry.pitch}°</strong>
+                </span>
+                {isAutoOrbiting && (
+                  <>
+                    <span className="text-slate-600">|</span>
+                    <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.12°/F</span>
+                  </>
+                )}
+              </div>
+
+              {/* Tactical Geo-Anchor Status Banner */}
+              <div className="absolute bottom-12 right-3 sm:right-auto sm:left-[430px] z-10 pointer-events-none bg-slate-900/80 text-slate-300 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-800 text-[10px] font-mono flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Horizon Occlusion Active (Pins Hide On Far Side)</span>
+              </div>
+            </>
+          )}
+
+          {/* Issue 5: Tech readout toggle button — small, unobtrusive */}
+          <button
+            onClick={() => setShowTechReadout(!showTechReadout)}
+            className={`absolute bottom-3 left-3 z-10 flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-mono font-medium transition-all ${
+              showTechReadout
+                ? 'bg-emerald-900/80 text-emerald-300 border-emerald-700/50'
+                : 'bg-slate-900/70 text-slate-500 border-slate-800/50 hover:text-slate-300'
+            }`}
+            title={showTechReadout ? 'Hide technical readout' : 'Show technical readout'}
+          >
+            <Terminal className="w-3 h-3" />
+            <span className="hidden sm:inline">Tech</span>
+          </button>
         </div>
       </Card>
     </div>

@@ -390,7 +390,16 @@
   border-top-color: rgba(30, 42, 59, 0.95) !important;
 }
 
-.indra-hud-popup { display: flex; flex-direction: column; gap: 4px; }
+.indra-hud-popup {
+  display: flex; flex-direction: column; gap: 4px;
+  position: relative; z-index: 35;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
 
 .indra-hud-popup .hud-header {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -417,6 +426,10 @@
 .indra-hud-popup .hud-low {
   background: rgba(107, 114, 128, 0.2); color: #9CA3AF;
   border: 1px solid rgba(107, 114, 128, 0.4);
+}
+.indra-hud-popup .hud-advisory {
+  background: rgba(122, 133, 153, 0.2); color: #A0AEC0;
+  border: 1px solid rgba(122, 133, 153, 0.4);
 }
 
 .indra-hud-popup .hud-time {
