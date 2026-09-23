@@ -375,6 +375,18 @@ export default function GlobeEventMap({
     }
   }, []);
 
+  // Dismiss overlays (legend, cluster popover) on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLegendOpen(false);
+        setClusterPopover(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Fetch all three live layers.
   //
   // allSettled, not all: a failure in any one layer must not blank the other
@@ -1840,141 +1852,166 @@ export default function GlobeEventMap({
             />
           )}
 
-          {/* Issue 2: Collapsible map legend — shows severity colors, layer shapes, hazard icons */}
-          <div className="absolute bottom-3 right-3 z-20">
-            {!legendOpen ? (
-              <button
-                onClick={() => setLegendOpen(true)}
-                className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-slate-900 text-white backdrop-blur-xl px-2.5 py-1.5 rounded-lg border border-slate-700/80 shadow-lg text-[10px] font-medium transition-all hover:scale-105"
-                title="Show map legend"
-              >
-                <Info className="w-3.5 h-3.5 text-slate-400" />
-                <span>Legend</span>
-              </button>
-            ) : (
+          {/* Click outside map to dismiss legend */}
+          {legendOpen && (
+            <div
+              className="absolute inset-0 z-[38]"
+              onClick={() => setLegendOpen(false)}
+              role="presentation"
+            />
+          )}
+
+          {/* Issue 2: Collapsible map legend — positioned cleanly above the bottom-left dock without underlapping controls */}
+          <AnimatePresence>
+            {legendOpen && (
               <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="w-56 bg-slate-900/95 text-white backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700/80 p-3"
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.16, ease: 'easeOut' }}
+                className="absolute bottom-12 left-3 z-40 w-64 max-h-[calc(100%-60px)] overflow-y-auto custom-scrollbar bg-slate-900/96 text-white backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 p-3.5"
               >
-                <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Map Legend</span>
+                <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200">Map Legend</span>
+                  </div>
                   <button
                     onClick={() => setLegendOpen(false)}
-                    className="p-0.5 rounded text-slate-400 hover:text-white"
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    title="Close legend (Esc)"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 {/* Severity scale */}
-                <div className="mb-2">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1">Severity</div>
-                  <div className="space-y-1">
+                <div className="mb-2.5">
+                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">Severity Hierarchy</div>
+                  <div className="grid grid-cols-2 gap-1.5">
                     {[
                       { label: 'Critical', color: '#EF4444' },
                       { label: 'High', color: '#F59E0B' },
                       { label: 'Moderate', color: '#3B82F6' },
+                      { label: 'Advisory', color: '#7A8599' },
                       { label: 'Low', color: '#64748B' },
                     ].map((s) => (
-                      <div key={s.label} className="flex items-center gap-2 text-[10px]">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                        <span className="text-slate-300">{s.label}</span>
+                      <div key={s.label} className="flex items-center gap-1.5 text-[10px] bg-slate-800/50 px-2 py-1 rounded-md border border-slate-800">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                        <span className="text-slate-300 font-medium">{s.label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Layer types */}
-                <div className="mb-2 pt-1.5 border-t border-slate-800">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1">Layer</div>
+                <div className="mb-2.5 pt-2 border-t border-slate-800">
+                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">Data Layers</div>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-[10px]">
-                      <span className="text-white font-bold w-3 text-center">●</span>
-                      <span className="text-slate-300">Fused event</span>
+                    <div className="flex items-center gap-2 text-[10px] bg-slate-800/40 px-2 py-1 rounded-md">
+                      <span className="text-white font-bold w-3 text-center text-xs">●</span>
+                      <span className="text-slate-300 font-medium">Fused Incident</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px]">
-                      <span className="text-white font-bold w-3 text-center">◆</span>
-                      <span className="text-slate-300">Agency warning</span>
+                    <div className="flex items-center gap-2 text-[10px] bg-slate-800/40 px-2 py-1 rounded-md">
+                      <span className="text-amber-400 font-bold w-3 text-center text-xs">◆</span>
+                      <span className="text-slate-300 font-medium">Agency Warning</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px]">
-                      <span className="text-white font-bold w-3 text-center">○</span>
-                      <span className="text-slate-300">Citizen report</span>
+                    <div className="flex items-center gap-2 text-[10px] bg-slate-800/40 px-2 py-1 rounded-md">
+                      <span className="text-blue-400 font-bold w-3 text-center text-xs">○</span>
+                      <span className="text-slate-300 font-medium">Citizen Field Report</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Hazard icons */}
-                <div className="pt-1.5 border-t border-slate-800">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1">Hazard</div>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="pt-2 border-t border-slate-800">
+                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">Hazard Types</div>
+                  <div className="flex flex-wrap gap-1">
                     {Object.entries(eventTypeEmojis).map(([type, icon]) => (
                       <span
                         key={type}
-                        className="flex items-center gap-1 text-[10px] text-slate-300 bg-slate-800/60 px-1.5 py-0.5 rounded"
+                        className="flex items-center gap-1 text-[10px] text-slate-300 bg-slate-800/70 border border-slate-700/60 px-1.5 py-0.5 rounded"
                         title={type}
                       >
                         <span>{icon}</span>
-                        <span className="truncate max-w-[60px]">{type.replace('Severe ', '').replace('Heavy ', '')}</span>
+                        <span className="truncate max-w-[65px]">{type.replace('Severe ', '').replace('Heavy ', '')}</span>
                       </span>
                     ))}
                   </div>
                 </div>
               </motion.div>
             )}
-          </div>
+          </AnimatePresence>
 
-          {/* Issue 5: Technical readout — hidden by default, toggled by a small button */}
+          {/* Issue 5: Technical readout — telemetry HUD and horizon status banner */}
           {showTechReadout && (
-            <>
-              {/* Real-time Telemetry HUD (Bottom-Left) */}
-              <div className="absolute bottom-12 left-3 z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
-                <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                  <Radio className="w-3 h-3 animate-pulse" />
-                  {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
-                </span>
-                <span className="text-slate-600">|</span>
-                <span className="text-slate-300">
-                  ZOOM <strong className="text-white">{telemetry.zoom}</strong>
-                </span>
-                <span className="text-slate-600">|</span>
-                <span className="text-slate-300">
-                  {telemetry.lat >= 0 ? `${telemetry.lat}°N` : `${Math.abs(telemetry.lat)}°S`},{' '}
-                  {telemetry.lng >= 0 ? `${telemetry.lng}°E` : `${Math.abs(telemetry.lng)}°W`}
-                </span>
-                <span className="text-slate-600">|</span>
-                <span className="text-slate-300">
-                  PITCH <strong className="text-white">{telemetry.pitch}°</strong>
-                </span>
-                {isAutoOrbiting && (
-                  <>
-                    <span className="text-slate-600">|</span>
-                    <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.12°/F</span>
-                  </>
-                )}
-              </div>
-
-              {/* Tactical Geo-Anchor Status Banner */}
-              <div className="absolute bottom-12 right-3 sm:right-auto sm:left-[430px] z-10 pointer-events-none bg-slate-900/80 text-slate-300 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-800 text-[10px] font-mono flex items-center gap-1.5">
+            <div className="absolute bottom-3 sm:left-[170px] z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
+              <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                <Radio className="w-3 h-3 animate-pulse" />
+                {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
+              </span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-300">
+                ZOOM <strong className="text-white">{telemetry.zoom}</strong>
+              </span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-300">
+                {telemetry.lat >= 0 ? `${telemetry.lat}°N` : `${Math.abs(telemetry.lat)}°S`},{' '}
+                {telemetry.lng >= 0 ? `${telemetry.lng}°E` : `${Math.abs(telemetry.lng)}°W`}
+              </span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-300">
+                PITCH <strong className="text-white">{telemetry.pitch}°</strong>
+              </span>
+              {isAutoOrbiting && (
+                <>
+                  <span className="text-slate-600">|</span>
+                  <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.12°/F</span>
+                </>
+              )}
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-400 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Horizon Occlusion Active (Pins Hide On Far Side)</span>
-              </div>
-            </>
+                <span>Horizon Occlusion</span>
+              </span>
+            </div>
           )}
 
-          {/* Issue 5: Tech readout toggle button — small, unobtrusive */}
-          <button
-            onClick={() => setShowTechReadout(!showTechReadout)}
-            className={`absolute bottom-3 left-3 z-10 flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-mono font-medium transition-all ${
-              showTechReadout
-                ? 'bg-emerald-900/80 text-emerald-300 border-emerald-700/50'
-                : 'bg-slate-900/70 text-slate-500 border-slate-800/50 hover:text-slate-300'
-            }`}
-            title={showTechReadout ? 'Hide technical readout' : 'Show technical readout'}
-          >
-            <Terminal className="w-3 h-3" />
-            <span className="hidden sm:inline">Tech</span>
-          </button>
+          {/* Bottom-Left Tactical Control Dock */}
+          <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
+            {/* Tech Readout Toggle */}
+            <button
+              onClick={() => setShowTechReadout(!showTechReadout)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-mono font-medium backdrop-blur-xl shadow-lg transition-all ${
+                showTechReadout
+                  ? 'bg-emerald-950/90 text-emerald-300 border-emerald-600/60 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                  : 'bg-slate-900/90 text-slate-400 border-slate-700/80 hover:text-white hover:bg-slate-900'
+              }`}
+              title={showTechReadout ? 'Hide technical telemetry readout' : 'Show technical telemetry readout'}
+            >
+              <Terminal className="w-3 h-3 text-emerald-400" />
+              <span className="hidden sm:inline">Tech</span>
+            </button>
+
+            {/* Map Legend Toggle */}
+            <button
+              onClick={() => setLegendOpen(!legendOpen)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium backdrop-blur-xl shadow-lg transition-all ${
+                legendOpen
+                  ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]'
+                  : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:text-white hover:bg-slate-900'
+              }`}
+              title={legendOpen ? 'Close map legend (Esc)' : 'Open map legend'}
+            >
+              <Info className={`w-3.5 h-3.5 ${legendOpen ? 'text-white' : 'text-blue-400'}`} />
+              <span>Legend</span>
+              {legendOpen ? (
+                <ChevronUp className="w-3 h-3 opacity-80" />
+              ) : (
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              )}
+            </button>
+          </div>
         </div>
       </Card>
     </div>
