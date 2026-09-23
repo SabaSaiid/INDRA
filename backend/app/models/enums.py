@@ -11,6 +11,11 @@ class SourceType(str, enum.Enum):
     AWS_SENSOR = "AWS_SENSOR"
     CWC_GAUGE = "CWC_GAUGE"
     OFFICIAL_DISPATCH = "OFFICIAL_DISPATCH"
+    # Added 23 Sep (migration 0011) for Phase 2's feeds: Mastodon posts and news
+    # items. Never stored as TWITTER_IMD — a row naming a platform it did not
+    # come from is a fabricated source.
+    SOCIAL_MEDIA = "SOCIAL_MEDIA"
+    NEWS_MEDIA = "NEWS_MEDIA"
 
 
 class EventType(str, enum.Enum):

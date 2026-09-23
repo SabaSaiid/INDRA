@@ -11,7 +11,7 @@ cluster in fusion_engine.source_reliability_score().
 * **Instrument and official sources** (OFFICIAL_DISPATCH, CWC_GAUGE,
   AWS_SENSOR) get text_quality = 1.0. Their text is machine- or template-
   generated, so a terse message says nothing about how trustworthy it is.
-* **Human sources** (CITIZEN_APP, TWITTER_IMD) get
+* **Human sources** (CITIZEN_APP, TWITTER_IMD, SOCIAL_MEDIA, NEWS_MEDIA) get
   text_quality = 0.5 + 0.5 × min(1, len(text) / 60). A bare "flood" carries no
   location, depth or detail to check against anything, so it keeps only half
   the source's prior; a specific ~60-character description earns the whole of
@@ -35,7 +35,14 @@ FULL_CREDIT_TEXT_LENGTH = 60
 # Floor on text quality: even a one-word report is still a first-hand signal.
 MIN_TEXT_QUALITY = 0.5
 
-HUMAN_SOURCES = {SourceType.CITIZEN_APP, SourceType.TWITTER_IMD}
+HUMAN_SOURCES = {
+    SourceType.CITIZEN_APP,
+    SourceType.TWITTER_IMD,
+    # Written by people, not instruments: a one-word post or headline says as
+    # little as a one-word citizen report, so it earns the same partial credit.
+    SourceType.SOCIAL_MEDIA,
+    SourceType.NEWS_MEDIA,
+}
 
 # Used when a source type is not recognised — the lowest prior in the table,
 # so an unknown source can never outrank a known one.
