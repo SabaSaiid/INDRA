@@ -713,10 +713,72 @@ export default function GlobeEventMap({
           }
         }
       }
+
+      // Suppress single pin labels that collide with cluster badges
+      const clusters = itemsToRender.filter((c) => c.isCluster);
+      singlePins.forEach((pin) => {
+        if (pin.hideLabel || !pin.screenPos) return;
+        for (const cl of clusters) {
+          if (!cl.screenPos) continue;
+          const dx = Math.abs(pin.screenPos.x - cl.screenPos.x);
+          const dy = Math.abs(pin.screenPos.y - cl.screenPos.y);
+          if (dx < 55 && dy < 38) {
+            pin.hideLabel = true;
+            break;
+          }
+        }
+      });
     }
 
     // Issue 1: Sort so higher-severity clusters render last (on top in DOM).
     itemsToRender.sort((a, b) => (severityRank[a.maxSeverity] || 1) - (severityRank[b.maxSeverity] || 1));
+
+    // Dynamic edge-aware tooltip positioning to prevent clipping at map container boundaries
+    const positionTooltip = (tooltip: HTMLElement, anchorEl: HTMLElement) => {
+      const mapContainer = mapContainerRef.current;
+      if (!mapContainer) return;
+      const mapRect = mapContainer.getBoundingClientRect();
+      const anchorRect = anchorEl.getBoundingClientRect();
+
+      const tooltipWidth = 220;
+      const tooltipHeight = tooltip.offsetHeight || 65;
+
+      const spaceAbove = anchorRect.top - mapRect.top;
+      const spaceBelow = mapRect.bottom - anchorRect.bottom;
+      // Flip below if not enough room above
+      const placeBelow = spaceAbove < (tooltipHeight + 16) && spaceBelow >= (tooltipHeight + 10);
+
+      if (placeBelow) {
+        tooltip.style.bottom = 'auto';
+        tooltip.style.top = '100%';
+        tooltip.style.marginTop = '6px';
+        tooltip.style.marginBottom = '0';
+      } else {
+        tooltip.style.top = 'auto';
+        tooltip.style.bottom = '100%';
+        tooltip.style.marginTop = '0';
+        tooltip.style.marginBottom = '6px';
+      }
+
+      // Horizontal edge protection
+      const anchorCenterFromLeft = (anchorRect.left + anchorRect.width / 2) - mapRect.left;
+      const anchorCenterFromRight = mapRect.right - (anchorRect.left + anchorRect.width / 2);
+      const halfW = tooltipWidth / 2;
+
+      if (anchorCenterFromLeft < halfW + 12) {
+        tooltip.style.left = '0';
+        tooltip.style.right = 'auto';
+        tooltip.style.transform = placeBelow ? 'translateY(2px)' : 'translateY(-2px)';
+      } else if (anchorCenterFromRight < halfW + 12) {
+        tooltip.style.left = 'auto';
+        tooltip.style.right = '0';
+        tooltip.style.transform = placeBelow ? 'translateY(2px)' : 'translateY(-2px)';
+      } else {
+        tooltip.style.left = '50%';
+        tooltip.style.right = 'auto';
+        tooltip.style.transform = placeBelow ? 'translateX(-50%) translateY(2px)' : 'translateX(-50%) translateY(-2px)';
+      }
+    };
 
     // 3. Render DOM Elements for each item
     itemsToRender.forEach((item) => {
@@ -756,25 +818,19 @@ export default function GlobeEventMap({
         `;
         innerEl.appendChild(clusterBadge);
 
-        // Cluster Tooltip — deduplicated summary (Issue 3).
-        // Group by (city, eventType, severity) to avoid repeated identical rows.
-        const groups: Record<string, { city: string; eventType: string; severity: string; count: number; emoji: string }> = {};
+        // Primary location and hazards for compact hover preview
+        const cityCounts: Record<string, number> = {};
+        const hazardIcons = new Set<string>();
         item.items.forEach(m => {
-          const key = `${m.marker.city}|${m.marker.eventType}|${m.marker.severity}`;
-          if (!groups[key]) {
-            groups[key] = {
-              city: m.marker.city,
-              eventType: m.marker.eventType,
-              severity: m.marker.severity,
-              count: 0,
-              emoji: eventTypeEmojis[m.marker.eventType] || '⚠️',
-            };
-          }
-          groups[key].count++;
+          const c = m.marker.city || m.marker.state;
+          if (c) cityCounts[c] = (cityCounts[c] || 0) + 1;
+          const em = eventTypeEmojis[m.marker.eventType];
+          if (em) hazardIcons.add(em);
         });
-        const groupEntries = Object.values(groups);
+        const primaryLocation = Object.entries(cityCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || 'Subcontinent Region';
+        const hazardList = Array.from(hazardIcons).slice(0, 3).join(' ');
 
-        // Severity breakdown for header.
+        // Severity breakdown string
         const sevBreakdown: Record<string, number> = {};
         item.items.forEach(m => {
           const s = m.marker.severity || 'low';
@@ -790,36 +846,38 @@ export default function GlobeEventMap({
         tooltip.style.position = 'absolute';
         tooltip.style.bottom = '100%';
         tooltip.style.left = '50%';
-        tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+        tooltip.style.transform = 'translateX(-50%) translateY(-6px)';
         tooltip.style.opacity = '0';
         tooltip.style.pointerEvents = 'none';
-        tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-        tooltip.style.zIndex = '35';
-        tooltip.style.width = '230px';
+        tooltip.style.zIndex = '50';
+        tooltip.style.width = '220px';
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${item.maxSeverity}">${item.maxSeverity} CLUSTER</span>
-            <span class="hud-time">${item.items.length} incidents</span>
+            <span class="hud-time font-bold text-white">${item.items.length} incidents</span>
           </div>
-          <div class="hud-title" style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
-            ${groupEntries.map(g => `<div>${g.emoji} <strong>${g.city || 'Unknown'}</strong>: ${g.eventType}${g.count > 1 ? ` ×${g.count}` : ''}</div>`).join('')}
+          <div class="hud-location mt-1">📍 ${primaryLocation}</div>
+          <div class="hud-sub">
+            <span>${hazardList}</span>
+            <span class="hud-sev-breakdown">${sevSummary}</span>
           </div>
-          <div style="font-size: 10px; color: rgba(247,243,234,0.6); margin-top: 3px;">${sevSummary}</div>
-          <div class="hud-action" style="margin-top: 6px;">⚡ Click for details</div>
+          <div class="hud-action">
+            <span>Click to inspect breakdown</span>
+            <span style="font-size: 11px;">→</span>
+          </div>
         `;
         innerEl.appendChild(tooltip);
 
         clusterEl.addEventListener('mouseenter', () => {
+          positionTooltip(tooltip, clusterEl);
           innerEl.style.transform = 'scale(1.15) translateY(-2px)';
           tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
-          clusterEl.style.zIndex = '30';
+          clusterEl.style.zIndex = '50';
         });
 
         clusterEl.addEventListener('mouseleave', () => {
           innerEl.style.transform = 'scale(1) translateY(0)';
           tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
           clusterEl.style.zIndex = String(10 + sevRank * 2);
         });
 
@@ -964,36 +1022,34 @@ export default function GlobeEventMap({
         tooltip.style.position = 'absolute';
         tooltip.style.bottom = '100%';
         tooltip.style.left = '50%';
-        tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+        tooltip.style.transform = 'translateX(-50%) translateY(-6px)';
         tooltip.style.opacity = '0';
         tooltip.style.pointerEvents = 'none';
-        tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-        tooltip.style.zIndex = '35'; // Issue 4: above all badges
-        tooltip.style.width = '210px';
+        tooltip.style.zIndex = '50';
+        tooltip.style.width = '220px';
         const layerLabel = layer === 'alert' ? '◆ Agency' : layer === 'report' ? '○ Report' : '● Event';
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
-            <span class="hud-time">${marker.timeAgo || layerLabel}</span>
+            <span class="hud-time font-mono">${marker.timeAgo || layerLabel}</span>
           </div>
           <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
           <div class="hud-location">📍 ${marker.placeLabel || [marker.city, marker.state].filter(Boolean).join(', ') || 'Location unresolved'}</div>
-          ${marker.action ? `<div class="hud-action">⚡ ${marker.action}</div>` : ''}
+          ${marker.action ? `<div class="hud-action"><span>⚡ Action</span><span>${marker.action}</span></div>` : ''}
         `;
         innerEl.appendChild(tooltip);
 
         markerEl.addEventListener('mouseenter', () => {
-          innerEl.style.transform = 'scale(1.22) translateY(-4px)';
+          positionTooltip(tooltip, markerEl);
+          innerEl.style.transform = 'scale(1.22) translateY(-3px)';
           tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
-          markerEl.style.zIndex = '30'; // Issue 4: hovered pin above all non-hovered
+          markerEl.style.zIndex = '50';
         });
 
         markerEl.addEventListener('mouseleave', () => {
           innerEl.style.transform = isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1) translateY(0)';
           tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
-          markerEl.style.zIndex = isSelected ? '22' : String(8 + pinSevRank * 2);
+          markerEl.style.zIndex = isSelected ? '25' : String(8 + pinSevRank * 2);
         });
 
         markerEl.addEventListener('click', (e) => {
