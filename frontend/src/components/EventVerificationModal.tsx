@@ -39,6 +39,36 @@ import {
   type AuditEntry,
 } from '@/lib/api';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { safeEventState } from '@/lib/eventState';
+
+// Issue 3 fix: per-hazard plausible maximum impact radius (km).
+// NOTE TO BACKEND TEAM: impact_radius_km likely has a units bug upstream
+// (degrees/meters shown as km, or a squared value). This is a display-only clamp.
+const IMPACT_RADIUS_MAX_KM_MODAL: Record<string, number> = {
+  'Severe Rainfall':  100,
+  'Heavy Rainfall':   100,
+  'Thunderstorm':     100,
+  'Fog':              100,
+  'Strong Winds':     150,
+  'Dust Storm':       100,
+  'Flood':            300,
+  'Urban Flooding':   100,
+};
+const IMPACT_MODAL_DEFAULT_MAX = 150;
+
+function clampImpactKm(eventId: string, eventType: string | null | undefined, rawKm: number | null | undefined): string {
+  if (rawKm == null || rawKm <= 0) return '—';
+  const ceiling = IMPACT_RADIUS_MAX_KM_MODAL[eventType ?? ''] ?? IMPACT_MODAL_DEFAULT_MAX;
+  if (rawKm > ceiling) {
+    console.warn(
+      `[INDRA] Event ${eventId}: impact_radius_km=${rawKm.toFixed(1)} exceeds ` +
+      `the ${ceiling} km ceiling for "${eventType}". Showing "unavailable" in modal. ` +
+      `Likely a units bug upstream — check event-generation code.`
+    );
+    return 'unavailable';
+  }
+  return `${rawKm.toFixed(1)} km`;
+}
 
 // ── Factor icons & colors ────────────────────────────────────────────────────
 const FACTOR_CONFIG: Record<string, { icon: React.ReactNode; color: string; bgColor: string }> = {
@@ -135,9 +165,17 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const totalWeighted: number | null = typeof receipt.total_weighted === 'number' ? receipt.total_weighted : null;
   const confidenceScore = detail?.confidence_score ?? provenance?.event?.confidence_score ?? 0;
   const confidencePct = Math.round(confidenceScore * 100);
-  const reviewStatus = detail?.review_status ?? provenance?.event?.review_status ?? 'QUARANTINED';
+  const apiReviewStatus = detail?.review_status ?? provenance?.event?.review_status;
   const severity = detail?.severity ?? provenance?.event?.severity ?? 'MODERATE';
-  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.QUARANTINED;
+  // Use detailEventId (not eventId) to avoid shadowing the eventId prop parameter.
+  const detailEventId = detail?.id ?? provenance?.event?.id ?? eventId ?? '';
+  const eventType = detail?.event_type_display ?? detail?.event_type ?? '';
+
+  // Issue 1 & 2 fix: derive review_status from (severity, confidence) per the documented 2x2
+  // matrix. The backend's fallback generator sets review_status independently of the rule.
+  const derivedState = safeEventState(detailEventId, severity, confidenceScore, apiReviewStatus);
+  const reviewStatus = derivedState.reviewStatus;
+  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.PENDING_HUMAN_REVIEW;
   const sevStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.MODERATE;
 
   return (
@@ -214,7 +252,10 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   </div>
                 )}
                 {detail?.impact_radius_km && (
-                  <div className="text-[11px] text-[#8C7A6B]">Impact radius: {detail.impact_radius_km.toFixed(1)} km • Quadrant: {detail.quadrant || '—'}</div>
+                  <div className="text-[11px] text-[#8C7A6B]">
+                    {/* Issue 3 fix: clamp impact_radius_km to per-hazard ceiling */}
+                    Impact radius: {clampImpactKm(detailEventId, eventType, detail.impact_radius_km)} &bull; Quadrant: {derivedState.quadrant || '—'}
+                  </div>
                 )}
               </div>
 

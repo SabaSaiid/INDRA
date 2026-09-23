@@ -19,7 +19,40 @@ import EventVerificationModal from '@/components/EventVerificationModal';
 import { useSidebar } from '@/lib/useSidebar';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { fetchEvents, formatPlace, type ApiEvent } from '@/lib/api';
+import { safeEventState } from '@/lib/eventState';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+
+// Issue 3 fix: per-hazard plausible maximum impact radius (km).
+// If the raw value exceeds the ceiling, the display layer hides it rather than
+// guessing at a corrected value. The root cause is almost certainly a units
+// bug upstream (degrees/meters shown as km, or a squared value).
+// NOTE TO BACKEND TEAM: please verify the units of impact_radius_km in the
+// event-generation and fusion code. This clamp is a display-only safeguard.
+const IMPACT_RADIUS_MAX_KM: Record<string, number> = {
+  'Severe Rainfall':  100,
+  'Heavy Rainfall':   100,
+  'Thunderstorm':     100,
+  'Fog':              100,
+  'Strong Winds':     150,
+  'Dust Storm':       100,
+  'Flood':            300,
+  'Urban Flooding':   100,
+};
+const IMPACT_RADIUS_DEFAULT_MAX = 150; // km — fallback for unknown hazard types
+
+function clampImpactRadius(eventId: string, eventType: string, rawKm: number | null | undefined): string {
+  if (rawKm == null || rawKm <= 0) return '—';
+  const ceiling = IMPACT_RADIUS_MAX_KM[eventType] ?? IMPACT_RADIUS_DEFAULT_MAX;
+  if (rawKm > ceiling) {
+    console.warn(
+      `[INDRA] Event ${eventId}: impact_radius_km=${rawKm.toFixed(1)} exceeds ` +
+      `the ${ceiling} km ceiling for "${eventType}". Showing "unavailable". ` +
+      `Likely a units bug upstream — check event-generation code.`
+    );
+    return 'unavailable';
+  }
+  return `${rawKm.toFixed(1)} km radius`;
+}
 
 const SEVERITY_BADGE: Record<string, string> = {
   CRITICAL: 'bg-rose-100 text-rose-700',
@@ -192,7 +225,12 @@ export default function EventsPage() {
             >
               {filtered.map((ev) => {
                 const sevBadge = SEVERITY_BADGE[ev.severity] || SEVERITY_BADGE.moderate;
-                const reviewBadge = REVIEW_BADGE[ev.review_status] || REVIEW_BADGE.QUARANTINED;
+                // Issue 1 & 2 fix: derive review status from (severity, confidence) per the
+                // documented 2x2 matrix rather than reading ev.review_status directly from the
+                // API. The backend's fallback generator sets review_status independently of the
+                // rule, causing contradictions like "Unverified Threat" showing "Auto-Published".
+                const eventState = safeEventState(ev.id, ev.severity, ev.confidence_score, ev.review_status);
+                const reviewBadge = REVIEW_BADGE[eventState.reviewStatus] || REVIEW_BADGE.PENDING_HUMAN_REVIEW;
                 return (
                   <motion.div
                     key={ev.id}
@@ -214,7 +252,8 @@ export default function EventsPage() {
                           </span>
                         </div>
                         <h3 className="font-semibold text-slate-900 text-base">
-                          {ev.eventType} — {ev.quadrant || formatPlace(ev.city, ev.state, ev.place_precision)}
+                          {/* Use derived quadrant, not ev.quadrant from API, to keep title consistent with the status badge */}
+                          {ev.eventType} — {eventState.quadrant || formatPlace(ev.city, ev.state, ev.place_precision)}
                         </h3>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -235,7 +274,8 @@ export default function EventsPage() {
                       <div className="flex items-center gap-1.5 col-span-2">
                         <Shield className="w-3.5 h-3.5 text-blue-600" />
                         <span className="font-medium text-slate-800">
-                          Impact: {ev.impact_radius_km?.toFixed(1) || '—'} km radius
+                          {/* Issue 3 fix: clamp impact_radius_km to per-hazard ceiling; show "unavailable" if it exceeds it */}
+                          Impact: {clampImpactRadius(ev.id, ev.eventType, ev.impact_radius_km)}
                         </span>
                       </div>
                     </div>

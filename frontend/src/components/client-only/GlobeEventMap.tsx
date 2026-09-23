@@ -330,7 +330,7 @@ export default function GlobeEventMap({
 
   // Live telemetry state
   const [telemetry, setTelemetry] = useState({
-    zoom: 4.6,
+    zoom: 5.0,
     lat: 22.0,
     lng: 82.0,
     pitch: 30,
@@ -962,8 +962,12 @@ export default function GlobeEventMap({
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style,
+      // Issue 5 fix: default to India-focused view (zoom 5.0 at the Indian subcontinent
+      // centroid with pitch 30). This matches the view the "India" focus button produces,
+      // so users no longer need to click it on every load. Zoom 5.0 keeps India centred
+      // without spilling into adjacent countries the way zoom 4.6 did.
       center: [82.0, 22.0],
-      zoom: 4.6,
+      zoom: 5.0,
       pitch: 30,
       bearing: 0,
       maxPitch: 85,
@@ -1246,7 +1250,7 @@ export default function GlobeEventMap({
 
             {/* Quick jump: India Focus */}
             <button
-              onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
+              onClick={() => flyToHotspot([82.0, 22.0], 5.0, 30, 0)}
               className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
               title="Focus on Indian Subcontinent"
             >
@@ -1320,7 +1324,7 @@ export default function GlobeEventMap({
                 <Compass className="w-3 h-3 text-primary" /> View:
               </span>
               <button
-                onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
+                onClick={() => flyToHotspot([82.0, 22.0], 5.0, 30, 0)}
                 className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1 text-[11px]"
                 title="Focus view on Indian subcontinent"
               >
