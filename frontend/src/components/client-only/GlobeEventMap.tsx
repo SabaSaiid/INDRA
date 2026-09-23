@@ -50,6 +50,9 @@ import {
   FileSpreadsheet,
   Info,
   Terminal,
+  RotateCcw,
+  Check,
+  Filter,
 } from 'lucide-react';
 
 export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
@@ -310,6 +313,14 @@ export default function GlobeEventMap({
     alert: true,
     report: true,
   });
+  const [visibleSeverities, setVisibleSeverities] = useState<Record<string, boolean>>({
+    critical: true,
+    high: true,
+    moderate: true,
+    advisory: true,
+    low: true,
+  });
+  const [hiddenHazards, setHiddenHazards] = useState<Set<string>>(new Set());
   const [refreshTick, setRefreshTick] = useState(0);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -455,10 +466,73 @@ export default function GlobeEventMap({
     };
   }, []);
 
-  const markersForDisplay = React.useMemo(
-    () => markers.filter((m) => visibleLayers[m.layer ?? 'event']),
-    [markers, visibleLayers]
-  );
+  // Dynamically extract unique hazard types from loaded markers
+  const availableHazards = React.useMemo(() => {
+    const set = new Set<string>();
+    markers.forEach((m) => {
+      if (m.eventType) set.add(m.eventType);
+    });
+    return Array.from(set).sort();
+  }, [markers]);
+
+  const isAnyFilterActive =
+    !visibleLayers.event ||
+    !visibleLayers.alert ||
+    !visibleLayers.report ||
+    !visibleSeverities.critical ||
+    !visibleSeverities.high ||
+    !visibleSeverities.moderate ||
+    !visibleSeverities.advisory ||
+    !visibleSeverities.low ||
+    hiddenHazards.size > 0;
+
+  const resetAllFilters = useCallback(() => {
+    setVisibleLayers({ event: true, alert: true, report: true });
+    setVisibleSeverities({
+      critical: true,
+      high: true,
+      moderate: true,
+      advisory: true,
+      low: true,
+    });
+    setHiddenHazards(new Set());
+  }, []);
+
+  const markersForDisplay = React.useMemo(() => {
+    if (!showEventsLayer) return [];
+    return markers.filter((m) => {
+      if (!visibleLayers[m.layer ?? 'event']) return false;
+      if (visibleSeverities[m.severity] === false) return false;
+      if (hiddenHazards.has(m.eventType)) return false;
+      return true;
+    });
+  }, [markers, visibleLayers, visibleSeverities, hiddenHazards, showEventsLayer]);
+
+  // Compute item counts by layer, severity, and hazard for the interactive filter panel
+  const filterCounts = React.useMemo(() => {
+    const layers: Record<string, number> = { event: 0, alert: 0, report: 0 };
+    const severities: Record<string, number> = {
+      critical: 0,
+      high: 0,
+      moderate: 0,
+      advisory: 0,
+      low: 0,
+    };
+    const hazards: Record<string, number> = {};
+
+    markers.forEach((m) => {
+      const layer = m.layer ?? 'event';
+      if (layers[layer] !== undefined) layers[layer]++;
+      if (m.severity && severities[m.severity] !== undefined) {
+        severities[m.severity]++;
+      }
+      if (m.eventType) {
+        hazards[m.eventType] = (hazards[m.eventType] || 0) + 1;
+      }
+    });
+
+    return { layers, severities, hazards };
+  }, [markers]);
 
   // Select an incident
   const handleSelectIncident = useCallback(
@@ -1917,7 +1991,7 @@ export default function GlobeEventMap({
             />
           )}
 
-          {/* Issue 2: Collapsible map legend — positioned cleanly above the bottom-left dock without underlapping controls */}
+          {/* Interactive Map Layers & Legend control panel — positioned cleanly above dock */}
           <AnimatePresence>
             {legendOpen && (
               <motion.div
@@ -1925,75 +1999,275 @@ export default function GlobeEventMap({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.16, ease: 'easeOut' }}
-                className="absolute bottom-12 left-3 z-40 w-64 max-h-[calc(100%-60px)] overflow-y-auto custom-scrollbar bg-slate-900/96 text-white backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 p-3.5"
+                className="absolute bottom-12 left-3 z-40 w-72 sm:w-80 max-h-[calc(100%-60px)] overflow-y-auto custom-scrollbar bg-slate-900/98 text-white backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 p-3.5 space-y-3"
               >
-                <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-800">
-                  <div className="flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-blue-400" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200">Map Legend</span>
+                {/* Header */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-100">Layers & Legend</span>
+                        {isAnyFilterActive && (
+                          <span className="px-1.5 py-0.2 text-[8px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full">
+                            Filtered
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        Showing {markersForDisplay.length} of {markers.length} pins
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setLegendOpen(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                    title="Close legend (Esc)"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {isAnyFilterActive && (
+                      <button
+                        onClick={resetAllFilters}
+                        className="flex items-center gap-1 px-1.5 py-1 text-[10px] font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-md transition-colors"
+                        title="Reset all filters to show everything"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setLegendOpen(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                      title="Close panel (Esc)"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Severity scale */}
-                <div className="mb-2.5">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">Severity Hierarchy</div>
+                {/* Section 1: Data Layers */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      Data Layers
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-500">Toggle layers</span>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { layer: 'event' as MapLayer, label: 'Fused Incident', glyph: '●', color: 'text-white', desc: 'AI-fused multi-source' },
+                      { layer: 'alert' as MapLayer, label: 'Agency Warning', glyph: '◆', color: 'text-amber-400', desc: 'Official IMD / NDMA' },
+                      { layer: 'report' as MapLayer, label: 'Citizen Report', glyph: '○', color: 'text-blue-400', desc: 'Unverified field reports' },
+                    ].map((layerItem) => {
+                      const active = visibleLayers[layerItem.layer];
+                      const count = filterCounts.layers[layerItem.layer] || 0;
+                      return (
+                        <button
+                          key={layerItem.layer}
+                          onClick={() =>
+                            setVisibleLayers((prev) => ({ ...prev, [layerItem.layer]: !prev[layerItem.layer] }))
+                          }
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left text-[11px] transition-all ${
+                            active
+                              ? 'bg-slate-800/80 border-slate-700 text-slate-200 shadow-xs'
+                              : 'bg-slate-900/40 border-slate-800/60 text-slate-500 hover:bg-slate-800/40 opacity-60'
+                          }`}
+                          title={`Click to toggle ${layerItem.label}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`text-xs font-bold ${layerItem.color}`}>{layerItem.glyph}</span>
+                            <div className="min-w-0">
+                              <span className={`font-medium ${active ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
+                                {layerItem.label}
+                              </span>
+                              <span className="block text-[9px] text-slate-500 font-normal truncate">
+                                {layerItem.desc}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-300 border border-slate-800">
+                              {count}
+                            </span>
+                            <div
+                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
+                                active
+                                  ? 'bg-blue-600 border-blue-500 text-white'
+                                  : 'border-slate-700 bg-slate-800/50 text-transparent'
+                              }`}
+                            >
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 2: Severity Hierarchy */}
+                <div className="pt-2 border-t border-slate-800">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      Severity Hierarchy
+                    </span>
+                    <div className="flex items-center gap-1 text-[9px] font-mono">
+                      <button
+                        onClick={() =>
+                          setVisibleSeverities({
+                            critical: true,
+                            high: true,
+                            moderate: true,
+                            advisory: true,
+                            low: true,
+                          })
+                        }
+                        className="text-slate-400 hover:text-slate-200 px-1 py-0.5 rounded hover:bg-slate-800 transition-colors"
+                        title="Show all severity levels"
+                      >
+                        All
+                      </button>
+                      <span className="text-slate-600">|</span>
+                      <button
+                        onClick={() =>
+                          setVisibleSeverities({
+                            critical: true,
+                            high: true,
+                            moderate: false,
+                            advisory: false,
+                            low: false,
+                          })
+                        }
+                        className="text-rose-400 hover:text-rose-300 px-1 py-0.5 rounded hover:bg-rose-950/40 transition-colors"
+                        title="Show only Critical and High incidents"
+                      >
+                        Urgent only
+                      </button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {[
-                      { label: 'Critical', color: '#EF4444' },
-                      { label: 'High', color: '#F59E0B' },
-                      { label: 'Moderate', color: '#3B82F6' },
-                      { label: 'Advisory', color: '#7A8599' },
-                      { label: 'Low', color: '#64748B' },
-                    ].map((s) => (
-                      <div key={s.label} className="flex items-center gap-1.5 text-[10px] bg-slate-800/50 px-2 py-1 rounded-md border border-slate-800">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                        <span className="text-slate-300 font-medium">{s.label}</span>
-                      </div>
-                    ))}
+                      { key: 'critical', label: 'Critical', color: '#EF4444', ring: 'border-red-500/50 hover:border-red-500/80' },
+                      { key: 'high', label: 'High', color: '#F59E0B', ring: 'border-amber-500/50 hover:border-amber-500/80' },
+                      { key: 'moderate', label: 'Moderate', color: '#3B82F6', ring: 'border-blue-500/50 hover:border-blue-500/80' },
+                      { key: 'advisory', label: 'Advisory', color: '#7A8599', ring: 'border-slate-400/40 hover:border-slate-400/70' },
+                      { key: 'low', label: 'Low', color: '#64748B', ring: 'border-slate-600/40 hover:border-slate-600/70' },
+                    ].map((s) => {
+                      const active = visibleSeverities[s.key] !== false;
+                      const count = filterCounts.severities[s.key] || 0;
+                      return (
+                        <button
+                          key={s.key}
+                          onClick={() =>
+                            setVisibleSeverities((prev) => ({
+                              ...prev,
+                              [s.key]: prev[s.key] === false ? true : false,
+                            }))
+                          }
+                          className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-[11px] transition-all ${
+                            active
+                              ? `bg-slate-800/80 ${s.ring} text-slate-200 shadow-xs`
+                              : 'bg-slate-900/30 border-slate-800/60 text-slate-500 opacity-45'
+                          }`}
+                          title={`Toggle ${s.label} severity`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div
+                              className={`w-2 h-2 rounded-full shrink-0 transition-transform ${
+                                active ? 'scale-100 shadow-sm' : 'scale-75 opacity-40'
+                              }`}
+                              style={{ backgroundColor: s.color }}
+                            />
+                            <span className={`font-medium truncate ${active ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
+                              {s.label}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-mono text-slate-400 bg-slate-950/60 px-1 rounded border border-slate-800/80">
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Layer types */}
-                <div className="mb-2.5 pt-2 border-t border-slate-800">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">Data Layers</div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-[10px] bg-slate-800/40 px-2 py-1 rounded-md">
-                      <span className="text-white font-bold w-3 text-center text-xs">●</span>
-                      <span className="text-slate-300 font-medium">Fused Incident</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] bg-slate-800/40 px-2 py-1 rounded-md">
-                      <span className="text-amber-400 font-bold w-3 text-center text-xs">◆</span>
-                      <span className="text-slate-300 font-medium">Agency Warning</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] bg-slate-800/40 px-2 py-1 rounded-md">
-                      <span className="text-blue-400 font-bold w-3 text-center text-xs">○</span>
-                      <span className="text-slate-300 font-medium">Citizen Field Report</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Hazard icons */}
+                {/* Section 3: Hazard Types */}
                 <div className="pt-2 border-t border-slate-800">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">Hazard Types</div>
-                  <div className="flex flex-wrap gap-1">
-                    {Object.entries(eventTypeEmojis).map(([type, icon]) => (
-                      <span
-                        key={type}
-                        className="flex items-center gap-1 text-[10px] text-slate-300 bg-slate-800/70 border border-slate-700/60 px-1.5 py-0.5 rounded"
-                        title={type}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      Hazard Types
+                    </span>
+                    {hiddenHazards.size > 0 && (
+                      <button
+                        onClick={() => setHiddenHazards(new Set())}
+                        className="text-[9px] font-mono text-blue-400 hover:text-blue-300 px-1 py-0.5 rounded hover:bg-blue-950/40 transition-colors"
                       >
-                        <span>{icon}</span>
-                        <span className="truncate max-w-[65px]">{type.replace('Severe ', '').replace('Heavy ', '')}</span>
-                      </span>
-                    ))}
+                        Show all ({hiddenHazards.size} hidden)
+                      </button>
+                    )}
                   </div>
+                  <div className="flex flex-wrap gap-1">
+                    {(availableHazards.length > 0
+                      ? availableHazards
+                      : Object.keys(eventTypeEmojis)
+                    ).map((hazard) => {
+                      const isHidden = hiddenHazards.has(hazard);
+                      const emoji = eventTypeEmojis[hazard] || '⚠️';
+                      const count = filterCounts.hazards[hazard] ?? 0;
+                      const cleanName = hazard.replace('Severe ', '').replace('Heavy ', '');
+                      return (
+                        <button
+                          key={hazard}
+                          onClick={() => {
+                            setHiddenHazards((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(hazard)) {
+                                next.delete(hazard);
+                              } else {
+                                next.add(hazard);
+                              }
+                              return next;
+                            });
+                          }}
+                          className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-all ${
+                            !isHidden
+                              ? 'bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700/80 shadow-xs'
+                              : 'bg-slate-900/30 border-slate-800/50 text-slate-500 opacity-45 line-through'
+                          }`}
+                          title={`${hazard} (${count} pins) — click to ${isHidden ? 'show' : 'hide'}`}
+                        >
+                          <span className="text-xs">{emoji}</span>
+                          <span className="font-medium truncate max-w-[80px]">{cleanName}</span>
+                          {count > 0 && (
+                            <span className="text-[8px] font-mono bg-slate-950/70 text-slate-400 px-1 rounded">
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer summary */}
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isAnyFilterActive ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+                      }`}
+                    />
+                    <span className="font-mono">
+                      {isAnyFilterActive
+                        ? `${markersForDisplay.length}/${markers.length} pins active`
+                        : `All ${markers.length} items visible`}
+                    </span>
+                  </div>
+                  {isAnyFilterActive && (
+                    <button
+                      onClick={resetAllFilters}
+                      className="text-amber-400 hover:text-amber-300 font-medium hover:underline text-[10px]"
+                    >
+                      Reset all
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -2049,18 +2323,33 @@ export default function GlobeEventMap({
               <span className="hidden sm:inline">Tech</span>
             </button>
 
-            {/* Map Legend Toggle */}
+            {/* Map Layers & Legend Toggle */}
             <button
               onClick={() => setLegendOpen(!legendOpen)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium backdrop-blur-xl shadow-lg transition-all ${
                 legendOpen
                   ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]'
+                  : isAnyFilterActive
+                  ? 'bg-slate-900/95 text-amber-300 border-amber-500/60 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
                   : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:text-white hover:bg-slate-900'
               }`}
-              title={legendOpen ? 'Close map legend (Esc)' : 'Open map legend'}
+              title={
+                legendOpen
+                  ? 'Close layers & filters panel (Esc)'
+                  : isAnyFilterActive
+                  ? 'Filters active — click to edit layers & legend'
+                  : 'Open map layers, severity & hazard controls'
+              }
             >
-              <Info className={`w-3.5 h-3.5 ${legendOpen ? 'text-white' : 'text-blue-400'}`} />
-              <span>Legend</span>
+              <Layers
+                className={`w-3.5 h-3.5 ${
+                  legendOpen ? 'text-white' : isAnyFilterActive ? 'text-amber-400' : 'text-blue-400'
+                }`}
+              />
+              <span>Layers & Legend</span>
+              {isAnyFilterActive && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              )}
               {legendOpen ? (
                 <ChevronUp className="w-3 h-3 opacity-80" />
               ) : (
