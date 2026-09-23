@@ -6,7 +6,7 @@ at CHECK_TIMEOUT_SECONDS, so a hung dependency costs at most that long.
 
     status      HTTP  when
     healthy     200   every check is up
-    degraded    200   a non-critical check is down (Redis, Open-Meteo)
+    degraded    200   a non-critical check is down (Redis, Open-Meteo, outbox backlog)
     unhealthy   503   a critical check is down (Postgres, Kafka/Redpanda)
 
 Postgres and Kafka are critical because without either a submitted report is
@@ -16,7 +16,13 @@ is gone (`services/cache.py`), so losing it costs cross-restart memory and
 nothing else. Open-Meteo being down only marks the weather factor offline in new
 receipts. Both therefore degrade rather than fail.
 
-A check is "down" if it raises, returns False, or times out.
+The outbox backlog is the reports stored but not yet published to Kafka. It is
+non-critical because nothing is lost while they wait — that is what the outbox
+is for — but a report waiting more than a minute is one the pipeline has not
+seen, and the operator should know how many and for how long.
+
+A check is "down" if it raises, returns False, or times out. A check may also
+return `(ok, details)`; the details are added to its entry in the body.
 """
 
 import asyncio
@@ -31,6 +37,10 @@ from app.core.config import get_settings
 settings = get_settings()
 
 CHECK_TIMEOUT_SECONDS = 2.0
+
+# How long a stored report may wait for Kafka before /healthz says degraded.
+# The relay retries every 2 s, so a healthy backlog is seconds old at most.
+OUTBOX_MAX_AGE_SECONDS = 60.0
 
 # A Patna coordinate, requesting only the current hour: the cheapest real
 # forecast call that proves the API answers the request the pipeline makes.
@@ -62,11 +72,15 @@ async def check_database() -> bool:
 
     async with engine.connect() as conn:
         await conn.execute(text("SELECT 1"))
-        migrated = await conn.execute(text("SELECT to_regclass('public.raw_reports')"))
-        if migrated.scalar() is None:
-            raise RuntimeError(
-                "database is reachable but not migrated — run `alembic upgrade head`"
-            )
+        # raw_reports is what every report is written to; outbox is written in
+        # the same transaction since Phase 1, so a database without it cannot
+        # store a report either.
+        for table in ("raw_reports", "outbox"):
+            migrated = await conn.execute(text(f"SELECT to_regclass('public.{table}')"))
+            if migrated.scalar() is None:
+                raise RuntimeError(
+                    "database is reachable but not migrated — run `alembic upgrade head`"
+                )
     return True
 
 
@@ -86,6 +100,31 @@ async def check_redis() -> bool:
         await client.aclose()
 
 
+async def check_outbox_backlog() -> Tuple[bool, Dict[str, Any]]:
+    """How many stored reports are waiting for Kafka, and how long the oldest has waited."""
+    from app.core.database import engine
+
+    async with engine.connect() as conn:
+        count, oldest = (
+            await conn.execute(
+                text("""
+                    SELECT count(*),
+                           COALESCE(EXTRACT(EPOCH FROM NOW() - min(created_at)), 0)
+                    FROM outbox
+                    WHERE published_at IS NULL
+                """)
+            )
+        ).one()
+    details: Dict[str, Any] = {"count": int(count), "oldest_s": round(float(oldest), 1)}
+    if float(oldest) > OUTBOX_MAX_AGE_SECONDS:
+        details["error"] = (
+            f"{int(count)} report(s) waiting for Kafka, the oldest for {float(oldest):.0f} s "
+            f"(limit {OUTBOX_MAX_AGE_SECONDS:.0f} s)"
+        )
+        return False, details
+    return True, details
+
+
 async def check_weather_api() -> bool:
     async with httpx.AsyncClient(timeout=CHECK_TIMEOUT_SECONDS) as client:
         resp = await client.get(settings.OPEN_METEO_API_URL, params=_WEATHER_PROBE_PARAMS)
@@ -94,20 +133,22 @@ async def check_weather_api() -> bool:
 
 
 # name → (check, critical)
-CHECKS: Dict[str, Tuple[Callable[[], Awaitable[bool]], bool]] = {
+CHECKS: Dict[str, Tuple[Callable[[], Awaitable[Any]], bool]] = {
     "database": (check_database, True),
     "streaming_bus": (check_streaming_bus, True),
     "redis": (check_redis, False),
     "weather_api": (check_weather_api, False),
+    "outbox_backlog": (check_outbox_backlog, False),
 }
 
 
-async def _run(name: str, check: Callable[[], Awaitable[bool]]) -> Dict[str, Any]:
+async def _run(name: str, check: Callable[[], Awaitable[Any]]) -> Dict[str, Any]:
     start = time.perf_counter()
     try:
-        ok = await asyncio.wait_for(check(), timeout=CHECK_TIMEOUT_SECONDS)
-        result: Dict[str, Any] = {"status": "up" if ok else "down"}
-        if not ok:
+        outcome = await asyncio.wait_for(check(), timeout=CHECK_TIMEOUT_SECONDS)
+        ok, details = outcome if isinstance(outcome, tuple) else (outcome, {})
+        result: Dict[str, Any] = {"status": "up" if ok else "down", **details}
+        if not ok and "error" not in result:
             result["error"] = f"{name} check returned False"
     except asyncio.TimeoutError:
         result = {"status": "down", "error": f"timeout after {CHECK_TIMEOUT_SECONDS:.1f} s"}
