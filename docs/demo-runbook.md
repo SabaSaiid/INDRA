@@ -56,7 +56,7 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0010_report_submitted_by (head)
+# → 0014_event_filter_indexes (head)
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
@@ -112,23 +112,25 @@ backend/.venv/bin/python scripts/run_patna_demo.py
 The script posts five synthetic citizen reports to `POST /api/reports/submit`, waits for the
 cluster to settle, then reads **every number back out of the API**.
 
-**Expected** (21 Sep reproduced twice; 22 Sep once, from an empty database):
+**Expected** (21 Sep reproduced twice; 22 Sep once; 23 Sep twice, after each Phase 1 change to the
+schema and the pipeline — all from an empty database):
 
-| | 21 Sep | 22 Sep |
-|---|---|---|
-| Reports stored | 5 / 5 | 5 / 5 |
-| Events created | **1** | **1** |
-| Severity | `MODERATE` | `MODERATE` |
-| Review status | **`QUARANTINED`** | **`QUARANTINED`** |
-| Quadrant | `Noise` | `Noise` |
-| Confidence | **0.4984** | **0.5146** |
-| Factor coverage | **0.80** | **0.80** |
-| Boundary | Polygon, **39 vertices** | Polygon, **39 vertices** |
-| Heat map | 2 H3 cells at res 8, 5 reports | the same |
+| | 21 Sep | 22 Sep | 23 Sep (Phase 1) |
+|---|---|---|---|
+| Reports stored | 5 / 5 | 5 / 5 | 5 / 5, each with a docket |
+| Events created | **1** | **1** | **1** `URBAN_FLOOD` |
+| Severity | `MODERATE` | `MODERATE` | `MODERATE` |
+| Review status | **`QUARANTINED`** | **`QUARANTINED`** | **`QUARANTINED`** |
+| Quadrant | `Noise` | `Noise` | `Noise` |
+| Confidence | **0.4984** | **0.5146** | **0.5319**, then **0.5295** |
+| Factor coverage | **0.80** | **0.80** | **0.80** |
+| Boundary | Polygon, **39 vertices** | Polygon, **39 vertices** | Polygon, **39 vertices** |
+| Heat map | 2 H3 cells at res 8, 5 reports | the same | the same |
 
-Only the weather factor moved: **0.0080** on 21 Sep, **0.0600** on 22 Sep, when Patna was wetter.
-Every other factor was identical, including after the clustering radius became a true
-great-circle distance on 22 Sep.
+Only the weather factor moved: **0.0080** on 21 Sep, **0.0600** on 22 Sep, **0.1153** and **0.1076**
+on 23 Sep, as Patna's rainfall changed. Every other factor was identical, including after the
+clustering radius became a true great-circle distance on 22 Sep and after Phase 1 added the outbox,
+the dockets and 12 event types on 23 Sep.
 
 Receipt:
 

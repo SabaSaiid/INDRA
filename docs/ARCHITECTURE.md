@@ -107,7 +107,7 @@ Citizen report ──► REST ──► Redpanda ──► consumer ──► de
        └── commander: PATCH /review ──► HUMAN_APPROVED + audit row ──► EVENT_REVIEWED
 ```
 
-Everything on that line is live and test-covered (**746 passed, 2 skipped**, against a separate
+Everything on that line is live and test-covered (**948 passed, 2 skipped**, against a separate
 `indra_test` database, and green with the network off; plus 26 browser tests on the dashboard). Everything off it — NLP classification,
 vision, anomaly detection, alerting, object storage, risk zones — is not, and is not coming.
 
