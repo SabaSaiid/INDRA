@@ -189,6 +189,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # A browser hides every non-standard response header from the page unless
+    # the server names it here. GET /api/events puts its total in X-Total-Count
+    # so the body can stay the list the dashboard already parses.
+    expose_headers=["X-Total-Count"],
 )
 
 class ConnectionManager:

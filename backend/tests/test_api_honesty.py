@@ -53,6 +53,13 @@ async def test_the_dashboard_origins_still_work(api, origin):
     assert r.headers.get("access-control-allow-origin") == origin
 
 
+async def test_the_dashboard_can_read_the_event_total(api):
+    """Without expose_headers the browser hides X-Total-Count from the page."""
+    origin = get_settings().cors_origins[0]
+    r = await api.get("/api/info", headers={"Origin": origin})
+    assert r.headers.get("access-control-expose-headers") == "X-Total-Count"
+
+
 async def test_a_preflight_from_an_unknown_origin_is_not_approved(api):
     r = await api.request(
         "OPTIONS",
