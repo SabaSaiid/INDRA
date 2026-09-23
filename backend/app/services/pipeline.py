@@ -695,6 +695,26 @@ async def _next_event_code(db: AsyncSession) -> str:
     return f"INDRA-{today}-{count + 1:03d}"
 
 
+async def _mark_processed(db: AsyncSession, report_id: UUID) -> None:
+    """
+    Record that the pipeline has finished with this report, whatever it decided.
+
+    Without it a report the pipeline looked at and found alone was
+    indistinguishable from one it never saw, and the citizen's docket could not
+    say which (migration 0012). Runs in the caller's transaction, so the stamp
+    commits with the outcome or not at all; the first stamp stands. A pipeline
+    crash leaves it unset, which is the truth: that report was not processed.
+    """
+    await db.execute(
+        text("""
+            UPDATE raw_reports
+            SET processed_at = COALESCE(processed_at, NOW())
+            WHERE id = CAST(:id AS uuid)
+        """),
+        {"id": str(report_id)},
+    )
+
+
 async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
     """
     Run one report through the verification pipeline.
@@ -766,6 +786,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     """),
                     {"original": str(original_id), "id": str(report_id)},
                 )
+                await _mark_processed(db, report_id)
                 await db.commit()
                 logger.info(
                     f"Pipeline: report {report_id} suppressed as duplicate of {original_id} "
@@ -804,6 +825,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     f"Pipeline: report {report_id} is in no cluster and near no "
                     "known event — a single uncorroborated report is not yet an event"
                 )
+                await _mark_processed(db, report_id)
+                await db.commit()
                 return None
 
             logger.info(
@@ -815,6 +838,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         stats = await geo.get_cluster_stats(cluster["report_ids"])
         if not stats["count"] or stats["centroid_lat"] is None:
             logger.warning(f"Pipeline: cluster for {report_id} has no usable geometry")
+            await _mark_processed(db, report_id)
+            await db.commit()
             return None
 
         # ── 5a. Merge into a recent overlapping event, if there is one ──────
@@ -895,6 +920,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     f"Pipeline: {event_code} was rejected while report {report_id} "
                     "was being processed — not merging"
                 )
+                await _mark_processed(db, report_id)
+                await db.commit()
                 return None
 
             # The machine keeps re-scoring as evidence accumulates, but it never
@@ -1028,6 +1055,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 },
             )
 
+        await _mark_processed(db, report_id)
         await db.commit()
 
         logger.info(
