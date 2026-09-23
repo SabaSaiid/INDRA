@@ -366,3 +366,139 @@ class TestIngestStoresTheLocation:
         stored = session.inserts[0]
         assert stored["district"] is None
         assert stored["state"] is None
+
+
+# ── Phase 1 T2: observed_at, hazard and X-Reporter-Id ──────────────────────────
+
+import hashlib
+import hmac
+import re
+from datetime import datetime, timedelta, timezone
+
+from app.core.config import get_settings
+from app.services import ingest
+
+
+def _now():
+    return datetime.now(timezone.utc)
+
+
+async def test_existing_clients_send_none_of_the_new_fields_and_nothing_changes(api, session):
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+
+    assert r.status_code == 202
+    row = session.inserts[0]
+    # observed_at None: the INSERT falls back to NOW(), the same instant as created_at.
+    assert row["observed_at"] is None
+    assert row["citizen_hazard"] is None
+    assert row["reporter_hash"] is None
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [timedelta(hours=-2), timedelta(minutes=4), timedelta(days=-6, hours=-23)],
+    ids=["2h-ago", "4min-ahead", "6d23h-ago"],
+)
+async def test_a_plausible_observed_at_is_stored_as_sent(api, session, offset):
+    when = _now() + offset
+    r = await api.post(
+        "/api/reports/submit", json={**body(25.5941, 85.1376), "observed_at": when.isoformat()}
+    )
+
+    assert r.status_code == 202
+    assert session.inserts[0]["observed_at"] == when
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        (_now() + timedelta(hours=1)).isoformat(),
+        (_now() - timedelta(days=8)).isoformat(),
+        "2026-09-23T10:00:00",          # no timezone: ambiguous, so refused
+        "yesterday",
+    ],
+    ids=["1h-ahead", "8d-ago", "naive", "not-a-time"],
+)
+async def test_an_implausible_observed_at_is_422_and_nothing_is_stored(api, session, value):
+    r = await api.post("/api/reports/submit", json={**body(25.5941, 85.1376), "observed_at": value})
+
+    assert r.status_code == 422
+    assert r.json()["detail"][0]["loc"] == ["body", "observed_at"]
+    assert session.inserts == []
+
+
+async def test_the_citizens_hazard_is_stored_as_their_claim(api, session):
+    r = await api.post("/api/reports/submit", json={**body(25.5941, 85.1376), "hazard": "HEATWAVE"})
+
+    assert r.status_code == 202
+    assert session.inserts[0]["citizen_hazard"] == "HEATWAVE"
+
+
+@pytest.mark.parametrize("hazard", ["TORNADO", "heatwave", ""])
+async def test_an_unknown_hazard_is_422(api, session, hazard):
+    r = await api.post("/api/reports/submit", json={**body(25.5941, 85.1376), "hazard": hazard})
+
+    assert r.status_code == 422
+    assert r.json()["detail"][0]["loc"] == ["body", "hazard"]
+    assert session.inserts == []
+
+
+@pytest.fixture
+def salt(monkeypatch):
+    """Pinned: the suite reads the machine's .env (BUG-059)."""
+    monkeypatch.setattr(get_settings(), "REPORTER_SALT", "test-salt")
+    return "test-salt"
+
+
+async def test_the_same_reporter_id_gives_the_same_pseudonym(api, session, salt):
+    for _ in range(2):
+        r = await api.post(
+            "/api/reports/submit", json=body(25.5941, 85.1376), headers={"X-Reporter-Id": "abc"}
+        )
+        assert r.status_code == 202
+
+    first, second = (p["reporter_hash"] for p in session.inserts)
+    assert first == second
+    assert re.fullmatch(r"[0-9a-f]{64}", first)
+    assert first == hmac.new(b"test-salt", b"abc", hashlib.sha256).hexdigest()
+
+
+async def test_different_reporters_get_different_pseudonyms(api, session, salt):
+    for rid in ("abc", "abd"):
+        await api.post("/api/reports/submit", json=body(25.5941, 85.1376), headers={"X-Reporter-Id": rid})
+
+    first, second = (p["reporter_hash"] for p in session.inserts)
+    assert first != second
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-Reporter-Id": "   "}], ids=["absent", "blank"])
+async def test_no_reporter_id_is_unknown_never_a_shared_identity(api, session, salt, headers):
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376), headers=headers)
+
+    assert r.status_code == 202
+    assert session.inserts[0]["reporter_hash"] is None
+
+
+async def test_an_overlong_reporter_id_is_422(api, session, salt):
+    r = await api.post(
+        "/api/reports/submit", json=body(25.5941, 85.1376), headers={"X-Reporter-Id": "x" * 201}
+    )
+
+    assert r.status_code == 422
+    assert session.inserts == []
+
+
+async def test_without_a_salt_no_pseudonym_is_stored_and_it_is_said_once(
+    api, session, monkeypatch, caplog
+):
+    monkeypatch.setattr(get_settings(), "REPORTER_SALT", "")
+    monkeypatch.setattr(ingest, "_warned_no_salt", False)
+
+    with caplog.at_level("WARNING", logger="indra.services.ingest"):
+        for _ in range(2):
+            await api.post(
+                "/api/reports/submit", json=body(25.5941, 85.1376), headers={"X-Reporter-Id": "abc"}
+            )
+
+    assert [p["reporter_hash"] for p in session.inserts] == [None, None]
+    assert sum("REPORTER_SALT is not set" in m for m in caplog.messages) == 1

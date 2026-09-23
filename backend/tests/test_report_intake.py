@@ -76,3 +76,97 @@ async def test_reports_without_an_external_id_never_collide(db):
     await db.commit()
     count = (await db.execute(text("SELECT count(*) FROM raw_reports"))).scalar()
     assert count == 6
+
+
+# ── The submit route, end to end ───────────────────────────────────────────────
+
+class _FakeProducer:
+    """Stands in for aiokafka so nothing reaches the local broker."""
+
+    def __init__(self, **kwargs):
+        pass
+
+    async def start(self):
+        pass
+
+    async def stop(self):
+        pass
+
+    async def send_and_wait(self, topic, value, key=None):
+        pass
+
+
+@pytest_asyncio.fixture
+async def api(monkeypatch):
+    import sys
+    import types
+
+    import httpx
+
+    from app.main import app
+
+    monkeypatch.setitem(sys.modules, "aiokafka", types.SimpleNamespace(AIOKafkaProducer=_FakeProducer))
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+
+@pytest.fixture
+def salt(monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "REPORTER_SALT", "test-salt")
+
+
+REPORT = {"latitude": 25.5941, "longitude": 85.1376, "text": "Knee-deep water near Gandhi Maidan"}
+
+
+async def test_an_omitted_observed_at_is_the_moment_it_was_received(api, db):
+    r = await api.post("/api/reports/submit", json=REPORT)
+    assert r.status_code == 202
+
+    observed, created = (
+        await db.execute(
+            text("SELECT observed_at, created_at FROM raw_reports WHERE id = CAST(:id AS uuid)"),
+            {"id": r.json()["id"]},
+        )
+    ).one()
+    assert observed == created
+
+
+async def test_the_raw_reporter_id_is_stored_nowhere(api, db, salt):
+    marker = f"device-{uuid.uuid4().hex}"
+    r = await api.post("/api/reports/submit", json=REPORT, headers={"X-Reporter-Id": marker})
+    assert r.status_code == 202
+
+    row_json, reporter_hash = (
+        await db.execute(
+            text("""
+                SELECT row_to_json(r)::text, r.reporter_hash
+                FROM raw_reports r WHERE r.id = CAST(:id AS uuid)
+            """),
+            {"id": r.json()["id"]},
+        )
+    ).one()
+    assert marker not in row_json
+    assert len(reporter_hash) == 64
+
+
+async def test_the_citizens_hazard_and_observed_time_reach_the_row(api, db):
+    from datetime import datetime, timedelta, timezone
+
+    when = (datetime.now(timezone.utc) - timedelta(hours=2)).replace(microsecond=0)
+    r = await api.post(
+        "/api/reports/submit",
+        json={**REPORT, "observed_at": when.isoformat(), "hazard": "HEATWAVE"},
+    )
+    assert r.status_code == 202
+
+    observed, hazard = (
+        await db.execute(
+            text("SELECT observed_at, citizen_hazard FROM raw_reports WHERE id = CAST(:id AS uuid)"),
+            {"id": r.json()["id"]},
+        )
+    ).one()
+    assert observed == when
+    assert hazard == "HEATWAVE"

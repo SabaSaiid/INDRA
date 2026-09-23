@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "indra_super_secret_jwt_key_sih2026"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 8
+    # The key for raw_reports.reporter_hash, an HMAC of the client's random
+    # X-Reporter-Id. No default on purpose: a key in the source would let anyone
+    # with the repo test candidate ids against a leaked hash. Empty means
+    # reporter_hash stays NULL (services/ingest.py logs that once).
+    REPORTER_SALT: str = ""
 
     # ── PostgreSQL + PostGIS ───────────────────────────────────────────────
     POSTGRES_USER: str = "indra_user"

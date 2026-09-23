@@ -11,11 +11,11 @@ import uuid
 import json
 import logging
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Header, Query, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,8 +23,10 @@ from app.core.database import get_db
 from app.core.config import get_settings
 from app.core.demo import demo_fallback
 from app.core.security import TokenData, require_roles
+from app.models.enums import EventType
 from app.services.credibility import compute_credibility
 from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
+from app.services.ingest import reporter_hash_for
 from app.services.text_processing import clean_text, detect_language, extract_metadata
 
 logger = logging.getLogger("indra.api.reports")
@@ -65,12 +67,38 @@ def _analyse(raw_text: str, report_id) -> Optional[dict]:
         return None
 
 
+# How far observed_at may sit from the moment a report arrives. A phone clock a
+# few minutes fast is normal; a report "from" tomorrow is not. A week back
+# covers a citizen reporting after the fact without letting old events be
+# injected as current ones.
+OBSERVED_AT_MAX_AHEAD = timedelta(minutes=5)
+OBSERVED_AT_MAX_AGE = timedelta(days=7)
+
+
 class ReportSubmission(BaseModel):
     """Pydantic model for incoming citizen report."""
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
     text: str = Field(..., min_length=5, max_length=2000)
     media_url: Optional[str] = None
+    # When it happened, with a timezone. Omitted means "now": observed_at is
+    # stored equal to the time the report was received.
+    observed_at: Optional[AwareDatetime] = None
+    # The category the citizen picked, if any. Stored as their claim
+    # (citizen_hazard); the event's type is still the platform's decision.
+    hazard: Optional[EventType] = None
+
+    @field_validator("observed_at")
+    @classmethod
+    def observed_at_is_plausible(cls, v: Optional[datetime]) -> Optional[datetime]:
+        if v is None:
+            return v
+        now = datetime.now(timezone.utc)
+        if v > now + OBSERVED_AT_MAX_AHEAD:
+            raise ValueError("observed_at is more than 5 minutes in the future")
+        if v < now - OBSERVED_AT_MAX_AGE:
+            raise ValueError("observed_at is more than 7 days in the past")
+        return v
 
 
 DEMO_TREND = [
@@ -135,6 +163,7 @@ async def _ingest(
     db: AsyncSession,
     source_type: str,
     submitted_by: Optional[str],
+    reporter_id: Optional[str] = None,
 ) -> JSONResponse:
     """
     Store one report and publish it. Shared by the citizen and official routes,
@@ -172,13 +201,17 @@ async def _ingest(
 
     analysis = _analyse(report.text, report_id)
 
-    # Insert into DB
+    # Insert into DB. observed_at falls back to NOW(), which inside one statement
+    # is the same instant created_at defaults to — so an omitted observed_at is
+    # stored exactly equal to the time the report was received.
     insert_query = text("""
-        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, district, state, media_url, credibility_score, analysis, submitted_by)
+        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, district, state, media_url, credibility_score, analysis, submitted_by,
+                                 observed_at, reporter_hash, citizen_hazard)
         VALUES (
             :id, :source_type, :raw_text, :lat, :lng,
             ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-            :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by
+            :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by,
+            COALESCE(CAST(:observed_at AS timestamptz), NOW()), :reporter_hash, :citizen_hazard
         )
     """)
 
@@ -199,6 +232,10 @@ async def _ingest(
             "credibility": credibility,
             "analysis": json.dumps(analysis) if analysis is not None else None,
             "submitted_by": submitted_by,
+            "observed_at": report.observed_at,
+            # The pseudonym only: the X-Reporter-Id itself is never stored.
+            "reporter_hash": reporter_hash_for(reporter_id),
+            "citizen_hazard": report.hazard.value if report.hazard else None,
         })
         await db.commit()
     except Exception as e:
@@ -260,6 +297,7 @@ async def _ingest(
 async def submit_report(
     report: ReportSubmission,
     db: AsyncSession = Depends(get_db),
+    x_reporter_id: Optional[str] = Header(None, max_length=200),
 ):
     """
     Accepts a citizen report, persists to DB, pushes to Redpanda topic.
@@ -268,8 +306,14 @@ async def submit_report(
     read from the request: if a client could name its own source, anyone could
     claim OFFICIAL_DISPATCH and hand themselves the highest reliability in the
     model (BUG-025). Trusted sources use POST /api/reports/official.
+
+    `X-Reporter-Id` is a random id the client generates once and keeps. Only a
+    keyed hash of it is stored, so reports from one device can be linked to
+    each other and never to the device.
     """
-    return await _ingest(report, db, source_type="CITIZEN_APP", submitted_by=None)
+    return await _ingest(
+        report, db, source_type="CITIZEN_APP", submitted_by=None, reporter_id=x_reporter_id
+    )
 
 
 @router.post("/official", status_code=202)
@@ -277,6 +321,7 @@ async def submit_official_report(
     report: ReportSubmission,
     db: AsyncSession = Depends(get_db),
     operator: TokenData = Depends(require_roles("COMMANDER", "ADMIN")),
+    x_reporter_id: Optional[str] = Header(None, max_length=200),
 ):
     """
     A report from a trusted field source — a district control room, an SDRF
@@ -294,7 +339,8 @@ async def submit_official_report(
     it shows the mechanism — role-gated and attributed — not a secret.
     """
     return await _ingest(
-        report, db, source_type="OFFICIAL_DISPATCH", submitted_by=operator.sub
+        report, db, source_type="OFFICIAL_DISPATCH", submitted_by=operator.sub,
+        reporter_id=x_reporter_id,
     )
 
 
