@@ -44,6 +44,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Report consumer startup skipped (non-fatal): {e}")
 
+    # One Kafka producer for the whole process, instead of one per report.
+    # If the broker is down this returns False at once (a TCP probe, not a
+    # 40 s client timeout) and the platform starts anyway: reports wait in the
+    # outbox until the producer can be started.
+    try:
+        from app.services.kafka import get_publisher
+        await get_publisher().ensure_started()
+    except Exception as e:
+        logger.warning(f"Kafka producer startup skipped (non-fatal): {e}")
+
     # Warm the embedding model, off the event loop, without delaying readiness.
     #
     # MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.
@@ -126,6 +136,12 @@ async def lifespan(app: FastAPI):
             await sachet_task
         except asyncio.CancelledError:
             pass
+
+    try:
+        from app.services.kafka import get_publisher
+        await get_publisher().stop()
+    except Exception as e:
+        logger.warning(f"Kafka producer shutdown skipped (non-fatal): {e}")
 
     try:
         from app.services import cache

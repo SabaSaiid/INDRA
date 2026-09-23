@@ -116,6 +116,25 @@ def _isolated_cache():
     cache.use_memory_only(False)
 
 
+# ── Kafka isolation ────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def _isolated_kafka_publisher():
+    """
+    Every test starts with no process producer.
+
+    The test client does not run the lifespan, so nothing starts one: a report
+    submitted in a test is stored with its outbox row and not published, and
+    no test reaches the local broker by accident. A test that wants a publish
+    injects a fake with `kafka.set_publisher()`; this forgets it afterwards.
+    """
+    from app.services import kafka
+
+    kafka.set_publisher(None)
+    yield
+    kafka.set_publisher(None)
+
+
 # ── Service fixtures (no DB) ───────────────────────────────────────────────────
 
 @pytest.fixture
