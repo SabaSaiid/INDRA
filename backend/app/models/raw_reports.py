@@ -67,6 +67,22 @@ class RawReport(Base):
     # for citizen reports, which are anonymous by design.
     submitted_by = Column(String(50), nullable=True)
 
+    # Migration 0012 (Phase 1). See its docstring for each column's meaning.
+    # When it happened; created_at is when INDRA received it.
+    observed_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    # HMAC of the client's random id; the raw id is never stored.
+    reporter_hash = Column(String(64), nullable=True)
+    # The citizen's tracking number, R-XXXXXXXX. Random, never sequential.
+    docket = Column(String(16), nullable=True, unique=True)
+    # Where a fed item came from, and its id there (Phase 2's pollers).
+    platform = Column(String(32), nullable=True)
+    external_id = Column(String(512), nullable=True)
+    source_meta = Column(JSONB, nullable=True)
+    # The category the citizen picked — their claim, not the event's type.
+    citizen_hazard = Column(String(32), nullable=True)
+    # When the pipeline finished with this report, whatever it decided.
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+
     # Constraints
     __table_args__ = (
         CheckConstraint(
