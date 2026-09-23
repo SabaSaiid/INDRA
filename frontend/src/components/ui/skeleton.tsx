@@ -31,7 +31,7 @@ export function KpiCardSkeleton() {
   );
 }
 
-// Map card skeleton — compact header + 275px canvas
+// Map card skeleton — compact header + 360px canvas
 export function MapCardSkeleton() {
   return (
     <div className="bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card p-3.5">
@@ -48,7 +48,7 @@ export function MapCardSkeleton() {
         </div>
       </div>
       {/* Canvas: matches compact preview height */}
-      <Skeleton className="h-[275px] w-full rounded-md" style={{ background: '#E8E2D4' }} />
+      <Skeleton className="h-[360px] w-full rounded-md" style={{ background: '#E8E2D4' }} />
     </div>
   );
 }

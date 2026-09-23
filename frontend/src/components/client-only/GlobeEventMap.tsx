@@ -538,6 +538,8 @@ export default function GlobeEventMap({
   const handleSelectIncident = useCallback(
     (marker: MapMarker) => {
       setSelectedMarker(marker);
+      setLegendOpen(false);
+      setClusterPopover(null);
       if (onEventSelect) onEventSelect(marker);
 
       const sanitized = sanitizeIncidentCoordinate({
@@ -555,7 +557,10 @@ export default function GlobeEventMap({
           pitch: 45,
           bearing: 15,
           essential: true,
-          duration: 2000,
+          duration: 1800,
+          // Offset target 90px to the right so it stays in the clear map area
+          // without colliding with the 320px left-side inspector drawer.
+          offset: [90, 0],
         });
       }
     },
@@ -959,6 +964,8 @@ export default function GlobeEventMap({
         // just zooming. The popover is rendered in React via clusterPopover state.
         clusterEl.addEventListener('click', (e) => {
           e.stopPropagation();
+          setSelectedMarker(null);
+          setLegendOpen(false);
           const rect = mapContainerRef.current?.getBoundingClientRect();
           const markerPos = item.screenPos || { x: 0, y: 0 };
           // Smart positioning: if the popover would go off the right/bottom edge, flip.
@@ -1369,7 +1376,8 @@ export default function GlobeEventMap({
     zoom: number,
     pitch = 35,
     bearing = 0,
-    duration = 2400
+    duration = 2400,
+    offset?: [number, number]
   ) => {
     if (!mapRef.current) return;
     mapRef.current.flyTo({
@@ -1379,6 +1387,7 @@ export default function GlobeEventMap({
       bearing,
       essential: true,
       duration,
+      ...(offset ? { offset } : {}),
     });
   };
 
@@ -1667,7 +1676,7 @@ export default function GlobeEventMap({
             isFullscreen
               ? 'flex-1 min-h-[520px]'
               : variant === 'preview'
-              ? 'h-[275px]'
+              ? 'h-[360px]'
               : 'h-[500px] lg:h-[560px]'
           )}
         >
@@ -1681,13 +1690,13 @@ export default function GlobeEventMap({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -20, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute top-3 left-3 z-35 w-80 max-w-[calc(100%-24px)] bg-slate-900/95 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4"
+                className="absolute top-3 left-3 z-40 w-80 max-w-[calc(100%-24px)] max-h-[calc(100%-54px)] overflow-y-auto custom-scrollbar bg-slate-900/98 text-white backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 p-3.5 space-y-2.5"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <span
-                      className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                      className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0"
                       style={{
                         backgroundColor: severityConfig[selectedMarker.severity]?.bg || '#f1f5f9',
                         color: severityConfig[selectedMarker.severity]?.textColor || '#334155',
@@ -1695,8 +1704,9 @@ export default function GlobeEventMap({
                     >
                       {severityConfig[selectedMarker.severity]?.label || selectedMarker.severity}
                     </span>
-                    <span className="text-[11px] text-slate-300 font-mono flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> {markerStatusLabel(selectedMarker)}
+                    <span className="text-[10px] text-slate-300 font-mono flex items-center gap-1 truncate">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span className="truncate">{markerStatusLabel(selectedMarker)}</span>
                     </span>
                   </div>
                   <button
@@ -1704,41 +1714,41 @@ export default function GlobeEventMap({
                       setSelectedMarker(null);
                       if (onEventSelect) onEventSelect(null);
                     }}
-                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+                    title="Close incident inspector"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 {/* City & Event Title */}
-                <h4 className="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
-                  <span>{eventTypeEmojis[selectedMarker.eventType] || '⚠️'}</span>
-                  <span>{selectedMarker.placeLabel || selectedMarker.city || 'Location unresolved'}</span>
-                </h4>
-                <p className="text-xs font-semibold text-blue-400 mt-0.5 flex items-center gap-1">
-                  <Target className="w-3.5 h-3.5" />
-                  {selectedMarker.eventType}
-                </p>
-                <p className="text-xs text-slate-300 mt-2 line-clamp-2 leading-relaxed">
+                <div>
+                  <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-1.5 leading-snug">
+                    <span>{eventTypeEmojis[selectedMarker.eventType] || '⚠️'}</span>
+                    <span className="truncate">{selectedMarker.placeLabel || selectedMarker.city || 'Location unresolved'}</span>
+                  </h4>
+                  <p className="text-[11px] font-semibold text-blue-400 mt-0.5 flex items-center gap-1">
+                    <Target className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{selectedMarker.eventType}</span>
+                  </p>
+                </div>
+
+                <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
                   {selectedMarker.description}
                 </p>
 
-                {/* What this marker is. This grid used to show "Rainfall 86 mm/h",
-                    "Wind Gusts 68 km/h" and "Water Level +1.9m Danger" for every
-                    marker, chosen from its severity alone: INDRA has no wind or
-                    water-level sensor, and the rainfall it does read is a 24-hour
-                    total in the event's receipt, not a rate. */}
-                <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-800 text-[11px]">
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
+                {/* Source & Coordinates */}
+                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 text-[10px]">
+                  <div className="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700/50">
+                    <div className="text-slate-400 flex items-center gap-1 text-[9px]">
                       <Layers className="w-3 h-3 text-blue-400" /> Source
                     </div>
-                    <div className="font-mono font-bold text-white mt-0.5">
+                    <div className="font-mono font-bold text-white mt-0.5 truncate">
                       {markerSourceLabel(selectedMarker)}
                     </div>
                   </div>
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
+                  <div className="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700/50">
+                    <div className="text-slate-400 flex items-center gap-1 text-[9px]">
                       <Activity className="w-3 h-3 text-emerald-400" /> Coordinates
                     </div>
                     <div className="font-mono font-bold text-white mt-0.5 truncate">
@@ -1748,22 +1758,23 @@ export default function GlobeEventMap({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 mt-3 pt-2">
+                <div className="flex items-center gap-2 pt-1">
                   {(selectedMarker.layer ?? 'event') === 'event' && (
                     <button
                       onClick={() => (window.location.href = '/teams')}
-                      className="flex-1 py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
+                      className="flex-1 py-1 px-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
                     >
-                      <Shield className="w-3.5 h-3.5" />
-                      <span>Dispatch a team</span>
+                      <Shield className="w-3 h-3" />
+                      <span>Dispatch Team</span>
                     </button>
                   )}
                   <button
-                    onClick={() => flyToHotspot([selectedMarker.lng, selectedMarker.lat], 8.2, 55, 20)}
-                    className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
+                    onClick={() => flyToHotspot([selectedMarker.lng, selectedMarker.lat], 8.2, 55, 20, 2400, [90, 0])}
+                    className="py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors flex items-center gap-1"
                     title="Zoom in to tactical street level"
                   >
-                    Close Zoom
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Zoom In</span>
                   </button>
                 </div>
               </motion.div>
@@ -2275,7 +2286,7 @@ export default function GlobeEventMap({
 
           {/* Issue 5: Technical readout — telemetry HUD and horizon status banner */}
           {showTechReadout && (
-            <div className="absolute bottom-3 sm:left-[170px] z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
+            <div className="absolute bottom-3 sm:left-[215px] z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
               <span className="flex items-center gap-1 text-emerald-400 font-bold">
                 <Radio className="w-3 h-3 animate-pulse" />
                 {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
@@ -2325,7 +2336,14 @@ export default function GlobeEventMap({
 
             {/* Map Layers & Legend Toggle */}
             <button
-              onClick={() => setLegendOpen(!legendOpen)}
+              onClick={() => {
+                const next = !legendOpen;
+                setLegendOpen(next);
+                if (next) {
+                  setSelectedMarker(null);
+                  setClusterPopover(null);
+                }
+              }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium backdrop-blur-xl shadow-lg transition-all ${
                 legendOpen
                   ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]'
