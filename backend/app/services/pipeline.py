@@ -695,23 +695,27 @@ async def _next_event_code(db: AsyncSession) -> str:
     return f"INDRA-{today}-{count + 1:03d}"
 
 
-async def _mark_processed(db: AsyncSession, report_id: UUID) -> None:
+async def _mark_processed(db: AsyncSession, *report_ids: UUID) -> None:
     """
-    Record that the pipeline has finished with this report, whatever it decided.
+    Record that the pipeline has finished with these reports, whatever it decided.
 
     Without it a report the pipeline looked at and found alone was
     indistinguishable from one it never saw, and the citizen's docket could not
     say which (migration 0012). Runs in the caller's transaction, so the stamp
     commits with the outcome or not at all; the first stamp stands. A pipeline
     crash leaves it unset, which is the truth: that report was not processed.
+
+    When a run links a whole cluster into an event, every report it linked is
+    finished with, not only the one whose message started the run: the others'
+    own messages will find them linked and skip them.
     """
     await db.execute(
         text("""
             UPDATE raw_reports
             SET processed_at = COALESCE(processed_at, NOW())
-            WHERE id = CAST(:id AS uuid)
+            WHERE id = ANY(CAST(:ids AS uuid[]))
         """),
-        {"id": str(report_id)},
+        {"ids": [str(r) for r in report_ids]},
     )
 
 
@@ -1055,7 +1059,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 },
             )
 
-        await _mark_processed(db, report_id)
+        await _mark_processed(db, report_id, *cluster["report_ids"])
         await db.commit()
 
         logger.info(

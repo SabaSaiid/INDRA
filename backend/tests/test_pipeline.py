@@ -697,13 +697,19 @@ async def test_a_suppressed_duplicate_is_stamped_processed(db):
     assert await processed_at(db, dupe) is not None
 
 
-async def test_the_report_that_made_an_event_is_stamped_processed(db):
+async def test_every_report_linked_into_an_event_is_stamped_processed(db):
+    """
+    One message forms the event and links all five; the other four messages
+    will find their reports linked and skip them, so the run that linked them
+    is the one that finished with them.
+    """
     ids = await seed_cluster(db)
 
     event = await process_report(db, {"id": str(ids[0])})
 
     assert event is not None
-    assert await processed_at(db, ids[0]) is not None
+    stamps = [await processed_at(db, rid) for rid in ids]
+    assert all(stamp is not None for stamp in stamps)
 
 
 async def test_the_first_stamp_stands_when_a_report_is_processed_again(db):
