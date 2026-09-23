@@ -1,14 +1,12 @@
 """
 INDRA Platform — Reports API
 GET  /api/reports/trend?range=7d  — daily total_reports for the trend chart
-POST /api/reports/submit          — stores the report, pushes to Redpanda, returns 202
+POST /api/reports/submit          — stores the report with its outbox message, returns 202
                                     (503 if it could not be stored)
 POST /api/reports/official        — the same, for an authenticated COMMANDER/ADMIN,
                                     stored as OFFICIAL_DISPATCH with who filed it
 """
 
-import uuid
-import json
 import logging
 from typing import Optional
 from datetime import datetime, timedelta, timezone
@@ -24,47 +22,12 @@ from app.core.config import get_settings
 from app.core.demo import demo_fallback
 from app.core.security import TokenData, require_roles
 from app.models.enums import EventType
-from app.services.credibility import compute_credibility
 from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
-from app.services.ingest import reporter_hash_for
-from app.services.text_processing import clean_text, detect_language, extract_metadata
+from app.services.ingest import StoreError, reporter_hash_for, store_report
 
 logger = logging.getLogger("indra.api.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
 settings = get_settings()
-
-
-def _analyse(raw_text: str, report_id) -> Optional[dict]:
-    """
-    Layer-3 extraction for one report: cleaned text, language, depth, keywords.
-
-    Rules and dictionaries only — no model. `raw_text` is never modified; this is
-    stored alongside it in raw_reports.analysis.
-
-    **Best-effort by design.** Any failure returns None so the caller stores the
-    report with analysis NULL and still answers 202. Losing a disaster report
-    because a regex raised would be a far worse bug than not knowing how deep the
-    water was, so the whole thing is wrapped. Content severity re-extracts from
-    raw_text at scoring time and therefore does not depend on this succeeding.
-    """
-    try:
-        meta = extract_metadata(raw_text)
-        return {
-            "cleaned_text": clean_text(raw_text),
-            "language": detect_language(raw_text),
-            "depth_cm": meta["depth_cm"],
-            "depth_basis": meta["depth_basis"],
-            "keywords": meta["keywords"],
-            "places": meta["places"],
-            "url_count": meta["url_count"],
-            "phone_count": meta["phone_count"],
-            "extracted_at": datetime.now(timezone.utc).isoformat(),
-        }
-    except Exception as e:
-        logger.warning(
-            f"Analysis failed for report {report_id}, storing it without one: {e}"
-        )
-        return None
 
 
 # How far observed_at may sit from the moment a report arrives. A phone clock a
@@ -166,12 +129,13 @@ async def _ingest(
     reporter_id: Optional[str] = None,
 ) -> JSONResponse:
     """
-    Store one report and publish it. Shared by the citizen and official routes,
-    which differ only in the source they are allowed to claim.
+    Store one report and queue it for the pipeline. Shared by the citizen and
+    official routes, which differ only in the source they are allowed to claim.
 
-    * Stored and published → 202, `"queued": true`.
-    * Stored, publish failed → 202, `"queued": false`. The row exists but the
-      pipeline has not been told about it.
+    * Stored and published → 202, `"queued": true, "will_retry": false`.
+    * Stored, not yet published → 202, `"queued": false, "will_retry": true`.
+      The report and its message are both in the database, and the outbox
+      relay publishes it as soon as Kafka answers (BUG-060).
     * Not stored → 503 and nothing is published. A 202 here used to tell the
       citizen their report was accepted when it had been dropped.
     """
@@ -189,105 +153,32 @@ async def _ingest(
         logger.info(f"Rejected report with out-of-bounds coordinates: {e}")
         raise HTTPException(status_code=422, detail=str(e))
 
-    report_id = uuid.uuid4()
-    credibility = compute_credibility(source_type, report.text)
-
-    # Compute geom_point and H3 cell
     try:
-        import h3
-        h3_cell = h3.latlng_to_cell(valid_lat, valid_lng, settings.H3_HEX_RESOLUTION)
-    except Exception:
-        h3_cell = None
-
-    analysis = _analyse(report.text, report_id)
-
-    # Insert into DB. observed_at falls back to NOW(), which inside one statement
-    # is the same instant created_at defaults to — so an omitted observed_at is
-    # stored exactly equal to the time the report was received.
-    insert_query = text("""
-        INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8, district, state, media_url, credibility_score, analysis, submitted_by,
-                                 observed_at, reporter_hash, citizen_hazard)
-        VALUES (
-            :id, :source_type, :raw_text, :lat, :lng,
-            ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
-            :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by,
-            COALESCE(CAST(:observed_at AS timestamptz), NOW()), :reporter_hash, :citizen_hazard
-        )
-    """)
-
-    try:
-        await db.execute(insert_query, {
-            "id": str(report_id),
-            "source_type": source_type,
-            "raw_text": report.text,
-            "lat": valid_lat,
-            "lng": valid_lng,
-            "h3_cell": h3_cell,
-            # Resolved above and, until now, thrown away on the next line: the
-            # table had no column to put it in, so the ingest path computed a
-            # location it could not keep.
-            "district": resolved_city or None,
-            "state": resolved_state or None,
-            "media_url": report.media_url,
-            "credibility": credibility,
-            "analysis": json.dumps(analysis) if analysis is not None else None,
-            "submitted_by": submitted_by,
-            "observed_at": report.observed_at,
+        stored = await store_report(
+            db,
+            source_type=source_type,
+            raw_text=report.text,
+            latitude=valid_lat,
+            longitude=valid_lng,
+            district=resolved_city or None,
+            state=resolved_state or None,
+            media_url=report.media_url,
+            submitted_by=submitted_by,
+            observed_at=report.observed_at,
             # The pseudonym only: the X-Reporter-Id itself is never stored.
-            "reporter_hash": reporter_hash_for(reporter_id),
-            "citizen_hazard": report.hazard.value if report.hazard else None,
-        })
-        await db.commit()
-    except Exception as e:
-        logger.error(f"Report {report_id} could not be stored — returning 503: {e}")
-        try:
-            await db.rollback()
-        except Exception:
-            pass
-        raise HTTPException(status_code=503, detail="Report could not be stored")
-
-    # Push to Redpanda/Kafka. The report is already stored, so a failure here
-    # is reported in the response but is not an error for the citizen.
-    queued = False
-    try:
-        from aiokafka import AIOKafkaProducer
-        producer = AIOKafkaProducer(
-            bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
+            reporter_hash=reporter_hash_for(reporter_id),
+            citizen_hazard=report.hazard.value if report.hazard else None,
         )
-        await producer.start()
-        try:
-            # Publish exactly what was stored: the sanitised coordinates and
-            # the column names of the raw_reports row. The pipeline still
-            # re-reads the row by id, but nothing else consuming this topic
-            # should be able to see coordinates the database never held.
-            message = json.dumps({
-                "id": str(report_id),
-                "source_type": source_type,
-                "raw_text": report.text,
-                "latitude": valid_lat,
-                "longitude": valid_lng,
-                "h3_res8": h3_cell,
-                "credibility_score": credibility,
-                "media_url": report.media_url,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
-            await producer.send_and_wait(
-                settings.KAFKA_REPORTS_TOPIC,
-                message.encode("utf-8"),
-            )
-            queued = True
-        finally:
-            await producer.stop()
-    except Exception as e:
-        # Non-fatal: report is already in DB
-        logger.warning(f"Could not push to Redpanda (non-fatal): {e}")
+    except StoreError:
+        raise HTTPException(status_code=503, detail="Report could not be stored")
 
     return JSONResponse(
         status_code=202,
         content={
-            "id": str(report_id),
+            "id": str(stored.id),
             "status": "accepted",
-            "queued": queued,
+            "queued": stored.queued,
+            "will_retry": not stored.queued,
             "source_type": source_type,
         },
     )

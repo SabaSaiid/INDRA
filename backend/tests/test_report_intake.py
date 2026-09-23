@@ -80,32 +80,14 @@ async def test_reports_without_an_external_id_never_collide(db):
 
 # ── The submit route, end to end ───────────────────────────────────────────────
 
-class _FakeProducer:
-    """Stands in for aiokafka so nothing reaches the local broker."""
-
-    def __init__(self, **kwargs):
-        pass
-
-    async def start(self):
-        pass
-
-    async def stop(self):
-        pass
-
-    async def send_and_wait(self, topic, value, key=None):
-        pass
-
-
 @pytest_asyncio.fixture
-async def api(monkeypatch):
-    import sys
-    import types
-
+async def api():
+    # No producer is started in tests (conftest), so nothing reaches the local
+    # broker: each report is stored with its outbox row and left there.
     import httpx
 
     from app.main import app
 
-    monkeypatch.setitem(sys.modules, "aiokafka", types.SimpleNamespace(AIOKafkaProducer=_FakeProducer))
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
