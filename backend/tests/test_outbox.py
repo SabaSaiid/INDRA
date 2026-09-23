@@ -156,3 +156,157 @@ async def test_a_row_the_relay_holds_is_left_to_the_relay(db, publisher):
     assert queued is False
     assert publisher.sent == []
     assert await _count(db, "SELECT count(*) FROM outbox WHERE published_at IS NULL") == 1
+
+
+# ── The relay ──────────────────────────────────────────────────────────────────
+
+from app.workers import outbox_relay  # noqa: E402
+
+
+async def test_kafka_back_every_waiting_report_is_published_oldest_first(api, db, publisher):
+    publisher.fail = True
+    ids = []
+    for _ in range(10):
+        ids.append((await api.post("/api/reports/submit", json=REPORT)).json()["id"])
+
+    # Still down: the batch stops at the first row and records why.
+    assert await outbox_relay.relay_once(db, publisher) == (0, 1)
+    attempts = (await db.execute(text("SELECT attempts FROM outbox ORDER BY id"))).scalars().all()
+    assert attempts == [1] + [0] * 9
+    assert "redpanda is down" in await _count(db, "SELECT last_error FROM outbox ORDER BY id LIMIT 1")
+
+    # Back up: one pass drains all ten, in the order they were stored.
+    publisher.fail = False
+    assert await outbox_relay.relay_once(db, publisher) == (10, 0)
+    assert [key for _, _, key in publisher.sent] == ids
+    assert await _count(db, "SELECT count(*) FROM outbox WHERE published_at IS NULL") == 0
+
+
+async def test_two_relays_publish_each_row_exactly_once(db, publisher):
+    await db.execute(text("""
+        INSERT INTO outbox (topic, key, payload)
+        SELECT 'indra.raw.reports', g::text, jsonb_build_object('id', g::text)
+        FROM generate_series(1, 500) AS g
+    """))
+    await db.commit()
+
+    async def relay_until_empty():
+        total = 0
+        async with async_session() as session:
+            while True:
+                published, failed = await outbox_relay.relay_once(session, publisher)
+                if published == 0 and failed == 0:
+                    return total
+                total += published
+
+    first, second = await asyncio.gather(relay_until_empty(), relay_until_empty())
+
+    # Both relays did real work — they ran side by side — and between them
+    # every row went exactly once.
+    assert first > 0 and second > 0
+    assert first + second == 500
+    keys = [key for _, _, key in publisher.sent]
+    assert len(keys) == 500
+    assert len(set(keys)) == 500
+    assert await _count(db, "SELECT count(*) FROM outbox WHERE published_at IS NULL") == 0
+
+
+async def test_a_resent_message_is_byte_for_byte_the_first(db, publisher):
+    """
+    The crash window: the broker acknowledged, the process died before the
+    commit that marks the row. The next pass sends it again — identical, so
+    the consumer's existing idempotency applies (test_report_consumer:
+    broadcast once; test_pipeline: no second event, a duplicate stays skipped).
+    """
+    publisher.ready = False
+    await ingest.store_report(
+        db, source_type="CITIZEN_APP", raw_text="Water on the road",
+        latitude=25.5941, longitude=85.1376,
+    )
+    publisher.ready = True
+
+    assert await outbox_relay.relay_once(db, publisher) == (1, 0)
+    await db.execute(text("UPDATE outbox SET published_at = NULL"))
+    await db.commit()
+    assert await outbox_relay.relay_once(db, publisher) == (1, 0)
+
+    first, second = publisher.sent
+    assert first == second
+
+
+async def test_published_rows_are_pruned_after_seven_days_and_waiting_ones_never(db):
+    await db.execute(text("""
+        INSERT INTO outbox (topic, key, payload, created_at, published_at) VALUES
+            ('t', 'old-published',   '{}', NOW() - INTERVAL '9 days',  NOW() - INTERVAL '8 days'),
+            ('t', 'recent-published','{}', NOW() - INTERVAL '2 days',  NOW() - INTERVAL '1 day'),
+            ('t', 'old-waiting',     '{}', NOW() - INTERVAL '30 days', NULL)
+    """))
+    await db.commit()
+
+    assert await outbox_relay.cleanup_published(db) == 1
+    left = (await db.execute(text("SELECT key FROM outbox ORDER BY key"))).scalars().all()
+    assert left == ["old-waiting", "recent-published"]
+
+
+# ── The relay loop's timing (no database) ──────────────────────────────────────
+
+async def _run_loop(monkeypatch, starts, passes, iterations):
+    """
+    Drive start_outbox_relay() for a fixed number of sleeps. `starts` scripts
+    ensure_started(); `passes` scripts relay_once(). Returns the sleep delays.
+    """
+    starts, passes = iter(starts), iter(passes)
+    delays, resets = [], []
+
+    class Scripted:
+        async def ensure_started(self):
+            return next(starts)
+
+        async def reset(self):
+            resets.append(True)
+
+    async def fake_relay_once(db, publisher):
+        return next(passes)
+
+    async def fake_cleanup(db):
+        return 0
+
+    async def fake_sleep(seconds):
+        delays.append(seconds)
+        if len(delays) >= iterations:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(kafka, "_publisher", Scripted())
+    monkeypatch.setattr(outbox_relay, "relay_once", fake_relay_once)
+    monkeypatch.setattr(outbox_relay, "cleanup_published", fake_cleanup)
+    monkeypatch.setattr(outbox_relay.asyncio, "sleep", fake_sleep)
+
+    with pytest.raises(asyncio.CancelledError):
+        await outbox_relay.start_outbox_relay()
+    return delays, resets
+
+
+async def test_while_the_broker_is_down_the_relay_keeps_probing_every_two_seconds(monkeypatch):
+    delays, _ = await _run_loop(monkeypatch, starts=[False] * 5, passes=[], iterations=5)
+    assert delays == [2.0] * 5
+
+
+async def test_failed_publishes_back_off_to_thirty_seconds_and_success_resets(monkeypatch):
+    delays, resets = await _run_loop(
+        monkeypatch,
+        starts=[True] * 7,
+        passes=[(0, 1)] * 5 + [(3, 0), (0, 0)],
+        iterations=7,
+    )
+    assert delays == [4.0, 8.0, 16.0, 30.0, 30.0, 2.0, 2.0]
+    assert len(resets) == 5
+
+
+async def test_a_full_batch_goes_round_again_without_sleeping(monkeypatch):
+    delays, _ = await _run_loop(
+        monkeypatch,
+        starts=[True] * 3,
+        passes=[(outbox_relay.BATCH_SIZE, 0), (outbox_relay.BATCH_SIZE, 0), (7, 0)],
+        iterations=3,
+    )
+    assert delays == [0, 0, 2.0]

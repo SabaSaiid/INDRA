@@ -54,6 +54,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Kafka producer startup skipped (non-fatal): {e}")
 
+    # Publishes every report the request could not (BUG-060): stored while
+    # Kafka was down, or whose immediate publish failed. It also restarts the
+    # producer after an outage.
+    relay_task = None
+    try:
+        from app.workers.outbox_relay import start_outbox_relay
+        relay_task = asyncio.create_task(start_outbox_relay())
+    except Exception as e:
+        logger.warning(f"Outbox relay startup skipped (non-fatal): {e}")
+
     # Warm the embedding model, off the event loop, without delaying readiness.
     #
     # MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.
@@ -134,6 +144,14 @@ async def lifespan(app: FastAPI):
         sachet_task.cancel()
         try:
             await sachet_task
+        except asyncio.CancelledError:
+            pass
+
+    # The relay first, then the producer it publishes through.
+    if relay_task:
+        relay_task.cancel()
+        try:
+            await relay_task
         except asyncio.CancelledError:
             pass
 
