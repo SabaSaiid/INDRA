@@ -5,6 +5,7 @@ POST /api/reports/submit          — stores the report with its outbox message,
                                     (503 if it could not be stored)
 POST /api/reports/official        — the same, for an authenticated COMMANDER/ADMIN,
                                     stored as OFFICIAL_DISPATCH with who filed it
+GET  /api/reports/track/{docket}  — where a report is now, for the citizen holding its docket
 """
 
 import logging
@@ -23,7 +24,13 @@ from app.core.demo import demo_fallback
 from app.core.security import TokenData, require_roles
 from app.models.enums import EventType
 from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
-from app.services.ingest import StoreError, reporter_hash_for, store_report
+from app.services.ingest import (
+    StoreError,
+    docket_status,
+    normalise_docket,
+    reporter_hash_for,
+    store_report,
+)
 
 logger = logging.getLogger("indra.api.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
@@ -176,6 +183,8 @@ async def _ingest(
         status_code=202,
         content={
             "id": str(stored.id),
+            # What the citizen keeps to follow the report: GET /track/{docket}.
+            "docket": stored.docket,
             "status": "accepted",
             "queued": stored.queued,
             "will_retry": not stored.queued,
@@ -303,3 +312,59 @@ async def list_recent_reports(
     # No demo payload: an empty field-reports layer is an honest map, and a
     # fabricated citizen report is the one thing this console must never draw.
     return demo_fallback("GET /api/reports/recent", list, list, db_error)
+
+
+@router.get("/track/{docket}")
+async def track_report(docket: str, db: AsyncSession = Depends(get_db)):
+    """
+    Where a report is now, for the citizen holding its docket.
+
+    Open, like /submit: the docket is the credential, and anyone holding one
+    can call this. So it answers only what that person is entitled to know —
+    whether the report was received, processed, suppressed as a duplicate, or
+    joined an event, and that event's code and decision — and never the text,
+    the coordinates or anything about who sent it. The place is the district
+    and state, no finer.
+
+    Typing slips are forgiven (case, spaces, hyphens, O/I/L for 0/1/1). A
+    docket that cannot exist is the same 404 as one that does not, so the
+    answer never helps anyone guess.
+    """
+    canonical = normalise_docket(docket)
+    if canonical is None:
+        raise HTTPException(status_code=404, detail="No report with that docket")
+
+    try:
+        row = (
+            await db.execute(
+                text("""
+                    SELECT r.docket, r.created_at, r.duplicate_of, r.event_id,
+                           r.processed_at, r.district, r.state,
+                           e.event_code, CAST(e.review_status AS text)
+                    FROM raw_reports r
+                    LEFT JOIN verified_events e ON e.id = r.event_id
+                    WHERE r.docket = :docket
+                """),
+                {"docket": canonical},
+            )
+        ).fetchone()
+    except Exception as e:
+        # No demo payload: an invented status for a real citizen's report is
+        # the one answer this route must never give.
+        logger.warning(f"Database query failed in track_report: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="No report with that docket")
+
+    (found, received_at, duplicate_of, event_id, processed_at,
+     district, state, event_code, review_status) = row
+    return {
+        "docket": found,
+        "received_at": received_at.isoformat() if received_at else None,
+        "status": docket_status(duplicate_of, event_id, review_status, processed_at),
+        "event_code": event_code,
+        "review_status": review_status,
+        "district": district,
+        "state": state,
+    }
