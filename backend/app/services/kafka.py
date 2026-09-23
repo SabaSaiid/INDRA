@@ -30,18 +30,33 @@ class KafkaPublisher:
     def __init__(self, bootstrap_servers: str):
         self._servers = bootstrap_servers
         self._producer = None
+        self._healthy = False
         self._lock = asyncio.Lock()
         self._announced_down = False
 
     @property
     def ready(self) -> bool:
-        """True while a started producer is held. Says nothing about the broker right now."""
-        return self._producer is not None
+        """
+        True while a started producer is held and its last publish did not fail.
+        A request publishes only when this is true, so after one request has
+        waited out a dead broker the next ones do not.
+        """
+        return self._producer is not None and self._healthy
+
+    def mark_unhealthy(self) -> None:
+        """
+        A publish failed. Stop offering the producer to requests; the relay's
+        next ensure_started() rebuilds it. Cheap and synchronous, so a request
+        can call it without waiting on anything.
+        """
+        self._healthy = False
 
     async def ensure_started(self) -> bool:
-        """Start the producer if it is not running. Never raises; False means not now."""
-        if self._producer is not None:
+        """Start the producer if it is not running, or rebuild it if a publish failed. Never raises."""
+        if self.ready:
             return True
+        if self._producer is not None:
+            await self.reset()
         async with self._lock:
             if self._producer is not None:
                 return True
@@ -70,6 +85,7 @@ class KafkaPublisher:
                 return False
 
             self._producer = producer
+            self._healthy = True
             if self._announced_down:
                 logger.info(f"✓ Kafka producer connected again to {self._servers}")
                 self._announced_down = False
@@ -88,6 +104,7 @@ class KafkaPublisher:
         """Drop the producer, so the next ensure_started() builds a fresh one."""
         async with self._lock:
             producer, self._producer = self._producer, None
+            self._healthy = False
         if producer is not None:
             await self._stop_quietly(producer)
 

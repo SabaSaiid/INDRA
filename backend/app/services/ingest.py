@@ -359,10 +359,16 @@ async def publish_now(
             await db.rollback()
             return row is not None
 
-        await publisher.publish(
-            topic, encode_message(payload), key.encode("utf-8"),
-            timeout=REQUEST_PUBLISH_TIMEOUT_SECONDS,
-        )
+        try:
+            await publisher.publish(
+                topic, encode_message(payload), key.encode("utf-8"),
+                timeout=REQUEST_PUBLISH_TIMEOUT_SECONDS,
+            )
+        except Exception:
+            # One citizen has waited out the broker; the next ones need not.
+            # The relay rebuilds the producer when Kafka answers again.
+            publisher.mark_unhealthy()
+            raise
         await db.execute(
             text("UPDATE outbox SET published_at = NOW() WHERE id = :id"),
             {"id": outbox_id},

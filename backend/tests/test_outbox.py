@@ -40,6 +40,9 @@ class RecordingPublisher:
             raise ConnectionRefusedError("redpanda is down")
         self.sent.append((topic, json.loads(value.decode("utf-8")), key.decode("utf-8")))
 
+    def mark_unhealthy(self):
+        pass   # these tests drive readiness themselves
+
     async def ensure_started(self):
         return self.ready and not self.fail
 

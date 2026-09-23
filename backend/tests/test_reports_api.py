@@ -97,6 +97,9 @@ class FakePublisher:
             raise ConnectionRefusedError("redpanda is down")
         self.sent.append((topic, json.loads(value.decode("utf-8")), key))
 
+    def mark_unhealthy(self):
+        self.ready = False
+
 
 @pytest.fixture
 def session():
@@ -250,6 +253,19 @@ async def test_a_failed_publish_leaves_the_report_stored_and_its_message_waiting
     assert len(session.outbox_inserts) == 1
     assert "mark published" not in session.kinds()
     assert publisher.sent == []
+
+
+async def test_after_one_failed_publish_the_next_citizen_does_not_wait(api, session, publisher):
+    """One request waits out a dead broker (at most 2 s); the ones after it answer at once."""
+    publisher.fail = True
+    await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+    assert publisher.ready is False
+
+    session.statements.clear()
+    r = await api.post("/api/reports/submit", json=body(25.5941, 85.1376))
+
+    assert r.json()["will_retry"] is True
+    assert session.kinds() == ["insert report", "insert outbox", "commit"]
 
 
 async def test_with_no_producer_the_request_does_not_try_to_connect(api, session, publisher):

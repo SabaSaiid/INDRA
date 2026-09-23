@@ -130,6 +130,22 @@ async def test_reset_stops_the_producer_and_the_next_start_builds_a_fresh_one(br
     assert FakeProducer.built == 2
 
 
+async def test_a_failed_publish_takes_the_producer_out_of_service_until_it_is_rebuilt(broker):
+    """A request marks it; requests then skip it; the relay's ensure_started() rebuilds it."""
+    p = kafka.KafkaPublisher("localhost:19092")
+    await p.ensure_started()
+    first = p._producer
+
+    p.mark_unhealthy()
+    assert not p.ready
+
+    assert await p.ensure_started() is True
+    assert p.ready
+    assert p._producer is not first
+    assert first.stopped
+    assert FakeProducer.built == 2
+
+
 async def test_an_outage_is_logged_once_not_once_per_attempt(broker, caplog):
     broker["reachable"] = False
     p = kafka.KafkaPublisher("localhost:19092")
