@@ -23,17 +23,12 @@ from app.core.security import DEMO_USERS, TokenData, require_roles
 from app.models.enums import AuditAction, ReviewStatus, Severity
 from app.services import audit
 from app.services.fusion_engine import FusionEngine
+# Display label and thumbnail per event type. They live in the hazard taxonomy
+# with the rest of each type's description, so a new type is added in one place.
+from app.services.hazards import EVENT_TYPE_LABELS, IMAGE_GRADIENTS, color_of, label_of
 
 logger = logging.getLogger("indra.api.events")
 router = APIRouter(prefix="/api/events", tags=["Events"])
-
-# Map DB event_type values to display labels matching the frontend
-EVENT_TYPE_LABELS = {
-    "URBAN_FLOOD": "Flood",
-    "CLOUDBURST": "Rainfall",
-    "CYCLONE_INUNDATION": "Rainfall",
-    "RIVER_BREACH": "Flood",
-}
 
 # Map severity for frontend compatibility
 SEVERITY_LABELS = {
@@ -49,14 +44,6 @@ REVIEW_STATUS_LABELS = {
     "QUARANTINED": "under-review",
     "REJECTED": "rejected",
     "HUMAN_APPROVED": "verified",
-}
-
-# Gradient styles per event type for the thumbnail
-IMAGE_GRADIENTS = {
-    "URBAN_FLOOD": "linear-gradient(135deg, #2563EB, #1E3A8A)",
-    "CLOUDBURST": "linear-gradient(135deg, #3B82F6, #6366F1)",
-    "CYCLONE_INUNDATION": "linear-gradient(135deg, #EF4444, #C2410C)",
-    "RIVER_BREACH": "linear-gradient(135deg, #F59E0B, #92400E)",
 }
 
 # Rich fallback verified events when database is offline
@@ -362,15 +349,23 @@ async def event_distribution(
             "Advisory": "#10B981",
         }
     else:
+        # Grouped by the stored type as well as the display name, and named in
+        # Python. Only scripts/seed_national_data.py writes event_type_display,
+        # so every event the pipeline made fell through to its enum value and
+        # was drawn as a grey "URBAN_FLOOD" slice (BUG-062); it is now named
+        # from the hazard taxonomy, and merged with any seeded slice of the
+        # same name.
         query = text(f"""
             SELECT
-                COALESCE(verification_receipt->>'event_type_display', CAST(event_type AS text)) as display_type,
+                verification_receipt->>'event_type_display' as display_type,
+                CAST(event_type AS text) as event_type,
                 COUNT(*) as count
             FROM verified_events
             WHERE review_status != 'REJECTED' {time_clause}
-            GROUP BY COALESCE(verification_receipt->>'event_type_display', CAST(event_type AS text))
-            ORDER BY count DESC
+            GROUP BY 1, 2
         """)
+        # The seeder's display names. A taxonomy label not listed here takes
+        # its colour from the taxonomy.
         color_map = {
             "Rainfall": "#3B82F6",
             "Flood": "#F59E0B",
@@ -388,11 +383,11 @@ async def event_distribution(
         result = await db.execute(query, params)
         rows = result.fetchall()
 
-        if rows:
+        if rows and group_by_severity:
             distribution = []
             for row in rows:
-                raw_name = row[0] or ("Advisory" if group_by_severity else "Others")
-                name = raw_name.capitalize() if group_by_severity else raw_name
+                raw_name = row[0] or "Advisory"
+                name = raw_name.capitalize()
                 cnt = int(row[1])
                 distribution.append({
                     "name": name,
@@ -401,6 +396,18 @@ async def event_distribution(
                     "color": color_map.get(raw_name, color_map.get(name, "#94A3B8")),
                 })
             return distribution
+
+        if rows:
+            counts: Dict[str, int] = {}
+            colors: Dict[str, str] = {}
+            for display_type, event_type, cnt in rows:
+                name = display_type or label_of(event_type)
+                counts[name] = counts.get(name, 0) + int(cnt)
+                colors.setdefault(name, color_map.get(name) or color_of(event_type))
+            return [
+                {"name": name, "count": cnt, "value": cnt, "color": colors[name]}
+                for name, cnt in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+            ]
     except Exception as e:
         logger.warning(f"Database query failed in event_distribution: {e}")
         db_error = e
