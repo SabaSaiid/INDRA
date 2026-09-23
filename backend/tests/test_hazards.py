@@ -1,7 +1,9 @@
 """
 Phase 1 T1 — the hazard taxonomy: one table, 16 event types.
 
-Unit level: services/hazards.py is pure data plus lookups.
+Unit level: services/hazards.py is pure data plus lookups. The database side
+(the enum really has 16 values after migration 0011) is the integration test at
+the bottom.
 """
 
 import pytest
@@ -108,3 +110,26 @@ def test_unclassified_clusters_with_nothing_and_looks_unknown():
     assert h.family is None
     assert h.gradient == hazards.DEFAULT_GRADIENT
     assert hazards.gradient_of("TORNADO") == hazards.DEFAULT_GRADIENT
+
+
+# ── Database: migration 0011 ───────────────────────────────────────────────────
+
+@pytest.mark.integration
+async def test_the_database_can_store_every_event_and_source_type():
+    from sqlalchemy import text
+
+    from app.core.database import async_session
+    from app.models.enums import SourceType
+
+    async with async_session() as db:
+        event_types = (
+            await db.execute(text("SELECT unnest(enum_range(NULL::event_type_enum))::text"))
+        ).scalars().all()
+        source_types = (
+            await db.execute(text("SELECT unnest(enum_range(NULL::source_type_enum))::text"))
+        ).scalars().all()
+
+    assert len(event_types) == 16
+    assert set(event_types) == {t.value for t in EventType}
+    assert len(source_types) == 7
+    assert {t.value for t in SourceType} <= set(source_types)
