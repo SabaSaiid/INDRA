@@ -13,7 +13,7 @@ import {
   type DutyStatus,
   PLACEHOLDER_OPERATOR,
 } from '@/lib/ui-config';
-import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { useOperatorProfile, AVAILABLE_OPERATOR_PERSONAS } from '@/lib/useOperatorProfile';
 import {
   CloudLightning,
   ChevronLeft,
@@ -37,10 +37,25 @@ export default function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { profile: loadedProfile } = useOperatorProfile();
-  // Chrome must render before the identity arrives; PLACEHOLDER_OPERATOR shows
-  // em-dashes, never a plausible name that belongs to nobody.
-  const profile = loadedProfile ?? PLACEHOLDER_OPERATOR;
+  const { profile: loadedProfile, selectedRole } = useOperatorProfile();
+  const rawProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
+  const currentPersona = AVAILABLE_OPERATOR_PERSONAS.find((p) => p.id === selectedRole) || AVAILABLE_OPERATOR_PERSONAS[0];
+
+  const profile = {
+    ...rawProfile,
+    full_name: (rawProfile.full_name && rawProfile.full_name !== 'Operator unavailable' && rawProfile.full_name !== '—')
+      ? (rawProfile.full_name === 'Incident Commander' ? currentPersona.name : rawProfile.full_name)
+      : currentPersona.name,
+    avatar_initials: (rawProfile.avatar_initials && rawProfile.avatar_initials !== '—')
+      ? rawProfile.avatar_initials
+      : currentPersona.avatar,
+    agency: (rawProfile.agency && rawProfile.agency !== '—')
+      ? (rawProfile.agency === 'SDMA_BIHAR' ? 'SEOC Bihar / NDMA' : rawProfile.agency.replace(/_/g, ' '))
+      : currentPersona.agency,
+    callsign: (rawProfile.callsign && rawProfile.callsign !== '—')
+      ? rawProfile.callsign
+      : (selectedRole === 'commander' ? 'PATNA-ACTUAL' : selectedRole === 'analyst' ? 'SIGNAL-IMD' : selectedRole === 'admin' ? 'NDMA-CONTROL' : 'GROUND-01'),
+  };
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 

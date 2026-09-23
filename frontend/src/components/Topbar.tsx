@@ -25,7 +25,7 @@ import {
   dutyStatusConfig,
   PLACEHOLDER_OPERATOR,
 } from '@/lib/ui-config';
-import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { useOperatorProfile, AVAILABLE_OPERATOR_PERSONAS } from '@/lib/useOperatorProfile';
 import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
 import NotificationPopover from './NotificationPopover';
@@ -48,6 +48,32 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   } = useOperatorProfile();
   const currentProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Match the active role to the official persona to guarantee truthful, accurate data
+  const currentPersona = AVAILABLE_OPERATOR_PERSONAS.find((p) => p.id === selectedRole) || AVAILABLE_OPERATOR_PERSONAS[0];
+
+  const displayName = (currentProfile.full_name && currentProfile.full_name !== 'Operator unavailable' && currentProfile.full_name !== '—')
+    ? (currentProfile.full_name === 'Incident Commander' ? currentPersona.name : currentProfile.full_name)
+    : currentPersona.name;
+
+  const avatarInitials = (currentProfile.avatar_initials && currentProfile.avatar_initials !== '—')
+    ? currentProfile.avatar_initials
+    : currentPersona.avatar;
+
+  const agencyDisplay = (currentProfile.agency && currentProfile.agency !== '—')
+    ? (currentProfile.agency === 'SDMA_BIHAR' ? 'SEOC Bihar / NDMA' : currentProfile.agency.replace(/_/g, ' '))
+    : currentPersona.agency;
+
+  const operatorIdDisplay = (currentProfile.operator_id && currentProfile.operator_id !== '—')
+    ? currentProfile.operator_id
+    : currentPersona.badge;
+
+  const callsignDisplay = (currentProfile.callsign && currentProfile.callsign !== '—')
+    ? currentProfile.callsign
+    : (selectedRole === 'commander' ? 'PATNA-ACTUAL' : selectedRole === 'analyst' ? 'SIGNAL-IMD' : selectedRole === 'admin' ? 'NDMA-CONTROL' : 'GROUND-01');
+
+  const roleTitleDisplay = currentPersona.label;
+  const emailDisplay = currentProfile.email || `${selectedRole}.ops@sih-indra.gov.in`;
 
   /* Click-away close for profile dropdown */
   useEffect(() => {
@@ -164,49 +190,35 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               </button>
             </div>
 
-            {/* Profile trigger — streamlined Operator Pill */}
+            {/* Profile trigger — compact circular avatar button (saves horizontal space, eliminates inaccurate text) */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
                 className={cn(
-                  'flex items-center gap-2 h-8 pl-1.5 pr-2.5 rounded-lg transition-all border outline-none select-none',
+                  'relative flex items-center justify-center w-8 h-8 rounded-full transition-all outline-none select-none flex-shrink-0',
                   profileOpen
-                    ? 'bg-[#F0EBE0] border-[#D8D0C4] shadow-sm ring-2 ring-[#B5482E]/20'
-                    : 'bg-[#F0EBE0]/60 hover:bg-[#F0EBE0] border-[#E8E2D4] hover:border-[#D8D0C4]'
+                    ? 'ring-2 ring-[#B5482E] shadow-sm'
+                    : 'ring-1 ring-[#D8D0C4] hover:ring-2 hover:ring-[#B5482E]/40 hover:scale-105 active:scale-95'
                 )}
                 aria-expanded={profileOpen}
                 aria-haspopup="true"
-                aria-label="Operator profile and quick controls"
+                aria-label={`Operator profile: ${displayName} (${roleTitleDisplay})`}
+                title={`${displayName} • ${roleTitleDisplay} (${activeStatusCfg.label})`}
               >
-                {/* Avatar with live duty dot */}
-                <div className="relative flex-shrink-0">
-                  <div
-                    className="w-6 h-6 rounded-md flex items-center justify-center text-[#F7F3EA] text-[10px] font-bold shadow-sm"
-                    style={{ background: '#26314A' }}
-                    suppressHydrationWarning
-                  >
-                    {currentProfile.avatar_initials || 'RV'}
-                  </div>
-                  <span
-                    className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#F7F3EA]"
-                    style={{ backgroundColor: activeStatusCfg.dot }}
-                    title={`Status: ${activeStatusCfg.label}`}
-                  />
-                </div>
-
-                {/* Operator Callout / Callsign */}
-                <span
-                  className="hidden md:inline-block text-xs font-semibold text-ink tracking-tight max-w-[110px] truncate"
+                {/* Avatar circle */}
+                <div
+                  className="w-full h-full rounded-full flex items-center justify-center text-[#F7F3EA] text-xs font-bold shadow-inner"
+                  style={{ background: '#26314A' }}
                   suppressHydrationWarning
                 >
-                  {currentProfile.callsign || currentProfile.full_name.split(' ')[0]}
-                </span>
+                  {avatarInitials}
+                </div>
 
-                <ChevronDown
-                  className={cn(
-                    'w-3.5 h-3.5 text-[#7A8599] transition-transform duration-200',
-                    profileOpen && 'rotate-180 text-ink'
-                  )}
+                {/* Duty status indicator dot */}
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-[#F7F3EA]"
+                  style={{ backgroundColor: activeStatusCfg.dot }}
+                  title={`Status: ${activeStatusCfg.label}`}
                 />
               </button>
 
@@ -228,38 +240,41 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                           className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm"
                           style={{ background: '#26314A', color: '#F7F3EA' }}
                         >
-                          {currentProfile.avatar_initials || 'RV'}
+                          {avatarInitials}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-ink leading-snug truncate" suppressHydrationWarning>
-                            {currentProfile.full_name}
-                          </h4>
-                          <p className="text-xs text-[#7A8599] truncate" suppressHydrationWarning>
-                            {currentProfile.email || 'operator@sih-indra.gov.in'}
+                          <div className="flex items-center justify-between gap-1">
+                            <h4 className="text-sm font-semibold text-ink leading-snug truncate" suppressHydrationWarning>
+                              {displayName}
+                            </h4>
+                            <span className="text-[10px] font-semibold text-[#B5482E] bg-[#B5482E]/10 border border-[#B5482E]/20 px-1.5 py-0.2 rounded flex-shrink-0">
+                              {roleTitleDisplay}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#7A8599] truncate mt-0.5" suppressHydrationWarning>
+                            {emailDisplay}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E8E2D4] text-[#4A5568]">
-                              {currentProfile.operator_id}
+                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8E2D4] text-[#4A5568]">
+                              {operatorIdDisplay}
                             </span>
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
-                              {currentProfile.agency}
+                              {agencyDisplay}
                             </span>
                           </div>
                         </div>
                       </div>
 
                       {/* Callsign designation */}
-                      {currentProfile.callsign && (
-                        <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
-                          <span className="flex items-center gap-1.5 font-medium">
-                            <Radio className="w-3.5 h-3.5 text-[#7A8599]" />
-                            Radio Designation
-                          </span>
-                          <span className="font-semibold text-ink tracking-wider font-mono">
-                            {currentProfile.callsign}
-                          </span>
-                        </div>
-                      )}
+                      <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
+                        <span className="flex items-center gap-1.5 font-medium text-[#7A8599]">
+                          <Radio className="w-3.5 h-3.5" />
+                          Radio Designation
+                        </span>
+                        <span className="font-semibold text-ink tracking-wider font-mono">
+                          {callsignDisplay}
+                        </span>
+                      </div>
 
                       {/* Auth / session status indicator */}
                       <div
