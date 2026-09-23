@@ -181,7 +181,7 @@ async def client():
 
 async def wipe_event_tables(session) -> None:
     """
-    Empty audit_logs, raw_reports and verified_events, then commit.
+    Empty audit_logs, the outbox, raw_reports and verified_events, then commit.
 
     audit_logs has to go first and has to be a TRUNCATE: its rows reference
     verified_events, and trg_audit_immutable is a row-level BEFORE DELETE
@@ -193,6 +193,9 @@ async def wipe_event_tables(session) -> None:
     from sqlalchemy import text
 
     await session.execute(text("TRUNCATE audit_logs"))
+    # The outbox holds each report's message; a test that counts unpublished
+    # rows must not see the last test's.
+    await session.execute(text("DELETE FROM outbox"))
     await session.execute(text("DELETE FROM raw_reports"))
     await session.execute(text("DELETE FROM verified_events"))
     await session.commit()
