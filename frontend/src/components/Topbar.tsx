@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 import { fadeIn } from '@/lib/motion';
 import {
   type DutyStatus,
@@ -59,14 +60,23 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /* Keyboard shortcuts: Cmd+, for settings, Cmd+K for search focus */
+  /* Keyboard shortcuts: Cmd+, for settings, Cmd+K or / for search focus */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in an input/textarea
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault();
         setSettingsOpen((prev) => !prev);
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+        if (searchInput) searchInput.focus();
+      }
+      if (e.key === '/' && !isInput) {
         e.preventDefault();
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) searchInput.focus();
@@ -84,336 +94,344 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
 
   return (
     <>
-    <motion.header
-      variants={fadeIn}
-      initial="hidden"
-      animate="visible"
-      className="sticky top-0 z-40 border-b border-[#E8E2D4]"
-      style={{ background: 'rgba(247, 243, 234, 0.95)', backdropFilter: 'blur(16px)' }}
-    >
-      <div className="flex items-center justify-between h-[50px] px-4 lg:px-6">
+      <motion.header
+        variants={fadeIn}
+        initial="hidden"
+        animate="visible"
+        className="sticky top-0 z-40 border-b border-[#E8E2D4]"
+        style={{ background: 'rgba(247, 243, 234, 0.96)', backdropFilter: 'blur(16px)' }}
+      >
+        <div className="flex items-center justify-between h-14 px-3 sm:px-4 lg:px-6 gap-2 sm:gap-4">
 
-        {/* Mobile menu button */}
-        <button
-          onClick={onMobileMenuOpen}
-          className="md:hidden p-2 rounded-md hover:bg-[#F0EBE0] transition-colors"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5 text-ink-2" />
-        </button>
-
-        {/* Search */}
-        <div className="flex-1 max-w-xl mx-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0A898]" />
-            <input
-              type="text"
-              placeholder="Search location, event or report…"
-              className="w-full h-8 pl-10 pr-16 rounded-md bg-[#F0EBE0] border border-[#E8E2D4] text-sm text-ink placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all"
-              aria-label="Search"
-            />
-            {/* Search shortcut hint */}
-            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#B0A898] bg-[#E8E2D4] border border-[#D8D0C4] px-1.5 py-0.5 rounded hidden sm:block select-none">
-              /
-            </kbd>
-          </div>
-        </div>
-
-        {/* Right section */}
-        <div className="flex items-center gap-1.5">
-
-          {/* Report Incident — primary CTA */}
-          <button
-            onClick={() => setReportModalOpen(true)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#B5482E]/40"
-            style={{ background: 'linear-gradient(135deg, #C05030 0%, #B5482E 100%)' }}
-            aria-label="Report an incident"
-            id="report-incident-btn"
-          >
-            {/* On wider screens show full label; on narrow show icon + short label */}
-            <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">Report Incident</span>
-            <Plus className="w-3 h-3 sm:hidden" />
-          </button>
-
-          {/* Divider */}
-          <div className="hidden sm:block h-5 w-px bg-[#E8E2D4] mx-0.5" aria-hidden="true" />
-
-          {/* Notification Bell — now interactive */}
-          <NotificationPopover />
-
-          {/* Settings trigger */}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="p-2 rounded-md hover:bg-[#F0EBE0] transition-colors text-[#7A8599] hover:text-ink group focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
-            aria-label="Platform Settings"
-            title="System Settings & HUD Preferences (⌘,)"
-          >
-            <Settings className="w-5 h-5 transition-transform duration-300 group-hover:rotate-45" />
-          </button>
-
-          {/* Profile menu */}
-          <div className="relative" ref={dropdownRef}>
+          {/* Left section: Mobile menu button */}
+          <div className="flex items-center md:hidden">
             <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 pl-2 pr-2 py-1.5 rounded-md hover:bg-[#F0EBE0] transition-colors border border-transparent hover:border-[#E8E2D4] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
-              aria-expanded={profileOpen}
-              aria-haspopup="true"
+              onClick={onMobileMenuOpen}
+              className="p-1.5 rounded-lg hover:bg-[#F0EBE0] text-ink-2 hover:text-ink transition-colors border border-transparent hover:border-[#E8E2D4]"
+              aria-label="Open navigation menu"
             >
-              {/* Avatar with duty dot */}
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Center: Adaptive Command Search */}
+          <div className="flex-1 flex justify-start md:justify-center min-w-0">
+            <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md focus-within:max-w-lg transition-all duration-200">
               <div className="relative">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-[#F7F3EA] text-[11px] font-semibold shadow-sm"
-                  style={{ background: '#26314A' }}
-                  suppressHydrationWarning
-                >
-                  {currentProfile.avatar_initials || 'RV'}
-                </div>
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#F7F3EA]"
-                  style={{ backgroundColor: activeStatusCfg.dot }}
-                  title={`Status: ${activeStatusCfg.label}`}
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search events, warnings, teams…"
+                  className="w-full h-8 pl-9 pr-14 rounded-lg bg-[#F0EBE0]/80 border border-[#E8E2D4] text-xs sm:text-sm text-ink placeholder:text-[#7A8599] focus:outline-none focus:bg-[#FDFAF5] focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-inner"
+                  aria-label="Search"
                 />
+                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#7A8599] bg-[#E8E2D4]/70 border border-[#D8D0C4] px-1.5 py-0.5 rounded hidden sm:inline-block select-none pointer-events-none">
+                  /
+                </kbd>
               </div>
+            </div>
+          </div>
 
-              {/* Name metadata — desktop only */}
-              <div className="hidden md:block text-left">
-                <p
-                  className="text-xs font-semibold text-ink leading-tight truncate max-w-[120px]"
-                  title={currentProfile.full_name}
-                  suppressHydrationWarning
-                >
-                  {currentProfile.full_name}
-                </p>
-                <p className="text-[10px] text-[#7A8599]" suppressHydrationWarning>
-                  {currentProfile.team_role || (currentProfile.role === 'COMMANDER' ? 'Operations Director' : currentProfile.role)}
-                </p>
-              </div>
+          {/* Right section: Action CTA + Utility Cluster + Profile Pill */}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
 
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-[#7A8599] hidden md:block transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`}
-              />
+            {/* Report Incident — primary emergency CTA */}
+            <button
+              onClick={() => setReportModalOpen(true)}
+              className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md hover:brightness-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#B5482E]/30"
+              style={{ background: 'linear-gradient(135deg, #C05030 0%, #B5482E 100%)' }}
+              aria-label="Report an incident"
+              id="report-incident-btn"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Report Incident</span>
+              <Plus className="w-3.5 h-3.5 sm:hidden" />
             </button>
 
-            {/* ── Profile dropdown ──────────────────────────────────── */}
-            <AnimatePresence>
-              {profileOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-80 sm:w-[360px] rounded-xl border border-[#E8E2D4] overflow-hidden z-50 divide-y divide-[#E8E2D4] shadow-[0_8px_32px_rgba(30,42,59,0.14)]"
-                  style={{ background: '#FDFAF5' }}
+            {/* Divider */}
+            <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
+
+            {/* Utility cluster: Notifications & Platform Settings */}
+            <div className="flex items-center gap-0.5 bg-[#F0EBE0]/60 p-0.5 rounded-lg border border-[#E8E2D4]">
+              <NotificationPopover />
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="w-8 h-8 rounded-md flex items-center justify-center text-[#7A8599] hover:text-ink hover:bg-[#FDFAF5] transition-colors focus:outline-none focus:ring-1 focus:ring-[#B5482E]/30"
+                aria-label="Platform Settings"
+                title="System Settings & HUD Preferences (⌘,)"
+              >
+                <Settings className="w-4 h-4 transition-transform duration-300 hover:rotate-45" />
+              </button>
+            </div>
+
+            {/* Profile trigger — streamlined Operator Pill */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className={cn(
+                  'flex items-center gap-2 h-8 pl-1.5 pr-2.5 rounded-lg transition-all border outline-none select-none',
+                  profileOpen
+                    ? 'bg-[#F0EBE0] border-[#D8D0C4] shadow-sm ring-2 ring-[#B5482E]/20'
+                    : 'bg-[#F0EBE0]/60 hover:bg-[#F0EBE0] border-[#E8E2D4] hover:border-[#D8D0C4]'
+                )}
+                aria-expanded={profileOpen}
+                aria-haspopup="true"
+                aria-label="Operator profile and quick controls"
+              >
+                {/* Avatar with live duty dot */}
+                <div className="relative flex-shrink-0">
+                  <div
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-[#F7F3EA] text-[10px] font-bold shadow-sm"
+                    style={{ background: '#26314A' }}
+                    suppressHydrationWarning
+                  >
+                    {currentProfile.avatar_initials || 'RV'}
+                  </div>
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#F7F3EA]"
+                    style={{ backgroundColor: activeStatusCfg.dot }}
+                    title={`Status: ${activeStatusCfg.label}`}
+                  />
+                </div>
+
+                {/* Operator Callout / Callsign */}
+                <span
+                  className="hidden md:inline-block text-xs font-semibold text-ink tracking-tight max-w-[110px] truncate"
+                  suppressHydrationWarning
                 >
-                  {/* ── Section 1: Identity & Security ─────────────── */}
-                  <div className="p-4" style={{ background: '#F7F3EA' }}>
-                    <div className="flex items-start gap-3">
-                      {/* Large avatar */}
-                      <div
-                        className="w-11 h-11 rounded-xl flex items-center justify-center font-semibold text-base flex-shrink-0"
-                        style={{ background: '#26314A', color: '#F7F3EA' }}
-                      >
-                        {currentProfile.avatar_initials || 'RV'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-ink leading-snug truncate" suppressHydrationWarning>
-                          {currentProfile.full_name}
-                        </h4>
-                        <p className="text-xs text-[#7A8599] truncate" suppressHydrationWarning>
-                          {currentProfile.email || 'operator@sih-indra.gov.in'}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E8E2D4] text-[#4A5568]">
-                            {currentProfile.operator_id}
-                          </span>
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
-                            {currentProfile.agency}
-                          </span>
+                  {currentProfile.callsign || currentProfile.full_name.split(' ')[0]}
+                </span>
+
+                <ChevronDown
+                  className={cn(
+                    'w-3.5 h-3.5 text-[#7A8599] transition-transform duration-200',
+                    profileOpen && 'rotate-180 text-ink'
+                  )}
+                />
+              </button>
+
+              {/* ── Reorganized Profile Dropdown ────────────────────────── */}
+              <AnimatePresence>
+                {profileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute right-0 mt-2 w-80 sm:w-[350px] rounded-xl border border-[#E8E2D4] overflow-hidden z-50 divide-y divide-[#E8E2D4] shadow-[0_12px_36px_rgba(30,42,59,0.18)] max-h-[calc(100vh-70px)] overflow-y-auto"
+                    style={{ background: '#FDFAF5' }}
+                  >
+                    {/* ── Section 1: Identity & Security ─────────────── */}
+                    <div className="p-3.5" style={{ background: '#F7F3EA' }}>
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm"
+                          style={{ background: '#26314A', color: '#F7F3EA' }}
+                        >
+                          {currentProfile.avatar_initials || 'RV'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-ink leading-snug truncate" suppressHydrationWarning>
+                            {currentProfile.full_name}
+                          </h4>
+                          <p className="text-xs text-[#7A8599] truncate" suppressHydrationWarning>
+                            {currentProfile.email || 'operator@sih-indra.gov.in'}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E8E2D4] text-[#4A5568]">
+                              {currentProfile.operator_id}
+                            </span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
+                              {currentProfile.agency}
+                            </span>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Callsign designation */}
+                      {currentProfile.callsign && (
+                        <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <Radio className="w-3.5 h-3.5 text-[#7A8599]" />
+                            Radio Designation
+                          </span>
+                          <span className="font-semibold text-ink tracking-wider font-mono">
+                            {currentProfile.callsign}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Auth / session status indicator */}
+                      <div
+                        className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium"
+                        style={isAuthenticated
+                          ? { background: 'rgba(52,211,153,0.08)', borderColor: 'rgba(52,211,153,0.25)', color: '#2D6A4F' }
+                          : { background: 'rgba(122,133,153,0.08)', borderColor: 'rgba(122,133,153,0.2)', color: '#4A5568' }
+                        }
+                      >
+                        <Lock className="w-3 h-3 flex-shrink-0" style={{ color: isAuthenticated ? '#10B981' : '#7A8599' }} />
+                        <span className="flex-1 font-medium">
+                          {isAuthenticated ? 'Secure Session (JWT HS256)' : 'Session inactive'}
+                        </span>
+                        {isAuthenticated && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Radio callsign */}
-                    {currentProfile.callsign && (
-                      <div className="mt-3 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <Radio className="w-3.5 h-3.5 text-[#7A8599]" />
-                          Radio Designation
+                    {/* ── Section 2: Duty Status Selector ────────────── */}
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599]">
+                          Operational Duty Status
                         </span>
-                        <span className="font-semibold text-ink tracking-wider" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {currentProfile.callsign}
+                        {isUpdatingStatus && (
+                          <span className="text-[10px] text-[#B5482E] animate-pulse font-medium">Syncing…</span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
+                          const cfg = dutyStatusConfig[st];
+                          const isSelected = currentProfile.duty_status === st;
+                          return (
+                            <button
+                              key={st}
+                              onClick={() => handleDutyChange(st)}
+                              className={cn(
+                                'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                isSelected
+                                  ? 'bg-[#26314A] text-[#F7F3EA] shadow-sm font-semibold'
+                                  : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
+                              )}
+                            >
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
+                                {cfg.label}
+                              </span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* ── Section 3: Role Switcher (RBAC Demo) ────────── */}
+                    <div className="p-3" style={{ background: '#F7F3EA' }}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599] flex items-center gap-1">
+                          <Shield className="w-3 h-3 text-[#7A8599]" />
+                          Switch Role
+                        </span>
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#FBF2E4] text-[#8A611E] border border-[#D4B87A]">
+                          SIH RBAC DEMO
                         </span>
                       </div>
-                    )}
-
-                    {/* Auth / session status — relocated from topbar */}
-                    <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium"
-                      style={isAuthenticated
-                        ? { background: 'rgba(52,211,153,0.07)', borderColor: 'rgba(52,211,153,0.25)', color: '#2D6A4F' }
-                        : { background: 'rgba(122,133,153,0.07)', borderColor: 'rgba(122,133,153,0.2)', color: '#4A5568' }
-                      }
-                    >
-                      <Lock className="w-3 h-3 flex-shrink-0" style={{ color: isAuthenticated ? '#10B981' : '#7A8599' }} />
-                      <span className="flex-1">
-                        {isAuthenticated ? `Secure Session (JWT HS256)` : 'Session inactive'}
-                      </span>
-                      {isAuthenticated && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-                      )}
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { id: 'commander', label: 'Ops Lead' },
+                          { id: 'analyst',   label: 'Analyst'  },
+                          { id: 'admin',     label: 'Admin'    },
+                          { id: 'citizen',   label: 'Citizen'  },
+                        ].map((r) => {
+                          const isSelected = selectedRole === r.id;
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => switchRole(r.id)}
+                              className={cn(
+                                'px-2 py-1 rounded-lg text-[11px] font-medium transition-all text-center',
+                                isSelected
+                                  ? 'bg-[#B5482E] text-white font-semibold shadow-sm'
+                                  : 'bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
+                              )}
+                            >
+                              {r.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* ── Section 2: Duty Status Selector ────────────── */}
-                  <div className="p-3.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold tracking-wider uppercase text-[#7A8599]">
-                        Operational Status
-                      </span>
-                      {isUpdatingStatus && (
-                        <span className="text-[10px] text-[#B5482E] animate-pulse">Syncing…</span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
-                        const cfg = dutyStatusConfig[st];
-                        const isSelected = currentProfile.duty_status === st;
-                        return (
-                          <button
-                            key={st}
-                            onClick={() => handleDutyChange(st)}
-                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              isSelected ? 'text-[#F7F3EA]' : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
-                            }`}
-                            style={isSelected ? { background: '#26314A' } : {}}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
-                              {cfg.label}
-                            </span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* ── Section 3: Role Switcher (RBAC Demo) ────────── */}
-                  <div className="p-3.5" style={{ background: '#F7F3EA' }}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold tracking-wider uppercase text-[#7A8599] flex items-center gap-1">
-                        <Shield className="w-3 h-3 text-[#7A8599]" />
-                        Switch Role
-                      </span>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FBF2E4] text-[#8A611E] border border-[#D4B87A]">
-                        SIH RBAC DEMO
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-1">
-                      {[
-                        { id: 'commander', label: 'Ops Lead' },
-                        { id: 'analyst',   label: 'Analyst'  },
-                        { id: 'admin',     label: 'Admin'    },
-                        { id: 'citizen',   label: 'Citizen'  },
-                      ].map((r) => {
-                        const isSelected = selectedRole === r.id;
-                        return (
-                          <button
-                            key={r.id}
-                            onClick={() => switchRole(r.id)}
-                            className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                              isSelected ? 'text-[#F7F3EA] font-semibold' : 'bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
-                            }`}
-                            style={isSelected ? { background: '#B5482E' } : {}}
-                          >
-                            {r.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* ── Section 4: Navigation Links ──────────────────── */}
-                  <div className="p-2 space-y-0.5">
-                    <Link
-                      href="/profile"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <User className="w-4 h-4 text-[#7A8599]" />
-                        My Profile &amp; Dispatch Settings
-                      </span>
-                      <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-[#B0A898]" />
-                    </Link>
-
-                    <Link
-                      href="/teams"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Users className="w-4 h-4 text-[#7A8599]" />
-                        Disaster Response Units &amp; Teams
-                      </span>
-                      <ChevronDown className="w-3.5 h-3.5 -rotate-90 text-[#B0A898]" />
-                    </Link>
-
-                    <Link
-                      href="/teams?tab=hackathon"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Award className="w-4 h-4 text-[#B8873A]" />
-                        Team Sixth Sense (SIH Roster)
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FBF2E4] text-[#8A611E] font-semibold border border-[#D4B87A]">
-                        SIH 2026
-                      </span>
-                    </Link>
-
-                    <button
-                      onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Settings className="w-4 h-4 text-[#7A8599]" />
-                        Platform Settings &amp; HUD Config
-                      </span>
-                      <span
-                        className="text-[10px] text-[#7A8599] bg-[#E8E2D4] px-1.5 py-0.5 rounded border border-[#D8D0C4]"
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                    {/* ── Section 4: Navigation Links ──────────────────── */}
+                    <div className="p-2 space-y-0.5">
+                      <Link
+                        href="/profile"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
                       >
-                        ⌘,
-                      </span>
-                    </button>
-                  </div>
+                        <span className="flex items-center gap-2">
+                          <User className="w-3.5 h-3.5 text-[#7A8599]" />
+                          My Profile &amp; Dispatch Settings
+                        </span>
+                        <ChevronDown className="w-3 h-3 -rotate-90 text-[#B0A898]" />
+                      </Link>
 
-                  {/* Footer */}
-                  <div className="px-4 py-2.5 flex items-center justify-between text-[11px] text-[#7A8599]" style={{ background: '#F7F3EA' }}>
-                    <span>Problem Statement: SIH26069</span>
-                    <span className="font-semibold text-[#4A5568]">Team Sixth Sense</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      <Link
+                        href="/teams"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Users className="w-3.5 h-3.5 text-[#7A8599]" />
+                          Disaster Response Units &amp; Teams
+                        </span>
+                        <ChevronDown className="w-3 h-3 -rotate-90 text-[#B0A898]" />
+                      </Link>
+
+                      <Link
+                        href="/teams?tab=hackathon"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Award className="w-3.5 h-3.5 text-[#B8873A]" />
+                          Team Sixth Sense (SIH Roster)
+                        </span>
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-[#FBF2E4] text-[#8A611E] font-semibold border border-[#D4B87A]">
+                          SIH 2026
+                        </span>
+                      </Link>
+
+                      <button
+                        onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Settings className="w-3.5 h-3.5 text-[#7A8599]" />
+                          Platform Settings &amp; HUD Config
+                        </span>
+                        <span
+                          className="text-[9px] text-[#7A8599] bg-[#E8E2D4] px-1 py-0.2 rounded border border-[#D8D0C4] font-mono"
+                        >
+                          ⌘,
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-3.5 py-2 flex items-center justify-between text-[10px] text-[#7A8599]" style={{ background: '#F7F3EA' }}>
+                      <span>Problem Statement: SIH26069</span>
+                      <span className="font-semibold text-[#4A5568]">Team Sixth Sense</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
-      </div>
-    </motion.header>
+      </motion.header>
 
-    {/* Settings Drawer */}
-    <SettingsDrawer
-      isOpen={settingsOpen}
-      onClose={() => setSettingsOpen(false)}
-    />
+      {/* Settings Drawer */}
+      <SettingsDrawer
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
 
-    {/* Report Submission Modal */}
-    <ReportSubmissionModal
-      open={reportModalOpen}
-      onClose={() => setReportModalOpen(false)}
-    />
+      {/* Report Submission Modal */}
+      <ReportSubmissionModal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+      />
     </>
   );
 }

@@ -217,10 +217,10 @@ export default function Sidebar({
 
     return (
       <div className="flex flex-col h-full select-none">
-        {/* Brand header — aligns with topbar h-16 */}
+        {/* Brand header — aligns with topbar h-14 */}
         <div
           className={cn(
-            'flex items-center h-16 border-b border-white/10 flex-shrink-0',
+            'flex items-center h-14 border-b border-white/10 flex-shrink-0',
             isCollapsedState ? 'justify-center px-2' : 'justify-between px-3.5'
           )}
         >
