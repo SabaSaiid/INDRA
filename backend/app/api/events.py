@@ -614,6 +614,124 @@ async def event_distribution(
 
 
 
+# ── GET /api/events/export (Phase 2 T10) ───────────────────────────────────────
+
+EXPORT_COLUMNS = [
+    "id", "event_code", "event_type", "family", "label", "severity", "confidence_score",
+    "factor_coverage", "review_status", "quadrant", "impact_radius_km", "lat", "lng",
+    "district", "state", "place_precision", "report_count", "verified_at", "updated_at",
+]
+
+EXPORT_SQL = """
+    SELECT id, event_code, CAST(event_type AS text) AS event_type,
+           CAST(severity AS text) AS severity, confidence_score,
+           CAST(verification_receipt->>'factor_coverage' AS double precision) AS factor_coverage,
+           CAST(review_status AS text) AS review_status, CAST(quadrant AS text) AS quadrant,
+           impact_radius_km, ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
+           district, state, place_precision,
+           (SELECT count(*) FROM raw_reports r WHERE r.event_id = verified_events.id) AS report_count,
+           verified_at, updated_at,
+           ST_AsGeoJSON(COALESCE(boundary_polygon, center_point)) AS geometry
+    FROM verified_events
+    WHERE {where}
+    ORDER BY {order_by}
+    LIMIT :row_cap
+"""
+
+
+def _export_row(row) -> Dict[str, Any]:
+    from app.services.exports import plain
+
+    out = {c: plain(row[c]) for c in EXPORT_COLUMNS if c not in ("family", "label")}
+    out["id"] = str(row["id"])
+    out["family"] = family_of(row["event_type"])
+    out["label"] = label_of(row["event_type"])
+    return out
+
+
+def _event_feature(row) -> Dict[str, Any]:
+    props = _export_row(row)
+    return {
+        "type": "Feature",
+        "id": props["id"],
+        # The event's footprint when it has one; its centre point otherwise.
+        "geometry": json.loads(row["geometry"]) if row["geometry"] else None,
+        "properties": props,
+    }
+
+
+@router.get("/export")
+async def export_events(
+    format: str = Query("csv", description="csv or geojson"),
+    date_from: Optional[str] = Query(None, alias="from"),
+    date_to: Optional[str] = Query(None, alias="to"),
+    event_type: Optional[str] = Query(None),
+    family: Optional[str] = Query(None),
+    review_status: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+    state: Optional[str] = Query(None, max_length=120),
+    district: Optional[str] = Query(None, max_length=120),
+    source_type: Optional[str] = Query(None),
+    min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
+    time_range: Optional[str] = Query(None),
+    bbox: Optional[str] = Query(None),
+    q: Optional[str] = Query(None, max_length=100),
+    sort: str = Query("verified_at:desc"),
+    db: AsyncSession = Depends(get_db),
+    operator: TokenData = Depends(require_roles("ANALYST", "COMMANDER", "ADMIN")),
+):
+    """
+    Every event GET /api/events would list for these filters, up to the export
+    cap, as CSV or GeoJSON (polygon geometry, or the centre point when there is
+    no polygon), with confidence_score and factor_coverage. ANALYST or above;
+    one DATA_EXPORT ledger row per export, written before the first byte.
+    """
+    from fastapi.responses import StreamingResponse
+
+    from app.services import exports
+
+    fmt = format.lower()
+    if fmt not in exports.FORMATS:
+        raise _invalid("format", f"expected one of {list(exports.FORMATS)}", format)
+
+    conditions, params = event_conditions(
+        date_from=date_from, date_to=date_to, event_type=event_type, family=family,
+        review_status=review_status, severity=severity, state=state, district=district,
+        source_type=source_type, min_confidence=min_confidence, time_range=time_range,
+        bbox=bbox, q=q,
+    )
+    field, _, direction = sort.partition(":")
+    direction = (direction or "desc").lower()
+    if field not in SORT_COLUMNS or direction not in ("asc", "desc"):
+        raise _invalid("sort", f"expected one of {sorted(SORT_COLUMNS)}, then :asc or :desc", sort)
+    order_by = f"{SORT_COLUMNS[field]} {direction.upper()}, id {direction.upper()}"
+
+    filters = {
+        "from": date_from, "to": date_to, "event_type": event_type, "family": family,
+        "review_status": review_status, "severity": severity, "state": state,
+        "district": district, "source_type": source_type, "min_confidence": min_confidence,
+        "time_range": time_range, "bbox": bbox, "q": q, "sort": sort,
+    }
+    try:
+        await exports.record_export(
+            db, operator_id=operator.sub, kind="events", fmt=fmt, filters=filters
+        )
+    except Exception as e:
+        logger.warning(f"Export not audited, refused: {e}")
+        raise HTTPException(status_code=503, detail="Export could not be recorded in the audit ledger")
+
+    sql = EXPORT_SQL.format(where=" AND ".join(conditions), order_by=order_by)
+    if fmt == "csv":
+        body = exports.stream_csv(sql, params, EXPORT_COLUMNS, row_transform=_export_row)
+    else:
+        body = exports.stream_geojson(sql, params, _event_feature)
+    return StreamingResponse(
+        body,
+        media_type=exports.MEDIA_TYPES[fmt],
+        headers={"Content-Disposition": f'attachment; filename="{exports.filename("events", fmt)}"'},
+    )
+
+
 @router.get("/{event_id}")
 async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
     """Full event detail including verification_receipt breakdown."""
