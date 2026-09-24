@@ -44,11 +44,14 @@ SOURCE_MAP = {
     "CWC_GAUGE": {"source": "imd", "sourceLabel": "CWC Gauge"},
     # Filed through the authenticated route (BUG-025). It was drawn as "news".
     "OFFICIAL_DISPATCH": {"source": "official", "sourceLabel": "Official dispatch"},
-    # Phase 2's feeds (migration 0011). Nothing writes them yet; when something
-    # does, they must not arrive labelled "Unknown Source".
+    # Phase 2's feeds. The label is refined per item in _report_item: a post
+    # says "Mastodon", a headline its publisher's name.
     "SOCIAL_MEDIA": {"source": "social", "sourceLabel": "Social media"},
     "NEWS_MEDIA": {"source": "news", "sourceLabel": "News"},
 }
+
+# What a collected item is labelled with, by platform (Phase 2 T8).
+PLATFORM_LABELS = {"mastodon": "Mastodon", "google_news": "Google News"}
 
 DEMO_FEED: List[Dict[str, Any]] = [
     {
@@ -108,7 +111,8 @@ def _stamp(ts) -> Dict[str, Optional[str]]:
 
 
 REPORTS_SQL = text("""
-    SELECT id, source_type, raw_text, created_at, district, state, event_id, duplicate_of
+    SELECT id, source_type, raw_text, created_at, district, state, event_id, duplicate_of,
+           platform, source_meta->>'publisher'
     FROM raw_reports
     ORDER BY created_at DESC
     LIMIT :limit
@@ -138,16 +142,24 @@ WARNINGS_SQL = text("""
 def _report_item(row) -> Dict[str, Any]:
     info = SOURCE_MAP.get(row[1], {"source": "news", "sourceLabel": "Unknown Source"})
     status = "duplicate" if row[7] else ("in_event" if row[6] else "pending")
-    return {
+    label = info["sourceLabel"]
+    if row[1] == "NEWS_MEDIA" and row[9]:
+        label = row[9]  # the publisher: "The Hindu", "News On AIR"
+    elif row[8] in PLATFORM_LABELS:
+        label = PLATFORM_LABELS[row[8]]
+    item = {
         "id": str(row[0]),
         "kind": "report",
         "source": info["source"],
-        "sourceLabel": info["sourceLabel"],
+        "sourceLabel": label,
         "message": (row[2] or "")[:200],
         "place": _place(row[4], row[5]),
         "status": status,
         **_stamp(row[3]),
     }
+    if row[8]:
+        item["platform"] = row[8]
+    return item
 
 
 def _event_item(row) -> Dict[str, Any]:
