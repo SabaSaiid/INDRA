@@ -82,6 +82,9 @@ class AuditAction(str, enum.Enum):
     ESCALATE = "ESCALATE"
     HUMAN_APPROVE = "HUMAN_APPROVE"
     HUMAN_REJECT = "HUMAN_REJECT"
+    # Added 24 Sep (migration 0015): an analyst exported reports or events.
+    # Not a decision about an event, so its ledger row has no event_id.
+    DATA_EXPORT = "DATA_EXPORT"
 
 
 class TeamStatus(str, enum.Enum):
