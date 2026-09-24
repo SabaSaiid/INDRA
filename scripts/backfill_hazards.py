@@ -86,7 +86,14 @@ async def run(dry_run: bool) -> int:
                 updates = []
                 for rid, raw_text, source_type, analysis, primary, family, flags, credibility in rows:
                     scanned += 1
-                    new = derive_text_fields(source_type, raw_text or "", rid)
+                    # `coordinated` comes from other reports, not the text:
+                    # kept as the pipeline set it, with its reason.
+                    kept = [f for f in (flags or []) if f == "coordinated"]
+                    new = derive_text_fields(source_type, raw_text or "", rid, extra_flags=kept)
+                    if kept and new["analysis"] is not None and analysis:
+                        reason = (analysis.get("flag_basis") or {}).get("coordinated")
+                        if reason:
+                            new["analysis"].setdefault("flag_basis", {})["coordinated"] = reason
                     same = (
                         _comparable(new["analysis"]) == _comparable(analysis)
                         and new["hazard_primary"] == primary

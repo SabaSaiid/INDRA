@@ -24,7 +24,7 @@ import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -33,7 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.services import kafka
 from app.services.credibility import compute_credibility
-from app.services.report_flags import adjust_credibility, text_flags
+from app.services.report_flags import FLAGS, adjust_credibility, text_flags
 from app.services.text_processing import clean_text, detect_language, extract_metadata
 
 logger = logging.getLogger("indra.services.ingest")
@@ -205,11 +205,15 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
         return None
 
 
-def derive_text_fields(source_type: str, raw_text: str, report_id) -> Dict[str, Any]:
+def derive_text_fields(
+    source_type: str, raw_text: str, report_id, extra_flags: Sequence[str] = ()
+) -> Dict[str, Any]:
     """
     Everything ingest derives from a report's text, in one place so the
     backfill (scripts/backfill_hazards.py) writes exactly what a newly stored
-    report gets:
+    report gets. `extra_flags` carries a flag the text alone cannot show —
+    `coordinated`, which the pipeline sets from other reports — so a backfill
+    keeps it:
 
         analysis         the layer-3 extraction (None if it failed)
         hazard_primary   the hazard the text is about, or None
@@ -221,6 +225,11 @@ def derive_text_fields(source_type: str, raw_text: str, report_id) -> Dict[str, 
     analysis = analyse(raw_text, report_id)
     fields = analysis or {}
     flags = list(fields.get("flags") or [])
+    extra = [f for f in extra_flags if f not in flags]
+    if extra:
+        flags = [f for f in FLAGS if f in set(flags) | set(extra)]
+        if analysis is not None:
+            analysis["flags"] = flags
     return {
         "analysis": analysis,
         "hazard_primary": fields.get("hazard_primary"),
