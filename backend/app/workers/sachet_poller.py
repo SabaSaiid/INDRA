@@ -156,6 +156,14 @@ async def fetch_cap(client: httpx.AsyncClient, item: RssItem) -> Optional[CapAle
         logger.warning(f"SACHET CAP {item.identifier} returned HTTP {resp.status_code}")
         return None
 
+    # The CAP document as NDMA sent it, into the lake's raw layer (Phase 2
+    # T9). Only new or revised alerts reach here, so this is one object per
+    # warning version, not one per poll. Never raises.
+    from app.services import lake
+
+    await lake.put_raw(
+        "sachet", resp.content, "application/xml", metadata={"identifier": item.identifier}
+    )
     return parse_cap_alert(resp.content)
 
 
