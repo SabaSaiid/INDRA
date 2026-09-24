@@ -6,7 +6,8 @@
 section 13, Phase 1** — sixteen event types, the PS's filters, citizen dockets, and no lost reports.
 **New on 24 Sep: section 14** — a browser test the map redesign broke, and the frontend team's
 backend report, checked — **and section 15**: the dashboard shows its own review status instead of
-the API's, so a commander's approval never appears.
+the API's, so a commander's approval never appears. **Also 24 Sep: the team server is on HTTPS** at
+`https://indra-sixthsense.duckdns.org` (section 13, last row).
 
 **Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
 request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
@@ -269,7 +270,7 @@ everything below is additive. Shapes and captured examples: [`api-contract.md`](
 | **The 202 body gains `docket` and `will_retry`** | **F5**: after a submit, show the docket (`R-7K3M9QX2`) and tell the citizen to keep it; add a "track my report" box that calls **`GET /api/reports/track/{docket}`**. `queued: false` now means *stored, and it will be processed when the event bus is back* — please do not show it as a failure | new |
 | **Optional `observed_at`, `hazard` and `X-Reporter-Id` on submit** | Generate a random id once per browser (`crypto.randomUUID()`), keep it in `localStorage`, and send it as the `X-Reporter-Id` header; only a keyed hash is stored. Offer a hazard picker (values from `/api/meta/filters` or the contract's table) and an optional "when did this happen?" — send `observed_at` **with its timezone** (`toISOString()`); a naive time is a 422 | optional |
 | **`/healthz` gains `outbox_backlog`** | The admin console can show `{count, oldest_s}`: reports stored but still waiting for the event bus | optional |
-| An `https://` address for the team server | Coming with Phase 1 T7, so phones can use the report form's location button (browsers allow GPS only over HTTPS). Nothing to do until it is announced here; `wss://` will follow automatically, because `useIndraWebSocket.ts` derives it from the API base | later |
+| An `https://` address for the team server | **Live since 24 Sep: `https://indra-sixthsense.duckdns.org`** (Phase 1 T7). The dashboard, the API and the WebSocket share the name; `wss://` follows automatically, because `useIndraWebSocket.ts` derives it from the API base. The server's dashboard is already built with it as `NEXT_PUBLIC_API_BASE_URL`, so phones can use the report form's location button (browsers allow GPS only over HTTPS). Nothing changes for local development. `http://15.252.50.176:3000` and `:8000` keep working until everyone has switched, and will then be closed | live |
 
 **Track statuses, in words a citizen understands** — a suggestion, yours to change:
 

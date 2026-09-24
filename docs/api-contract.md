@@ -9,7 +9,10 @@ was read out of its router, not out of an older document, and every example resp
 *captured* was copied from `curl` against a running stack. If this file and the code disagree, the
 code is right and this file is a bug.
 
-Base URL in development: `http://localhost:8000`. On the team server: `http://15.252.50.176:8000`.
+Base URL in development: `http://localhost:8000`. On the team server, since 24 Sep:
+**`https://indra-sixthsense.duckdns.org`**, one name for the dashboard, the API and the WebSocket
+(`wss://indra-sixthsense.duckdns.org/ws/events`), with a Let's Encrypt certificate. The old
+`http://15.252.50.176:8000` still answers until the whole team has switched, and will then be closed.
 Interactive docs: `/docs`.
 
 ---
