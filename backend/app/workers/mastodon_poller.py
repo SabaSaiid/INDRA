@@ -350,6 +350,14 @@ async def run_tick(session_factory=None) -> TickResult:
         await record_tick(FEED, ok=False, error=f"{type(e).__name__}: {e}")
         raise
 
+    # Every page as fetched, into the lake's raw layer (T9). Never raises.
+    from app.services import lake
+
+    for instance, tag, body in result.pages:
+        await lake.put_raw(
+            FEED, body, "application/json", metadata={"instance": instance, "tag": tag}
+        )
+
     if result.written:
         logger.info(
             f"Mastodon poll stored {result.written} new posts "
