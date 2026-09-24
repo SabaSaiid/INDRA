@@ -126,28 +126,33 @@ def stale_after_s(feed: Feed, settings=None) -> Optional[int]:
     return None if interval is None else STALE_AFTER_INTERVALS * interval
 
 
+# Every parameter is CAST: :items lands in an integer column and a bigint sum,
+# and asyncpg refuses a parameter whose type two uses deduce differently
+# ("inconsistent types deduced for parameter: integer versus bigint"). Since
+# record_tick() never raises, that error left feed_status empty and every
+# poller "stale" until the Phase 2 testing pass found it.
 _UPSERT = text("""
     INSERT INTO feed_status AS fs
         (feed, kind, enabled, last_attempt_at, last_success_at, last_error_at, last_error,
          consecutive_failures, items_last_tick, rows_total, cursor, updated_at)
     VALUES (
         :feed, :kind, :enabled, now(),
-        CASE WHEN :ok THEN now() END,
+        CASE WHEN CAST(:ok AS boolean) THEN now() END,
         CASE WHEN CAST(:error AS text) IS NOT NULL THEN now() END,
         CAST(:error AS text),
-        CASE WHEN :ok THEN 0 ELSE 1 END,
-        :items, :items, CAST(:cursor AS jsonb), now()
+        CASE WHEN CAST(:ok AS boolean) THEN 0 ELSE 1 END,
+        CAST(:items AS integer), CAST(:items AS integer), CAST(:cursor AS jsonb), now()
     )
     ON CONFLICT (feed) DO UPDATE SET
         kind = EXCLUDED.kind,
         enabled = EXCLUDED.enabled,
         last_attempt_at = now(),
-        last_success_at = CASE WHEN :ok THEN now() ELSE fs.last_success_at END,
+        last_success_at = CASE WHEN CAST(:ok AS boolean) THEN now() ELSE fs.last_success_at END,
         last_error_at = CASE WHEN CAST(:error AS text) IS NOT NULL THEN now() ELSE fs.last_error_at END,
         last_error = COALESCE(CAST(:error AS text), fs.last_error),
-        consecutive_failures = CASE WHEN :ok THEN 0 ELSE fs.consecutive_failures + 1 END,
-        items_last_tick = :items,
-        rows_total = fs.rows_total + :items,
+        consecutive_failures = CASE WHEN CAST(:ok AS boolean) THEN 0 ELSE fs.consecutive_failures + 1 END,
+        items_last_tick = CAST(:items AS integer),
+        rows_total = fs.rows_total + CAST(:items AS integer),
         -- A tick that learned no new resume point keeps the old one.
         cursor = COALESCE(CAST(:cursor AS jsonb), fs.cursor),
         updated_at = now()
