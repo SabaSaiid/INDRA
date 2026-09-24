@@ -158,6 +158,17 @@ class Settings(BaseSettings):
     # One live Gujarat district ring measured 235 KB. Past this the ring is
     # decimated and the row records that it was.
     SACHET_MAX_POLYGON_POINTS: int = 2000
+    # ── METAR poller (layer 1, Phase 2 T3: airport weather observations) ───
+    # AWC's bulk cache of every METAR in the world, filtered to India's
+    # aerodromes. No key. Off by default like every Phase 2 poller: the team
+    # server turns it on in /opt/indra/.env. The file is ~260 KB and AWC
+    # rewrites it every minute or so; If-Modified-Since makes an unchanged
+    # file a 304.
+    METAR_POLLER_ENABLED: bool = False
+    METAR_POLL_INTERVAL_SECONDS: int = 600
+    METAR_CACHE_URL: str = "https://aviationweather.gov/data/cache/metars.cache.csv.gz"
+    METAR_TIMEOUT_SECONDS: float = 30.0
+
     # How fresh and how near a stored reading must be for the weather factor to
     # prefer it over a live fetch.
     #
