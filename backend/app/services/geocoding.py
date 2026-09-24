@@ -570,3 +570,290 @@ def sanitize_coordinates(
 
     # National command centroid fallback
     return 22.0, 82.0, "National Command Grid", "India"
+
+
+# ---------------------------------------------------------------------------
+# Place from text — where a post or headline says it is (Phase 2 T6)
+# ---------------------------------------------------------------------------
+#
+# Mastodon posts and news headlines almost never carry GPS, but they name
+# places: "heavy rain in Ernakulam", "#MumbaiRains", "Waterlogging in Kochi".
+# place_from_text() turns those names into a district, a state, or an honest
+# "none", with a precision that says which:
+#
+#   district   exactly one district or city named, or several within 50 km of
+#              each other (their centroid). Clusterable, like a GPS report.
+#   state      only a state named, or districts too far apart to be one place.
+#              Stored and filterable, but never clustered: a state is not a
+#              location for a 5 km radius.
+#   none       nothing recognised, or only names that could be several places.
+#
+# **It never guesses.** A name that belongs to more than one district
+# (Aurangabad in Bihar and in Maharashtra; Bilaspur, Hamirpur, Pratapgarh,
+# Balrampur, Bijapur) resolves only when the text also names the state, the
+# same rule district_by_name() applies to SACHET's area descriptions (BUG-042).
+# A post placed in the wrong district would corroborate a flood that is not
+# there, which is worse than a post with no place at all.
+
+CITY_ALIASES_CSV = DISTRICTS_CSV.parent / "india_city_aliases.csv"
+
+# How far apart the districts one post names may be and still be one place.
+TEXT_PLACE_SPREAD_KM = 50.0
+
+# District names that are also ordinary words, names or rivers, and so appear
+# in weather posts without meaning the district: "Punch" (Poonch), "Samba",
+# "Anand", "Sagar", "Tapi" and "Gomati" (rivers), "Krishna", "Narmada",
+# "Banda" and "Panna" (Hinglish words), "NTR" and "YSR" (people). Their aliases
+# still work ("Poonch" resolves to Punch).
+_GENERIC_DISTRICT_NAMES = {
+    "punch", "samba", "gomati", "tapi", "pali", "mon", "una", "mau", "guna",
+    "dang", "anand", "sagar", "dhar", "nuh", "ntr", "ysr", "banda", "mansa",
+    "panna", "sidhi", "jalna", "senapati", "krishna", "narmada",
+}
+
+# State names as posts write them, beyond the gazetteer's own spelling.
+_STATE_ALIASES: Dict[str, str] = {
+    "orissa": "Odisha",
+    "uttaranchal": "Uttarakhand",
+    "chattisgarh": "Chhattisgarh",
+    "chhatisgarh": "Chhattisgarh",
+    "telengana": "Telangana",
+    "west bengal": "West Bengal",
+    "bengal": "West Bengal",
+    "jammu & kashmir": "Jammu and Kashmir",
+    "j&k": "Jammu and Kashmir",
+    "kashmir": "Jammu and Kashmir",
+    "andaman": "Andaman and Nicobar Islands",
+    "andaman and nicobar": "Andaman and Nicobar Islands",
+    "tamilnadu": "Tamil Nadu",
+    # Hindi
+    "बिहार": "Bihar", "केरल": "Kerala", "उत्तर प्रदेश": "Uttar Pradesh",
+    "महाराष्ट्र": "Maharashtra", "राजस्थान": "Rajasthan", "गुजरात": "Gujarat",
+    "मध्य प्रदेश": "Madhya Pradesh", "तमिलनाडु": "Tamil Nadu",
+    "पश्चिम बंगाल": "West Bengal", "बंगाल": "West Bengal", "ओडिशा": "Odisha",
+    "असम": "Assam", "पंजाब": "Punjab", "हरियाणा": "Haryana",
+    "उत्तराखंड": "Uttarakhand", "हिमाचल प्रदेश": "Himachal Pradesh",
+    "हिमाचल": "Himachal Pradesh", "झारखंड": "Jharkhand",
+    "छत्तीसगढ़": "Chhattisgarh", "तेलंगाना": "Telangana",
+    "आंध्र प्रदेश": "Andhra Pradesh", "कर्नाटक": "Karnataka",
+    "जम्मू-कश्मीर": "Jammu and Kashmir", "जम्मू कश्मीर": "Jammu and Kashmir",
+    "गोवा": "Goa", "सिक्किम": "Sikkim", "मेघालय": "Meghalaya",
+    "मणिपुर": "Manipur", "मिजोरम": "Mizoram", "नागालैंड": "Nagaland",
+    "त्रिपुरा": "Tripura", "अरुणाचल प्रदेश": "Arunachal Pradesh",
+    "लद्दाख": "Ladakh",
+}
+
+# Written in capitals as standalone tokens, and matched only so: "up" and "ap"
+# are English words, "UP" and "AP" in a headline are states.
+_STATE_ABBREVIATIONS: Dict[str, str] = {
+    "UP": "Uttar Pradesh",
+    "MP": "Madhya Pradesh",
+    "HP": "Himachal Pradesh",
+    "AP": "Andhra Pradesh",
+    "TN": "Tamil Nadu",
+    "WB": "West Bengal",
+    "J&K": "Jammu and Kashmir",
+    "JK": "Jammu and Kashmir",
+}
+_ABBREVIATION_RE = re.compile(
+    r"(?<![\w&])(" + "|".join(re.escape(k) for k in sorted(_STATE_ABBREVIATIONS, key=len, reverse=True)) + r")(?![\w&])"
+)
+
+# Seas and bays named after land. "Low pressure over the Bay of Bengal" is not
+# a post about West Bengal; these are removed before any name is matched.
+_WATER_BODIES_RE = re.compile(
+    r"\b(bay of bengal|arabian sea|indian ocean|andaman sea|gulf of mannar|"
+    r"gulf of kutch|gulf of khambhat)\b",
+    re.IGNORECASE,
+)
+
+# What a weather hashtag wraps around its place: #MumbaiRains, #KeralaWeather,
+# #keralarain, #DelhiFloods. Stripped from the end, longest first.
+_HASHTAG_SUFFIXES = sorted(
+    {
+        "rains", "rain", "rainfall", "weather", "floods", "flood", "flooding",
+        "fog", "heatwave", "heat", "storm", "storms", "cyclone", "alert",
+        "alerts", "monsoon", "update", "updates", "news", "waterlogging",
+        "landslide", "landslides", "cloudburst", "thunderstorm", "lightning",
+        "hailstorm", "duststorm", "coldwave", "winter", "traffic",
+        # Not "now" or "live": #Lucknow would become "Luck".
+    },
+    key=len,
+    reverse=True,
+)
+_CAMEL_RE = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+_HASHTAG_IN_TEXT_RE = re.compile(r"#(\w+)")
+
+
+def hashtag_words(tag: str) -> str:
+    """
+    A hashtag as the words it hides: "#MumbaiRains" → "Mumbai",
+    "#keralarain" → "kerala", "#NewDelhiWeather" → "New Delhi".
+
+    Camel case is split first; then weather words are stripped from the end,
+    repeatedly, so "#DelhiRainAlert" loses both.
+    """
+    tag = (tag or "").lstrip("#").strip()
+    if not tag:
+        return ""
+    words = _CAMEL_RE.sub(" ", tag).replace("_", " ").split()
+    # Strip whole trailing words first ("Mumbai Rains")…
+    while len(words) > 1 and words[-1].lower() in _HASHTAG_SUFFIXES:
+        words.pop()
+    # …then suffixes glued onto a lowercase tag ("keralarain").
+    if len(words) == 1:
+        word = words[0]
+        changed = True
+        while changed:
+            changed = False
+            for suffix in _HASHTAG_SUFFIXES:
+                if word.lower().endswith(suffix) and len(word) > len(suffix) + 2:
+                    word = word[: -len(suffix)]
+                    changed = True
+                    break
+        words = [word]
+    return " ".join(words)
+
+
+@lru_cache(maxsize=1)
+def _load_city_aliases() -> List[Dict[str, str]]:
+    try:
+        with CITY_ALIASES_CSV.open(newline="", encoding="utf-8") as handle:
+            return [
+                {"alias": r["alias"].strip(), "district": r["district"].strip(), "state": r["state"].strip()}
+                for r in csv.DictReader(handle)
+                if r.get("alias") and r.get("district")
+            ]
+    except (OSError, KeyError) as exc:
+        logger.error(f"City alias table unreadable at {CITY_ALIASES_CSV} ({exc}); aliases off")
+        return []
+
+
+@lru_cache(maxsize=1)
+def _place_names() -> Tuple[Dict[str, Dict[str, Any]], Any]:
+    """
+    Every name place_from_text recognises, lowercased, with what it means, and
+    one regex that finds them all (longest name first, so "Navi Mumbai" wins
+    over "Mumbai" and "West Bengal" over "Bengal").
+
+    Each entry: {"districts": [(district, state), …], "state": state or None}.
+    A name with more than one district candidate is ambiguous.
+    """
+    names: Dict[str, Dict[str, Any]] = {}
+
+    def entry(key: str) -> Dict[str, Any]:
+        return names.setdefault(key, {"districts": [], "state": None})
+
+    for d in load_districts():
+        key = d["district"].lower()
+        if key in _GENERIC_DISTRICT_NAMES:
+            continue
+        pair = (d["district"], d["state"])
+        if pair not in entry(key)["districts"]:
+            entry(key)["districts"].append(pair)
+
+    for a in _load_city_aliases():
+        pair = (a["district"], a["state"])
+        e = entry(a["alias"].lower())
+        if pair not in e["districts"]:
+            e["districts"].append(pair)
+
+    for state in {d["state"] for d in load_districts()}:
+        entry(state.lower())["state"] = state
+    for alias, state in _STATE_ALIASES.items():
+        entry(alias.lower())["state"] = state
+
+    alternation = "|".join(re.escape(k) for k in sorted(names, key=len, reverse=True))
+    pattern = re.compile(rf"(?<![\w&])({alternation})(?![\w&])", re.IGNORECASE)
+    return names, pattern
+
+
+def _district_point(district: str, state: str) -> Optional[Tuple[float, float]]:
+    for d in load_districts():
+        if d["district"] == district and d["state"] == state:
+            return (d["lat"], d["lng"])
+    return None
+
+
+def place_from_text(text: Optional[str], hashtags: Optional[List[str]] = None) -> Dict[str, Any]:
+    """
+    {district, state, lat, lng, precision, matched} for a post or headline.
+
+    `precision` is `district`, `state` or `none` (see the block above);
+    `matched` lists the names that decided it, for the record. Pure and
+    deterministic: the same text always gives the same place.
+    """
+    none = {"district": None, "state": None, "lat": None, "lng": None,
+            "precision": "none", "matched": []}
+    if not load_districts():
+        return none
+
+    names, pattern = _place_names()
+    body = text or ""
+    tags = list(hashtags or []) + _HASHTAG_IN_TEXT_RE.findall(body)
+    segments = [_WATER_BODIES_RE.sub(" ", body)]
+    segments += [hashtag_words(t) for t in tags]
+    haystack = " | ".join(s for s in segments if s)
+
+    district_mentions: List[Tuple[str, List[Tuple[str, str]]]] = []
+    states: List[str] = []
+    matched: List[str] = []
+
+    for m in pattern.finditer(haystack):
+        key = m.group(1).lower()
+        info = names.get(key)
+        if not info:
+            continue
+        matched.append(m.group(1))
+        if info["districts"]:
+            district_mentions.append((key, info["districts"]))
+        if info["state"] and info["state"] not in states:
+            states.append(info["state"])
+
+    for m in _ABBREVIATION_RE.finditer(_WATER_BODIES_RE.sub(" ", body)):
+        state = _STATE_ABBREVIATIONS[m.group(1)]
+        matched.append(m.group(1))
+        if state not in states:
+            states.append(state)
+
+    # Resolve each district mention; an ambiguous one needs a named state.
+    resolved: List[Tuple[str, str]] = []
+    for _key, candidates in district_mentions:
+        pick: Optional[Tuple[str, str]] = None
+        if len(candidates) == 1:
+            pick = candidates[0]
+        else:
+            narrowed = [c for c in candidates if c[1] in states]
+            if len(narrowed) == 1:
+                pick = narrowed[0]
+        if pick and pick not in resolved:
+            resolved.append(pick)
+
+    points = [(pair, _district_point(*pair)) for pair in resolved]
+    points = [(pair, p) for pair, p in points if p is not None]
+
+    if points:
+        spread = max(
+            (_haversine_km(a[1][0], a[1][1], b[1][0], b[1][1]) for a in points for b in points),
+            default=0.0,
+        )
+        if spread <= TEXT_PLACE_SPREAD_KM:
+            lat = sum(p[0] for _, p in points) / len(points)
+            lng = sum(p[1] for _, p in points) / len(points)
+            district, state = points[0][0]
+            return {"district": district, "state": state, "lat": round(lat, 6),
+                    "lng": round(lng, 6), "precision": "district", "matched": matched}
+        # Too far apart to be one place: the state, if they share one.
+        shared = {pair[1] for pair, _ in points}
+        if len(shared) == 1:
+            states = [shared.pop()]
+        else:
+            return {**none, "matched": matched}
+
+    if len(states) == 1:
+        point = _state_points().get(states[0])
+        if point is not None:
+            return {"district": None, "state": states[0], "lat": round(point[0], 6),
+                    "lng": round(point[1], 6), "precision": "state", "matched": matched}
+
+    return {**none, "matched": matched}
