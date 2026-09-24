@@ -13,7 +13,8 @@ Hive, Spark and DuckDB all read:
     source=reports      every message on indra.raw.reports, as JSON Lines
                         (workers/lake_archiver.py, its own consumer group)
     source=metar        each tick's Indian METAR rows, CSV
-    source=mastodon     each tag-timeline page, JSON
+    source=mastodon     each tag-timeline page, JSON, authors redacted to their
+                        keyed hash (the one rule bronze bends: BUG-087)
     source=google_news  each query's RSS, XML
     source=sachet       each CAP document fetched, XML
 

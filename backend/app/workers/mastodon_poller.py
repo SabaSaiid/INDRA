@@ -22,8 +22,9 @@ through the outbox and Kafka like everything else:
     source_meta     url, author_hash, account age and counts, bot flag,
                     hashtags, instance, media, links, language
 
-**Privacy.** The author's handle is stored nowhere, and neither is anything
-that contains it. A post's canonical URI does
+**Privacy.** The author's handle is stored nowhere — not in Postgres, and not
+in the lake, whose copy of each page has the authors redacted (BUG-087) — and
+neither is anything that contains it. A post's canonical URI does
 (`https://mastodon.social/users/<handle>/statuses/<id>`), so `external_id` is
 its SHA-256, which is just as unique, and `url` is the instance's
 `/web/statuses/<id>` link, which opens the same post without naming anyone.
@@ -43,6 +44,7 @@ never the boost.
 import asyncio
 import email.utils
 import hashlib
+import json
 import logging
 import time
 from dataclasses import dataclass, field
@@ -172,6 +174,57 @@ def status_to_report(status: Dict[str, Any], instance: str, tag: str) -> Optiona
         "issue_docket": False,
         "place_precision": place["precision"],
     }
+
+
+# ── What the lake keeps (T9, BUG-087) ──────────────────────────────────────────
+
+# Account fields that are not identity: kept, because Phase 5's reputation reads
+# them. Everything else in `account` (acct, username, display_name, avatar,
+# header, note, url, uri, fields, id, …) names or locates the person.
+_ACCOUNT_FIELDS_KEPT = ("created_at", "followers_count", "following_count", "statuses_count", "bot")
+
+
+def _redact_status(status: Dict[str, Any], instance: str) -> Dict[str, Any]:
+    out = dict(status)
+    account = status.get("account") or {}
+    acct = (account.get("acct") or "").strip()
+    full_acct = acct if "@" in acct else f"{acct}@{instance}"
+    out["account"] = {
+        # The same keyed pseudonym the database row carries, so a lake line
+        # and its raw_reports row can still be joined.
+        "author_hash": reporter_hash_for(f"mastodon:{full_acct.lower()}") if acct else None,
+        **{k: account.get(k) for k in _ACCOUNT_FIELDS_KEPT if k in account},
+    }
+    # The post's uri and url carry the author's handle (/users/<handle>/…,
+    # /@<handle>/…); replaced by the hashed id and the handle-free link the
+    # database row uses.
+    out["uri"] = external_id_for(status)
+    status_id = status.get("id")
+    out["url"] = f"https://{instance}/web/statuses/{status_id}" if status_id else None
+    # Who a post mentions: kept as a count, not as accounts.
+    out["mentions"] = len(status.get("mentions") or [])
+    if isinstance(status.get("reblog"), dict):
+        out["reblog"] = _redact_status(status["reblog"], instance)
+    return out
+
+
+def redact_page(raw: bytes, instance: str) -> Optional[bytes]:
+    """
+    A tag-timeline page as the lake keeps it: every status exactly as fetched,
+    except the author's identity, which is replaced by its keyed hash.
+
+    T4 keeps handles out of Postgres; the lake is held to the same rule
+    (BUG-087). The post's text is kept as written, as raw_reports keeps it.
+    None if the page cannot be read, so nothing unredacted is ever archived.
+    """
+    try:
+        statuses = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return None
+    if not isinstance(statuses, list):
+        return None
+    redacted = [_redact_status(s, instance) for s in statuses if isinstance(s, dict)]
+    return json.dumps(redacted, ensure_ascii=False).encode("utf-8")
 
 
 # ── Fetching ───────────────────────────────────────────────────────────────────
@@ -350,12 +403,17 @@ async def run_tick(session_factory=None) -> TickResult:
         await record_tick(FEED, ok=False, error=f"{type(e).__name__}: {e}")
         raise
 
-    # Every page as fetched, into the lake's raw layer (T9). Never raises.
+    # Every page as fetched, authors redacted (BUG-087), into the lake's raw
+    # layer (T9). Never raises.
     from app.services import lake
 
     for instance, tag, body in result.pages:
+        redacted = redact_page(body, instance)
+        if redacted is None:
+            continue
         await lake.put_raw(
-            FEED, body, "application/json", metadata={"instance": instance, "tag": tag}
+            FEED, redacted, "application/json",
+            metadata={"instance": instance, "tag": tag, "redacted": "authors"},
         )
 
     if result.written:
