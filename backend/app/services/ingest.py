@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.services import kafka
 from app.services.credibility import compute_credibility
+from app.services.report_flags import adjust_credibility, text_flags
 from app.services.text_processing import clean_text, detect_language, extract_metadata
 
 logger = logging.getLogger("indra.services.ingest")
@@ -169,6 +170,7 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
     """
     try:
         meta = extract_metadata(raw_text)
+        flags, flag_basis = text_flags(raw_text, meta)
         return {
             "cleaned_text": clean_text(raw_text),
             "language": detect_language(raw_text),
@@ -190,6 +192,9 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
             "wind_kmh": meta["wind_kmh"],
             "rain_mm": meta["rain_mm"],
             "implausible": meta["implausible"],
+            # Phase 3 T8: services/report_flags.py. Also a column (0017).
+            "flags": flags,
+            "flag_basis": flag_basis,
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
@@ -209,16 +214,18 @@ def derive_text_fields(source_type: str, raw_text: str, report_id) -> Dict[str, 
         hazard_primary   the hazard the text is about, or None
         hazard_family    its family, or None
         flags            the misleading-text flags (Phase 3 T8)
-        credibility      the per-report credibility score
+        credibility      the source-and-length credibility × the flags'
+                         multipliers, floored at 0.05 (report_flags.py)
     """
     analysis = analyse(raw_text, report_id)
     fields = analysis or {}
+    flags = list(fields.get("flags") or [])
     return {
         "analysis": analysis,
         "hazard_primary": fields.get("hazard_primary"),
         "hazard_family": fields.get("hazard_family"),
-        "flags": list(fields.get("flags") or []),
-        "credibility": compute_credibility(source_type, raw_text),
+        "flags": flags,
+        "credibility": adjust_credibility(compute_credibility(source_type, raw_text), flags),
     }
 
 
