@@ -12,6 +12,7 @@ numbers it quotes:
         "negated":        ["RAINFALL", ...]                     named, but denied
         "temp_c", "visibility_m", "wind_kmh", "rain_mm":  float | None
         "implausible":    ["temp_c", ...]                       outside a plausible range
+        "number_phrases": {"temp_c": "46 degree", ...}          what each number was read from
     }
 
 Rules and dictionaries, the same kind of layer-3 extraction as `depth_cm`. It
@@ -659,31 +660,39 @@ def _near(tokens: _Tokens, index: int, stems: Sequence[str], span: int) -> bool:
 
 
 def _numbers(text: str, tokens: _Tokens) -> Dict[str, Any]:
-    """temp_c, visibility_m, wind_kmh, rain_mm and which of them are implausible."""
+    """
+    temp_c, visibility_m, wind_kmh, rain_mm, which of them are implausible, and
+    `number_phrases`: the words each chosen number was read from, for the
+    severity receipt ("46 degree").
+    """
     implausible: List[str] = []
+    phrases: Dict[str, str] = {}
     temp_context = any(w in text for w in _TEMP_CONTEXT)
 
-    temps: List[float] = []
+    temps: List[Tuple[float, str]] = []
     for m in _TEMP_RE.finditer(text):
         value = float(m.group(2)) * (-1 if m.group(1) else 1)
         plausible = TEMP_RANGE_C[0] <= value <= TEMP_RANGE_C[1]
         # "360 degree view" is not a temperature; "temperature 75 degree" is,
         # and an implausible one.
         if plausible or temp_context:
-            temps.append(value)
+            temps.append((value, m.group(0).strip()))
     if not temps:
-        temps = [float(m.group(1)) for m in _TEMP_WORD_RE.finditer(text)]
+        temps = [(float(m.group(1)), m.group(0).strip()) for m in _TEMP_WORD_RE.finditer(text)]
     temp_c = None
     if temps:
-        hot = [t for t in temps if t >= HEATWAVE_FROM_C]
-        cold = [t for t in temps if t <= COLD_WAVE_TO_C]
-        temp_c = max(hot) if hot else (min(cold) if cold else temps[0])
+        hot = [t for t in temps if t[0] >= HEATWAVE_FROM_C]
+        cold = [t for t in temps if t[0] <= COLD_WAVE_TO_C]
+        temp_c, phrases["temp_c"] = (
+            max(hot) if hot else (min(cold) if cold else temps[0])
+        )
         if not TEMP_RANGE_C[0] <= temp_c <= TEMP_RANGE_C[1]:
             implausible.append("temp_c")
 
-    visibilities: List[float] = []
-    if _VIS_ZERO_RE.search(text):
-        visibilities.append(0.0)
+    visibilities: List[Tuple[float, str]] = []
+    zero = _VIS_ZERO_RE.search(text)
+    if zero:
+        visibilities.append((0.0, zero.group(0).strip()))
     for regex in _VIS_RES:
         for m in regex.finditer(text):
             value, unit = float(m.group(1)), m.group(2)
@@ -692,24 +701,30 @@ def _numbers(text: str, tokens: _Tokens) -> Dict[str, Any]:
             elif unit in ("feet", "ft"):
                 value *= 0.3048
             if value <= VISIBILITY_MAX_M:
-                visibilities.append(round(value, 1))
-    visibility_m = min(visibilities) if visibilities else None
+                visibilities.append((round(value, 1), m.group(0).strip()))
+    visibility_m = None
+    if visibilities:
+        visibility_m, phrases["visibility_m"] = min(visibilities)
 
-    winds: List[float] = []
+    winds: List[Tuple[float, str]] = []
     for m in _WIND_RE.finditer(text):
         if _near(tokens, tokens.index_at(m.start()), _WIND_WORDS, 5):
-            winds.append(max(float(g) for g in m.groups() if g is not None))
-    wind_kmh = max(winds) if winds else None
-    if wind_kmh is not None and wind_kmh > WIND_MAX_KMH:
-        implausible.append("wind_kmh")
+            winds.append((max(float(g) for g in m.groups() if g is not None), m.group(0).strip()))
+    wind_kmh = None
+    if winds:
+        wind_kmh, phrases["wind_kmh"] = max(winds)
+        if wind_kmh > WIND_MAX_KMH:
+            implausible.append("wind_kmh")
 
-    rains: List[float] = []
+    rains: List[Tuple[float, str]] = []
     for m in _RAIN_MM_RE.finditer(text):
         if _near(tokens, tokens.index_at(m.start()), _RAIN_WORDS, 5):
-            rains.append(float(m.group(1)))
-    rain_mm = max(rains) if rains else None
-    if rain_mm is not None and rain_mm > RAIN_MAX_MM:
-        implausible.append("rain_mm")
+            rains.append((float(m.group(1)), m.group(0).strip()))
+    rain_mm = None
+    if rains:
+        rain_mm, phrases["rain_mm"] = max(rains)
+        if rain_mm > RAIN_MAX_MM:
+            implausible.append("rain_mm")
 
     return {
         "temp_c": temp_c,
@@ -717,6 +732,7 @@ def _numbers(text: str, tokens: _Tokens) -> Dict[str, Any]:
         "wind_kmh": wind_kmh,
         "rain_mm": rain_mm,
         "implausible": implausible,
+        "number_phrases": phrases,
     }
 
 

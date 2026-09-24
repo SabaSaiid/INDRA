@@ -192,6 +192,7 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
             "wind_kmh": meta["wind_kmh"],
             "rain_mm": meta["rain_mm"],
             "implausible": meta["implausible"],
+            "number_phrases": meta["number_phrases"],
             # Phase 3 T8: services/report_flags.py. Also a column (0017).
             "flags": flags,
             "flag_basis": flag_basis,
