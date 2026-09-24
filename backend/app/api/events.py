@@ -1137,7 +1137,10 @@ async def event_provenance(
             await db.execute(
                 text("""
                     SELECT id, source_type, raw_text, latitude, longitude,
-                           credibility_score, created_at, submitted_by
+                           credibility_score, created_at, submitted_by,
+                           platform, source_meta->>'publisher', source_meta->>'url',
+                           COALESCE(place_precision, 'gps'), hazard_primary,
+                           COALESCE(flags, '{}'::text[]), analysis->'flag_basis'
                     FROM raw_reports
                     WHERE event_id = CAST(:id AS uuid)
                     ORDER BY created_at, id
@@ -1175,6 +1178,17 @@ async def event_provenance(
                 # Who vouched for an OFFICIAL_DISPATCH (BUG-025); null for an
                 # anonymous citizen report.
                 "submitted_by": r[7],
+                # Phase 3 T9: a post or headline that joined the event says
+                # where it came from. Null for a citizen report.
+                "platform": r[8],
+                "publisher": r[9],
+                "url": r[10],
+                "place_precision": r[11],
+                # Phase 3 T1, T8: what the text is about, and why it counts
+                # less (each flag with its reason).
+                "hazard_primary": r[12],
+                "flags": list(r[13] or []),
+                "flag_basis": r[14] or {},
             }
             for r in reports
         ],
