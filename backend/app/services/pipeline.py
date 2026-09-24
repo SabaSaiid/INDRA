@@ -255,9 +255,13 @@ DENSITY_SATURATION_REPORTS = 25
 DENSITY_CURVE_SCALE = 6.5
 
 
-def _density_score(cluster_size: int) -> float:
+def _density_score(cluster_size: float) -> float:
     """
     Report Density: how much independent corroboration a cluster has.
+
+    Since Phase 3 T8 the input is the cluster's effective independent reporters
+    (services/corroboration.py), a float: five reports from one device are one
+    witness, a spam report is a fifth of one. A plain report count still works.
 
         score(n) = (1 − e^(−n / 6.5)) / (1 − e^(−25 / 6.5)),  clamped to [0, 1]
 
@@ -283,12 +287,13 @@ def _density_score(cluster_size: int) -> float:
     return round(max(0.0, min(1.0, raw)), 4)
 
 
-def _coherence_score(max_pairwise_km: float) -> float:
+def _coherence_score(max_pairwise_km: float, eps_km: Optional[float] = None) -> float:
     """
     Spatial Coherence: a tight cluster is more likely to be one real event
     than a diffuse one. Scored on the cluster's diameter d against the DBSCAN
-    search diameter D = 2 × DBSCAN_EPS_KM (10 km by default) with a raised
-    cosine:
+    search diameter D = 2 × eps with a raised cosine, where eps is the hazard
+    family's clustering radius (Phase 3 T5: 5 km for water, 25 km for a
+    heatwave; DBSCAN_EPS_KM, 5 km, when not given):
 
         score(d) = ½ · (1 + cos(π · d / D)),  and 0 for d ≥ D
 
@@ -306,11 +311,53 @@ def _coherence_score(max_pairwise_km: float) -> float:
     Reference points (eps = 5 km): 0 km → 1.0, 1 km → 0.98, 4 km → 0.65,
     5 km → 0.5, 10 km → 0.0.
     """
-    span = max(settings.DBSCAN_EPS_KM * 2.0, 0.001)
+    span = max((eps_km or settings.DBSCAN_EPS_KM) * 2.0, 0.001)
     d = max(0.0, float(max_pairwise_km))
     if d >= span:
         return 0.0
     return round(0.5 * (1.0 + math.cos(math.pi * d / span)), 4)
+
+
+# Hazards whose events the Weather Station Corroboration factor can speak to.
+# It reads 24 h rainfall, and until Phase 4 brings per-hazard weather evidence
+# a rainfall figure says nothing for or against a heatwave, fog, a dust storm or
+# a gale: the factor is offline for those, with a note, rather than scoring a
+# dry day against a heatwave.
+RAIN_CORROBORATED_TYPES = frozenset({
+    "URBAN_FLOOD", "CLOUDBURST", "CYCLONE_INUNDATION", "RIVER_BREACH", "LANDSLIDE", "RAINFALL",
+    "THUNDERSTORM", "LIGHTNING", "HAILSTORM", "CYCLONE",
+})
+WEATHER_NOT_YET_NOTE = (
+    "rainfall does not corroborate this hazard; per-hazard weather evidence arrives in Phase 4"
+)
+
+
+def rain_corroborates(event_type: Optional[str]) -> bool:
+    return event_type is None or event_type in RAIN_CORROBORATED_TYPES
+
+
+def review_caps(event_type: Optional[str], source_types: Sequence[Any]) -> List[str]:
+    """
+    Why an event may not be auto-published, whatever its confidence:
+
+    * `unclassified` — nothing says what hazard it is (Phase 3 T6);
+    * `posts_only` — every report is a post or a headline: posts corroborate,
+      they do not verify on their own (T9).
+    """
+    caps = []
+    if event_type == EventType.UNCLASSIFIED.value:
+        caps.append("unclassified")
+    sources = {str(getattr(t, "value", t)) for t in source_types}
+    if sources and sources <= FEED_SOURCE_TYPES:
+        caps.append("posts_only")
+    return caps
+
+
+def capped(review_status: ReviewStatus, caps: Sequence[str]) -> ReviewStatus:
+    """AUTO_PUBLISHED becomes PENDING_HUMAN_REVIEW when a cap applies."""
+    if caps and review_status is ReviewStatus.AUTO_PUBLISHED:
+        return ReviewStatus.PENDING_HUMAN_REVIEW
+    return review_status
 
 
 def score_cluster(
@@ -321,10 +368,25 @@ def score_cluster(
     *,
     report_texts: Sequence[str],
     weather_source: str = "open_meteo_live",
+    event_type: Optional[str] = None,
+    event_type_basis: Optional[Dict[str, Any]] = None,
+    density: Optional[Dict[str, Any]] = None,
+    eps_km: Optional[float] = None,
+    cluster_basis: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Pure scoring step: cluster geometry + source mix + weather + report text →
     receipt, severity, quadrant and review status.
+
+    Phase 3 adds, all keyword-only and optional so a pre-Phase-3 caller scores
+    exactly as before:
+
+    * `event_type` and its `event_type_basis` (T6): the hazard's own severity
+      axis (T7), the review caps, and whether rainfall is evidence at all;
+    * `density` — effective_reporters() (T8): Report Density scores n_eff, not
+      the report count, and the receipt shows the arithmetic;
+    * `eps_km` — the family's radius, for Spatial Coherence (T5);
+    * `cluster_basis` — how the cluster was found (family, window, candidates).
 
     `report_texts` is keyword-only and deliberately has **no default**. Severity
     is derived from what the reports say, so a caller that forgot to pass them
@@ -339,13 +401,17 @@ def score_cluster(
     """
     fusion = FusionEngine()
 
-    density = _density_score(stats["count"])
-    coherence = _coherence_score(stats["max_pairwise_km"])
+    density_input = density["n_eff"] if density is not None else stats["count"]
+    density_score = _density_score(density_input)
+    eps = eps_km or settings.DBSCAN_EPS_KM
+    coherence = _coherence_score(stats["max_pairwise_km"], eps)
     reliability = source_reliability_score(source_types)
+    if not rain_corroborates(event_type):
+        weather, rainfall_mm = None, None
 
     receipt = fusion.compute_receipt(
         weather_score=weather,
-        report_density_score=density,
+        report_density_score=density_score,
         spatial_score=coherence,
         # No image classifier and no anomaly model ship this sprint, and after
         # the 20 Sep scope change they never will. Passing None excludes them
@@ -361,11 +427,19 @@ def score_cluster(
 
     # Replace the generic evidence text with what was actually measured.
     distinct_sources = sorted({str(getattr(t, "value", t)) for t in source_types})
+    if density is not None:
+        basis = density["basis"]
+        density_text = (
+            f"{basis['reports']} report(s), {density['n_eff']:g} independent witness(es) "
+            f"from {basis['distinct_reporters']} reporter(s)"
+        )
+    else:
+        density_text = f"{stats['count']} corroborating report(s) in cluster"
     evidence = {
-        "Report Density Analysis": f"{stats['count']} corroborating report(s) in cluster",
+        "Report Density Analysis": density_text,
         "Spatial Coherence Score": (
             f"cluster diameter {stats['max_pairwise_km']:.2f} km "
-            f"against {settings.DBSCAN_EPS_KM * 2:.0f} km search diameter"
+            f"against {eps * 2:.0f} km search diameter"
         ),
     }
     if reliability is not None:
@@ -391,14 +465,18 @@ def score_cluster(
     # The count axis uses stats["count"] (geometry-derived, consistent with the
     # density factor) rather than len(report_texts): a report with no geom_point
     # can still contribute its depth but must not contribute corroboration.
-    decided = _derive_severity(report_texts, stats["count"])
+    decided = _derive_severity(report_texts, stats["count"], event_type=event_type)
     severity = decided["severity"]
     quadrant = fusion.assign_quadrant(severity, confidence)
-    review_status = fusion.determine_review_status(
-        confidence,
-        settings.AUTO_PUBLISH_THRESHOLD,
-        settings.HUMAN_REVIEW_THRESHOLD,
-        severity=severity,
+    caps = review_caps(event_type, source_types)
+    review_status = capped(
+        fusion.determine_review_status(
+            confidence,
+            settings.AUTO_PUBLISH_THRESHOLD,
+            settings.HUMAN_REVIEW_THRESHOLD,
+            severity=severity,
+        ),
+        caps,
     )
 
     def _state(value: Optional[float]) -> str:
@@ -422,7 +500,7 @@ def score_cluster(
     # and what phrase it came from. A new top-level block rather than more keys
     # under provenance, whose key set is asserted exactly by the determinism test.
     receipt["severity_basis"] = decided["basis"]
-    receipt["routing"] = _routing(severity, confidence, review_status)
+    receipt["routing"] = _routing(severity, confidence, review_status, caps)
     receipt["cluster"] = {
         "size": stats["count"],
         "centroid_lat": stats["centroid_lat"],
@@ -430,13 +508,22 @@ def score_cluster(
         "max_pairwise_km": stats["max_pairwise_km"],
         "radius_km": stats["radius_km"],
         "source_types": distinct_sources,
+        "eps_km": eps,
     }
+    if cluster_basis is not None:
+        receipt["cluster"]["clustering"] = cluster_basis
+    if event_type_basis is not None:
+        receipt["event_type_basis"] = event_type_basis
+    if density is not None:
+        receipt["density_basis"] = density["basis"]
     if rainfall_mm is not None:
         receipt["weather"] = {
             "rainfall_24h_mm": rainfall_mm,
             "provider": "open-meteo",
             "source": weather_source,
         }
+    elif not rain_corroborates(event_type):
+        receipt["weather"] = {"note": WEATHER_NOT_YET_NOTE}
 
     return {
         "receipt": receipt,
@@ -444,23 +531,36 @@ def score_cluster(
         "severity": severity,
         "quadrant": quadrant,
         "review_status": review_status,
+        "caps": caps,
     }
 
 
-def _routing(severity: Severity, confidence: float, review_status: ReviewStatus) -> Dict[str, Any]:
+def _routing(
+    severity: Severity,
+    confidence: float,
+    review_status: ReviewStatus,
+    caps: Sequence[str] = (),
+) -> Dict[str, Any]:
     """
     Why the event is where it is, for the receipt. "severity" means a HIGH or
     CRITICAL event below the review gate that went to a human instead of into
     quarantine (BUG-067); an operator seeing a 0.45 event in the queue should
-    be able to read why.
+    be able to read why. "cap" means the confidence cleared the auto-publish
+    gate but a cap (review_caps) held it for a human.
     """
     by_severity = (
         confidence < settings.HUMAN_REVIEW_THRESHOLD
         and review_status is ReviewStatus.PENDING_HUMAN_REVIEW
     )
+    by_cap = (
+        bool(caps)
+        and confidence >= settings.AUTO_PUBLISH_THRESHOLD
+        and review_status is ReviewStatus.PENDING_HUMAN_REVIEW
+    )
     return {
         "review_status": review_status.value,
-        "basis": "severity" if by_severity else "confidence",
+        "basis": "cap" if by_cap else ("severity" if by_severity else "confidence"),
+        "caps": list(caps),
         "auto_publish_threshold": settings.AUTO_PUBLISH_THRESHOLD,
         "human_review_threshold": settings.HUMAN_REVIEW_THRESHOLD,
     }
