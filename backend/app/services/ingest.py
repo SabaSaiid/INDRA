@@ -195,19 +195,30 @@ def _h3_cell(lat: float, lng: float) -> Optional[str]:
 # observed_at falls back to NOW(), which inside one statement is the same
 # instant created_at defaults to — so an omitted observed_at is stored exactly
 # equal to the time the report was received.
+#
+# geom_point is written only for a position worth measuring distances from
+# (`with_geom`): a GPS fix or a district centroid. A state centroid keeps its
+# coordinates for filtering but gets no geometry, so nothing spatial — dedup,
+# clustering, a merge — ever treats "somewhere in Kerala" as a point.
 _INSERT_REPORT = text("""
     INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8,
                              district, state, media_url, credibility_score, analysis, submitted_by,
                              observed_at, reporter_hash, citizen_hazard, docket,
-                             platform, external_id, source_meta)
+                             platform, external_id, source_meta, place_precision)
     VALUES (
-        :id, :source_type, :raw_text, :lat, :lng,
-        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
+        :id, :source_type, :raw_text, CAST(:lat AS double precision), CAST(:lng AS double precision),
+        CASE WHEN :with_geom
+             THEN ST_SetSRID(ST_MakePoint(CAST(:lng AS double precision), CAST(:lat AS double precision)), 4326)
+        END,
         :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by,
         COALESCE(CAST(:observed_at AS timestamptz), NOW()), :reporter_hash, :citizen_hazard, :docket,
-        :platform, :external_id, CAST(:source_meta AS jsonb)
+        :platform, :external_id, CAST(:source_meta AS jsonb), :place_precision
     )
 """)
+
+# Positions precise enough to measure distances from. See _INSERT_REPORT.
+GEOMETRY_PRECISIONS = {"gps", "district"}
+PLACE_PRECISIONS = {"gps", "district", "state", "none"}
 
 _INSERT_OUTBOX = text("""
     INSERT INTO outbox (topic, key, payload)
@@ -225,8 +236,8 @@ async def store_report(
     *,
     source_type: str,
     raw_text: str,
-    latitude: float,
-    longitude: float,
+    latitude: Optional[float],
+    longitude: Optional[float],
     district: Optional[str] = None,
     state: Optional[str] = None,
     media_url: Optional[str] = None,
@@ -238,6 +249,7 @@ async def store_report(
     external_id: Optional[str] = None,
     source_meta: Optional[Dict[str, Any]] = None,
     issue_docket: bool = True,
+    place_precision: str = "gps",
 ) -> StoredReport:
     """
     Store one report and its outbox message in a single transaction, then try
@@ -248,10 +260,26 @@ async def store_report(
     unacceptable location means (the HTTP routes answer 422). A docket is
     issued unless the caller says otherwise — reports people submit get one;
     posts a feed collects have nobody to give it to.
+
+    `place_precision` is what the coordinates are worth (migration 0015):
+    `gps` for a device's fix — the default, and what every HTTP route stores —
+    or `district`, `state` or `none` for a post placed from its text. Both
+    coordinates are None exactly when the precision is `none`.
     """
+    if place_precision not in PLACE_PRECISIONS:
+        raise StoreError(f"unknown place_precision {place_precision!r}")
+    has_point = latitude is not None and longitude is not None
+    if has_point == (place_precision == "none") or (latitude is None) != (longitude is None):
+        raise StoreError(
+            f"coordinates ({latitude}, {longitude}) do not match place_precision {place_precision!r}"
+        )
+
     report_id = uuid.uuid4()
     credibility = compute_credibility(source_type, raw_text)
-    h3_cell = _h3_cell(latitude, longitude)
+    # The H3 cell is a claim about a 0.46 km hexagon, so only a GPS fix earns
+    # one: a district centroid in the heat map would light up a street nobody
+    # reported from.
+    h3_cell = _h3_cell(latitude, longitude) if place_precision == "gps" else None
     analysis = analyse(raw_text, report_id)
 
     # The message is exactly what ingest has always published, and nothing
@@ -291,6 +319,8 @@ async def store_report(
         "platform": platform,
         "external_id": external_id,
         "source_meta": json.dumps(source_meta) if source_meta is not None else None,
+        "place_precision": place_precision,
+        "with_geom": has_point and place_precision in GEOMETRY_PRECISIONS,
     }
 
     for attempt in range(1, _DOCKET_ATTEMPTS + 1):
