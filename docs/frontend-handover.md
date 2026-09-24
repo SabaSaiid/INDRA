@@ -4,6 +4,9 @@
 **Covers:** every backend change from 16–23 Sep 2026 that the dashboard can see, and — new on
 22 Sep — **what was changed inside `frontend/` that day, and why** (section 0). **New on 23 Sep:
 section 13, Phase 1** — sixteen event types, the PS's filters, citizen dockets, and no lost reports.
+**New on 24 Sep: section 14** — a browser test the map redesign broke, and the frontend team's
+backend report, checked — **and section 15**: the dashboard shows its own review status instead of
+the API's, so a commander's approval never appears.
 
 **Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
 request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
@@ -284,6 +287,81 @@ page can show everything it returns.
 
 **Test:** with the backend running, `curl -s -D - 'localhost:8000/api/events?limit=1' | grep -i x-total-count`
 prints the total, and `curl -s localhost:8000/api/meta/filters` returns the options.
+
+---
+
+## 14. After the 23 Sep frontend merge: one stale test, and the backend report, checked
+
+**One of the dashboard's own browser tests now fails, because of the map redesign.**
+`e2e/dashboard-cold-load.spec.ts:37` ("the map draws the pins its own badge is counting") looks for
+the text `N Incidents`. The redesigned map no longer shows that badge, so the test times out. The
+other 25 pass against the Phase 1 backend (24 Sep, production build of `main` @ `c6b8354`). The test
+needs updating to whatever the map now shows as its count; the backend has nothing to change.
+
+**`Saba/reports/2026-09-23_backend_issues.md`, checked line by line against the code.** Thank you
+for it. Two of its symptoms came from the synthetic seeder, not from the pipeline, and are fixed:
+
+| Report item | Finding | Status |
+|---|---|---|
+| 1A: random review status on `WX-EV-…` events | Confirmed in `scripts/seed_national_data.py`: statuses were drawn at random, half `AUTO_PUBLISHED` below 0.90 | **Fixed** 24 Sep (BUG-064). The seeder now asks the engine, as the pipeline does |
+| 2: a 1,564 km impact radius | Root cause: the seeder linked each report to a random event anywhere in India, so one merged real report recomputed the footprint across the country | **Fixed** (BUG-065): farthest linked report 11.7 km, was 2,096 km |
+| 2B/2C: the merge catchment grows without a ceiling | Confirmed in the pipeline | Open (BUG-066), for Phase 3's per-hazard radii — it moves scores |
+| 1B: a High event at 0.47 is quarantined, though the docs said "never ignored" | Confirmed: routing used confidence alone | **Fixed** 24 Sep (BUG-067): High and Critical events below 0.60 now go to review, never quarantine; the receipt's `routing.basis` says `severity` when that is why. **Not adopted:** auto-publishing Moderate events at ≥ 0.70 — nothing is published without a human below 0.90 |
+| 3B: demo KPIs had citizen > total | Confirmed | **Fixed** (BUG-069) |
+| 3A: "Total Reports" vs the 7-day trend | Not a defect: the card counts all time, the chart the last 7 days. If the card should say "all time", that is its label | — |
+| 4: map default view | Frontend only; no backend endpoint serves map defaults | — |
+
+**Please do not debug backend behaviour against `WX-EV-…` events.** That prefix is only ever
+written by the synthetic seeder (`--synthetic`), whose numbers are random by design; the pipeline
+writes `INDRA-YYYYMMDD-NNN`. To see what the engine really does, start from an empty database and run
+`scripts/run_patna_demo.py`.
+
+---
+
+## 15. The dashboard replaces the API's review status with its own matrix — please show `review_status` as sent
+
+**Found 24 Sep while marking up the backend report (BUG-070, S2, layer 9).** Nothing in `frontend/`
+was changed.
+
+`frontend/src/lib/eventState.ts::safeEventState()` was added on 23 Sep to guard against the seeder's
+random statuses (report item 1A). It never returns what the API sent: it derives the status and the
+quadrant from `(severity, confidence)` with a 0.90 / **0.70** matrix, and only logs a warning when
+the two differ. `/events`, `/alerts` and `EventVerificationModal` all use it. With the seeder fixed
+(BUG-064), and the pipeline's status and quadrant read from one pair of gates (BUG-017), the guard now
+hides real decisions rather than bad data:
+
+| The backend has | The dashboard shows |
+|---|---|
+| `HUMAN_APPROVED` — a commander approved it | the machine status again (a 0.52 Moderate event reads "Quarantined"), and the modal still offers **Approve**; a second approve is refused with 409 |
+| `REJECTED` | the machine status, with the commander bar still showing |
+| the Patna scene on 24 Sep: Moderate, 0.6198, `PENDING_HUMAN_REVIEW` | "Quarantined", titled "Noise" |
+| Moderate or Advisory at 0.70–0.8999, `PENDING_HUMAN_REVIEW` | "Auto-Published" — a publication that never happened |
+| High or Critical below 0.90 | "Pending Human Review" — correct, and since BUG-067 the backend agrees |
+
+This also means an approval made during the demo (the runbook's scene 3 approves over `curl`, and
+`EVENT_REVIEWED` reaches the dashboard) never shows on the cards or in the modal.
+
+The backend's rule lives in one place (`fusion_engine.py`, gates from settings):
+
+| Confidence | Advisory / Moderate | High / Critical |
+|---|---|---|
+| ≥ 0.90 | `AUTO_PUBLISHED` | `AUTO_PUBLISHED` |
+| 0.60 – 0.8999 | `PENDING_HUMAN_REVIEW` | `PENDING_HUMAN_REVIEW` |
+| < 0.60 | `QUARANTINED` | `PENDING_HUMAN_REVIEW` — never quarantined (BUG-067) |
+
+A commander's decision overrides the table: `HUMAN_APPROVED` or `REJECTED`, and once an event is
+approved its quadrant follows its severity.
+
+**What the dashboard needs:** show `review_status` and `quadrant` exactly as the API sends them, and
+keep the derivation only as a fallback for when `review_status` is missing. `HUMAN_APPROVED` already
+has a label in all three files (`REVIEW_BADGE`, `REVIEW_LABEL`, `STATUS_STYLES`), and `REJECTED` in
+two of them; neither is ever reached today. The console warning can stay if it names the API's value as
+the one shown. If the team wants the 0.70 matrix, that is a change to the backend's routing, to be
+decided in the open, not a display rule: below 0.90 nothing is published without a human, by decision
+(report item 1B, not adopted).
+
+**Check:** approve a quarantined event from the modal. The pill and the card should read "Approved",
+and the Approve button should disappear.
 
 ---
 

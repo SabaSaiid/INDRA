@@ -316,6 +316,17 @@ layer left this project's scope on 20 Sep. **Never display the score without the
 `weather.source` is `station_reading` when the rainfall came from this platform's own polled
 table, `open_meteo_live` when it was fetched while scoring.
 
+`routing` (since 24 Sep) says why the event has its `review_status`:
+
+```json
+"routing": {"review_status": "PENDING_HUMAN_REVIEW", "basis": "severity",
+            "auto_publish_threshold": 0.9, "human_review_threshold": 0.6}
+```
+
+Confidence ≥ 0.90 publishes; ≥ 0.60 goes to review; below that the event is quarantined —
+**unless it is `HIGH` or `CRITICAL`, which goes to review instead**, and `basis` is `severity`
+(BUG-067). Nothing is published without a human below 0.90, whatever its severity.
+
 ### `PATCH /api/events/{event_id}/review` — **requires a token**
 
 Auth: `COMMANDER` or `ADMIN`.

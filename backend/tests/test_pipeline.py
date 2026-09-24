@@ -221,7 +221,8 @@ async def test_status_is_consistent_with_the_persisted_score(db):
     settings = get_settings()
 
     expected_status = fusion.determine_review_status(
-        score, settings.AUTO_PUBLISH_THRESHOLD, settings.HUMAN_REVIEW_THRESHOLD
+        score, settings.AUTO_PUBLISH_THRESHOLD, settings.HUMAN_REVIEW_THRESHOLD,
+        severity=Severity(severity),
     )
     expected_quadrant = fusion.assign_quadrant(Severity(severity), score)
 

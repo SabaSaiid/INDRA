@@ -299,6 +299,29 @@ def test_determine_review_status(fusion, confidence, expected):
     assert fusion.determine_review_status(confidence) is expected
 
 
+@pytest.mark.parametrize(
+    "severity,confidence,expected",
+    [
+        # BUG-067: a High or Critical claim is never quarantined.
+        (Severity.HIGH, 0.5999, ReviewStatus.PENDING_HUMAN_REVIEW),
+        (Severity.CRITICAL, 0.0, ReviewStatus.PENDING_HUMAN_REVIEW),
+        ("HIGH", 0.47, ReviewStatus.PENDING_HUMAN_REVIEW),        # the value, as stored
+        # ...but it still needs 0.90 to publish without a human.
+        (Severity.CRITICAL, 0.8999, ReviewStatus.PENDING_HUMAN_REVIEW),
+        (Severity.HIGH, 0.90, ReviewStatus.AUTO_PUBLISHED),
+        # ADVISORY and MODERATE are routed on confidence alone, as before.
+        (Severity.MODERATE, 0.5999, ReviewStatus.QUARANTINED),
+        (Severity.MODERATE, 0.60, ReviewStatus.PENDING_HUMAN_REVIEW),
+        (Severity.ADVISORY, 0.0, ReviewStatus.QUARANTINED),
+        # No or unknown severity: confidence alone.
+        (None, 0.5999, ReviewStatus.QUARANTINED),
+        ("NOT_A_SEVERITY", 0.5999, ReviewStatus.QUARANTINED),
+    ],
+)
+def test_review_routing_with_severity(fusion, severity, confidence, expected):
+    assert fusion.determine_review_status(confidence, severity=severity) is expected
+
+
 def test_review_thresholds_are_overridable(fusion):
     """The pipeline passes settings.AUTO_PUBLISH_THRESHOLD / HUMAN_REVIEW_THRESHOLD."""
     assert (
@@ -318,6 +341,18 @@ def test_high_severity_at_085_goes_to_a_human_not_to_publish_or_bin(fusion):
 
     assert fusion.assign_quadrant(severity, confidence) is Quadrant.UNVERIFIED_THREAT
     assert fusion.determine_review_status(confidence) is ReviewStatus.PENDING_HUMAN_REVIEW
+
+
+def test_a_single_uncorroborated_dam_break_report_still_reaches_a_human(fusion):
+    """
+    The same story at 0.45, below the review gate. The docs always promised an
+    Unverified Threat is "never ignored"; until 24 Sep this one was quarantined
+    (BUG-067).
+    """
+    severity, confidence = Severity.CRITICAL, 0.45
+
+    assert fusion.assign_quadrant(severity, confidence) is Quadrant.UNVERIFIED_THREAT
+    assert fusion.determine_review_status(confidence, severity=severity) is ReviewStatus.PENDING_HUMAN_REVIEW
 
 
 # ── source_reliability_score() — Day 2 T5 ──────────────────────────────────────
