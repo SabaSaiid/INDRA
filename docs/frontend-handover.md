@@ -7,7 +7,7 @@ section 13, Phase 1** — sixteen event types, the PS's filters, citizen dockets
 **New on 24 Sep: section 14** — a browser test the map redesign broke, and the frontend team's
 backend report, checked — **and section 15**: the dashboard shows its own review status instead of
 the API's, so a commander's approval never appears. **Also 24 Sep: the team server is on HTTPS** at
-`https://indra-sixthsense.duckdns.org` (section 13, last row). **New on 24 Sep evening: section 16**
+`https://indra-sixthsense.duckdns.org` (section 13, last row). **Also new on 24 Sep: section 16**
 — Aditya repaired seven dashboard pages inside `frontend/` (his go-ahead for that day), which also
 closes section 15. Please read 16 before your next merge into `frontend/`.
 

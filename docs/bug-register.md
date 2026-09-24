@@ -10,7 +10,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 24 Sep 2026 evening, after the frontend repair (BUG-070 fixed, BUG-071 … BUG-080).**
+**Last updated: 24 Sep 2026, after the dashboard repair (BUG-070 fixed, BUG-071 … BUG-080).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
