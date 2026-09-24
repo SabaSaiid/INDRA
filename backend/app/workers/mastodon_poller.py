@@ -54,7 +54,7 @@ import httpx
 from app.core.config import get_settings
 from app.services.geocoding import place_from_text
 from app.services.ingest import StoreError, reporter_hash_for, store_report
-from app.services.text_processing import URL_RE, html_to_text
+from app.services.text_processing import URL_RE, canonical_url, html_to_text
 
 logger = logging.getLogger("indra.workers.mastodon_poller")
 
@@ -148,7 +148,9 @@ def status_to_report(status: Dict[str, Any], instance: str, tag: str) -> Optiona
         "instance": instance,
         "matched_tag": tag,
         "media": media,
-        "links": URL_RE.findall(text),
+        # Canonical, so a later post sharing the same article under another
+        # tracking tag is recognised as a re-share (T7).
+        "links": sorted({c for c in (canonical_url(u) for u in URL_RE.findall(text)) if c}),
         "language": original.get("language"),
         "place_basis": place["matched"],
     }
