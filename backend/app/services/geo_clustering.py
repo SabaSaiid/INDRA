@@ -97,8 +97,16 @@ class GeoClusteringService:
                       -- A state centroid has no geometry anyway; this also
                       -- keeps a hand-edited row from sneaking one in.
                       AND COALESCE(place_precision, 'gps') IN ('gps', 'district')
+                      -- Posts and headlines are held out until Phase 3 tags
+                      -- hazards (SOCIAL_CLUSTERING_ENABLED), and a headline
+                      -- already old when collected is never clustered (T8).
+                      AND (
+                          CAST(source_type AS text) NOT IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+                          OR (:social AND NOT COALESCE((source_meta->>'stale')::boolean, false))
+                      )
                     ORDER BY created_at, id
-                """)
+                """),
+                {"social": bool(get_settings().SOCIAL_CLUSTERING_ENABLED)},
             )
         ).fetchall()
 
