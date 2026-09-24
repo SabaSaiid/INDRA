@@ -22,7 +22,7 @@ a minute to appear in the dropdowns; it appears in the list at once.
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.services import cache
+from app.services.feed_status import DEAD_LETTER, FEEDS, feed_state, load_heartbeats, stale_after_s
 from app.services.hazards import FAMILIES, family_of, label_of
 
 logger = logging.getLogger("indra.api.meta")
@@ -142,76 +143,83 @@ async def filter_options(db: AsyncSession = Depends(get_db)):
 
 # ─── GET /api/meta/sources ──────────────────────────────────────────────────
 #
-# The contract Phase 2 T2 specifies, served early so the Geospatial Feeds page
-# can show live status instead of a static catalogue. Until T2's feed_status
-# table exists there is no poller heartbeat to read, so every figure here is
-# derived from the rows each feed wrote: `basis` says so on every entry, and
-# `last_success_at` is the newest row, not the last successful tick. A poller
-# that runs but finds nothing new therefore looks quiet, which is why the stale
-# windows are generous. `last_error` is always null until T2 records errors.
+# Phase 2 T2. Each poller writes a heartbeat to feed_status at the end of every
+# tick (services/feed_status.py), so status is the tick's outcome, not a guess
+# from the newest row: `failing` after 3 failed ticks in a row, with the error;
+# `stale` after 3 poll intervals without a successful tick; `disabled` when the
+# setting is off. Push feeds (citizen, official) have no tick and are `ok`.
+#
+# rows_24h and rows_total are counted from the table each feed writes to, so
+# they are what is stored, whatever the poller believes it wrote.
+# `newest_row_at` keeps the figure this route served before T2.
 
-# (feed, kind, title, table, time column, extra WHERE, enabled setting,
-#  interval setting, stale after seconds; None = a push feed, never stale)
-_SOURCES = [
-    ("citizen", "citizen", "Citizen reports", "raw_reports", "created_at",
-     "CAST(source_type AS text) = 'CITIZEN_APP'", None, None, None),
-    ("official", "official", "Official dispatches", "raw_reports", "created_at",
-     "CAST(source_type AS text) = 'OFFICIAL_DISPATCH'", None, None, None),
-    # fetched_at moves when an alert is new or revised, roughly every 15 min on
-    # an ordinary day; an hour without one is worth a look.
-    ("sachet", "warnings", "Official warnings (SACHET CAP)", "agency_alerts", "fetched_at",
-     "TRUE", "SACHET_POLLER_ENABLED", "SACHET_POLL_INTERVAL_SECONDS", 3600),
-    # recorded_at is Open-Meteo's observation hour, which trails the clock by
-    # up to two hours even when every tick succeeds.
-    ("open_meteo", "station", "Open-Meteo rainfall", "station_readings", "recorded_at",
-     "CAST(agency AS text) = 'OPEN_METEO'", "STATION_POLLER_ENABLED",
-     "STATION_POLL_INTERVAL_SECONDS", 3 * 3600),
-]
+
+def _iso(ts) -> Optional[str]:
+    return ts.isoformat() if ts else None
 
 
 @router.get("/sources")
 async def data_sources(db: AsyncSession = Depends(get_db)):
-    """Per feed: status, newest row, rows in the last 24 h and in total. See the note above."""
+    """Per feed: status from its heartbeat, the last error, rows in the last 24 h and in total."""
     settings = get_settings()
     now = datetime.now(timezone.utc)
     feeds: List[Dict[str, Any]] = []
     try:
-        for feed, kind, title, table, col, where, enabled_key, interval_key, stale_after in _SOURCES:
+        heartbeats = await load_heartbeats(db)
+        for spec in FEEDS:
             row = (await db.execute(text(f"""
-                SELECT max({col}),
-                       count(*) FILTER (WHERE {col} >= now() - INTERVAL '24 hours'),
+                SELECT max({spec.time_column}),
+                       count(*) FILTER (WHERE {spec.time_column} >= now() - INTERVAL '24 hours'),
                        count(*)
-                FROM {table}
-                WHERE {where}
+                FROM {spec.table}
+                WHERE {spec.where}
             """))).fetchone()
             newest, rows_24h, rows_total = row if row else (None, 0, 0)
-            enabled = bool(getattr(settings, enabled_key)) if enabled_key else True
 
-            if not enabled:
-                status = "disabled"
-            elif stale_after is None:
-                status = "ok"
-            elif newest is None or (now - newest).total_seconds() > stale_after:
-                status = "stale"
-            else:
-                status = "ok"
+            beat = heartbeats.get(spec.feed, {})
+            enabled = spec.enabled(settings)
+            interval = spec.poll_interval_s(settings)
+            # A push feed's "last success" is the last thing it received.
+            last_success = newest if spec.push else beat.get("last_success_at")
 
             feeds.append({
-                "feed": feed,
-                "kind": kind,
-                "title": title,
+                "feed": spec.feed,
+                "kind": spec.kind,
+                "title": spec.title,
                 "enabled": enabled,
-                "status": status,
-                "last_success_at": newest.isoformat() if newest else None,
-                "last_error": None,
+                "status": feed_state(
+                    enabled=enabled,
+                    push=spec.push,
+                    last_success_at=last_success,
+                    consecutive_failures=int(beat.get("consecutive_failures") or 0),
+                    poll_interval_s=interval,
+                    now=now,
+                ),
+                "last_success_at": _iso(last_success),
+                "last_attempt_at": _iso(beat.get("last_attempt_at")),
+                "last_error": beat.get("last_error"),
+                "last_error_at": _iso(beat.get("last_error_at")),
+                "consecutive_failures": int(beat.get("consecutive_failures") or 0),
+                "items_last_tick": beat.get("items_last_tick"),
+                "newest_row_at": _iso(newest),
                 "rows_24h": int(rows_24h or 0),
                 "rows_total": int(rows_total or 0),
-                "poll_interval_s": int(getattr(settings, interval_key)) if interval_key else None,
-                "stale_after_s": stale_after,
-                "basis": "push" if stale_after is None else "newest_row",
+                "poll_interval_s": interval,
+                "stale_after_s": stale_after_s(spec, settings),
+                "basis": "push" if spec.push else "heartbeat",
             })
     except Exception as e:
         logger.warning(f"Database query failed in data_sources: {e}")
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    return {"generated_at": now.isoformat(), "feeds": feeds}
+    # Messages the pipeline gave up on after its retries (Phase 2 T8). 0 is
+    # the healthy answer; anything else is waiting in the dead-letter topic for
+    # scripts/replay_dlq.py.
+    dead = heartbeats.get(DEAD_LETTER, {})
+    dead_letters = {
+        "total": int(dead.get("rows_total") or 0),
+        "last_at": _iso(dead.get("last_error_at")),
+        "last_error": dead.get("last_error"),
+        "topic": settings.KAFKA_DLQ_TOPIC,
+    }
+    return {"generated_at": now.isoformat(), "feeds": feeds, "dead_letters": dead_letters}

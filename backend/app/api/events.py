@@ -218,10 +218,17 @@ DEMO_SEVERITY_DISTRIBUTION: List[Dict[str, Any]] = [
 # 422 naming the parameter rather than a database error reported as an outage
 # (BUG-061).
 
-# India Standard Time has no daylight saving, so a fixed offset is exact and
-# needs no timezone database.
-IST = timezone(timedelta(hours=5, minutes=30))
-MAX_RANGE_DAYS = 366
+# The shared parameter rules live in api/query_params.py since Phase 2 (T10),
+# where report search and the exports use them too. Imported under the names
+# this module has always used.
+from app.api.query_params import (  # noqa: E402
+    IST,
+    MAX_RANGE_DAYS,
+    csv_values as _csv,
+    instant as _instant,
+    invalid as _invalid,
+    like_pattern as _like,
+)
 TIME_RANGE_HOURS = {"24h": 24, "48h": 48, "7d": 168}
 # Severity sorts by meaning, not by the enum's declaration order.
 _SEVERITY_RANK = (
@@ -234,61 +241,6 @@ SORT_COLUMNS = {
     "severity": _SEVERITY_RANK,
 }
 INCLUDES = {"boundary"}
-
-
-def _invalid(param: str, msg: str, value: Any) -> HTTPException:
-    """A 422 in FastAPI's own shape, so a bad `event_type` reads like a bad `limit`."""
-    return HTTPException(
-        status_code=422,
-        detail=[{"type": "value_error", "loc": ["query", param], "msg": msg, "input": value}],
-    )
-
-
-def _csv(
-    param: str,
-    raw: Optional[str],
-    allowed: Iterable[str],
-    normalise: Callable[[str], str] = str.upper,
-) -> Optional[List[str]]:
-    """A comma-separated parameter as a list of known values, or None if absent."""
-    if raw is None:
-        return None
-    allowed = set(allowed)
-    values = [normalise(v.strip()) for v in raw.split(",") if v.strip()]
-    unknown = [v for v in values if v not in allowed]
-    if unknown or not values:
-        raise _invalid(
-            param, f"unknown value {unknown[0] if unknown else raw!r}; expected any of {sorted(allowed)}", raw
-        )
-    return list(dict.fromkeys(values))
-
-
-def _instant(param: str, raw: Optional[str], end: bool) -> Optional[Tuple[datetime, bool]]:
-    """
-    `from` / `to` as (instant, exclusive).
-
-    A date (YYYY-MM-DD) is a whole day in IST: `from` starts at its first
-    instant, and `to` includes it, so the bound is the next day's midnight,
-    exclusive. A 23:30 IST event is on the day an Indian operator would say it
-    was, not the UTC one. A timestamp is used as given; one without an offset
-    is read as IST.
-    """
-    if raw is None:
-        return None
-    try:
-        if len(raw) == 10:
-            d = date.fromisoformat(raw)
-            midnight = datetime(d.year, d.month, d.day, tzinfo=IST)
-            return (midnight + timedelta(days=1), True) if end else (midnight, False)
-        ts = datetime.fromisoformat(raw)
-        return (ts if ts.tzinfo else ts.replace(tzinfo=IST)), False
-    except ValueError:
-        raise _invalid(param, "expected a date (YYYY-MM-DD) or an ISO 8601 timestamp", raw)
-
-
-def _like(q: str) -> str:
-    """A contains-pattern for ILIKE in which % and _ match only themselves."""
-    return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
 def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
@@ -327,42 +279,26 @@ def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
     return item
 
 
-@router.get("")
-async def list_events(
-    response: Response,
-    date_from: Optional[str] = Query(
-        None, alias="from",
-        description="From this date (YYYY-MM-DD, an IST day) or ISO 8601 timestamp, inclusive",
-    ),
-    date_to: Optional[str] = Query(
-        None, alias="to",
-        description="To this date (YYYY-MM-DD, an IST day, inclusive) or ISO 8601 timestamp",
-    ),
-    event_type: Optional[str] = Query(None, description="Comma-separated event types, e.g. HEATWAVE,FOG"),
-    family: Optional[str] = Query(None, description="Comma-separated: water, convective, thermal, visibility"),
-    review_status: Optional[str] = Query(
-        None, description="Comma-separated review statuses; REJECTED is shown only when named"
-    ),
-    severity: Optional[str] = Query(None, description="Comma-separated: ADVISORY, MODERATE, HIGH, CRITICAL"),
-    state: Optional[str] = Query(None, max_length=120, description="Exact state name, any case"),
-    district: Optional[str] = Query(None, max_length=120, description="Exact district name, any case"),
-    source_type: Optional[str] = Query(
-        None, description="Comma-separated; events with at least one report from these sources"
-    ),
-    min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
-    time_range: Optional[str] = Query(None, description="Time range: 24h, 48h, 7d"),
-    bbox: Optional[str] = Query(None, description="Bounding box: min_lng,min_lat,max_lng,max_lat"),
-    q: Optional[str] = Query(None, max_length=100, description="Search the event code, district and state"),
-    include: Optional[str] = Query(None, description="boundary: add boundary_geojson to each event"),
-    sort: str = Query("verified_at:desc", description="verified_at, confidence or severity, then :asc or :desc"),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
-):
+def event_conditions(
+    *,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    event_type: Optional[str] = None,
+    family: Optional[str] = None,
+    review_status: Optional[str] = None,
+    severity: Optional[str] = None,
+    state: Optional[str] = None,
+    district: Optional[str] = None,
+    source_type: Optional[str] = None,
+    min_confidence: Optional[float] = None,
+    time_range: Optional[str] = None,
+    bbox: Optional[str] = None,
+    q: Optional[str] = None,
+) -> Tuple[List[str], Dict[str, Any]]:
     """
-    List verified events for the map, the Recent Weather Events panel and the
-    filter bar. The body is a list; the number of matching events is in the
-    X-Total-Count header.
+    The WHERE conditions and bound parameters for GET /api/events' filters, over
+    `verified_events`. Shared with GET /api/events/export (Phase 2 T10), so a
+    download is exactly the list the analyst was looking at. Raises the 422s.
     """
     conditions: List[str] = []
     params: Dict[str, Any] = {}
@@ -450,6 +386,53 @@ async def list_events(
             "(event_code ILIKE :q ESCAPE '\\' OR district ILIKE :q ESCAPE '\\' OR state ILIKE :q ESCAPE '\\')"
         )
         params["q"] = _like(q.strip())
+
+    return conditions, params
+
+
+@router.get("")
+async def list_events(
+    response: Response,
+    date_from: Optional[str] = Query(
+        None, alias="from",
+        description="From this date (YYYY-MM-DD, an IST day) or ISO 8601 timestamp, inclusive",
+    ),
+    date_to: Optional[str] = Query(
+        None, alias="to",
+        description="To this date (YYYY-MM-DD, an IST day, inclusive) or ISO 8601 timestamp",
+    ),
+    event_type: Optional[str] = Query(None, description="Comma-separated event types, e.g. HEATWAVE,FOG"),
+    family: Optional[str] = Query(None, description="Comma-separated: water, convective, thermal, visibility"),
+    review_status: Optional[str] = Query(
+        None, description="Comma-separated review statuses; REJECTED is shown only when named"
+    ),
+    severity: Optional[str] = Query(None, description="Comma-separated: ADVISORY, MODERATE, HIGH, CRITICAL"),
+    state: Optional[str] = Query(None, max_length=120, description="Exact state name, any case"),
+    district: Optional[str] = Query(None, max_length=120, description="Exact district name, any case"),
+    source_type: Optional[str] = Query(
+        None, description="Comma-separated; events with at least one report from these sources"
+    ),
+    min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
+    time_range: Optional[str] = Query(None, description="Time range: 24h, 48h, 7d"),
+    bbox: Optional[str] = Query(None, description="Bounding box: min_lng,min_lat,max_lng,max_lat"),
+    q: Optional[str] = Query(None, max_length=100, description="Search the event code, district and state"),
+    include: Optional[str] = Query(None, description="boundary: add boundary_geojson to each event"),
+    sort: str = Query("verified_at:desc", description="verified_at, confidence or severity, then :asc or :desc"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List verified events for the map, the Recent Weather Events panel and the
+    filter bar. The body is a list; the number of matching events is in the
+    X-Total-Count header.
+    """
+    conditions, params = event_conditions(
+        date_from=date_from, date_to=date_to, event_type=event_type, family=family,
+        review_status=review_status, severity=severity, state=state, district=district,
+        source_type=source_type, min_confidence=min_confidence, time_range=time_range,
+        bbox=bbox, q=q,
+    )
 
     includes = _csv("include", include, INCLUDES, normalise=str.lower) or []
     include_boundary = "boundary" in includes
@@ -629,6 +612,124 @@ async def event_distribution(
         db_error,
     )
 
+
+
+# ── GET /api/events/export (Phase 2 T10) ───────────────────────────────────────
+
+EXPORT_COLUMNS = [
+    "id", "event_code", "event_type", "family", "label", "severity", "confidence_score",
+    "factor_coverage", "review_status", "quadrant", "impact_radius_km", "lat", "lng",
+    "district", "state", "place_precision", "report_count", "verified_at", "updated_at",
+]
+
+EXPORT_SQL = """
+    SELECT id, event_code, CAST(event_type AS text) AS event_type,
+           CAST(severity AS text) AS severity, confidence_score,
+           CAST(verification_receipt->>'factor_coverage' AS double precision) AS factor_coverage,
+           CAST(review_status AS text) AS review_status, CAST(quadrant AS text) AS quadrant,
+           impact_radius_km, ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
+           district, state, place_precision,
+           (SELECT count(*) FROM raw_reports r WHERE r.event_id = verified_events.id) AS report_count,
+           verified_at, updated_at,
+           ST_AsGeoJSON(COALESCE(boundary_polygon, center_point)) AS geometry
+    FROM verified_events
+    WHERE {where}
+    ORDER BY {order_by}
+    LIMIT :row_cap
+"""
+
+
+def _export_row(row) -> Dict[str, Any]:
+    from app.services.exports import plain
+
+    out = {c: plain(row[c]) for c in EXPORT_COLUMNS if c not in ("family", "label")}
+    out["id"] = str(row["id"])
+    out["family"] = family_of(row["event_type"])
+    out["label"] = label_of(row["event_type"])
+    return out
+
+
+def _event_feature(row) -> Dict[str, Any]:
+    props = _export_row(row)
+    return {
+        "type": "Feature",
+        "id": props["id"],
+        # The event's footprint when it has one; its centre point otherwise.
+        "geometry": json.loads(row["geometry"]) if row["geometry"] else None,
+        "properties": props,
+    }
+
+
+@router.get("/export")
+async def export_events(
+    format: str = Query("csv", description="csv or geojson"),
+    date_from: Optional[str] = Query(None, alias="from"),
+    date_to: Optional[str] = Query(None, alias="to"),
+    event_type: Optional[str] = Query(None),
+    family: Optional[str] = Query(None),
+    review_status: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+    state: Optional[str] = Query(None, max_length=120),
+    district: Optional[str] = Query(None, max_length=120),
+    source_type: Optional[str] = Query(None),
+    min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
+    time_range: Optional[str] = Query(None),
+    bbox: Optional[str] = Query(None),
+    q: Optional[str] = Query(None, max_length=100),
+    sort: str = Query("verified_at:desc"),
+    db: AsyncSession = Depends(get_db),
+    operator: TokenData = Depends(require_roles("ANALYST", "COMMANDER", "ADMIN")),
+):
+    """
+    Every event GET /api/events would list for these filters, up to the export
+    cap, as CSV or GeoJSON (polygon geometry, or the centre point when there is
+    no polygon), with confidence_score and factor_coverage. ANALYST or above;
+    one DATA_EXPORT ledger row per export, written before the first byte.
+    """
+    from fastapi.responses import StreamingResponse
+
+    from app.services import exports
+
+    fmt = format.lower()
+    if fmt not in exports.FORMATS:
+        raise _invalid("format", f"expected one of {list(exports.FORMATS)}", format)
+
+    conditions, params = event_conditions(
+        date_from=date_from, date_to=date_to, event_type=event_type, family=family,
+        review_status=review_status, severity=severity, state=state, district=district,
+        source_type=source_type, min_confidence=min_confidence, time_range=time_range,
+        bbox=bbox, q=q,
+    )
+    field, _, direction = sort.partition(":")
+    direction = (direction or "desc").lower()
+    if field not in SORT_COLUMNS or direction not in ("asc", "desc"):
+        raise _invalid("sort", f"expected one of {sorted(SORT_COLUMNS)}, then :asc or :desc", sort)
+    order_by = f"{SORT_COLUMNS[field]} {direction.upper()}, id {direction.upper()}"
+
+    filters = {
+        "from": date_from, "to": date_to, "event_type": event_type, "family": family,
+        "review_status": review_status, "severity": severity, "state": state,
+        "district": district, "source_type": source_type, "min_confidence": min_confidence,
+        "time_range": time_range, "bbox": bbox, "q": q, "sort": sort,
+    }
+    try:
+        await exports.record_export(
+            db, operator_id=operator.sub, kind="events", fmt=fmt, filters=filters
+        )
+    except Exception as e:
+        logger.warning(f"Export not audited, refused: {e}")
+        raise HTTPException(status_code=503, detail="Export could not be recorded in the audit ledger")
+
+    sql = EXPORT_SQL.format(where=" AND ".join(conditions), order_by=order_by)
+    if fmt == "csv":
+        body = exports.stream_csv(sql, params, EXPORT_COLUMNS, row_transform=_export_row)
+    else:
+        body = exports.stream_geojson(sql, params, _event_feature)
+    return StreamingResponse(
+        body,
+        media_type=exports.MEDIA_TYPES[fmt],
+        headers={"Content-Disposition": f'attachment; filename="{exports.filename("events", fmt)}"'},
+    )
 
 
 @router.get("/{event_id}")

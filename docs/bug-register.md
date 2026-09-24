@@ -1591,3 +1591,18 @@ A monotone spline over 0-0-1-0-0; now linear with dots, whole-number axis, a tot
 - **"Total Reports" (all time) vs the 7-day trend** (report item 3A): both numbers are right; if the
   card should say "all time", that is its label on the dashboard.
 - **The map's default view** (report item 4): frontend only; no backend endpoint serves map defaults.
+
+# Phase 2 — 24 Sep 2026 (branch `aditya_24sep_c`, written, not yet tested)
+
+### BUG-081 — The consumer silently dropped a report the pipeline failed on
+**S1** · Layer 2 · **`IN-PROGRESS`** — fix written, not yet run (Phase 2 T8)
+
+`process_report` fails soft and returns `None`, and the consumer auto-committed its offset, so a
+report the pipeline crashed on was logged once and never processed again: no retry, no record, and
+its docket said `received` for ever. Now offsets are committed by hand after each message; a failure
+is retried by seeking back to it, and the third failure publishes it with its error to
+`indra.raw.reports.dlq` and moves on. `GET /api/meta/sources` shows the dead-letter count;
+`scripts/replay_dlq.py` sends them back once the cause is fixed. `pipeline.take_failure()` tells a
+crash from "no event" without making `process_report` raise, which every caller relies on.
+Commits: `b40b7d0`, `87c5c5d`, `f73f5c8`, `6e97592`, `84e33d1`. To be marked `FIXED` when the T8
+tests in the phase file pass.

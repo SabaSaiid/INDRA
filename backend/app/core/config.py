@@ -63,6 +63,32 @@ class Settings(BaseSettings):
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:19092"
     KAFKA_REPORTS_TOPIC: str = "indra.raw.reports"
     KAFKA_EVENTS_TOPIC: str = "indra.verified.events"
+    # Phase 2 T8. A message the pipeline fails on PIPELINE_MAX_ATTEMPTS times
+    # goes here, with its error, and the stream moves on past it.
+    # scripts/replay_dlq.py sends them back once the cause is fixed.
+    KAFKA_DLQ_TOPIC: str = "indra.raw.reports.dlq"
+    PIPELINE_MAX_ATTEMPTS: int = 3
+    PIPELINE_RETRY_DELAY_SECONDS: float = 2.0
+
+    # ── Object storage (layer 7, Phase 2 T1) ───────────────────────────────
+    # SeaweedFS's S3 API in docker-compose.yml, spoken to with boto3, so any
+    # S3-compatible store works by changing these values alone. Non-critical:
+    # with the store down or unconfigured, reports are still accepted and
+    # /healthz says degraded. Empty keys (or the .env.example placeholders)
+    # mean "not configured", and nothing tries to connect.
+    S3_ENDPOINT_URL: str = "http://localhost:8333"
+    S3_REGION: str = "us-east-1"
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_LAKE_BUCKET: str = "indra-lake"
+    S3_MEDIA_BUCKET: str = "indra-media"
+    S3_TIMEOUT_SECONDS: float = 5.0
+    # The report stream's archive (Phase 2 T9): its own consumer group writes
+    # every message to the lake, one object per LAKE_FLUSH_SECONDS or
+    # LAKE_FLUSH_BYTES. Needs the store configured; off otherwise.
+    LAKE_ARCHIVE_ENABLED: bool = True
+    LAKE_FLUSH_SECONDS: int = 60
+    LAKE_FLUSH_BYTES: int = 5 * 1024 * 1024
 
     # ── AI & Verification Thresholds ───────────────────────────────────────
     # AUTO_PUBLISH_THRESHOLD is deliberately high: publishing a disaster without
@@ -94,6 +120,18 @@ class Settings(BaseSettings):
     DEDUP_GPS_DELTA_KM: float = 1.0
     DEDUP_TIME_DELTA_MINUTES: int = 15
     DEDUP_LEVENSHTEIN_THRESHOLD: float = 0.75
+
+    # ── Posts and headlines (Phase 2 T7, T8) ───────────────────────────────
+    # Their own dedup path; citizen dedup above is untouched. A post sharing an
+    # article another post or headline already shared within the link window is
+    # a re-share; the same text (cosine ≥ DEDUP_COSINE_THRESHOLD) about the same
+    # place within the text window is a copy. Either is `duplicate_of` the first.
+    FEED_DEDUP_LINK_WINDOW_HOURS: int = 72
+    FEED_DEDUP_TEXT_WINDOW_HOURS: int = 24
+    # False until Phase 3 tags hazards: every cluster is still URBAN_FLOOD, so a
+    # headline about a Delhi heatwave would otherwise become a Delhi flood.
+    # Posts are stored, deduplicated and shown; they are not clustered.
+    SOCIAL_CLUSTERING_ENABLED: bool = False
 
     DBSCAN_EPS_KM: float = 5.0
     DBSCAN_MIN_SAMPLES: int = 2
@@ -144,6 +182,76 @@ class Settings(BaseSettings):
     # One live Gujarat district ring measured 235 KB. Past this the ring is
     # decimated and the row records that it was.
     SACHET_MAX_POLYGON_POINTS: int = 2000
+    # ── METAR poller (layer 1, Phase 2 T3: airport weather observations) ───
+    # AWC's bulk cache of every METAR in the world, filtered to India's
+    # aerodromes. No key. Off by default like every Phase 2 poller: the team
+    # server turns it on in /opt/indra/.env. The file is ~260 KB and AWC
+    # rewrites it every minute or so; If-Modified-Since makes an unchanged
+    # file a 304.
+    METAR_POLLER_ENABLED: bool = False
+    METAR_POLL_INTERVAL_SECONDS: int = 600
+    METAR_CACHE_URL: str = "https://aviationweather.gov/data/cache/metars.cache.csv.gz"
+    METAR_TIMEOUT_SECONDS: float = 30.0
+
+    # ── Mastodon poller (layer 1, Phase 2 T4: #IMD and weather hashtags) ───
+    # The PS asks for posts "tagged with #IMD and other relevant weather
+    # hashtags". Mastodon's public tag timelines need no account and no key.
+    # Comma-separated; hashtags are matched regardless of case. Off by default.
+    MASTODON_POLLER_ENABLED: bool = False
+    MASTODON_INSTANCES: str = "mastodon.social"
+    SOCIAL_HASHTAGS: str = (
+        "IMD,IMDWeather,IMDAlert,RainAlert,heatwave,monsoon,MumbaiRains,DelhiRains,"
+        "KeralaRains,ChennaiRains,BengaluruRains,fog,cyclone,flood,duststorm,thunderstorm"
+    )
+    MASTODON_POLL_INTERVAL_SECONDS: int = 300
+    # Between two requests to the same instance: 16 tags take ~16 s a tick.
+    MASTODON_REQUEST_DELAY_SECONDS: float = 1.0
+    MASTODON_TIMEOUT_SECONDS: float = 10.0
+    # Below this many requests left in the instance's rate-limit window, the
+    # rest of the tick is skipped for that instance.
+    MASTODON_MIN_RATELIMIT_REMAINING: int = 20
+
+    @property
+    def mastodon_instances(self) -> list[str]:
+        return [i.strip().lower() for i in self.MASTODON_INSTANCES.split(",") if i.strip()]
+
+    @property
+    def social_hashtags(self) -> list[str]:
+        # Case-insensitively unique, order kept.
+        seen, out = set(), []
+        for tag in self.SOCIAL_HASHTAGS.split(","):
+            tag = tag.strip().lstrip("#")
+            if tag and tag.lower() not in seen:
+                seen.add(tag.lower())
+                out.append(tag)
+        return out
+
+    # ── Google News poller (layer 1, Phase 2 T5: weather headlines) ────────
+    # The RSS search feed, no key. Headline, link and publisher only; never the
+    # article. Queries are comma-separated, in English and in Hindi. Off by
+    # default.
+    NEWS_POLLER_ENABLED: bool = False
+    NEWS_RSS_URL: str = "https://news.google.com/rss/search"
+    NEWS_QUERIES_EN: str = (
+        "IMD warning,IMD heavy rain,heatwave India,dense fog India,dust storm India,"
+        "thunderstorm lightning India,cloudburst,cyclone IMD,flood India,cold wave India"
+    )
+    NEWS_QUERIES_HI: str = "भारी बारिश,लू,कोहरा,आंधी"
+    NEWS_POLL_INTERVAL_SECONDS: int = 900
+    NEWS_REQUEST_DELAY_SECONDS: float = 2.0
+    NEWS_TIMEOUT_SECONDS: float = 15.0
+    # An item already older than this when first seen is stored as stale and
+    # never clustered: it describes a day that is over.
+    NEWS_STALE_AFTER_HOURS: int = 48
+
+    @property
+    def news_queries(self) -> list[tuple[str, str]]:
+        """(language, query) pairs, English first."""
+        out = []
+        for lang, raw in (("en", self.NEWS_QUERIES_EN), ("hi", self.NEWS_QUERIES_HI)):
+            out.extend((lang, q.strip()) for q in raw.split(",") if q.strip())
+        return out
+
     # How fresh and how near a stored reading must be for the weather factor to
     # prefer it over a live fetch.
     #

@@ -98,3 +98,7 @@ tmp/
 
 # Boundary polygons downloaded by scripts/build_gazetteer.py; only the derived CSV is committed
 .gazetteer-cache/
+
+# The object store's identity file holds its S3 access and secret keys.
+# Generated from .env by scripts/make_s3_config.py; never committed.
+infra/seaweedfs/s3.json

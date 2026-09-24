@@ -115,9 +115,12 @@ class StoreError(Exception):
 
 @dataclass
 class StoredReport:
-    id: uuid.UUID
+    id: Optional[uuid.UUID]
     docket: Optional[str]
     queued: bool     # published to Kafka before store_report() returned
+    # False when a fed item with this (platform, external_id) was already
+    # stored: nothing was written, nothing queued, and `id` is None.
+    created: bool = True
 
 
 def reporter_hash_for(client_id: Optional[str]) -> Optional[str]:
@@ -195,19 +198,35 @@ def _h3_cell(lat: float, lng: float) -> Optional[str]:
 # observed_at falls back to NOW(), which inside one statement is the same
 # instant created_at defaults to — so an omitted observed_at is stored exactly
 # equal to the time the report was received.
+#
+# geom_point is written only for a position worth measuring distances from
+# (`with_geom`): a GPS fix or a district centroid. A state centroid keeps its
+# coordinates for filtering but gets no geometry, so nothing spatial — dedup,
+# clustering, a merge — ever treats "somewhere in Kerala" as a point.
 _INSERT_REPORT = text("""
     INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8,
                              district, state, media_url, credibility_score, analysis, submitted_by,
                              observed_at, reporter_hash, citizen_hazard, docket,
-                             platform, external_id, source_meta)
+                             platform, external_id, source_meta, place_precision)
     VALUES (
-        :id, :source_type, :raw_text, :lat, :lng,
-        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
+        :id, :source_type, :raw_text, CAST(:lat AS double precision), CAST(:lng AS double precision),
+        CASE WHEN :with_geom
+             THEN ST_SetSRID(ST_MakePoint(CAST(:lng AS double precision), CAST(:lat AS double precision)), 4326)
+        END,
         :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by,
         COALESCE(CAST(:observed_at AS timestamptz), NOW()), :reporter_hash, :citizen_hazard, :docket,
-        :platform, :external_id, CAST(:source_meta AS jsonb)
+        :platform, :external_id, CAST(:source_meta AS jsonb), :place_precision
     )
+    -- A poller that sees the same post twice stores it once (Phase 2 T4). The
+    -- target is the partial unique index from 0012; a citizen report has no
+    -- external_id and can never conflict here, and a docket clash still raises.
+    ON CONFLICT (platform, external_id) WHERE external_id IS NOT NULL DO NOTHING
+    RETURNING id
 """)
+
+# Positions precise enough to measure distances from. See _INSERT_REPORT.
+GEOMETRY_PRECISIONS = {"gps", "district"}
+PLACE_PRECISIONS = {"gps", "district", "state", "none"}
 
 _INSERT_OUTBOX = text("""
     INSERT INTO outbox (topic, key, payload)
@@ -225,8 +244,8 @@ async def store_report(
     *,
     source_type: str,
     raw_text: str,
-    latitude: float,
-    longitude: float,
+    latitude: Optional[float],
+    longitude: Optional[float],
     district: Optional[str] = None,
     state: Optional[str] = None,
     media_url: Optional[str] = None,
@@ -238,6 +257,7 @@ async def store_report(
     external_id: Optional[str] = None,
     source_meta: Optional[Dict[str, Any]] = None,
     issue_docket: bool = True,
+    place_precision: str = "gps",
 ) -> StoredReport:
     """
     Store one report and its outbox message in a single transaction, then try
@@ -248,10 +268,26 @@ async def store_report(
     unacceptable location means (the HTTP routes answer 422). A docket is
     issued unless the caller says otherwise — reports people submit get one;
     posts a feed collects have nobody to give it to.
+
+    `place_precision` is what the coordinates are worth (migration 0015):
+    `gps` for a device's fix — the default, and what every HTTP route stores —
+    or `district`, `state` or `none` for a post placed from its text. Both
+    coordinates are None exactly when the precision is `none`.
     """
+    if place_precision not in PLACE_PRECISIONS:
+        raise StoreError(f"unknown place_precision {place_precision!r}")
+    has_point = latitude is not None and longitude is not None
+    if has_point == (place_precision == "none") or (latitude is None) != (longitude is None):
+        raise StoreError(
+            f"coordinates ({latitude}, {longitude}) do not match place_precision {place_precision!r}"
+        )
+
     report_id = uuid.uuid4()
     credibility = compute_credibility(source_type, raw_text)
-    h3_cell = _h3_cell(latitude, longitude)
+    # The H3 cell is a claim about a 0.46 km hexagon, so only a GPS fix earns
+    # one: a district centroid in the heat map would light up a street nobody
+    # reported from.
+    h3_cell = _h3_cell(latitude, longitude) if place_precision == "gps" else None
     analysis = analyse(raw_text, report_id)
 
     # The message is exactly what ingest has always published, and nothing
@@ -291,12 +327,16 @@ async def store_report(
         "platform": platform,
         "external_id": external_id,
         "source_meta": json.dumps(source_meta) if source_meta is not None else None,
+        "place_precision": place_precision,
+        "with_geom": has_point and place_precision in GEOMETRY_PRECISIONS,
     }
 
     for attempt in range(1, _DOCKET_ATTEMPTS + 1):
         docket = new_docket() if issue_docket else None
         try:
             outbox_id = await _insert(db, report_id, topic, payload, {**row, "docket": docket})
+            if outbox_id is None:
+                return StoredReport(id=None, docket=None, queued=False, created=False)
             break
         except IntegrityError as e:
             await _rollback_quietly(db)
@@ -314,9 +354,16 @@ async def store_report(
     return StoredReport(id=report_id, docket=docket, queued=queued)
 
 
-async def _insert(db, report_id, topic, payload, row) -> int:
-    """The report and its message, committed together. Returns the outbox id."""
-    await db.execute(_INSERT_REPORT, row)
+async def _insert(db, report_id, topic, payload, row) -> Optional[int]:
+    """
+    The report and its message, committed together. Returns the outbox id, or
+    None when the report was already stored (a fed item seen again), in which
+    case nothing is written.
+    """
+    inserted = (await db.execute(_INSERT_REPORT, row)).fetchone()
+    if inserted is None:
+        await db.rollback()
+        return None
     outbox_id = (await db.execute(_INSERT_OUTBOX, {
         "topic": topic,
         "key": str(report_id),

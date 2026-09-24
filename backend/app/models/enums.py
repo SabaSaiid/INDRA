@@ -69,6 +69,10 @@ class Agency(str, enum.Enum):
     IMD = "IMD"
     CWC = "CWC"
     OPEN_METEO = "OPEN_METEO"
+    # Added 24 Sep (migration 0016): an Indian aerodrome's METAR, received
+    # through the international exchange NOAA's Aviation Weather Center
+    # republishes. Not IMD: some of these stations are military airfields.
+    AERODROME_METAR = "AERODROME_METAR"
 
 
 class AuditAction(str, enum.Enum):
@@ -78,6 +82,9 @@ class AuditAction(str, enum.Enum):
     ESCALATE = "ESCALATE"
     HUMAN_APPROVE = "HUMAN_APPROVE"
     HUMAN_REJECT = "HUMAN_REJECT"
+    # Added 24 Sep (migration 0015): an analyst exported reports or events.
+    # Not a decision about an event, so its ledger row has no event_id.
+    DATA_EXPORT = "DATA_EXPORT"
 
 
 class TeamStatus(str, enum.Enum):

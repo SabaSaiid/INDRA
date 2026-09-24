@@ -40,7 +40,22 @@ The defaults work for local development. The values worth knowing:
 | `REDIS_URL` | `redis://localhost:6379/0` | |
 | `DEMO_MODE` | **`false`** | Leave it false. See the warning below |
 | `STATION_POLLER_ENABLED` | `true` | Polls Open-Meteo every 10 min into `station_readings` |
+| `METAR_POLLER_ENABLED`, `MASTODON_POLLER_ENABLED`, `NEWS_POLLER_ENABLED` | `false` | Phase 2's feeds: airport weather, #IMD posts, news headlines. No keys needed; turn them on to collect |
+| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | placeholders | The object store's keys (Phase 2). Generate real ones — see below. Placeholders mean "not configured": the lake is off and `/healthz` says `degraded`, nothing else changes |
 | `OPENWEATHER_API_KEY`, `IMD_API_KEY`, `TWITTER_BEARER_TOKEN` | empty | **Nothing reads them.** Those feeds do not exist; leave them blank |
+
+**The object store's keys, before the first `docker compose up`.** SeaweedFS reads its keys from
+`infra/seaweedfs/s3.json`, which is gitignored and generated from `.env`:
+
+```bash
+openssl rand -hex 12     # paste as S3_ACCESS_KEY in .env
+openssl rand -hex 32     # paste as S3_SECRET_KEY in .env
+python3 scripts/make_s3_config.py
+```
+
+`openssl rand -hex N` prints N random bytes as hexadecimal, a safe secret. If you start the
+containers before running the script, Docker creates an empty *directory* at `infra/seaweedfs/s3.json`
+and the object store will not start; stop it, `rmdir infra/seaweedfs/s3.json`, and run the script.
 
 > **`DEMO_MODE=true` makes the API serve data nothing computed.** An empty database answers
 > `GET /api/events` with a fabricated `0.94 / AUTO_PUBLISHED / CRITICAL` event — a score the real
@@ -58,8 +73,9 @@ docker compose up -d --wait        # or: ./start.sh infra up — both wait for "
 docker ps --format '{{.Names}}\t{{.Status}}'
 ```
 
-Expect `indra-postgres` and `indra-redis` `(healthy)` and `indra-redpanda` `Up` (it has no
-healthcheck; `/healthz` checks it once the API is running).
+Expect `indra-postgres` and `indra-redis` `(healthy)`, and `indra-redpanda` and `indra-objectstore`
+`Up` (they have no healthcheck; `/healthz` checks both once the API is running). The object store's
+S3 API listens on `127.0.0.1:8333` only.
 
 > **Why `--wait` is enough now (BUG-028).** On a brand-new volume the Postgres entrypoint runs a
 > temporary server on the Unix socket, creates `indra_db`, then restarts. A socket `pg_isready`

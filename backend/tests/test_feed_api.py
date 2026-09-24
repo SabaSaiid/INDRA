@@ -8,6 +8,7 @@ hundred warnings nobody saw arrive.
 """
 
 import uuid
+from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -19,6 +20,16 @@ from tests.conftest import wipe_event_tables
 from app.core.database import async_session
 
 pytestmark = pytest.mark.integration
+
+
+def _ts(value: str) -> datetime:
+    """
+    An ISO time, or "now", as a datetime: asyncpg sends a timestamptz
+    parameter only as a datetime, and rejects a string even under CAST.
+    """
+    if value == "now":
+        return datetime.now(timezone.utc)
+    return datetime.fromisoformat(value)
 
 
 @pytest_asyncio.fixture
@@ -55,7 +66,7 @@ async def _report(db, created_at: str, body: str = "Water rising near the underp
                     ST_SetSRID(ST_MakePoint(85.1376, 25.5941), 4326),
                     'Patna', 'Bihar', CAST(:at AS timestamptz))
         """),
-        {"id": str(rid), "t": body, "at": created_at},
+        {"id": str(rid), "t": body, "at": _ts(created_at)},
     )
     return str(rid)
 
@@ -71,7 +82,7 @@ async def _warning(db, sent_at: str, expires: str, headline: str = "Heavy rain l
                     'HIGH', :h, 'Patna district of Bihar',
                     CAST(:sent AS timestamptz), CAST(:exp AS timestamptz), NOW())
         """),
-        {"id": str(aid), "ident": f"test-feed-{aid}", "h": headline, "sent": sent_at, "exp": expires},
+        {"id": str(aid), "ident": f"test-feed-{aid}", "h": headline, "sent": _ts(sent_at), "exp": _ts(expires)},
     )
     return f"warning-{aid}"
 

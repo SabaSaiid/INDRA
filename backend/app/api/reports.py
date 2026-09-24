@@ -263,10 +263,21 @@ async def list_recent_reports(
         description="Only reports not yet part of an event and not suppressed as duplicates",
     ),
     hours: int = Query(72, ge=1, le=720),
+    include_feeds: bool = Query(
+        False,
+        description="Also list collected posts and headlines, which may be placed only "
+                    "at a district or state, or not at all (lat/lng null)",
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Citizen reports with coordinates, for the field-reports map layer.
+
+    Since Phase 2, `raw_reports` also holds Mastodon posts and news headlines,
+    most of them placed only at a district's or state's centroid, or not at
+    all. They are left out unless `include_feeds=true`, so the map layer keeps
+    drawing exactly what it drew before: reports people filed, at the point
+    they filed them. Each item says its `place_precision`.
 
     These are **raw reports, not events**. Nothing here has been clustered,
     corroborated or scored, and a caller drawing them must draw them
@@ -284,6 +295,8 @@ async def list_recent_reports(
     total in the KPI strip (BUG-035, BUG-037).
     """
     conditions = ["r.created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
+    if not include_feeds:
+        conditions.append("COALESCE(r.place_precision, 'gps') = 'gps'")
     if unfused_only:
         conditions.append("r.event_id IS NULL")
         conditions.append("r.duplicate_of IS NULL")
@@ -294,7 +307,8 @@ async def list_recent_reports(
     query = text(f"""
         SELECT r.id, r.source_type, r.raw_text, r.latitude, r.longitude,
                r.district, r.state, r.created_at, r.event_id, r.duplicate_of, r.analysis,
-               e.event_code, r.observed_at, r.credibility_score
+               e.event_code, r.observed_at, r.credibility_score,
+               COALESCE(r.place_precision, 'gps'), r.platform
         FROM raw_reports r
         LEFT JOIN verified_events e ON e.id = r.event_id
         WHERE {" AND ".join(conditions)}
@@ -322,6 +336,8 @@ async def list_recent_reports(
                 "event_code": r[11],
                 "observed_at": r[12].isoformat() if r[12] else None,
                 "credibility_score": r[13],
+                "place_precision": r[14],
+                "platform": r[15],
             }
             for r in rows
         ]

@@ -182,6 +182,10 @@ STATIONS_SQL = text("""
                rainfall_mm, recorded_at
         FROM station_readings
         WHERE recorded_at >= now() - INTERVAL '48 hours'
+          -- Rainfall stations only. Since Phase 2 the table also holds airport
+          -- observations (feed 'metar'), which carry no rainfall amount and are
+          -- served by GET /api/stations/latest instead.
+          AND rainfall_mm IS NOT NULL
         ORDER BY station_code, recorded_at
     )
     SELECT station_code, station_name, agency, lat, lng, rainfall_mm, recorded_at

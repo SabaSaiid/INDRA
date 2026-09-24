@@ -196,3 +196,76 @@ class DedupService:
             self.find_duplicate(new_text, new_lat, new_lng, new_time, existing_reports)
             is not None
         )
+
+
+# The embedding model (all-MiniLM-L6-v2) was trained on English. It has almost
+# no vocabulary for Devanagari, so two unrelated Hindi headlines come out as
+# near-identical vectors: on the first live news tick (24 Sep) 75 Hindi
+# headlines were suppressed as "copies" at cosine 0.88–0.96 — crop damage in
+# Sitapur as a copy of crop damage in Husainganj, a fog alert as a copy of a
+# hospital's heat advisory. Text the model cannot read is compared by
+# Levenshtein instead, which kept 3 of those 75: the two verbatim reposts and
+# one at the threshold.
+LATIN_SHARE_FOR_MODEL = 0.5
+
+
+def _mostly_latin(text_: str) -> bool:
+    """More than LATIN_SHARE_FOR_MODEL of the letters are Latin (a–z, with accents)."""
+    letters = [c for c in text_ if c.isalpha()]
+    if not letters:
+        return True
+    latin = sum(1 for c in letters if c.isascii() or "\u00c0" <= c <= "\u024f")
+    return latin / len(letters) > LATIN_SHARE_FOR_MODEL
+
+
+def find_similar_text(
+    new_text: str,
+    candidate_texts: List[str],
+    cosine_threshold: Optional[float] = None,
+) -> Optional[Tuple[int, float, str]]:
+    """
+    The first candidate whose text is a copy of `new_text`, as
+    (index, similarity, method), or None. Text only: no distance, no clock.
+
+    Used for posts and headlines (Phase 2 T7), which have their own gates for
+    place and time; citizen reports keep DedupService above, unchanged. The
+    threshold is the same measured 0.88 by default (BUG-013). A pair is
+    compared by the model only when both texts are mostly Latin script (see
+    LATIN_SHARE_FOR_MODEL); otherwise, and whenever the model is unavailable,
+    by Levenshtein and its own threshold.
+
+    Synchronous and CPU-bound: call it through asyncio.to_thread.
+    """
+    if not candidate_texts or not (new_text or "").strip():
+        return None
+    cosine, _gps, _minutes, levenshtein = _gates()
+    threshold = cosine if cosine_threshold is None else cosine_threshold
+
+    readable = _mostly_latin(new_text)
+    by_model = [readable and _mostly_latin(t) for t in candidate_texts]
+
+    similarities: dict = {}
+    model = _get_embedding_model() if any(by_model) else None
+    if model is not None:
+        try:
+            chosen = [i for i, use in enumerate(by_model) if use]
+            vectors = model.encode(
+                [new_text] + [candidate_texts[i] for i in chosen], convert_to_numpy=True
+            )
+            for i, vec in zip(chosen, vectors[1:]):
+                similarities[i] = _cosine_similarity(vectors[0], vec)
+        except Exception as e:
+            logger.warning(f"Embedding failed for a post, using Levenshtein: {e}")
+            similarities = {}
+
+    # In candidate order, so the earliest copy is the one returned.
+    for i, text_ in enumerate(candidate_texts):
+        if i in similarities:
+            if similarities[i] >= threshold:
+                return i, round(similarities[i], 4), "cosine"
+            continue
+        sim = _levenshtein_similarity(new_text, text_)
+        if sim >= levenshtein:
+            return i, round(sim, 4), "levenshtein"
+    return None
+
