@@ -28,6 +28,7 @@ import asyncio
 import json
 import logging
 import math
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence
 from uuid import UUID, uuid4
@@ -107,6 +108,24 @@ DEDUP_RADIUS_METRES = 1000
 # So a new cluster that lands on top of a recent event joins it and raises its
 # corroboration instead of competing with it.
 MERGE_WINDOW_MINUTES = 120
+
+# Why the last process_report() in this task failed, or None (Phase 2 T8).
+#
+# process_report never raises — a pipeline crash must not kill the consumer
+# loop, and every caller relies on that. But "returned None" covers both "no
+# event, correctly" and "crashed", and only the second should count towards
+# the dead-letter topic. The consumer calls take_failure() straight after, in
+# the same task, to tell them apart. A ContextVar, so concurrent tasks never
+# see each other's failures.
+_last_failure: ContextVar[Optional[str]] = ContextVar("pipeline_last_failure", default=None)
+
+
+def take_failure() -> Optional[str]:
+    """The last failure in this task, cleared as it is read; None if it succeeded."""
+    failure = _last_failure.get()
+    _last_failure.set(None)
+    return failure
+
 
 # The pipeline's audit action for each status it can decide on its own.
 # HUMAN_APPROVED and REJECTED are never machine decisions.
@@ -871,8 +890,10 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
     Run one report through the verification pipeline.
 
     Returns the created event as a dict, or None when no event should be created
-    (duplicate, uncorroborated, or a handled error).
+    (duplicate, uncorroborated, or a handled error). A handled error is also
+    recorded for take_failure(), so the consumer can retry and dead-letter it.
     """
+    _last_failure.set(None)
     try:
         raw_id = report.get("id")
         if not raw_id:
@@ -1304,6 +1325,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
     except Exception as e:
         # Fail soft: a pipeline crash must never kill the consumer loop.
         logger.error(f"Pipeline failed for report {report.get('id', 'unknown')}: {e}", exc_info=True)
+        _last_failure.set(f"{type(e).__name__}: {e}"[:1000])
         try:
             await db.rollback()
         except Exception:
