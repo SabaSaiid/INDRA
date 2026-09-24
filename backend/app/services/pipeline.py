@@ -41,6 +41,7 @@ from app.models.enums import AuditAction, EventType, ReviewStatus, Severity
 from app.services import audit
 from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
+from app.services import severity_rules
 from app.services.geo_clustering import GeoClusteringService
 from app.services.geocoding import reverse_geocode
 from app.services.text_processing import core_text, extract_metadata
@@ -164,48 +165,82 @@ def _count_severity(cluster_size: int) -> Severity:
     return Severity.ADVISORY
 
 
-def _derive_severity(report_texts: Sequence[str], cluster_size: int) -> Dict[str, Any]:
+def _derive_severity(
+    report_texts: Sequence[str],
+    cluster_size: int,
+    *,
+    event_type: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Severity from what the reports say, not just how many there are.
+
+        severity = max(content_axis, count_axis, impact_floor)
 
     Replaces a rule that graded a disaster by cluster size alone, so one report
     saying "water two metres deep" was MODERATE while twelve saying "small
     puddle" was HIGH.
 
+    **The content axis depends on the hazard** (Phase 3 T7,
+    services/severity_rules.py): depth or rainfall for water, temperature for
+    heat and cold, visibility for fog, wind for the convective family, each on
+    IMD's or Beaufort's published cuts. Impact words ("stranded", "died", "roof
+    blown off") set a floor whatever the measure says. `event_type=None` grades
+    a flood, as every event was before Phase 3.
+
     Pure: extract_metadata is a regex pass with no I/O, no clock and no sampling,
-    so the same cluster always yields the same severity. The maximum is
+    so the same cluster always yields the same severity. Every maximum is
     order-independent, which matters because the texts arrive in whatever order
     Postgres returns them.
 
     Returns {"severity", "provenance", "basis"}. `basis` goes into the receipt so
-    the reading is auditable: a commander can see that it was the phrase "knee
-    deep" that made this MODERATE, and override it knowing what they override.
+    the reading is auditable: a commander can see that it was the phrase "46
+    degree" or "knee deep" that set the grade, and override it knowing what they
+    override.
     """
-    depths: List[tuple] = []
-    for body in report_texts:
-        meta = extract_metadata(body or "")
-        if meta["depth_cm"] is not None:
-            depths.append((int(meta["depth_cm"]), meta["depth_basis"]))
-
+    metas = [extract_metadata(body or "") for body in report_texts]
+    depths: List[tuple] = [
+        (int(m["depth_cm"]), m["depth_basis"]) for m in metas if m["depth_cm"] is not None
+    ]
     max_depth_cm, depth_basis = max(depths, default=(None, None))
 
-    depth_axis = _depth_severity(max_depth_cm)
+    content = severity_rules.content_axis(event_type, metas)
+    floor = severity_rules.impact_floor(report_texts, event_type)
     count_axis = _count_severity(cluster_size)
-    severity = max(depth_axis, count_axis, key=SEVERITY_ORDER.index)
+    severity = severity_rules.highest(
+        content["severity"], count_axis, floor["severity"] if floor else Severity.ADVISORY
+    )
+
+    if content["axis"] == "water_depth":
+        provenance = "rule_based_depth_and_count" if depths else "rule_based_count_only"
+    elif content["value"] is not None:
+        provenance = f"rule_based_{content['axis']}_and_count"
+    else:
+        provenance = "rule_based_count_only"
+    if floor and severity == floor["severity"] and severity != max(
+        content["severity"], count_axis, key=SEVERITY_ORDER.index
+    ):
+        provenance = "rule_based_impact_words"
 
     return {
         "severity": severity,
-        "provenance": (
-            "rule_based_depth_and_count" if depths else "rule_based_count_only"
-        ),
+        "provenance": provenance,
         "basis": {
-            "rule": "max(depth_axis, count_axis)",
+            "rule": "max(content_axis, count_axis, impact_floor)",
+            "axis": content["axis"],
+            "value": content["value"],
+            "phrase": content["phrase"],
+            "content_axis": content["severity"].value,
+            "count_axis": count_axis.value,
+            "impact_floor": (
+                {"severity": floor["severity"].value, "phrase": floor["phrase"]} if floor else None
+            ),
+            "event_type": event_type,
+            "report_count": cluster_size,
+            # The depth reading, kept for every reader of the pre-Phase-3 receipt.
             "max_depth_cm": max_depth_cm,
             "depth_basis": depth_basis,
             "reports_with_depth": len(depths),
-            "report_count": cluster_size,
-            "depth_axis": depth_axis.value,
-            "count_axis": count_axis.value,
+            "depth_axis": _depth_severity(max_depth_cm).value,
         },
     }
 
