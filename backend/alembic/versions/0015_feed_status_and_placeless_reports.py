@@ -41,6 +41,11 @@ violated by a false result and a comparison with NULL is unknown.
   kept for filtering; no `geom_point`, so it is never clustered or deduplicated
   on distance.
 * `none` — nothing recognisable. NULL coordinates.
+
+**Part 3 (T10): `DATA_EXPORT`.** `audit_action_enum` gains the action every
+CSV or GeoJSON export writes to the ledger, with its filters in `details`, so
+the hash chain proves who exported what as well as who decided what. Added
+inside the transaction as 0011 added its values; nothing in this run writes it.
 """
 
 from alembic import op
@@ -90,8 +95,15 @@ def upgrade() -> None:
         "(latitude IS NULL) = (longitude IS NULL)",
     )
 
+    # ── Part 3 (T10): the export audit action ────────────────────────────────
+    op.execute("ALTER TYPE audit_action_enum ADD VALUE IF NOT EXISTS 'DATA_EXPORT'")
+
 
 def downgrade() -> None:
+    # Part 3: DATA_EXPORT stays in audit_action_enum (Postgres has no DROP
+    # VALUE), and the ledger rows that use it must stay too: the chain is
+    # append-only.
+
     # Part 2. Rows without coordinates cannot survive NOT NULL; they are the
     # posts this migration made storable, so they go with it.
     op.drop_constraint("ck_raw_reports_coordinates_pair", "raw_reports", type_="check")
