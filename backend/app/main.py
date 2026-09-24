@@ -136,6 +136,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"SACHET poller startup skipped (non-fatal): {e}")
 
+    # Phase 2 T3: observations from India's aerodromes (METAR) into
+    # station_readings. Off unless METAR_POLLER_ENABLED.
+    metar_task = None
+    try:
+        from app.workers.metar_poller import start_metar_poller
+        metar_task = asyncio.create_task(start_metar_poller())
+    except Exception as e:
+        logger.warning(f"METAR poller startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
@@ -173,6 +182,14 @@ async def lifespan(app: FastAPI):
             await sachet_task
         except asyncio.CancelledError:
             pass
+
+    for task in (metar_task,):
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     # The relay first, then the producer it publishes through.
     if relay_task:
@@ -264,6 +281,7 @@ from app.api import (
     alerts_router,
     audit_router,
     meta_router,
+    stations_router,
 )
 app.include_router(dashboard_router)
 app.include_router(events_router)
@@ -276,6 +294,7 @@ app.include_router(profile_router)
 app.include_router(alerts_router)
 app.include_router(audit_router)
 app.include_router(meta_router)
+app.include_router(stations_router)
 logger.info("✓ All API routers mounted successfully")
 
 

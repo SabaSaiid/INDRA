@@ -82,6 +82,10 @@ FEEDS: List[Feed] = [
     Feed("open_meteo", "station", "Open-Meteo rainfall", "station_readings", "recorded_at",
          "CAST(agency AS text) = 'OPEN_METEO'", "STATION_POLLER_ENABLED",
          "STATION_POLL_INTERVAL_SECONDS"),
+    # Counted on recorded_at, the observation time: rows_24h is "observations
+    # made in the last day", which is what an airport network is judged on.
+    Feed("metar", "station", "Airport weather (METAR)", "station_readings", "recorded_at",
+         "feed = 'metar'", "METAR_POLLER_ENABLED", "METAR_POLL_INTERVAL_SECONDS"),
 ]
 
 FEEDS_BY_NAME: Dict[str, Feed] = {f.feed: f for f in FEEDS}
