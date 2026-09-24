@@ -1,6 +1,6 @@
 # INDRA Dashboard Repair — Report, 24 Sep 2026
 
-24 Sep 2026 · Aditya · branch `aditya_24sept_frontend` · 32 commits
+24 Sep 2026 · Aditya · branch `aditya_24sept_frontend` · 34 commits
 
 All seven dashboard pages reported as broken are fixed on the branch, which builds cleanly. The
 biggest single cause was not a bug. The team database holds **1 report and 0 events**, so most event
@@ -90,7 +90,7 @@ Build and visual checks are done. The pytest run waits for the testing pass, per
 ## WhatsApp message
 
 > *INDRA dashboard update (24 Sep)*
-> Fixed all 7 pages on branch `aditya_24sept_frontend` (PR open, 32 commits). Main finding: the team DB has only 1 report and 0 events, so the event panels were empty rather than broken. The real bugs are fixed too:
+> Fixed all 7 pages on branch `aditya_24sept_frontend` (PR open, 34 commits). Main finding: the team DB has only 1 report and 0 events, so the event panels were empty rather than broken. The real bugs are fixed too:
 > • Dashboard: one-row KPI strip, map fills the screen, Recent Events and the Event Distribution donut show live official warnings when there are no events, Live Feed now shows reports + events + warnings in IST, Trend chart fixed
 > • Live map: full-screen frame, all of India in view, warnings refresh every 2 min
 > • Incident Events: ADVISORY filter fixed, time range picker, the review status is now the API's (BUG-070)
