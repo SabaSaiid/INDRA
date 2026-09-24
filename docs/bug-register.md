@@ -1,7 +1,8 @@
 # INDRA — Bug Register
 
 **What this is:** every defect found in the backend (layers 1, 2, 3, 5, 6, 7, 8a) since the
-16 Sep 2026 sprint began, through Phase 1 (23 Sep), what was done about it, and — for the ones still open — the honest sentence
+16 Sep 2026 sprint began, through Phase 1 (23 Sep) and the 24 Sep triage of the frontend team's
+backend report, what was done about it, and — for the ones still open — the honest sentence
 to say if someone asks. Nothing has been removed: rows change status, they do not disappear.
 
 **Why it is published.** A defect list is the most useful document a team can share and the one
@@ -9,7 +10,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 23 Sep 2026, after Phase 1 (BUG-057 … BUG-063).**
+**Last updated: 24 Sep 2026, after the frontend team's backend report (BUG-064 … BUG-070).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1445,3 +1446,78 @@ taxonomy (`"Flood"`).
 The ten routers were mounted inside one `try/except` that logged a warning. The app then ran with no
 `/api` routes at all while `/healthz`, defined in `main.py`, answered `healthy`. An import error now
 stops the app.
+
+---
+
+# 24 Sep 2026 — the frontend team's backend report, checked
+
+`Saba/reports/2026-09-23_backend_issues.md` reported four backend "root causes" behind symptoms seen
+on the dashboard. Each claim was checked against the code on `main` @ `c6b8354` before it was written
+here, and every item's resolution is now marked in the report itself. Both of its example events are
+`WX-EV-…`, a code only the synthetic seeder writes (the pipeline writes `INDRA-YYYYMMDD-NNN`), so two
+of the defects were in the seeder. Suite **948 → 963** passed. Fixes merged in PR #31.
+
+### BUG-064 — The synthetic seeder gave events a random review status
+**S2** · `scripts/` · **`FIXED`** by `da63990`
+
+Half the seeded events read `AUTO_PUBLISHED` at 0.55–0.89, a value this engine cannot produce, and the
+seeder's own quadrant still used the pre-20 Sep 0.70 gate. Status and quadrant now come from
+`FusionEngine`, as in the pipeline: 0 of 37 seeded events off the engine's rule (was 11
+`AUTO_PUBLISHED` below 0.90).
+
+### BUG-065 — The seeder linked each report to a random event anywhere in India
+**S2** · `scripts/` → layer 6 · **`FIXED`** by `e55ea41`
+
+A seeded Bhojpur event owned reports in Chennai and Delhi. Once the live pipeline merged one real
+report into such an event, it recomputed the footprint over every linked report and the radius
+spanned the country: the mechanism behind the report's 1,564 km radius. A seeded report now links only
+to an event in its own city: farthest 11.7 km, median 4.7 km (was 2,096 km).
+
+### BUG-066 — The merge catchment grows with the event, without a ceiling
+**S3** · Layer 6 · **`OPEN`** — Phase 3
+
+A report merges into an event within `impact_radius_km + eps`, and the radius has no upper bound, so
+every merge that widens the radius widens the next catchment. With honest data DBSCAN's 5 km chaining
+and the 120-minute merge window bound the growth, but nothing caps it. Phase 3's per-family radii
+(`services/hazards.py`) are where the catchment and the radius get their ceiling; not patched on its
+own because it changes scores.
+
+### BUG-067 — The docs said a high-severity, low-confidence event is never ignored; the code quarantined it
+**S2** · Layer 6 + docs · **`FIXED`** by `6083572` (code), `5d0a7e1` (docs) · Aditya chose
+severity-aware routing
+
+Routing used confidence alone, so a `HIGH` event at 0.47 was `QUARANTINED`, off the review queue.
+Below 0.60 a `HIGH` or `CRITICAL` event now goes to `PENDING_HUMAN_REVIEW`, never quarantine, and still
+needs 0.90 to publish; the receipt's `routing.basis` reads `severity` when that is why. Tests:
+`test_fusion_engine.py::test_review_routing_with_severity`, `test_severity_rules.py`,
+`test_pipeline_audit.py::test_an_override_to_high_keeps_a_weak_event_in_front_of_a_human`.
+**Not adopted from the report:** auto-publishing Advisory and Moderate events at ≥ 0.70.
+
+### BUG-068 — README and ARCHITECTURE still stated `HUMAN_REVIEW_THRESHOLD=0.70`
+**S3** · Docs · **`FIXED`** by `a1cfe84`
+
+Both now say 0.60, the value since 20 Sep. The same commit removed ARCHITECTURE's claim that
+auto-publishing sounds sirens, sends SMS and dispatches teams, which was the cancelled alert engine's
+job.
+
+### BUG-069 — The demo KPIs had more citizen reports than reports
+**S4** · Layer 8a · **`FIXED`** by `a89d948`
+
+`DEMO_KPIS` had `total_reports` 1,248 and `citizen_reports` 8,421. They are served only with
+`DEMO_MODE=true`, which stays false, but an impossible pair should not exist even there.
+
+### BUG-070 — The dashboard shows its own review status, never the API's
+**S2** · Layer 9 · **`OPEN`** — handover `frontend-handover.md` §15 · Found by: marking up the report,
+24 Sep
+
+`frontend/src/lib/eventState.ts::safeEventState()` derives the status and the quadrant from severity
+and confidence with a 0.90 / 0.70 matrix, and discards the API's `review_status`. `HUMAN_APPROVED` and
+`REJECTED` are never shown, so an approved event keeps its machine pill and its Approve button, and
+Moderate events in human review show as "Quarantined" (0.60–0.69, the Patna scene on 24 Sep) or
+"Auto-Published" (0.70–0.89). Read from the code, not yet run; frontend-owned, so not edited.
+
+### Not defects
+
+- **"Total Reports" (all time) vs the 7-day trend** (report item 3A): both numbers are right; if the
+  card should say "all time", that is its label on the dashboard.
+- **The map's default view** (report item 4): frontend only; no backend endpoint serves map defaults.
