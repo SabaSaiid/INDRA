@@ -172,6 +172,7 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> int:
                     river_level_m=None,
                     anomaly_score=None,
                     recorded_at=observed_at,
+                    feed=FEED,
                 )
             )
             written += 1
