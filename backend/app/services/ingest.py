@@ -155,7 +155,8 @@ def reporter_hash_for(client_id: Optional[str]) -> Optional[str]:
 
 def analyse(raw_text: str, report_id) -> Optional[dict]:
     """
-    Layer-3 extraction for one report: cleaned text, language, depth, keywords.
+    Layer-3 extraction for one report: cleaned text, language, depth, keywords,
+    and (Phase 3) the hazards it describes, its tense and the numbers it quotes.
 
     Rules and dictionaries only — no model. `raw_text` is never modified; this is
     stored alongside it in raw_reports.analysis.
@@ -177,6 +178,18 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
             "places": meta["places"],
             "url_count": meta["url_count"],
             "phone_count": meta["phone_count"],
+            # Phase 3 T1, T2: services/hazard_tagger.py. The full detail stays
+            # here; hazard_primary and hazard_family are also columns (0017).
+            "hazards": meta["hazards"],
+            "hazard_primary": meta["hazard_primary"],
+            "hazard_family": meta["hazard_family"],
+            "tense": meta["tense"],
+            "negated": meta["negated"],
+            "temp_c": meta["temp_c"],
+            "visibility_m": meta["visibility_m"],
+            "wind_kmh": meta["wind_kmh"],
+            "rain_mm": meta["rain_mm"],
+            "implausible": meta["implausible"],
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
