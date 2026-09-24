@@ -37,6 +37,9 @@ def set_ws_manager(manager):
 # restart no longer re-broadcasts — which was the whole point of moving it.
 # Flushing Redis forgets, deliberately; that is recorded in bug.md as BY-DESIGN.
 BROADCAST_MEMORY_TTL_SECONDS = 24 * 60 * 60
+
+# Source types a poller collects rather than a person files.
+COLLECTED_SOURCE_TYPES = {"SOCIAL_MEDIA", "NEWS_MEDIA"}
 BROADCAST_KEY_PREFIX = "bcast:"
 
 
@@ -62,9 +65,17 @@ async def handle_report_message(report_data: Dict[str, Any]) -> None:
 
         # NEW_REPORT keeps the existing frontend contract. VERIFIED_EVENT is
         # additive on top of it.
+        #
+        # A post or headline a poller collected goes out as NEW_FEED_ITEM, not
+        # NEW_REPORT (Phase 2). The dashboard refetches its panels on every
+        # NEW_REPORT, and one news tick stores dozens of headlines at once: as
+        # NEW_REPORTs they would trigger dozens of refetches in a second, on
+        # every open screen. The new type is additive, so a dashboard that does
+        # not listen for it is unaffected.
         if _ws_manager and await _first_broadcast(str(report_id) if report_id else None):
+            collected = report_data.get("source_type") in COLLECTED_SOURCE_TYPES
             await _ws_manager.broadcast({
-                "type": "NEW_REPORT",
+                "type": "NEW_FEED_ITEM" if collected else "NEW_REPORT",
                 "report": report_data,
             })
 
