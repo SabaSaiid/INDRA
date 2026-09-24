@@ -49,6 +49,25 @@ def read_env_file(path: Path) -> dict:
     return values
 
 
+# Credentials that ship in templates and tutorials. The team server's .env held
+# MinIO's `minioadmin` pair from an old template until the Phase 2 deploy
+# (BUG-089); this script would have written it into the store's identity file.
+KNOWN_DEFAULTS = {"minioadmin", "minio", "admin", "password", "secret", "changeme", "test", "s3"}
+MIN_KEY_LENGTH = 16
+
+
+def weak_key_problem(access: str, secret: str) -> str:
+    """Why these keys must not be used, or "" if they will do."""
+    for name, value in (("S3_ACCESS_KEY", access), ("S3_SECRET_KEY", secret)):
+        if "change-me" in value:
+            return f"{name} still holds the .env.example placeholder"
+        if value.lower() in KNOWN_DEFAULTS:
+            return f"{name} is a well-known default ({value!r})"
+        if len(value) < MIN_KEY_LENGTH:
+            return f"{name} is shorter than {MIN_KEY_LENGTH} characters"
+    return ""
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--force", action="store_true", help="overwrite an existing s3.json")
@@ -67,8 +86,9 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    if "change-me" in access or "change-me" in secret:
-        print("S3 keys still hold the .env.example placeholders; generate real ones.", file=sys.stderr)
+    problem = weak_key_problem(access, secret)
+    if problem:
+        print(f"{problem}; generate real ones (see above).", file=sys.stderr)
         return 1
 
     if OUT.is_dir():
