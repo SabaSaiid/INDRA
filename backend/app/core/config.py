@@ -169,6 +169,39 @@ class Settings(BaseSettings):
     METAR_CACHE_URL: str = "https://aviationweather.gov/data/cache/metars.cache.csv.gz"
     METAR_TIMEOUT_SECONDS: float = 30.0
 
+    # ── Mastodon poller (layer 1, Phase 2 T4: #IMD and weather hashtags) ───
+    # The PS asks for posts "tagged with #IMD and other relevant weather
+    # hashtags". Mastodon's public tag timelines need no account and no key.
+    # Comma-separated; hashtags are matched regardless of case. Off by default.
+    MASTODON_POLLER_ENABLED: bool = False
+    MASTODON_INSTANCES: str = "mastodon.social"
+    SOCIAL_HASHTAGS: str = (
+        "IMD,IMDWeather,IMDAlert,RainAlert,heatwave,monsoon,MumbaiRains,DelhiRains,"
+        "KeralaRains,ChennaiRains,BengaluruRains,fog,cyclone,flood,duststorm,thunderstorm"
+    )
+    MASTODON_POLL_INTERVAL_SECONDS: int = 300
+    # Between two requests to the same instance: 16 tags take ~16 s a tick.
+    MASTODON_REQUEST_DELAY_SECONDS: float = 1.0
+    MASTODON_TIMEOUT_SECONDS: float = 10.0
+    # Below this many requests left in the instance's rate-limit window, the
+    # rest of the tick is skipped for that instance.
+    MASTODON_MIN_RATELIMIT_REMAINING: int = 20
+
+    @property
+    def mastodon_instances(self) -> list[str]:
+        return [i.strip().lower() for i in self.MASTODON_INSTANCES.split(",") if i.strip()]
+
+    @property
+    def social_hashtags(self) -> list[str]:
+        # Case-insensitively unique, order kept.
+        seen, out = set(), []
+        for tag in self.SOCIAL_HASHTAGS.split(","):
+            tag = tag.strip().lstrip("#")
+            if tag and tag.lower() not in seen:
+                seen.add(tag.lower())
+                out.append(tag)
+        return out
+
     # How fresh and how near a stored reading must be for the weather factor to
     # prefer it over a live fetch.
     #
