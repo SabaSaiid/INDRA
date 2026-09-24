@@ -8,6 +8,7 @@ severity, spam rules).
     clean_text(s)          normalised text for models and rules
     detect_language(s)     "en" | "hi" | "hinglish", by script and vocabulary
     extract_metadata(s)    {depth_cm, depth_basis, keywords, places, url_count, phone_count}
+    html_to_text(s)        a Mastodon post's HTML as plain text (Phase 2 T4)
 
 Depth extraction
 ----------------
@@ -320,3 +321,82 @@ def depth_bucket(depth_cm: Optional[float]) -> Optional[str]:
     if depth_cm < 140:
         return "80-139"
     return ">=140"
+
+
+# ── Posts: HTML to text (Phase 2 T4) ──────────────────────────────────────────
+
+from html.parser import HTMLParser  # noqa: E402  (kept beside its only user)
+
+# Tags that end a line of text. Everything else is inline.
+_BLOCK_TAGS = {"p", "br", "div", "li", "ul", "ol", "blockquote", "h1", "h2", "h3", "h4", "pre"}
+
+
+class _PostText(HTMLParser):
+    """
+    Collects a post's visible text. A link to a page becomes its URL, written
+    once; a hashtag or mention link keeps its text ("#imd", "@user"), because
+    that is what the author wrote.
+
+    Mastodon renders a link as three spans — "https://" and the tail hidden,
+    the middle shown — so reading the visible text would give a truncated,
+    unusable URL, and reading all of it the URL plus fragments. The href is
+    the one complete copy.
+    """
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts: List[str] = []
+        self._link_depth = 0      # inside an <a> whose text is replaced by its href
+        self._tag_link_depth = 0  # inside a hashtag or mention <a>
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+        if tag != "a":
+            return
+        attrs = dict(attrs)
+        classes = (attrs.get("class") or "").split()
+        if {"mention", "hashtag"} & set(classes) or (attrs.get("rel") or "") == "tag":
+            self._tag_link_depth += 1
+            return
+        href = (attrs.get("href") or "").strip()
+        if href:
+            self.parts.append(f" {href} ")
+        self._link_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            if self._link_depth:
+                self._link_depth -= 1
+            elif self._tag_link_depth:
+                self._tag_link_depth -= 1
+        if tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self._link_depth:
+            self.parts.append(data)
+
+
+def html_to_text(html: Optional[str]) -> str:
+    """
+    A post's HTML as plain text: tags gone, entities decoded, each link's URL
+    once, paragraphs and line breaks kept as single newlines.
+
+    Never raises: text that will not parse is returned with its tags removed
+    by a regex, which is worse but still text.
+    """
+    if not html:
+        return ""
+    try:
+        parser = _PostText()
+        parser.feed(html)
+        parser.close()
+        text = "".join(parser.parts)
+    except Exception:
+        import html as html_lib
+
+        text = html_lib.unescape(re.sub(r"<[^>]+>", " ", html))
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    return "\n".join(line for line in lines if line)
+
