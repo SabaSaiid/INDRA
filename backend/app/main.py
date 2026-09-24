@@ -96,6 +96,27 @@ async def lifespan(app: FastAPI):
 
     warmup_task = asyncio.create_task(_warm_embeddings())
 
+    # The object store's two buckets, created if missing (Phase 2 T1). On a task
+    # nobody awaits and wrapped, because the store is non-critical: an absent or
+    # unconfigured store logs one line and the platform starts anyway. Writers
+    # create a missing bucket themselves, so a store that comes up later is fine.
+    async def _ensure_buckets():
+        try:
+            from app.services import objectstore
+
+            if not objectstore.configured():
+                logger.info("Object store not configured (S3_ACCESS_KEY/S3_SECRET_KEY) — lake off")
+                return
+            created = await objectstore.ensure_buckets()
+            logger.info(
+                f"✓ Object store ready — buckets {', '.join(objectstore.buckets())}"
+                + (f" (created {', '.join(created)})" if created else "")
+            )
+        except Exception as e:
+            logger.warning(f"Object store bucket check skipped (non-fatal): {e}")
+
+    buckets_task = asyncio.create_task(_ensure_buckets())
+
     # Layer 1's one scheduled external feed: Open-Meteo current precipitation
     # into station_readings, which was empty for the whole project until Day 6.
     poller_task = None
@@ -118,6 +139,12 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    if not buckets_task.done():
+        buckets_task.cancel()
+        try:
+            await buckets_task
+        except (asyncio.CancelledError, Exception):
+            pass
     if warmup_task and not warmup_task.done():
         warmup_task.cancel()
         try:
