@@ -3,11 +3,28 @@ INDRA Platform — Report Consumer Worker
 Background aiokafka consumer that reads from indra.raw.reports, runs the
 verification pipeline, broadcasts NEW_REPORT / VERIFIED_EVENT WebSocket messages,
 and publishes verified events to indra.verified.events.
+
+**A failing message is retried, then dead-lettered (Phase 2 T8).** Offsets were
+auto-committed and the pipeline never raises, so a report the pipeline crashed
+on was logged and silently dropped: nothing retried it and nothing recorded it.
+Now offsets are committed by hand, after each message is dealt with:
+
+* the pipeline succeeded (event or not)            → commit, next message;
+* it failed, fewer than PIPELINE_MAX_ATTEMPTS times → seek back and retry it
+  after PIPELINE_RETRY_DELAY_SECONDS (the count is kept in Redis, per message);
+* it failed the last time                          → publish it, with the
+  error, to KAFKA_DLQ_TOPIC; commit; next message.
+
+So one bad message holds its partition for a few seconds at most and can never
+block it, and every message the pipeline gave up on is kept where
+`scripts/replay_dlq.py` can send it back. A message whose report id is not in
+the database is not a failure — the pipeline skips it, as it always has.
 """
 
 import json
 import logging
 import asyncio
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from app.core.config import get_settings
@@ -53,12 +70,16 @@ async def _first_broadcast(report_id: Optional[str]) -> bool:
     )
 
 
-async def handle_report_message(report_data: Dict[str, Any]) -> None:
+async def handle_report_message(report_data: Dict[str, Any]) -> Optional[str]:
     """
     One consumed message: broadcast NEW_REPORT (once per report id), run the
     verification pipeline (every time), broadcast VERIFIED_EVENT if it produced
     or updated an event. Never raises — the consumer loop must survive.
+
+    Returns None when the message was dealt with, or why the pipeline failed on
+    it, which the consumer loop counts towards the dead-letter topic.
     """
+    failure: Optional[str] = None
     try:
         report_id = report_data.get("id")
         logger.info(f"Received report: {report_id or 'unknown'}")
@@ -85,14 +106,18 @@ async def handle_report_message(report_data: Dict[str, Any]) -> None:
         event = None
         try:
             from app.core.database import async_session
-            from app.services.pipeline import process_report
+            from app.services import pipeline
 
             async with async_session() as db:
-                event = await process_report(db, report_data)
+                event = await pipeline.process_report(db, report_data)
+            # process_report fails soft and returns None; this tells a crash
+            # from "no event", in the same task (see pipeline.take_failure).
+            failure = pipeline.take_failure()
         except Exception as e:
             # process_report already fails soft; this guards the session/import
-            # layer around it.
+            # layer around it — a database that is down, for one.
             logger.error(f"Pipeline invocation failed: {e}")
+            failure = f"{type(e).__name__}: {e}"
 
         # None is a normal outcome — a duplicate, or a report with too little
         # corroboration to be an event yet.
@@ -114,6 +139,106 @@ async def handle_report_message(report_data: Dict[str, Any]) -> None:
 
     except Exception as e:
         logger.error(f"Error processing report message: {e}")
+        failure = failure or f"{type(e).__name__}: {e}"
+
+    return failure
+
+
+# ── Retries and the dead-letter topic (Phase 2 T8) ─────────────────────────────
+
+FAILURE_KEY_PREFIX = "pipeline:fail:"
+# Long enough to outlive any retry sequence; short enough that the keys go.
+FAILURE_COUNT_TTL_SECONDS = 24 * 60 * 60
+
+
+def _decode(raw: bytes) -> Dict[str, Any]:
+    """
+    The message value as a dict. A body that is not JSON is wrapped rather than
+    raised: a deserialiser that raises inside the consumer's iterator would
+    stop the loop on that message forever.
+    """
+    try:
+        value = json.loads(raw.decode("utf-8"))
+        return value if isinstance(value, dict) else {"_undecodable": raw.decode("utf-8", "replace")}
+    except Exception:
+        return {"_undecodable": raw.decode("utf-8", "replace") if raw else ""}
+
+
+def failure_key(msg) -> str:
+    """Per message, not per report: a replayed message is a new one and gets fresh tries."""
+    return f"{FAILURE_KEY_PREFIX}{msg.topic}:{msg.partition}:{msg.offset}"
+
+
+async def dead_letter(msg, error: str, attempts: int) -> bool:
+    """
+    Publish one message to the dead-letter topic with why it failed. True if it
+    was published; False leaves it to be retried, so nothing is lost while
+    Kafka itself is the problem.
+    """
+    from app.services import kafka
+    from app.services.feed_status import DEAD_LETTER, record_tick
+
+    record = {
+        "payload": msg.value,
+        "error": error,
+        "attempts": attempts,
+        "failed_at": datetime.now(timezone.utc).isoformat(),
+        "source": {"topic": msg.topic, "partition": msg.partition, "offset": msg.offset},
+    }
+    publisher = kafka.get_publisher()
+    try:
+        if not publisher.ready:
+            await publisher.ensure_started()
+        await publisher.publish(
+            settings.KAFKA_DLQ_TOPIC,
+            json.dumps(record).encode("utf-8"),
+            msg.key,
+            timeout=5.0,
+        )
+    except Exception as e:
+        logger.error(f"Could not dead-letter {msg.topic}[{msg.partition}]@{msg.offset}: {e}")
+        return False
+
+    await record_tick(DEAD_LETTER, ok=True, items=1, error=error, kind="stream")
+    logger.error(
+        f"Dead-lettered {msg.topic}[{msg.partition}]@{msg.offset} after {attempts} "
+        f"attempt(s): {error}"
+    )
+    return True
+
+
+async def process_message(consumer, msg) -> str:
+    """
+    Deal with one message and move its partition on, or not. Returns what
+    happened: "ok", "retry" or "dead_lettered". See the module docstring.
+    """
+    from aiokafka import TopicPartition
+
+    tp = TopicPartition(msg.topic, msg.partition)
+    key = failure_key(msg)
+
+    if isinstance(msg.value, dict) and "_undecodable" in msg.value:
+        error, attempts = "message is not JSON", settings.PIPELINE_MAX_ATTEMPTS
+    else:
+        error = await handle_report_message(msg.value)
+        if error is None:
+            await consumer.commit({tp: msg.offset + 1})
+            await cache.delete(key)
+            return "ok"
+        attempts = await cache.incr(key, FAILURE_COUNT_TTL_SECONDS)
+
+    if attempts >= settings.PIPELINE_MAX_ATTEMPTS and await dead_letter(msg, error, attempts):
+        await consumer.commit({tp: msg.offset + 1})
+        await cache.delete(key)
+        return "dead_lettered"
+
+    logger.warning(
+        f"Pipeline failed on {msg.topic}[{msg.partition}]@{msg.offset} "
+        f"(attempt {attempts} of {settings.PIPELINE_MAX_ATTEMPTS}); retrying: {error}"
+    )
+    consumer.seek(tp, msg.offset)
+    await asyncio.sleep(settings.PIPELINE_RETRY_DELAY_SECONDS)
+    return "retry"
 
 
 async def check_kafka_connection(bootstrap_servers: str, timeout: float = 1.5) -> bool:
@@ -172,7 +297,10 @@ async def start_report_consumer():
                 # This only applies when the group has no committed offset, so
                 # an existing deployment resumes exactly where it left off.
                 auto_offset_reset="earliest",
-                value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+                # Committed by hand after each message (process_message), so a
+                # message is only passed once it succeeded or was dead-lettered.
+                enable_auto_commit=False,
+                value_deserializer=_decode,
             )
             await consumer.start()
             if kafka_was_offline:
@@ -183,7 +311,7 @@ async def start_report_consumer():
             retry_delay = 5
 
             async for msg in consumer:
-                await handle_report_message(msg.value)
+                await process_message(consumer, msg)
 
         except asyncio.CancelledError:
             logger.info("Report consumer shutting down...")
