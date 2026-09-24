@@ -42,7 +42,8 @@ from app.services import audit
 from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services import severity_rules
-from app.services.geo_clustering import GeoClusteringService
+from app.services.geo_clustering import GeoClusteringService, family_params
+from app.services.report_flags import CREDIBILITY_FLOOR, FLAGS
 from app.services.geocoding import reverse_geocode
 from app.services.text_processing import core_text, extract_metadata
 from app.services.weather import rainfall_to_score, weather_score
@@ -581,7 +582,9 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
                 SELECT id, raw_text, latitude, longitude, created_at, event_id,
                        duplicate_of, CAST(source_type AS text), place_precision,
                        platform, source_meta, observed_at,
-                       geom_point IS NOT NULL AS has_geom, district, state
+                       geom_point IS NOT NULL AS has_geom, district, state,
+                       hazard_primary, hazard_family, COALESCE(flags, '{}'::text[]),
+                       citizen_hazard, reporter_hash, credibility_score
                 FROM raw_reports
                 WHERE id = CAST(:id AS uuid)
             """),
@@ -608,6 +611,13 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
         "has_geom": bool(row[12]),
         "district": row[13],
         "state": row[14],
+        # Phase 3 (0017): what the text is about, and its flags.
+        "hazard_primary": row[15],
+        "hazard_family": row[16],
+        "flags": list(row[17] or []),
+        "citizen_hazard": row[18],
+        "reporter_hash": row[19],
+        "credibility": float(row[20]) if row[20] is not None else None,
     }
 
 
@@ -756,7 +766,7 @@ async def _feed_duplicate(db: AsyncSession, report: Dict[str, Any]) -> Optional[
 
 
 async def _find_mergeable_event(
-    db: AsyncSession, lat: float, lng: float
+    db: AsyncSession, lat: float, lng: float, family: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     """
     The nearest recent event whose footprint already covers this location.
@@ -766,6 +776,12 @@ async def _find_mergeable_event(
     is merged after the fact too. Rejected events are excluded — an operator
     dismissing an event must not have it silently resurrected.
 
+    **By family** (Phase 3 T6): a cluster merges only into an event of its own
+    hazard family, over that family's radius and window (a heatwave report
+    never joins a flood event next door). An untagged cluster (family None)
+    may join an event of any family, and any cluster may join an UNCLASSIFIED
+    event, which the merge then re-types by majority.
+
     The window is measured from `updated_at`, not `verified_at`. `verified_at`
     is an insert-time default that means "created", and merging into an event
     rewrites its score and receipt without touching it, so keying the window
@@ -774,6 +790,7 @@ async def _find_mergeable_event(
     event's centroid came to be dropped (BUG-035): an ongoing flood stops
     accepting corroboration while it is still flooding.
     """
+    params = family_params(family)
     row = (
         await db.execute(
             text("""
@@ -783,6 +800,9 @@ async def _find_mergeable_event(
                           > NOW() - make_interval(mins => CAST(:window AS int))
                   AND review_status <> 'REJECTED'
                   AND center_point IS NOT NULL
+                  AND (CAST(:family AS text) IS NULL
+                       OR hazard_family IS NULL
+                       OR hazard_family = CAST(:family AS text))
                   AND ST_DWithin(
                         center_point::geography,
                         ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
@@ -795,10 +815,13 @@ async def _find_mergeable_event(
                 LIMIT 1
             """),
             {
-                "window": MERGE_WINDOW_MINUTES,
+                # The longer of the old two-hour window and the family's own:
+                # a heatwave event stays open for a day.
+                "window": max(MERGE_WINDOW_MINUTES, params.window_hours * 60),
                 "lat": lat,
                 "lng": lng,
-                "eps": settings.DBSCAN_EPS_KM,
+                "eps": params.eps_km,
+                "family": family,
             },
         )
     ).fetchone()
@@ -806,6 +829,132 @@ async def _find_mergeable_event(
     if row is None:
         return None
     return {"id": row[0], "event_code": row[1]}
+
+
+async def _cluster_reports(db: AsyncSession, report_ids: Sequence[UUID]) -> List[Dict[str, Any]]:
+    """
+    Every non-duplicate report in a cluster, with what the type vote (T6), the
+    severity (T7) and the independent-reporter count (T8, T9) read: text,
+    source, tagged hazard, the citizen's pick, reporter, credibility, flags and
+    a news item's publisher. Oldest first, so every derived list is stable.
+    """
+    ids = [str(rid) for rid in report_ids]
+    if not ids:
+        return []
+    rows = (
+        await db.execute(
+            text("""
+                SELECT id, raw_text, CAST(source_type AS text), hazard_primary, citizen_hazard,
+                       reporter_hash, credibility_score, COALESCE(flags, '{}'::text[]),
+                       COALESCE(source_meta->>'publisher_domain', source_meta->>'publisher')
+                FROM raw_reports
+                WHERE id = ANY(CAST(:ids AS uuid[]))
+                  AND duplicate_of IS NULL
+                ORDER BY created_at, id
+            """),
+            {"ids": ids},
+        )
+    ).fetchall()
+    return [
+        {
+            "id": r[0],
+            "raw_text": r[1] or "",
+            "source_type": r[2],
+            "hazard_primary": r[3],
+            "citizen_hazard": r[4],
+            "reporter_hash": r[5],
+            "credibility": float(r[6]) if r[6] is not None else 0.0,
+            "flags": list(r[7] or []),
+            "publisher": r[8],
+        }
+        for r in rows
+    ]
+
+
+# Phase 3 T8: `coordinated`. The same text from this many different reporters
+# within the window is a campaign, not a crowd. Texts shorter than the minimum
+# (after normalising) are skipped: three people really do write "heavy rain
+# here" in the same ten minutes.
+COORDINATED_MIN_REPORTERS = 3
+COORDINATED_WINDOW_MINUTES = 10
+COORDINATED_MIN_CHARS = 30
+
+# Lower case, punctuation to spaces, whitespace collapsed: the same message
+# with a different emoji or full stop is the same message.
+_NORMALISED_TEXT_SQL = (
+    "btrim(regexp_replace(regexp_replace(lower({col}), '[[:punct:][:space:]]+', ' ', 'g'), '\\s+', ' ', 'g'))"
+)
+
+
+async def _mark_coordinated(db: AsyncSession, report: Dict[str, Any]) -> List[UUID]:
+    """
+    Flag `coordinated` on this report and its copies when the same normalised
+    text arrives from COORDINATED_MIN_REPORTERS or more different reporters
+    within COORDINATED_WINDOW_MINUTES (a missing reporter id counts as its own
+    reporter). Each flagged report's credibility is halved once, floored at
+    0.05 (report_flags.FLAGS). Runs in the caller's transaction.
+
+    Citizen dedup (1 km, 15 min) already suppresses copies close together; this
+    catches the same message sent from far apart, which dedup never sees.
+    Returns the ids newly flagged.
+    """
+    norm_me = _NORMALISED_TEXT_SQL.format(col="me.raw_text")
+    norm_r = _NORMALISED_TEXT_SQL.format(col="r.raw_text")
+    rows = (
+        await db.execute(
+            text(f"""
+                WITH me AS (
+                    SELECT raw_text, created_at FROM raw_reports WHERE id = CAST(:id AS uuid)
+                )
+                SELECT r.id, COALESCE(r.reporter_hash, CAST(r.id AS text)),
+                       'coordinated' = ANY(COALESCE(r.flags, '{{}}'::text[]))
+                FROM raw_reports r, me
+                WHERE length({norm_me}) >= :min_chars
+                  AND r.created_at BETWEEN me.created_at - make_interval(mins => CAST(:window AS int))
+                                       AND me.created_at + make_interval(mins => CAST(:window AS int))
+                  AND {norm_r} = {norm_me}
+            """),
+            {
+                "id": str(report["id"]),
+                "window": COORDINATED_WINDOW_MINUTES,
+                "min_chars": COORDINATED_MIN_CHARS,
+            },
+        )
+    ).fetchall()
+    if len({r[1] for r in rows}) < COORDINATED_MIN_REPORTERS:
+        return []
+    fresh = [r[0] for r in rows if not r[2]]
+    if not fresh:
+        return []
+    await db.execute(
+        text("""
+            UPDATE raw_reports SET
+                flags = array_append(COALESCE(flags, '{}'::text[]), 'coordinated'),
+                credibility_score = GREATEST(:floor, round(CAST(credibility_score * :factor AS numeric), 4)),
+                analysis = CASE WHEN analysis IS NULL THEN NULL ELSE
+                    jsonb_set(
+                        jsonb_set(analysis, '{flags}',
+                                  COALESCE(analysis->'flags', '[]'::jsonb) || '["coordinated"]'::jsonb),
+                        '{flag_basis}',
+                        COALESCE(analysis->'flag_basis', '{}'::jsonb)
+                            || jsonb_build_object('coordinated', CAST(:basis AS text))
+                    )
+                END
+            WHERE id = ANY(CAST(:ids AS uuid[]))
+              AND NOT 'coordinated' = ANY(COALESCE(flags, '{}'::text[]))
+        """),
+        {
+            "ids": [str(i) for i in fresh],
+            "floor": CREDIBILITY_FLOOR,
+            "factor": FLAGS["coordinated"],
+            "basis": (
+                f"the same text from {len({r[1] for r in rows})} reporters within "
+                f"{COORDINATED_WINDOW_MINUTES} minutes"
+            ),
+        },
+    )
+    logger.info(f"Pipeline: {len(fresh)} report(s) flagged coordinated with {report['id']}")
+    return fresh
 
 
 async def _event_report_ids(db: AsyncSession, event_id: UUID):
