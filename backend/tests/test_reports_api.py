@@ -31,8 +31,10 @@ class FakeResult:
 class FakeSession:
     """
     Records every statement in order, with COMMIT and ROLLBACK as markers, and
-    answers the two queries ingest reads back: the outbox insert's RETURNING id
-    and the publish path's row lock (unlocked, unpublished).
+    answers the three queries ingest reads back: the report insert's RETURNING
+    id (a row: the report is new — no row would mean a fed item already stored,
+    Phase 2 T4), the outbox insert's RETURNING id, and the publish path's row
+    lock (unlocked, unpublished).
     """
 
     def __init__(self):
@@ -42,6 +44,8 @@ class FakeSession:
     async def execute(self, statement, params=None):
         sql = str(statement)
         self.statements.append((sql, params))
+        if "INSERT INTO raw_reports" in sql:
+            return FakeResult(row=(params["id"],))
         if "INSERT INTO outbox" in sql:
             self._outbox_id += 1
             return FakeResult(scalar=self._outbox_id)
