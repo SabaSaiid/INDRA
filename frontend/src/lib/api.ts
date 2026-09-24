@@ -448,7 +448,7 @@ export async function fetchDashboardSummary(): Promise<KpiItem[]> {
       // No comparison window exists for this figure. A 0 here printed "0%",
       // which reads as "measured, unchanged".
       delta: null,
-      deltaLabel: 'escalated or quarantined',
+      deltaLabel: 'review queue',
       color: '#D97706',
       bgColor: '#FEF3C7',
       icon: 'critical',
@@ -460,7 +460,7 @@ export async function fetchDashboardSummary(): Promise<KpiItem[]> {
       label: 'Active Alerts',
       value: data.active_alerts ?? 0,
       delta: null,
-      deltaLabel: 'IMD · CWC · SDMA in force',
+      deltaLabel: 'in force now',
       color: '#0EA5E9',
       bgColor: '#E0F2FE',
       icon: 'verified',

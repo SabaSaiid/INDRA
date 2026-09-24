@@ -101,7 +101,9 @@ function Reading({ item, index }: ReadingProps) {
             </span>
           </p>
         )}
-        <p className="text-[8px] text-[#B0A898] leading-none mt-0.5 whitespace-nowrap">
+        {/* Truncates before the reading's own label does: the label is the
+            thing an operator reads. */}
+        <p className="text-[8px] text-[#B0A898] leading-none mt-0.5 whitespace-nowrap truncate max-w-[72px]" title={item.deltaLabel}>
           {item.deltaLabel}
         </p>
       </div>
