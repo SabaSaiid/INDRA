@@ -128,10 +128,11 @@ class Settings(BaseSettings):
     # place within the text window is a copy. Either is `duplicate_of` the first.
     FEED_DEDUP_LINK_WINDOW_HOURS: int = 72
     FEED_DEDUP_TEXT_WINDOW_HOURS: int = 24
-    # False until Phase 3 tags hazards: every cluster is still URBAN_FLOOD, so a
-    # headline about a Delhi heatwave would otherwise become a Delhi flood.
-    # Posts are stored, deduplicated and shown; they are not clustered.
-    SOCIAL_CLUSTERING_ENABLED: bool = False
+    # On since Phase 3 T9: posts and headlines cluster within their hazard
+    # family (a Delhi heatwave headline joins heat reports, never a flood), a
+    # news publisher counts as one witness, and an event made only of posts is
+    # capped at PENDING_HUMAN_REVIEW. False holds every post out of clustering.
+    SOCIAL_CLUSTERING_ENABLED: bool = True
 
     DBSCAN_EPS_KM: float = 5.0
     DBSCAN_MIN_SAMPLES: int = 2
