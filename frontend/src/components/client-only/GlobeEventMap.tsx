@@ -19,6 +19,7 @@ import {
 import type { MapLayer } from '@/lib/ui-config';
 import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   Globe,
   Map as MapIcon,
@@ -410,7 +411,9 @@ export default function GlobeEventMap({
       const [events, alerts, reports] = await Promise.allSettled([
         fetchEvents({ time_range: timeRange }),
         fetchAgencyAlerts(200),
-        fetchFieldReports(200, 72),
+        // Seven days, the same window as the events layer. At 72 h a report
+        // that never joined an event vanished from the map on its third day.
+        fetchFieldReports(200, 168),
       ]);
 
       if (cancelled) return;
@@ -439,31 +442,28 @@ export default function GlobeEventMap({
 
   // A verified event finishing the pipeline is the one moment this map is
   // certainly stale. The backend has broadcast VERIFIED_EVENT since Day 1 and
-  // nothing in the frontend has ever listened for it (BUG-036).
+  // nothing in the frontend has ever listened for it (BUG-036). Listens on the
+  // shared connection; this component used to open a raw socket of its own.
+  const { subscribe } = useIndraWebSocket();
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const wsUrl = base.replace(/^http/, 'ws');
-    let socket: WebSocket | null = null;
+    return subscribe(`globe-map-${variant}`, (msg) => {
+      if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT' || msg.type === 'EVENT_REVIEWED') {
+        setRefreshTick((t) => t + 1);
+      }
+    });
+  }, [subscribe, variant]);
 
-    try {
-      socket = new WebSocket(`${wsUrl}/ws/events`);
-      socket.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT') {
-            setRefreshTick((t) => t + 1);
-          }
-        } catch {
-          // A malformed frame is not a reason to tear down the socket.
-        }
-      };
-    } catch {
-      // No live socket simply means the map refreshes on its own controls.
-    }
-
-    return () => {
-      socket?.close();
-    };
+  // Official warnings arrive from the SACHET poller, which broadcasts nothing,
+  // and expire on their own clock. Without this the warning layer stayed as it
+  // was when the page opened: expired warnings kept their pins and new ones
+  // never appeared until a reload.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        setRefreshTick((t) => t + 1);
+      }
+    }, 120_000);
+    return () => clearInterval(id);
   }, []);
 
   // Dynamically extract unique hazard types from loaded markers
