@@ -218,10 +218,17 @@ DEMO_SEVERITY_DISTRIBUTION: List[Dict[str, Any]] = [
 # 422 naming the parameter rather than a database error reported as an outage
 # (BUG-061).
 
-# India Standard Time has no daylight saving, so a fixed offset is exact and
-# needs no timezone database.
-IST = timezone(timedelta(hours=5, minutes=30))
-MAX_RANGE_DAYS = 366
+# The shared parameter rules live in api/query_params.py since Phase 2 (T10),
+# where report search and the exports use them too. Imported under the names
+# this module has always used.
+from app.api.query_params import (  # noqa: E402
+    IST,
+    MAX_RANGE_DAYS,
+    csv_values as _csv,
+    instant as _instant,
+    invalid as _invalid,
+    like_pattern as _like,
+)
 TIME_RANGE_HOURS = {"24h": 24, "48h": 48, "7d": 168}
 # Severity sorts by meaning, not by the enum's declaration order.
 _SEVERITY_RANK = (
@@ -234,61 +241,6 @@ SORT_COLUMNS = {
     "severity": _SEVERITY_RANK,
 }
 INCLUDES = {"boundary"}
-
-
-def _invalid(param: str, msg: str, value: Any) -> HTTPException:
-    """A 422 in FastAPI's own shape, so a bad `event_type` reads like a bad `limit`."""
-    return HTTPException(
-        status_code=422,
-        detail=[{"type": "value_error", "loc": ["query", param], "msg": msg, "input": value}],
-    )
-
-
-def _csv(
-    param: str,
-    raw: Optional[str],
-    allowed: Iterable[str],
-    normalise: Callable[[str], str] = str.upper,
-) -> Optional[List[str]]:
-    """A comma-separated parameter as a list of known values, or None if absent."""
-    if raw is None:
-        return None
-    allowed = set(allowed)
-    values = [normalise(v.strip()) for v in raw.split(",") if v.strip()]
-    unknown = [v for v in values if v not in allowed]
-    if unknown or not values:
-        raise _invalid(
-            param, f"unknown value {unknown[0] if unknown else raw!r}; expected any of {sorted(allowed)}", raw
-        )
-    return list(dict.fromkeys(values))
-
-
-def _instant(param: str, raw: Optional[str], end: bool) -> Optional[Tuple[datetime, bool]]:
-    """
-    `from` / `to` as (instant, exclusive).
-
-    A date (YYYY-MM-DD) is a whole day in IST: `from` starts at its first
-    instant, and `to` includes it, so the bound is the next day's midnight,
-    exclusive. A 23:30 IST event is on the day an Indian operator would say it
-    was, not the UTC one. A timestamp is used as given; one without an offset
-    is read as IST.
-    """
-    if raw is None:
-        return None
-    try:
-        if len(raw) == 10:
-            d = date.fromisoformat(raw)
-            midnight = datetime(d.year, d.month, d.day, tzinfo=IST)
-            return (midnight + timedelta(days=1), True) if end else (midnight, False)
-        ts = datetime.fromisoformat(raw)
-        return (ts if ts.tzinfo else ts.replace(tzinfo=IST)), False
-    except ValueError:
-        raise _invalid(param, "expected a date (YYYY-MM-DD) or an ISO 8601 timestamp", raw)
-
-
-def _like(q: str) -> str:
-    """A contains-pattern for ILIKE in which % and _ match only themselves."""
-    return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
 def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
