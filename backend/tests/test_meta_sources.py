@@ -1,8 +1,10 @@
 """
-GET /api/meta/sources — the Phase 2 T2 contract, served early from table timestamps.
+GET /api/meta/sources — the Phase 2 T2 contract.
 
-Until the feed_status table exists, status is read from the newest row each
-feed wrote (`basis: newest_row`), and push feeds are never stale for being quiet.
+Written before feed_status existed, when status was read from the newest row
+each feed wrote. Pollers now report a heartbeat (`basis: heartbeat`, covered in
+test_feed_status.py); push feeds still have none and are never stale for being
+quiet (`basis: push`).
 """
 
 import uuid
@@ -46,7 +48,9 @@ async def _feeds(api):
 
 async def test_every_feed_is_listed_with_the_contract_fields(api, clean_db):
     feeds = await _feeds(api)
-    assert set(feeds) == {"citizen", "official", "sachet", "open_meteo"}
+    assert set(feeds) == {
+        "citizen", "official", "sachet", "open_meteo", "metar", "mastodon", "google_news",
+    }
     for f in feeds.values():
         assert {"feed", "kind", "enabled", "status", "last_success_at", "last_error",
                 "rows_24h", "rows_total", "poll_interval_s"} <= set(f)
