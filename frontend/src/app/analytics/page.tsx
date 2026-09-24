@@ -21,6 +21,7 @@ import { useSidebar } from '@/lib/useSidebar';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import EventDistributionChart from '@/components/EventDistributionChart';
 import {
+  ApiError,
   fetchSummaryCounts,
   fetchStations,
   fetchAgencyAlerts,
@@ -99,7 +100,15 @@ function RainfallPanel() {
         Model rainfall at six city points, the figure the weather factor scores. Not IMD gauge readings.
       </p>
       {error && !stations ? (
-        <ErrorState label="rainfall readings" error={error} compact />
+        <ErrorState
+          label="rainfall readings"
+          error={
+            error instanceof ApiError && error.status === 404
+              ? 'This server has not been updated with GET /api/geo/stations yet.'
+              : error
+          }
+          compact
+        />
       ) : stations && stations.length === 0 ? (
         <EmptyState title="No readings in the last 48 hours" hint="The station poller may be switched off." compact />
       ) : !stations ? (
