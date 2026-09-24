@@ -153,6 +153,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Mastodon poller startup skipped (non-fatal): {e}")
 
+    # Phase 2 T5: weather headlines from Google News, English and Hindi.
+    news_task = None
+    try:
+        from app.workers.news_poller import start_news_poller
+        news_task = asyncio.create_task(start_news_poller())
+    except Exception as e:
+        logger.warning(f"Google News poller startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
@@ -191,7 +199,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    for task in (metar_task, mastodon_task):
+    for task in (metar_task, mastodon_task, news_task):
         if task:
             task.cancel()
             try:

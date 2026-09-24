@@ -90,6 +90,8 @@ FEEDS: List[Feed] = [
     # weeks-old posts, which are real rows collected today.
     Feed("mastodon", "social", "Mastodon #IMD posts", "raw_reports", "created_at",
          "platform = 'mastodon'", "MASTODON_POLLER_ENABLED", "MASTODON_POLL_INTERVAL_SECONDS"),
+    Feed("google_news", "news", "Google News headlines", "raw_reports", "created_at",
+         "platform = 'google_news'", "NEWS_POLLER_ENABLED", "NEWS_POLL_INTERVAL_SECONDS"),
 ]
 
 FEEDS_BY_NAME: Dict[str, Feed] = {f.feed: f for f in FEEDS}
