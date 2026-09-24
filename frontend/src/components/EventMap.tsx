@@ -15,16 +15,19 @@ export default function EventMap({
   selectedEventId,
   onEventSelect,
   variant = 'preview',
+  canvasClassName,
 }: {
   selectedEventId?: string;
   onEventSelect?: (marker: MapMarker | null) => void;
   variant?: 'full' | 'preview';
+  canvasClassName?: string;
 }) {
   return (
     <GlobeEventMap
       selectedEventId={selectedEventId}
       onEventSelect={onEventSelect}
       variant={variant}
+      canvasClassName={canvasClassName}
     />
   );
 }

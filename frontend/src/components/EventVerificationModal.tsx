@@ -171,9 +171,8 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const detailEventId = detail?.id ?? provenance?.event?.id ?? eventId ?? '';
   const eventType = detail?.event_type_display ?? detail?.event_type ?? '';
 
-  // Issue 1 & 2 fix: derive review_status from (severity, confidence) per the documented 2x2
-  // matrix. The backend's fallback generator sets review_status independently of the rule.
-  const derivedState = safeEventState(detailEventId, severity, confidenceScore, apiReviewStatus);
+  // The API's review_status and quadrant, derived only when absent (BUG-070).
+  const derivedState = safeEventState(detailEventId, severity, confidenceScore, apiReviewStatus, detail?.quadrant);
   const reviewStatus = derivedState.reviewStatus;
   const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.PENDING_HUMAN_REVIEW;
   const sevStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.MODERATE;

@@ -129,10 +129,8 @@ function officialCard(a: AgencyAlert): WarningCard {
 }
 
 function indraCard(ev: ApiEvent): WarningCard {
-  // Issue 1 & 2 fix: derive review_status from (severity, confidence) per the documented 2x2
-  // matrix. The backend's fallback generator sets review_status independently of the rule,
-  // causing contradictions like a High-severity / 47% event tagged "Quarantined".
-  const derivedState = safeEventState(ev.id, ev.severity, ev.confidence_score, ev.review_status);
+  // The API's review_status and quadrant, derived only when absent (BUG-070).
+  const derivedState = safeEventState(ev.id, ev.severity, ev.confidence_score, ev.review_status, ev.quadrant);
   const status = REVIEW_LABEL[derivedState.reviewStatus] || derivedState.reviewLabel;
   const reports = ev.corroborating_reports_count;
   return {

@@ -24,6 +24,14 @@ import {
 } from '@/components/ui/skeleton';
 import { useSidebar } from '@/lib/useSidebar';
 
+// The dashboard map's canvas fills what the viewport leaves after the topbar,
+// the status strip, the KPI row, the map's own header and the chart row
+// (≈490 px together, measured), so the page ends at the bottom of the screen
+// instead of leaving a band of empty paper under the charts. Clamped for short
+// and very tall screens.
+const DASHBOARD_MAP_HEIGHT = 'h-[clamp(340px,calc(100dvh-490px),680px)]';
+const MAP_FOCUS_HEIGHT = 'h-[clamp(420px,calc(100dvh-330px),860px)]';
+
 export default function Home() {
   const {
     collapsed: sidebarCollapsed,
@@ -109,52 +117,19 @@ export default function Home() {
 
   // The backend has broadcast VERIFIED_EVENT since Day 1 and nothing in the
   // frontend ever listened for it. NEW_REPORT moves the report counters, and
-  // VERIFIED_EVENT is the moment the KPI strip and the event list are
-  // certainly stale, so both trigger a refetch.
-  useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    let socket: WebSocket | null = null;
-
-    try {
-      socket = new WebSocket(`${base.replace(/^http/, 'ws')}/ws/events`);
-      socket.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT') {
-            setRefreshTick((t) => t + 1);
-          }
-        } catch {
-          // A malformed frame is not a reason to tear the socket down.
-        }
-      };
-    } catch {
-      // No socket just means the dashboard refreshes on navigation, as before.
-    }
-
-    return () => socket?.close();
-  }, []);
-
-  // ── WebSocket: auto-refresh events on real-time broadcasts ────────────────
-  const refreshEvents = useCallback(async () => {
-    try {
-      const apiEvents = await fetchEvents({ time_range: '7d' });
-      if (apiEvents.length > 0) {
-        setEvents(apiEventsToRecentEvents(apiEvents));
-      }
-    } catch { /* no-op */ }
-  }, []);
-
+  // VERIFIED_EVENT / EVENT_REVIEWED are the moments the KPI strip and the event
+  // list are certainly stale, so each triggers one refetch of both. This page
+  // also opened a raw socket of its own beside the shared one; it now listens
+  // on the shared connection only.
   useEffect(() => {
     return subscribe('dashboard-page', (msg) => {
       if (['NEW_REPORT', 'VERIFIED_EVENT', 'EVENT_REVIEWED'].includes(msg.type)) {
-        refreshEvents();
-        // Also refresh KPIs on verified/reviewed events
-        if (msg.type !== 'NEW_REPORT') {
-          fetchDashboardSummary().then(setLiveKpiData);
-        }
+        setRefreshTick((t) => t + 1);
       }
     });
-  }, [subscribe, refreshEvents]);
+  }, [subscribe]);
+
+  const refreshEvents = useCallback(() => setRefreshTick((t) => t + 1), []);
 
   // Handler to open verification modal from event lists
   const handleEventSelect = useCallback((ev: RecentEvent) => {
@@ -255,16 +230,23 @@ export default function Home() {
                         <EventMap
                           selectedEventId={selectedIncidentId}
                           onEventSelect={(ev) => setSelectedIncidentId(ev?.id)}
+                          canvasClassName={DASHBOARD_MAP_HEIGHT}
                         />
                       </div>
-                      <div className="lg:col-span-2 flex flex-col">
-                        <RecentEventsList
-                          selectedEventId={selectedIncidentId}
-                          onSelectEvent={handleEventSelect}
-                          events={events}
-                          loading={eventsLoading}
-                          error={eventsError}
-                        />
+                      {/* The map sets the row's height and the list scrolls
+                          inside it: absolutely filling the column (lg and up)
+                          keeps a long list from stretching the map card and
+                          leaving empty space under the canvas. */}
+                      <div className="lg:col-span-2 flex flex-col lg:relative">
+                        <div className="flex flex-col h-full lg:absolute lg:inset-0">
+                          <RecentEventsList
+                            selectedEventId={selectedIncidentId}
+                            onSelectEvent={handleEventSelect}
+                            events={events}
+                            loading={eventsLoading}
+                            error={eventsError}
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -284,6 +266,7 @@ export default function Home() {
                       <EventMap
                         selectedEventId={selectedIncidentId}
                         onEventSelect={(ev) => setSelectedIncidentId(ev?.id)}
+                        canvasClassName={MAP_FOCUS_HEIGHT}
                       />
                     </div>
                     {/* Events + Feed side by side below map */}

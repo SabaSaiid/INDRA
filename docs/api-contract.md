@@ -4,7 +4,9 @@
 shape and every status code it can return. Written for whoever is calling this API — the
 dashboard, a teammate's script, or a judge with `curl`.
 
-**Last verified against the code and a running stack: 23 Sep 2026 (Phase 1).** Every endpoint below
+**Last verified against the code and a running stack: 23 Sep 2026 (Phase 1).** The 24 Sep additions
+(feed streams, IST trend, `/api/reports/recent` fields, `/api/meta/sources`, `/api/geo/stations`) were
+checked by running their SQL on the team database; their pytest cases are written and not yet run. Every endpoint below
 was read out of its router, not out of an older document, and every example response marked
 *captured* was copied from `curl` against a running stack. If this file and the code disagree, the
 code is right and this file is a bug.
@@ -169,7 +171,29 @@ so the answer never helps anyone guess. `503` on a database error; there is no d
 
 ### `GET /api/reports/trend?range=7d|14d|30d`
 
-Daily report counts. Always returns a row per day, including zeros.
+Reports per **IST day**, oldest first, exactly N rows ending today, zeros included (24 Sep, BUG-072:
+it bucketed by UTC date and `7d` returned eight rows).
+
+```json
+[{"date": "18 Sep", "day": "2026-09-18", "reports": 0}, … {"date": "24 Sep", "day": "2026-09-24", "reports": 0}]
+```
+
+### `GET /api/reports/recent?limit=100&hours=72&unfused_only=true`
+
+Stored reports, newest first, for the map's field-report layer (`unfused_only=true`: not yet in an
+event, not a suppressed duplicate) and the Field Reports page (`unfused_only=false`: everything).
+`hours` up to 720.
+
+```json
+[{"id": "…", "source_type": "CITIZEN_APP", "text": "Water rising fast near Gandhi Maidan, knee deep on the road.",
+  "lat": 25.5941, "lng": 85.1376, "district": "Patna", "state": "Bihar",
+  "created_at": "2026-09-21T14:57:17.653497+00:00", "fused": false, "duplicate": false, "depth_cm": 50,
+  "event_id": null, "event_code": null, "observed_at": "2026-09-21T14:57:17.653497+00:00",
+  "credibility_score": 0.6}]
+```
+
+`event_id`, `event_code`, `observed_at` and `credibility_score` since 24 Sep. The docket is never
+included: it is the citizen's credential for `/track`, and this list is open.
 
 ---
 
@@ -413,6 +437,20 @@ A profile edit changes **the token's own operator only**; a `?user=` parameter i
 different window than you asked for. `200` with `cells: []` when nothing is in range. `503` on a
 database error.
 
+### `GET /api/geo/stations` (24 Sep)
+
+Every rainfall station with its newest reading and the last 48 h, one row per observation hour
+(the poller stores each hour several times), wettest first. `rainfall_mm` is the trailing 24 h
+accumulation; `0.0` is a measured dry day. Today these are six **Open-Meteo model points**
+(`agency: OPEN_METEO`), not IMD gauges. A station silent for 48 h is left out. `503` on a database
+error.
+
+```json
+[{"station_code": "OM-KOLKATA", "station_name": "Kolkata", "agency": "OPEN_METEO",
+  "lat": 22.5726, "lng": 88.3639, "rainfall_mm": 24.2, "recorded_at": "2026-09-24T04:00:00+00:00",
+  "series": [{"at": "2026-09-23T17:00:00+00:00", "rainfall_mm": 19.8}, …]}]
+```
+
 ---
 
 ## `/api/meta`
@@ -442,6 +480,27 @@ Empty database: every list `[]` and both dates `null`. Cached for **60 s** (Redi
 `meta:filters`, with an in-memory fallback), so a new event can take up to a minute to appear in the
 options; it appears in the list at once. `503` on a database error, never invented options.
 
+### `GET /api/meta/sources` (24 Sep, Phase 2 T2's contract served early)
+
+Whether each feed is alive. Until T2's `feed_status` table exists there is no poller heartbeat, so
+status is **derived from each feed's newest row**, and each entry says so in `basis`:
+`newest_row` for pollers (stale after `stale_after_s`), `push` for intake routes, which are never
+stale for being quiet. `last_error` is `null` until T2 records errors. `status` is `ok`, `stale` or
+`disabled` today (`failing` arrives with T2).
+
+```json
+{"generated_at": "2026-09-24T05:10:00+00:00",
+ "feeds": [
+  {"feed": "citizen", "kind": "citizen", "title": "Citizen reports", "enabled": true, "status": "ok",
+   "last_success_at": "2026-09-21T14:57:17.653497+00:00", "last_error": null, "rows_24h": 0, "rows_total": 1,
+   "poll_interval_s": null, "stale_after_s": null, "basis": "push"},
+  {"feed": "sachet", "kind": "warnings", "title": "Official warnings (SACHET CAP)", "enabled": true, "status": "ok",
+   "last_success_at": "2026-09-24T05:08:09+00:00", "last_error": null, "rows_24h": 109, "rows_total": 340,
+   "poll_interval_s": 300, "stale_after_s": 3600, "basis": "newest_row"}, …]}
+```
+
+Feeds: `citizen`, `official`, `sachet`, `open_meteo`. `503` on a database error.
+
 ---
 
 ## `/api/dashboard`
@@ -457,10 +516,25 @@ and `active_alerts` (unexpired SACHET warnings). `verified_events` counts only `
 
 ## `/api/feed`
 
-### `GET /api/feed/recent`
+### `GET /api/feed/recent?limit=10&include=reports,events,warnings`
 
-Recent reports for the live feed panel, newest first, each with a `source` key and label:
-`citizen` for `CITIZEN_APP`, `official` for `OFFICIAL_DISPATCH` (it was `news` until 22 Sep).
+What has just happened, newest first, merged from three streams (24 Sep, BUG-071):
+`report` (a stored report), `event` (an event formed, not rejected) and `warning` (an official
+warning **in force**). `include` narrows the streams; the default is all three. Every item keeps the
+old fields (`id`, `source`, `sourceLabel`, `message`, `time`) and adds `kind`, `at` (ISO 8601) and,
+where they apply, `place`, `severity`, `status`, `event_id`. `time` is **IST** `HH:MM`; it was the UTC
+clock time until 24 Sep. `source` is `citizen`, `official`, `social`, `news`, `event` or `warning`.
+
+```json
+[{"id": "warning-97403024-…", "kind": "warning", "source": "warning", "sourceLabel": "Odisha-SDMA",
+  "message": "Moderate Rain , Thunderstorm, lightning and wind speed 40 -50 kmph is very likely …",
+  "place": "5 districts of Odisha", "severity": "HIGH", "at": "2026-09-24T04:55:18+00:00", "time": "10:25"},
+ {"id": "44d18dd5-…", "kind": "report", "source": "citizen", "sourceLabel": "Citizen report",
+  "message": "Water rising fast near Gandhi Maidan, knee deep on the road.", "place": "Patna, Bihar",
+  "status": "pending", "at": "2026-09-21T14:57:17.653497+00:00", "time": "20:27"}]
+```
+
+A report's `status` is `pending`, `in_event` or `duplicate`.
 
 ---
 
@@ -596,7 +670,7 @@ everything but the path as provisional.
 |---|---|---|
 | 2 | `GET /api/reports/search` | Search and filter reports, with `X-Total-Count` like `/api/events` |
 | 2 | `GET /api/reports/export`, `GET /api/events/export` | CSV and GeoJSON downloads of a filtered set |
-| 2 | `GET /api/meta/sources` | Each feed's status: last success, last error, items collected |
+| 2 | `GET /api/meta/sources` | **Served early on 24 Sep** (above), derived from newest rows; T2 adds the heartbeat table |
 | 2 | `GET /api/stations/latest?feed=metar` | The latest airport weather observations |
 | 4 | `GET /api/review/queue` | The review queue's tabs |
 | 4 | `POST /api/events/{id}/claim`, `DELETE /api/events/{id}/claim` | Claiming an event for review |

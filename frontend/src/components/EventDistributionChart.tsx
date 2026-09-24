@@ -6,7 +6,7 @@ import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import { type DistributionItem } from '@/lib/ui-config';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
-import { fetchEventDistribution } from '@/lib/api';
+import { fetchEventDistribution, fetchAgencyAlerts, agencyAlertsToDistribution, type AgencyAlert } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   PieChart,
@@ -19,6 +19,8 @@ import { cn } from '@/lib/utils';
 
 export type DistributionTab = 'hazard' | 'severity';
 export type TimeRangeFilter = '24h' | '7d' | 'all';
+/** What is being grouped: INDRA's own events, or official warnings in force. */
+export type DistributionSource = 'events' | 'warnings';
 
 interface EventDistributionChartProps {
   variant?: 'card' | 'embedded';
@@ -41,6 +43,14 @@ export default function EventDistributionChart({
   const [loaded, setLoaded] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const { subscribe } = useIndraWebSocket();
+  // The panel grouped INDRA events only, so on a day without citizen reports
+  // it was an empty ring beside a map full of official warnings. It can now
+  // group either, and says which it is showing. With no events it opens on the
+  // warnings, once; after that the operator's choice stands.
+  const [source, setSource] = useState<DistributionSource>('events');
+  const [sourceChosen, setSourceChosen] = useState(false);
+  const [alerts, setAlerts] = useState<AgencyAlert[] | null>(null);
+  const [alertsError, setAlertsError] = useState<unknown>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -64,6 +74,43 @@ export default function EventDistributionChart({
     loadDistribution(activeTab, timeRange);
   }, [activeTab, timeRange, loadDistribution]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      fetchAgencyAlerts(200)
+        .then((rows) => { if (!cancelled) { setAlerts(rows); setAlertsError(null); } })
+        .catch((err) => { if (!cancelled) setAlertsError(err); });
+    load();
+    const id = setInterval(load, 120_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  const eventsTotal = useMemo(
+    () => distribution.reduce((sum, item) => sum + (Number(item.value) || 0), 0),
+    [distribution]
+  );
+
+  const autoDecided = React.useRef(false);
+  useEffect(() => {
+    if (autoDecided.current || sourceChosen || !loaded || alerts === null) return;
+    autoDecided.current = true;
+    if (eventsTotal === 0 && alerts.length > 0) setSource('warnings');
+  }, [sourceChosen, loaded, alerts, eventsTotal]);
+
+  const chooseSource = (next: DistributionSource) => {
+    setSourceChosen(true);
+    setHoveredIndex(null);
+    setSource(next);
+  };
+
+  const warningsDistribution = useMemo(
+    () => (alerts ? agencyAlertsToDistribution(alerts, activeTab) : []),
+    [alerts, activeTab]
+  );
+  const shown = source === 'events' ? distribution : warningsDistribution;
+  const shownError = source === 'events' ? error : alertsError;
+  const shownLoaded = source === 'events' ? loaded : alerts !== null || alertsError !== null;
+
   // Real-time synchronization on WebSocket events
   useEffect(() => {
     return subscribe('event-distribution-chart', (msg) => {
@@ -81,19 +128,41 @@ export default function EventDistributionChart({
   };
 
   const total = useMemo(() => {
-    return distribution.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
-  }, [distribution]);
+    return shown.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+  }, [shown]);
 
   // Bounds-safe active item
   const activeItem = useMemo(() => {
     if (hoveredIndex === null) return null;
-    return distribution[hoveredIndex] || null;
-  }, [hoveredIndex, distribution]);
+    return shown[hoveredIndex] || null;
+  }, [hoveredIndex, shown]);
+
+  const sourceToggle = (
+    <div className="inline-flex items-center rounded-md border border-[#E0D7C6] bg-[#EFE9DC] p-0.5 text-[9px] font-mono">
+      {(['events', 'warnings'] as const).map((src) => {
+        const n = src === 'events' ? eventsTotal : alerts?.length ?? 0;
+        return (
+          <button
+            key={src}
+            type="button"
+            onClick={() => chooseSource(src)}
+            title={src === 'events' ? 'Events INDRA formed from reports' : 'Official warnings in force (IMD, CWC, SDMA via SACHET)'}
+            className={cn(
+              'px-1.5 py-0.5 rounded transition-colors cursor-pointer',
+              source === src ? 'bg-white text-[#1B2432] font-bold shadow-2xs' : 'text-[#7A8599] hover:text-[#1B2432]'
+            )}
+          >
+            {src === 'events' ? 'Events' : 'Warnings'} {n}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const content = (
     <div className={cn('flex flex-col h-full min-h-0', className)}>
       {/* Subheader: Segmented Tab Switcher + Time Range Pills */}
-      <div className="flex items-center justify-between gap-2 mb-2 pb-1 border-b border-[#F0EBE0]">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-1 border-b border-[#F0EBE0]">
         {/* Dimension Tabs (Hazard vs Severity) */}
         <div className="inline-flex p-0.5 rounded-lg bg-[#EFE9DC] border border-[#E0D7C6]">
           <button
@@ -143,7 +212,11 @@ export default function EventDistributionChart({
           </button>
         </div>
 
-        {/* Time range pills */}
+        {/* Time range pills — events only; a warning is either in force or not */}
+        {variant === 'embedded' && sourceToggle}
+        {source === 'warnings' ? (
+          <span className="text-[9px] font-mono text-[#7A8599] uppercase tracking-wider">In force now</span>
+        ) : (
         <div className="flex items-center gap-0.5 text-[9px] font-mono">
           {(['24h', '7d', 'all'] as const).map((r) => (
             <button
@@ -164,20 +237,39 @@ export default function EventDistributionChart({
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* Nothing to plot: say so rather than drawing an invented distribution. */}
-      {error ? (
+      {shownError ? (
         <div className="flex-1 flex items-center justify-center">
-          <ErrorState label="the event distribution" error={error} compact />
-        </div>
-      ) : loaded && distribution.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center">
-          <EmptyState
-            title="No events to group yet"
-            hint="The breakdown appears once events are verified."
+          <ErrorState
+            label={source === 'events' ? 'the event distribution' : 'the official warnings'}
+            error={shownError}
             compact
           />
+        </div>
+      ) : shownLoaded && shown.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <EmptyState
+            title={source === 'events' ? 'No events in this range' : 'No official warnings in force'}
+            hint={
+              source === 'events'
+                ? 'An event forms once two nearby reports corroborate each other.'
+                : 'No IMD, CWC or SDMA warning is in force right now.'
+            }
+            compact
+            className="py-2"
+          />
+          {source === 'events' && (alerts?.length ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => chooseSource('warnings')}
+              className="text-[10px] font-medium text-[#4A6670] underline underline-offset-2 hover:text-[#1B2432]"
+            >
+              Show the {alerts!.length} official warnings in force
+            </button>
+          )}
         </div>
       ) : (
       /* Chart and Legend container */
@@ -187,11 +279,11 @@ export default function EventDistributionChart({
           {mounted && total > 0 ? (
             <ResponsiveContainer width="100%" height="100%" minWidth={110} minHeight={110}>
               <PieChart
-                key={`${activeTab}-${timeRange}`}
+                key={`${source}-${activeTab}-${timeRange}`}
                 margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
               >
                 <Pie
-                  data={distribution}
+                  data={shown}
                   cx="50%"
                   cy="50%"
                   innerRadius={38}
@@ -209,7 +301,7 @@ export default function EventDistributionChart({
                   onMouseEnter={(_, index) => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
-                  {distribution.map((entry, index) => (
+                  {shown.map((entry, index) => (
                     <Cell
                       key={`cell-${entry.name}-${index}`}
                       fill={entry.color}
@@ -253,7 +345,7 @@ export default function EventDistributionChart({
                     {total}
                   </span>
                   <span className="text-[9px] text-[#7A8599] font-medium uppercase tracking-wider mt-0.5 leading-none">
-                    {activeTab === 'hazard' ? 'Incidents' : 'Events'}
+                    {source === 'warnings' ? 'Warnings' : 'Events'}
                   </span>
                 </div>
               )}
@@ -268,7 +360,7 @@ export default function EventDistributionChart({
               No incidents recorded in this time range.
             </div>
           ) : (
-            distribution.map((item, index) => {
+            shown.map((item, index) => {
               const isHovered = hoveredIndex === index;
               const pct = total > 0 ? Math.round((Number(item.value) / total) * 100) : 0;
               return (
@@ -331,11 +423,7 @@ export default function EventDistributionChart({
               {title}
             </span>
           }
-          action={
-            <span className="text-[10px] font-mono font-medium text-[#7A8599] bg-[#EFE9DC] px-1.5 py-0.5 rounded border border-[#E0D7C6]">
-              {total} Total
-            </span>
-          }
+          action={sourceToggle}
         />
         {content}
       </Card>

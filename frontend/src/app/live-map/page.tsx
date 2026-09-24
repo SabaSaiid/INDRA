@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import { Compass, Radio, Shield, MapPin } from 'lucide-react';
+import { Compass, Radio, Shield, MapPin, FileText } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { fadeIn } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
-import { fetchEvents, fetchSummaryCounts, fetchTeams } from '@/lib/api';
+import { fetchEvents, fetchSummaryCounts, fetchTeams, fetchFieldReports } from '@/lib/api';
 
 const GlobeEventMap = dynamic(() => import('@/components/client-only/GlobeEventMap'), {
   ssr: false,
@@ -32,20 +32,30 @@ export default function LiveMapPage() {
   const [eventCount, setEventCount] = useState<number | null>(null);
   const [warningCount, setWarningCount] = useState<number | null>(null);
   const [deployedCount, setDeployedCount] = useState<number | null>(null);
+  const [reportCount, setReportCount] = useState<number | null>(null);
   useEffect(() => {
     let cancelled = false;
-    fetchEvents({ time_range: '7d' })
-      .then((rows) => { if (!cancelled) setEventCount(rows.length); })
-      .catch(() => { if (!cancelled) setEventCount(null); });
-    fetchSummaryCounts()
-      .then((s) => { if (!cancelled) setWarningCount(s.active_alerts); })
-      .catch(() => { if (!cancelled) setWarningCount(null); });
-    fetchTeams()
-      .then((rows) => {
-        if (!cancelled) setDeployedCount(rows.filter((t) => t.status === 'DEPLOYED').length);
-      })
-      .catch(() => { if (!cancelled) setDeployedCount(null); });
-    return () => { cancelled = true; };
+    // Refreshed on the map's own 2-minute cadence, so the counts above the
+    // map agree with the pins on it.
+    const load = () => {
+      fetchEvents({ time_range: '7d' })
+        .then((rows) => { if (!cancelled) setEventCount(rows.length); })
+        .catch(() => { if (!cancelled) setEventCount(null); });
+      fetchSummaryCounts()
+        .then((s) => { if (!cancelled) setWarningCount(s.active_alerts); })
+        .catch(() => { if (!cancelled) setWarningCount(null); });
+      fetchFieldReports(200, 168)
+        .then((rows) => { if (!cancelled) setReportCount(rows.length); })
+        .catch(() => { if (!cancelled) setReportCount(null); });
+      fetchTeams()
+        .then((rows) => {
+          if (!cancelled) setDeployedCount(rows.filter((t) => t.status === 'DEPLOYED').length);
+        })
+        .catch(() => { if (!cancelled) setDeployedCount(null); });
+    };
+    load();
+    const id = setInterval(load, 120_000);
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   const show = (n: number | null) => (n === null ? '—' : String(n));
@@ -109,6 +119,11 @@ export default function LiveMapPage() {
                 <span className="font-semibold text-white">{show(warningCount)}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
+                <FileText className="w-3.5 h-3.5 text-amber-300" />
+                <span className="text-slate-300">Reports not yet in an event:</span>
+                <span className="font-semibold text-white">{show(reportCount)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
                 <Shield className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-slate-300">Teams deployed:</span>
                 <span className="font-semibold text-white">{show(deployedCount)}</span>
@@ -116,9 +131,12 @@ export default function LiveMapPage() {
             </div>
           </motion.div>
 
-          {/* 3D Globe Event Map */}
+          {/* 3D Globe Event Map. The canvas takes the height the viewport
+              leaves under the banner and the map's two control rows, so the
+              frame ends at the bottom of the screen: at a fixed 560 px it
+              stopped short on a large monitor and cut labels off on a laptop. */}
           <div className="w-full">
-            <GlobeEventMap />
+            <GlobeEventMap canvasClassName="h-[clamp(420px,calc(100dvh-352px),1100px)]" />
           </div>
         </main>
       </div>

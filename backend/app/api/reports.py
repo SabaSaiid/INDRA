@@ -87,23 +87,33 @@ async def reports_trend(
     range: str = Query("7d", description="Time range: 7d, 14d, 30d"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Daily total_reports counts for the line chart."""
+    """
+    Reports per IST day for the line chart, oldest first, one row per day.
+
+    Days are Indian days. The series used to be bucketed by the database's UTC
+    date, so a report filed between midnight and 05:30 IST was counted on the
+    day before; and "7d" returned eight days (BUG-072).
+    """
     interval_map = {"7d": 7, "14d": 14, "30d": 30}
     days = interval_map.get(range, 7)
 
     query = text("""
-        WITH date_series AS (
+        WITH today AS (
+            SELECT (now() AT TIME ZONE 'Asia/Kolkata')::date AS d
+        ),
+        date_series AS (
             SELECT generate_series(
-                (CURRENT_DATE - :days * INTERVAL '1 day')::date,
-                CURRENT_DATE::date,
+                (SELECT d FROM today) - (CAST(:days AS int) - 1),
+                (SELECT d FROM today),
                 '1 day'::interval
             )::date AS day
         )
         SELECT
             ds.day,
-            COALESCE(COUNT(r.id), 0) AS reports
+            COUNT(r.id) AS reports
         FROM date_series ds
-        LEFT JOIN raw_reports r ON r.created_at::date = ds.day
+        LEFT JOIN raw_reports r
+               ON (r.created_at AT TIME ZONE 'Asia/Kolkata')::date = ds.day
         GROUP BY ds.day
         ORDER BY ds.day
     """)
@@ -117,7 +127,8 @@ async def reports_trend(
             return [
                 {
                     "date": row[0].strftime("%d %b"),
-                    "reports": row[1],
+                    "day": row[0].isoformat(),
+                    "reports": int(row[1]),
                 }
                 for row in rows
             ]
@@ -272,17 +283,22 @@ async def list_recent_reports(
     suppressed against it — and were therefore invisible everywhere except a
     total in the KPI strip (BUG-035, BUG-037).
     """
-    conditions = ["created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
+    conditions = ["r.created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
     if unfused_only:
-        conditions.append("event_id IS NULL")
-        conditions.append("duplicate_of IS NULL")
+        conditions.append("r.event_id IS NULL")
+        conditions.append("r.duplicate_of IS NULL")
 
+    # The event's code comes along so the Field Reports page can say which
+    # event a report joined. The docket does not: it is the citizen's
+    # credential for GET /track, and this list is open.
     query = text(f"""
-        SELECT id, source_type, raw_text, latitude, longitude,
-               district, state, created_at, event_id, duplicate_of, analysis
-        FROM raw_reports
+        SELECT r.id, r.source_type, r.raw_text, r.latitude, r.longitude,
+               r.district, r.state, r.created_at, r.event_id, r.duplicate_of, r.analysis,
+               e.event_code, r.observed_at, r.credibility_score
+        FROM raw_reports r
+        LEFT JOIN verified_events e ON e.id = r.event_id
         WHERE {" AND ".join(conditions)}
-        ORDER BY created_at DESC
+        ORDER BY r.created_at DESC
         LIMIT :limit
     """)
 
@@ -302,6 +318,10 @@ async def list_recent_reports(
                 "fused": r[8] is not None,
                 "duplicate": r[9] is not None,
                 "depth_cm": (r[10] or {}).get("depth_cm"),
+                "event_id": str(r[8]) if r[8] else None,
+                "event_code": r[11],
+                "observed_at": r[12].isoformat() if r[12] else None,
+                "credibility_score": r[13],
             }
             for r in rows
         ]

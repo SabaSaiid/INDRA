@@ -1,6 +1,7 @@
 """
 INDRA Platform — Metadata API
 GET /api/meta/filters — every value the event filters can take, with how many events have it
+GET /api/meta/sources — whether each feed INDRA reads is alive, and how much it has stored
 
 The filter bar should offer only values that exist in the data: a "Cold wave"
 option with nothing behind it is a dead end, and a list hard-coded in the
@@ -27,6 +28,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.services import cache
 from app.services.hazards import FAMILIES, family_of, label_of
@@ -136,3 +138,80 @@ async def filter_options(db: AsyncSession = Depends(get_db)):
 
     await cache.set_json(CACHE_KEY, [now + CACHE_TTL_SECONDS, payload], ttl_seconds=CACHE_TTL_SECONDS)
     return payload
+
+
+# ─── GET /api/meta/sources ──────────────────────────────────────────────────
+#
+# The contract Phase 2 T2 specifies, served early so the Geospatial Feeds page
+# can show live status instead of a static catalogue. Until T2's feed_status
+# table exists there is no poller heartbeat to read, so every figure here is
+# derived from the rows each feed wrote: `basis` says so on every entry, and
+# `last_success_at` is the newest row, not the last successful tick. A poller
+# that runs but finds nothing new therefore looks quiet, which is why the stale
+# windows are generous. `last_error` is always null until T2 records errors.
+
+# (feed, kind, title, table, time column, extra WHERE, enabled setting,
+#  interval setting, stale after seconds; None = a push feed, never stale)
+_SOURCES = [
+    ("citizen", "citizen", "Citizen reports", "raw_reports", "created_at",
+     "CAST(source_type AS text) = 'CITIZEN_APP'", None, None, None),
+    ("official", "official", "Official dispatches", "raw_reports", "created_at",
+     "CAST(source_type AS text) = 'OFFICIAL_DISPATCH'", None, None, None),
+    # fetched_at moves when an alert is new or revised, roughly every 15 min on
+    # an ordinary day; an hour without one is worth a look.
+    ("sachet", "warnings", "Official warnings (SACHET CAP)", "agency_alerts", "fetched_at",
+     "TRUE", "SACHET_POLLER_ENABLED", "SACHET_POLL_INTERVAL_SECONDS", 3600),
+    # recorded_at is Open-Meteo's observation hour, which trails the clock by
+    # up to two hours even when every tick succeeds.
+    ("open_meteo", "station", "Open-Meteo rainfall", "station_readings", "recorded_at",
+     "CAST(agency AS text) = 'OPEN_METEO'", "STATION_POLLER_ENABLED",
+     "STATION_POLL_INTERVAL_SECONDS", 3 * 3600),
+]
+
+
+@router.get("/sources")
+async def data_sources(db: AsyncSession = Depends(get_db)):
+    """Per feed: status, newest row, rows in the last 24 h and in total. See the note above."""
+    settings = get_settings()
+    now = datetime.now(timezone.utc)
+    feeds: List[Dict[str, Any]] = []
+    try:
+        for feed, kind, title, table, col, where, enabled_key, interval_key, stale_after in _SOURCES:
+            row = (await db.execute(text(f"""
+                SELECT max({col}),
+                       count(*) FILTER (WHERE {col} >= now() - INTERVAL '24 hours'),
+                       count(*)
+                FROM {table}
+                WHERE {where}
+            """))).fetchone()
+            newest, rows_24h, rows_total = row if row else (None, 0, 0)
+            enabled = bool(getattr(settings, enabled_key)) if enabled_key else True
+
+            if not enabled:
+                status = "disabled"
+            elif stale_after is None:
+                status = "ok"
+            elif newest is None or (now - newest).total_seconds() > stale_after:
+                status = "stale"
+            else:
+                status = "ok"
+
+            feeds.append({
+                "feed": feed,
+                "kind": kind,
+                "title": title,
+                "enabled": enabled,
+                "status": status,
+                "last_success_at": newest.isoformat() if newest else None,
+                "last_error": None,
+                "rows_24h": int(rows_24h or 0),
+                "rows_total": int(rows_total or 0),
+                "poll_interval_s": int(getattr(settings, interval_key)) if interval_key else None,
+                "stale_after_s": stale_after,
+                "basis": "push" if stale_after is None else "newest_row",
+            })
+    except Exception as e:
+        logger.warning(f"Database query failed in data_sources: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    return {"generated_at": now.isoformat(), "feeds": feeds}

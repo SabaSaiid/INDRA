@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -10,11 +11,93 @@ import {
   verificationConfig,
   type RecentEvent,
 } from '@/lib/ui-config';
-import { fetchEvents, apiEventsToRecentEvents, formatPlace } from '@/lib/api';
-import { getRelativeTime } from '@/lib/utils';
+import {
+  fetchEvents,
+  apiEventsToRecentEvents,
+  formatPlace,
+  fetchAgencyAlerts,
+  type AgencyAlert,
+} from '@/lib/api';
+import { getRelativeTime, formatAgo } from '@/lib/utils';
 import { getWeatherMedia } from '@/lib/weather-media';
 import { ArrowRight } from 'lucide-react';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
+
+// IMD colour code for a CAP severity, as the Early Warnings page shows it.
+const WARNING_STYLE: Record<string, { label: string; color: string }> = {
+  CRITICAL: { label: 'Red', color: '#DC2626' },
+  HIGH: { label: 'Orange', color: '#EA580C' },
+  MODERATE: { label: 'Yellow', color: '#CA8A04' },
+  ADVISORY: { label: 'Advisory', color: '#059669' },
+};
+
+/**
+ * Shown under the empty state when INDRA has formed no events. The panel used
+ * to be a blank card on a day with no citizen reports, while the SACHET poller
+ * held a dozen official warnings in force. They are listed as what they are,
+ * warnings issued by IMD, CWC and state SDMAs, never as INDRA events.
+ */
+function WarningsInForce() {
+  const [alerts, setAlerts] = useState<AgencyAlert[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      fetchAgencyAlerts(8)
+        .then((rows) => { if (!cancelled) { setAlerts(rows); setFailed(false); } })
+        .catch(() => { if (!cancelled) setFailed(true); });
+    load();
+    const id = setInterval(load, 120_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  if (failed || !alerts || alerts.length === 0) return null;
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col border-t border-[#F0EBE0] pt-1.5">
+      <div className="flex items-center justify-between px-1 pb-1 flex-shrink-0">
+        <span className="text-[9px] font-mono font-semibold uppercase tracking-wider text-[#7A8599]">
+          Official warnings in force
+        </span>
+        <Link href="/alerts" className="text-[9px] font-medium text-[#7A8599] hover:text-ink">
+          Early Warnings →
+        </Link>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-0.5 space-y-0.5">
+        {alerts.map((a) => {
+          const style = WARNING_STYLE[a.severity ?? ''] ?? { label: 'Unrated', color: '#9CA3AF' };
+          return (
+            <Link
+              key={a.id}
+              href="/alerts"
+              className="flex items-center gap-2 py-1.5 pl-2 pr-1.5 border-b border-[#F0EBE0] last:border-0 rounded-sm hover:bg-[#F7F3EA] transition-colors"
+              style={{ borderLeft: `3px solid ${style.color}` }}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1.5">
+                  <p className="text-xs font-medium text-ink truncate" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                    {a.event || 'Official warning'}
+                    {a.location_label ? ` · ${a.location_label}` : ''}
+                  </p>
+                  <span className="text-[9px] font-semibold flex-shrink-0" style={{ color: style.color }}>
+                    {style.label}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[9px] text-[#7A8599] truncate font-medium">{a.sender || 'Agency'}</span>
+                  <span className="text-[9px] text-[#B0A898] flex-shrink-0" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                    {formatAgo(a.sent_at)}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // Spine color per severity (Low Pressure palette)
 const spineColor: Record<string, string> = {
@@ -73,9 +156,11 @@ export default function RecentEventsList({
       initial="hidden"
       animate="visible"
       transition={{ delay: 0.4 }}
-      className="h-full max-h-[318px] flex flex-col min-h-0"
+      className="h-full min-h-[300px] max-h-[520px] lg:min-h-0 lg:max-h-none flex flex-col"
     >
-      <Card hover={false} className="h-full max-h-[318px] flex flex-col min-h-0 overflow-hidden" density="compact">
+      {/* Fills the row beside the map. A 318 px cap left the card ending
+          ninety pixels above the map it sits next to. */}
+      <Card hover={false} className="h-full flex flex-col min-h-0 overflow-hidden" density="compact">
         <CardHeader
           density="compact"
           className="flex-shrink-0"
@@ -85,10 +170,13 @@ export default function RecentEventsList({
             </span>
           }
           action={
-            <button className="flex items-center gap-1 text-[10px] font-medium text-[#7A8599] hover:text-ink transition-colors">
+            <Link
+              href="/events"
+              className="flex items-center gap-1 text-[10px] font-medium text-[#7A8599] hover:text-ink transition-colors"
+            >
               View all
               <ArrowRight className="w-3 h-3" />
-            </button>
+            </Link>
           }
         />
 
@@ -116,12 +204,16 @@ export default function RecentEventsList({
             <ErrorState label="recent events" error={error} compact />
           </div>
         ) : events.length === 0 ? (
-          <div className="flex-1 min-h-0 flex items-center justify-center">
-            <EmptyState
-              title="No verified events yet"
-              hint="Events appear here once two nearby reports corroborate each other."
-              compact
-            />
+          <div className="flex-1 min-h-0 flex flex-col">
+            <div className="flex-shrink-0 flex items-center justify-center">
+              <EmptyState
+                title="No INDRA events in the last 7 days"
+                hint="An event forms once two nearby reports corroborate each other."
+                compact
+                className="py-3"
+              />
+            </div>
+            <WarningsInForce />
           </div>
         ) : (
           <motion.div
@@ -211,7 +303,7 @@ export default function RecentEventsList({
         <div className="mt-auto pt-1.5 pb-0.5 border-t border-[#F0EBE0] flex items-center justify-between text-[10px] text-[#7A8599] font-mono flex-shrink-0">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{events.length} active incidents</span>
+            <span>{events.length} {events.length === 1 ? 'event' : 'events'} · 7 days</span>
           </span>
           <span className="text-[9px] uppercase tracking-wider text-[#A0988A] flex items-center gap-1">
             {events.length > 4 ? (

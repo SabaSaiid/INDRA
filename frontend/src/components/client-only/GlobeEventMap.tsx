@@ -19,6 +19,7 @@ import {
 import type { MapLayer } from '@/lib/ui-config';
 import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   Globe,
   Map as MapIcon,
@@ -58,6 +59,24 @@ import {
 export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
 
 // Basemap Styles with Globe Projection, Glyphs & Atmospheric Sky
+/**
+ * The camera that frames all of India in the canvas it is given. The fixed
+ * zoom 5.0 it replaces was tuned for one canvas size: on the dashboard's
+ * shorter map it cut off the south of the peninsula and the pins on it, and a
+ * taller canvas left sea at the edges. The pitch is applied on top, which only
+ * widens what the top of the view shows.
+ */
+const INDIA_BOUNDS: [[number, number], [number, number]] = [[68.0, 6.5], [97.5, 35.5]];
+function indiaCamera(map: maplibregl.Map): { center: [number, number]; zoom: number } {
+  const cam = map.cameraForBounds(INDIA_BOUNDS, { padding: 24 });
+  // The flat fit is computed without the 30° pitch, which shows more ground at
+  // the top of the view, so it can sit about half a level closer; the centre
+  // moves south by the same token to keep the peninsula's tip in frame.
+  const zoom = Math.min(5.0, Math.max(3.6, (cam?.zoom ?? 4.4) + 0.6));
+  const c = cam?.center ? maplibregl.LngLat.convert(cam.center) : null;
+  return { center: c ? [c.lng, c.lat - 1.2] : [82.0, 21.0], zoom };
+}
+
 const BASEMAP_STYLES: Record<BasemapMode, any> = {
   satellite: {
     version: 8,
@@ -282,10 +301,17 @@ export default function GlobeEventMap({
   selectedEventId,
   onEventSelect,
   variant = 'full',
+  canvasClassName,
 }: {
   selectedEventId?: string;
   onEventSelect?: (marker: MapMarker | null) => void;
   variant?: 'full' | 'preview';
+  /**
+   * Height classes for the map canvas, replacing the fixed default. Pages pass
+   * a viewport-relative height so the map fills the screen instead of leaving
+   * a band of empty page under it.
+   */
+  canvasClassName?: string;
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -392,6 +418,8 @@ export default function GlobeEventMap({
       if (e.key === 'Escape') {
         setLegendOpen(false);
         setClusterPopover(null);
+        // The roster opens over the same corner and stayed open on Escape.
+        setIsRosterOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -410,7 +438,9 @@ export default function GlobeEventMap({
       const [events, alerts, reports] = await Promise.allSettled([
         fetchEvents({ time_range: timeRange }),
         fetchAgencyAlerts(200),
-        fetchFieldReports(200, 72),
+        // Seven days, the same window as the events layer. At 72 h a report
+        // that never joined an event vanished from the map on its third day.
+        fetchFieldReports(200, 168),
       ]);
 
       if (cancelled) return;
@@ -439,31 +469,28 @@ export default function GlobeEventMap({
 
   // A verified event finishing the pipeline is the one moment this map is
   // certainly stale. The backend has broadcast VERIFIED_EVENT since Day 1 and
-  // nothing in the frontend has ever listened for it (BUG-036).
+  // nothing in the frontend has ever listened for it (BUG-036). Listens on the
+  // shared connection; this component used to open a raw socket of its own.
+  const { subscribe } = useIndraWebSocket();
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const wsUrl = base.replace(/^http/, 'ws');
-    let socket: WebSocket | null = null;
+    return subscribe(`globe-map-${variant}`, (msg) => {
+      if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT' || msg.type === 'EVENT_REVIEWED') {
+        setRefreshTick((t) => t + 1);
+      }
+    });
+  }, [subscribe, variant]);
 
-    try {
-      socket = new WebSocket(`${wsUrl}/ws/events`);
-      socket.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT') {
-            setRefreshTick((t) => t + 1);
-          }
-        } catch {
-          // A malformed frame is not a reason to tear down the socket.
-        }
-      };
-    } catch {
-      // No live socket simply means the map refreshes on its own controls.
-    }
-
-    return () => {
-      socket?.close();
-    };
+  // Official warnings arrive from the SACHET poller, which broadcasts nothing,
+  // and expire on their own clock. Without this the warning layer stayed as it
+  // was when the page opened: expired warnings kept their pins and new ones
+  // never appeared until a reload.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        setRefreshTick((t) => t + 1);
+      }
+    }, 120_000);
+    return () => clearInterval(id);
   }, []);
 
   // Dynamically extract unique hazard types from loaded markers
@@ -1181,6 +1208,14 @@ export default function GlobeEventMap({
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    map.jumpTo({ ...indiaCamera(map), pitch: 30 });
+
+    // The canvas follows its container, not only the window: collapsing the
+    // sidebar or a viewport-relative height change resizes the container
+    // without a window resize, and MapLibre then drew a stretched frame.
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => map.resize()) : null;
+    resizeObserver?.observe(mapContainerRef.current);
 
     // Through the ref, never the closure. This handler is registered once, at
     // mount, and fires twice (style.load, then load). Calling the
@@ -1254,6 +1289,7 @@ export default function GlobeEventMap({
     }
 
     return () => {
+      resizeObserver?.disconnect();
       if (zoomAnimFrame) {
         cancelAnimationFrame(zoomAnimFrame);
       }
@@ -1391,6 +1427,12 @@ export default function GlobeEventMap({
     });
   };
 
+  const focusIndia = () => {
+    if (!mapRef.current) return;
+    const { center, zoom } = indiaCamera(mapRef.current);
+    flyToHotspot(center, zoom, 30, 0);
+  };
+
   // Toggle Fullscreen
   const toggleFullscreen = () => {
     setIsFullscreen((prev) => {
@@ -1458,7 +1500,7 @@ export default function GlobeEventMap({
 
             {/* Quick jump: India Focus */}
             <button
-              onClick={() => flyToHotspot([82.0, 22.0], 5.0, 30, 0)}
+              onClick={focusIndia}
               className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
               title="Focus on Indian Subcontinent"
             >
@@ -1466,10 +1508,11 @@ export default function GlobeEventMap({
               <span>India</span>
             </button>
 
-            {/* Quick jump: Global View */}
+            {/* Quick jump: Global View. On the dashboard's narrower card it
+                gives way below 2xl so the map's title is not truncated. */}
             <button
               onClick={() => flyToHotspot([80.0, 15.0], 1.6, 0, 0, 3000)}
-              className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
+              className={`hidden ${variant === 'preview' ? '2xl:flex' : 'lg:flex'} items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all`}
               title="Zoom out to Global View"
             >
               <Globe className="w-3 h-3 text-indigo-500" />
@@ -1532,7 +1575,7 @@ export default function GlobeEventMap({
                 <Compass className="w-3 h-3 text-primary" /> View:
               </span>
               <button
-                onClick={() => flyToHotspot([82.0, 22.0], 5.0, 30, 0)}
+                onClick={focusIndia}
                 className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1 text-[11px]"
                 title="Focus view on Indian subcontinent"
               >
@@ -1675,6 +1718,8 @@ export default function GlobeEventMap({
             'relative w-full overflow-hidden globe-space-bg',
             isFullscreen
               ? 'flex-1 min-h-[520px]'
+              : canvasClassName
+              ? canvasClassName
               : variant === 'preview'
               ? 'h-[360px]'
               : 'h-[500px] lg:h-[560px]'

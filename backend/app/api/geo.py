@@ -3,6 +3,8 @@ INDRA Platform — Geo-analytics API (layer 5)
 
 GET /api/geo/heatmap?window=24h|48h|7d&resolution=6|7|8
     → {resolution, window, generated_at, cells: [...]}
+GET /api/geo/stations
+    → [{station_code, station_name, agency, lat, lng, rainfall_mm, recorded_at, series}]
 
 Aggregates the `h3_res8` cell already stored on every report at ingest. That
 column has had two writers since Day 1 and no readers at all; this is the first
@@ -27,7 +29,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -166,3 +168,58 @@ def _roll_up(rows, resolution: int) -> List[Dict[str, Any]]:
     # rather than whatever the dict happened to hold.
     out.sort(key=lambda c: (-c["report_count"], c["h3"]))
     return out
+
+
+# ─── GET /api/geo/stations ──────────────────────────────────────────────────
+
+STATIONS_SQL = text("""
+    WITH hourly AS (
+        -- The poller writes every 10 min and Open-Meteo reports hourly, so each
+        -- observation hour is stored several times; keep one row per hour.
+        SELECT DISTINCT ON (station_code, recorded_at)
+               station_code, station_name, CAST(agency AS text) AS agency,
+               ST_Y(station_location) AS lat, ST_X(station_location) AS lng,
+               rainfall_mm, recorded_at
+        FROM station_readings
+        WHERE recorded_at >= now() - INTERVAL '48 hours'
+        ORDER BY station_code, recorded_at
+    )
+    SELECT station_code, station_name, agency, lat, lng, rainfall_mm, recorded_at
+    FROM hourly
+    ORDER BY station_code, recorded_at
+""")
+
+
+@router.get("/stations")
+async def list_stations(db: AsyncSession = Depends(get_db)):
+    """
+    Every rainfall station with its newest reading and the last 48 h of hourly
+    readings, oldest first.
+
+    `rainfall_mm` is the trailing 24 h accumulation Open-Meteo reports for the
+    station's point, the same quantity the weather factor scores; `0.0` is a
+    measured dry day. A station with nothing in 48 h is left out rather than
+    shown with a stale number. Today these are six city points polled from
+    Open-Meteo's model (agency OPEN_METEO), not IMD gauges.
+    """
+    try:
+        rows = (await db.execute(STATIONS_SQL)).fetchall()
+    except Exception as e:
+        logger.warning(f"Database query failed in list_stations: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    stations: Dict[str, Dict[str, Any]] = {}
+    for code, name, agency, lat, lng, mm, at in rows:
+        st = stations.setdefault(code, {
+            "station_code": code,
+            "station_name": name,
+            "agency": agency,
+            "lat": lat,
+            "lng": lng,
+            "series": [],
+        })
+        st["series"].append({"at": at.isoformat(), "rainfall_mm": mm})
+        st["rainfall_mm"] = mm
+        st["recorded_at"] = at.isoformat()
+
+    return sorted(stations.values(), key=lambda s: -(s.get("rainfall_mm") or 0))
