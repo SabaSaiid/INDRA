@@ -283,17 +283,22 @@ async def list_recent_reports(
     suppressed against it — and were therefore invisible everywhere except a
     total in the KPI strip (BUG-035, BUG-037).
     """
-    conditions = ["created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
+    conditions = ["r.created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
     if unfused_only:
-        conditions.append("event_id IS NULL")
-        conditions.append("duplicate_of IS NULL")
+        conditions.append("r.event_id IS NULL")
+        conditions.append("r.duplicate_of IS NULL")
 
+    # The event's code comes along so the Field Reports page can say which
+    # event a report joined. The docket does not: it is the citizen's
+    # credential for GET /track, and this list is open.
     query = text(f"""
-        SELECT id, source_type, raw_text, latitude, longitude,
-               district, state, created_at, event_id, duplicate_of, analysis
-        FROM raw_reports
+        SELECT r.id, r.source_type, r.raw_text, r.latitude, r.longitude,
+               r.district, r.state, r.created_at, r.event_id, r.duplicate_of, r.analysis,
+               e.event_code, r.observed_at, r.credibility_score
+        FROM raw_reports r
+        LEFT JOIN verified_events e ON e.id = r.event_id
         WHERE {" AND ".join(conditions)}
-        ORDER BY created_at DESC
+        ORDER BY r.created_at DESC
         LIMIT :limit
     """)
 
@@ -313,6 +318,10 @@ async def list_recent_reports(
                 "fused": r[8] is not None,
                 "duplicate": r[9] is not None,
                 "depth_cm": (r[10] or {}).get("depth_cm"),
+                "event_id": str(r[8]) if r[8] else None,
+                "event_code": r[11],
+                "observed_at": r[12].isoformat() if r[12] else None,
+                "credibility_score": r[13],
             }
             for r in rows
         ]
