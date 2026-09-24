@@ -859,14 +859,18 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
 # ── Human review ───────────────────────────────────────────────────────────────
 
 class ReviewRequest(BaseModel):
-    action: Literal["approve", "reject", "override_severity"]
+    action: Literal["approve", "reject", "override_severity", "override_event_type"]
     reason: str = Field(min_length=5, max_length=1000)
     new_severity: Optional[Severity] = None
+    # Phase 3 T6: the type a commander gives the event.
+    event_type: Optional[EventType] = None
 
     @model_validator(mode="after")
-    def _severity_required_for_override(self):
+    def _value_required_for_override(self):
         if self.action == "override_severity" and self.new_severity is None:
             raise ValueError("new_severity is required for override_severity")
+        if self.action == "override_event_type" and self.event_type is None:
+            raise ValueError("event_type is required for override_event_type")
         return self
 
 
@@ -878,6 +882,7 @@ REVIEW_TRANSITIONS = {
     ),
     "reject": (None, AuditAction.HUMAN_REJECT),
     "override_severity": (None, AuditAction.MANUAL_OVERRIDE),
+    "override_event_type": (None, AuditAction.MANUAL_OVERRIDE),
 }
 
 
@@ -898,11 +903,18 @@ async def review_event(
     """
     A commander's decision on an event.
 
-    | action            | allowed from                      | result                     |
-    |-------------------|-----------------------------------|----------------------------|
-    | approve           | QUARANTINED, PENDING_HUMAN_REVIEW | HUMAN_APPROVED             |
-    | reject            | anything but REJECTED             | REJECTED                   |
-    | override_severity | anything but REJECTED             | severity = new_severity    |
+    | action              | allowed from                      | result                     |
+    |---------------------|-----------------------------------|----------------------------|
+    | approve             | QUARANTINED, PENDING_HUMAN_REVIEW | HUMAN_APPROVED             |
+    | reject              | anything but REJECTED             | REJECTED                   |
+    | override_severity   | anything but REJECTED             | severity = new_severity    |
+    | override_event_type | anything but REJECTED             | event_type = event_type    |
+
+    **override_event_type** (Phase 3 T6) corrects what the reports' vote
+    decided. The ledger row is a MANUAL_OVERRIDE with `{field: "event_type",
+    from, to}`; the receipt keeps the machine's vote beside the override; and
+    the type survives every later merge (pipeline.py step 7), however the
+    reports that arrive afterwards vote.
 
     Any other starting status is a 409 and writes nothing.
 
@@ -927,7 +939,7 @@ async def review_event(
             await db.execute(
                 text("""
                     SELECT id, event_code, review_status, severity, quadrant,
-                           confidence_score, verification_receipt
+                           confidence_score, verification_receipt, CAST(event_type AS text)
                     FROM verified_events
                     WHERE id = CAST(:id AS uuid)
                     FOR UPDATE
@@ -943,7 +955,7 @@ async def review_event(
         await db.rollback()
         raise HTTPException(status_code=404, detail="Event not found")
 
-    _, event_code, status, severity, quadrant, confidence, receipt = row
+    _, event_code, status, severity, quadrant, confidence, receipt, event_type = row
     receipt = receipt or {}
     allowed_from, audit_action = REVIEW_TRANSITIONS[body.action]
     if status == ReviewStatus.REJECTED.value or (
@@ -955,13 +967,15 @@ async def review_event(
             detail=f"Cannot {body.action} an event that is {status}",
         )
 
-    new_status, new_severity = status, severity
+    new_status, new_severity, new_type = status, severity, event_type
     if body.action == "approve":
         new_status = ReviewStatus.HUMAN_APPROVED.value
     elif body.action == "reject":
         new_status = ReviewStatus.REJECTED.value
-    else:
+    elif body.action == "override_severity":
         new_severity = body.new_severity.value
+    else:
+        new_type = body.event_type.value
 
     new_quadrant = quadrant
     if new_status == ReviewStatus.HUMAN_APPROVED.value:
@@ -983,6 +997,10 @@ async def review_event(
                 "from_severity": severity,
                 "to_severity": new_severity,
                 "confidence_score": confidence,
+                **(
+                    {"field": "event_type", "from": event_type, "to": new_type}
+                    if body.action == "override_event_type" else {}
+                ),
             },
         )
 
@@ -998,6 +1016,24 @@ async def review_event(
         )
         if severity_override:
             human_review["severity_override"] = severity_override
+        # A type override is kept through every later review action, as the
+        # severity override is, so approving an event does not undo it.
+        type_override = (
+            new_type if body.action == "override_event_type"
+            else (receipt.get("human_review") or {}).get("event_type_override")
+        )
+        if type_override:
+            human_review["event_type_override"] = type_override
+        if body.action == "override_event_type":
+            type_basis = receipt.get("event_type_basis") or {}
+            receipt["event_type_basis"] = {
+                **type_basis,
+                "override": {
+                    "event_type": new_type,
+                    "machine_vote": (type_basis.get("override") or {}).get("machine_vote", event_type),
+                    "operator_id": operator_id,
+                },
+            }
         receipt["human_review"] = human_review
 
         await db.execute(
@@ -1006,6 +1042,8 @@ async def review_event(
                     review_status = CAST(:status AS review_status_enum),
                     severity = CAST(:sev AS severity_enum),
                     quadrant = CAST(:quad AS quadrant_enum),
+                    event_type = CAST(:etype AS event_type_enum),
+                    hazard_family = :family,
                     verification_receipt = CAST(:receipt AS jsonb)
                 WHERE id = CAST(:id AS uuid)
             """),
@@ -1014,6 +1052,8 @@ async def review_event(
                 "status": new_status,
                 "sev": new_severity,
                 "quad": new_quadrant,
+                "etype": new_type,
+                "family": family_of(new_type),
                 "receipt": json.dumps(receipt),
             },
         )
@@ -1025,7 +1065,8 @@ async def review_event(
 
     logger.info(
         f"Review: {operator_id} {body.action} {event_code} "
-        f"{status} -> {new_status}, severity {severity} -> {new_severity}"
+        f"{status} -> {new_status}, severity {severity} -> {new_severity}, "
+        f"type {event_type} -> {new_type}"
     )
 
     try:
@@ -1040,6 +1081,7 @@ async def review_event(
                 "severity": new_severity,
                 "quadrant": new_quadrant,
                 "confidence_score": confidence,
+                "event_type": new_type,
             },
             "review": {
                 "action": body.action,
