@@ -42,6 +42,9 @@ from app.services import audit
 from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services import severity_rules
+from app.services.corroboration import effective_reporters
+from app.services.event_typing import decide_event_type
+from app.services.hazards import family_of
 from app.services.geo_clustering import GeoClusteringService, family_params
 from app.services.report_flags import CREDIBILITY_FLOOR, FLAGS
 from app.services.geocoding import reverse_geocode
@@ -1109,6 +1112,9 @@ async def _set_boundary_polygon(db: AsyncSession, event_id: UUID) -> bool:
                             WHERE event_id = CAST(:e AS uuid)
                               AND duplicate_of IS NULL
                               AND geom_point IS NOT NULL
+                              -- A forecast linked as context (Phase 3 T8) is
+                              -- not where the event is.
+                              AND NOT 'not_an_observation' = ANY(COALESCE(flags, '{}'::text[]))
                         ) shapes
                     ) hull
                     WHERE verified_events.id = CAST(:e AS uuid)
@@ -1206,12 +1212,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             logger.info(f"Pipeline: report {report_id} already suppressed as a duplicate — skipping")
             return None
 
-        # ── 1b. Posts and headlines: their own dedup, then held ─────────────
+        # ── 1b. Posts and headlines: their own dedup, then clustered ────────
         # Phase 2 T7, T8. A post repeating an earlier post or headline is
         # suppressed exactly as a citizen duplicate is: duplicate_of, and never
-        # counted again. What is left is held out of clustering until Phase 3
-        # can say what hazard it is about (SOCIAL_CLUSTERING_ENABLED), and a
-        # headline that was already old when collected is never clustered.
+        # counted again. Since Phase 3 T9 what is left clusters within its
+        # hazard family like a citizen report (SOCIAL_CLUSTERING_ENABLED, on by
+        # default), capped so posts alone never auto-publish; a headline that
+        # was already old when collected is never clustered.
         if stored["source_type"] in FEED_SOURCE_TYPES:
             duplicate = await _feed_duplicate(db, stored)
             if duplicate is not None:
@@ -1238,10 +1245,10 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 return None
 
             stale = bool(stored["source_meta"].get("stale"))
-            if stale or not settings.SOCIAL_CLUSTERING_ENABLED:
+            if stale or not get_settings().SOCIAL_CLUSTERING_ENABLED:
                 logger.info(
                     f"Pipeline: {stored['source_type']} {report_id} stored and held "
-                    f"({'stale' if stale else 'social clustering off until Phase 3'})"
+                    f"({'stale' if stale else 'social clustering is off'})"
                 )
                 await _mark_processed(db, report_id)
                 await db.commit()
@@ -1316,17 +1323,21 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 )
                 return None
 
+        # ── 2b. The same message from many reporters (Phase 3 T8) ───────────
+        # A copy close by is a duplicate (above); the same text from three or
+        # more reporters anywhere within ten minutes is `coordinated`, and each
+        # copy's credibility is halved before anything counts it.
+        await _mark_coordinated(db, stored)
+
         # ── 3. Spatial preparation ──────────────────────────────────────────
         geo = GeoClusteringService(db)
         await geo.update_geom_points()
         await geo.assign_h3_cells()
 
         # ── 4. Clustering — find the cluster this report belongs to ─────────
-        clusters = await geo.cluster_unassigned_reports()
-        cluster = next(
-            (c for c in clusters if report_id in c["report_ids"]),
-            None,
-        )
+        # Local, time-limited and within the report's hazard family (Phase 3
+        # T5): the candidates are this report's neighbourhood, never the table.
+        cluster = await geo.cluster_around(stored)
         if cluster is None:
             # No cluster can mean two very different things.
             #
@@ -1340,7 +1351,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             # Otherwise it really is a lone, uncorroborated report, and a single
             # report is not yet an event.
             nearby = await _find_mergeable_event(
-                db, stored["latitude"], stored["longitude"]
+                db, stored["latitude"], stored["longitude"], stored["hazard_family"]
             )
             if nearby is None:
                 logger.info(
@@ -1354,7 +1365,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             logger.info(
                 f"Pipeline: lone report {report_id} joins existing {nearby['event_code']}"
             )
-            cluster = {"cluster_id": -1, "report_ids": [report_id], "size": 1}
+            cluster = {
+                "cluster_id": -1,
+                "report_ids": [report_id],
+                "size": 1,
+                "family": stored["hazard_family"],
+                "basis": None,
+            }
 
         # ── 5. Cluster geometry ─────────────────────────────────────────────
         stats = await geo.get_cluster_stats(cluster["report_ids"])
@@ -1370,7 +1387,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         # until step 7: the report links, the event write and its audit row
         # land together or not at all.
         existing = await _find_mergeable_event(
-            db, stats["centroid_lat"], stats["centroid_lng"]
+            db, stats["centroid_lat"], stats["centroid_lng"], cluster.get("family")
         )
 
         if existing is not None:
@@ -1393,25 +1410,53 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
 
         # ── 6. Scoring ──────────────────────────────────────────────────────
         scoring_ids = all_report_ids if existing is not None else cluster["report_ids"]
+        reports = await _cluster_reports(db, scoring_ids)
         source_types = await _source_types(db, scoring_ids)
-        report_texts = await _report_texts(db, scoring_ids)
-        weather, rainfall_mm, weather_source = await _weather_for_cluster(
-            db, stats["centroid_lat"], stats["centroid_lng"]
-        )
+        report_texts = [r["raw_text"] for r in reports]
 
-        scored = score_cluster(
-            stats,
-            source_types,
-            weather,
-            rainfall_mm,
-            report_texts=report_texts,
-            weather_source=weather_source,
-        )
+        # Forecasts and warnings ride along as context (T8): they are linked and
+        # shown, but the event sits where the observations are, and only
+        # observations count towards its geometry.
+        observed_ids = [r["id"] for r in reports if "not_an_observation" not in r["flags"]]
+        if observed_ids and len(observed_ids) < len(reports):
+            stats = await geo.get_cluster_stats(observed_ids)
+
+        # The type is a published count of what the reports say (T6), and the
+        # density a count of independent witnesses, not of reports (T8, T9).
+        typed = decide_event_type(reports)
+        event_type = typed["event_type"]
+        event_type_basis = typed["basis"]
+        density = effective_reporters(reports)
+
+        if rain_corroborates(event_type):
+            weather, rainfall_mm, weather_source = await _weather_for_cluster(
+                db, stats["centroid_lat"], stats["centroid_lng"]
+            )
+        else:
+            weather, rainfall_mm, weather_source = None, None, "not_applicable"
+
+        def _score(etype: str, etype_basis: Dict[str, Any]) -> Dict[str, Any]:
+            return score_cluster(
+                stats,
+                source_types,
+                weather,
+                rainfall_mm,
+                report_texts=report_texts,
+                weather_source=weather_source,
+                event_type=etype,
+                event_type_basis=etype_basis,
+                density=density,
+                eps_km=family_params(family_of(etype)).eps_km,
+                cluster_basis=cluster.get("basis"),
+            )
+
+        scored = _score(event_type, event_type_basis)
         receipt = scored["receipt"]
         confidence = scored["confidence"]
         severity = scored["severity"]
         quadrant = scored["quadrant"]
         review_status = scored["review_status"]
+        caps = scored["caps"]
 
         # ── 7. Persist, with the decision's audit row, in one transaction ───
         impact_radius = max(stats["radius_km"], 0.5)
@@ -1433,6 +1478,27 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             ).fetchone()
             prior_status = str(current[0])
             human_review = current[1] or None
+
+            # A commander's type stands (T6): the reports keep voting, and the
+            # receipt shows both the vote and the override, but the event keeps
+            # the type a human gave it. Re-scored under that type, since the
+            # type decides the severity axis and the caps.
+            override_type = (human_review or {}).get("event_type_override")
+            if override_type and override_type != event_type:
+                event_type_basis = {
+                    **event_type_basis,
+                    "override": {
+                        "event_type": override_type,
+                        "machine_vote": event_type,
+                        "operator_id": human_review.get("operator_id"),
+                    },
+                }
+                event_type = override_type
+                scored = _score(event_type, event_type_basis)
+                receipt = scored["receipt"]
+                confidence = scored["confidence"]
+                severity = scored["severity"]
+                caps = scored["caps"]
 
             if prior_status == ReviewStatus.REJECTED.value:
                 # Rejected between _find_mergeable_event and the lock. Leave the
@@ -1459,11 +1525,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             else:
                 quadrant = FusionEngine().assign_quadrant(severity, confidence)
                 # Routing depends on severity too (BUG-067), so a commander's
-                # override to HIGH keeps the event in front of a human.
-                review_status = FusionEngine().determine_review_status(
-                    confidence, severity=severity
+                # override to HIGH keeps the event in front of a human; and the
+                # caps (unclassified, posts only) hold on a merge as on a create.
+                review_status = capped(
+                    FusionEngine().determine_review_status(confidence, severity=severity),
+                    caps,
                 )
-            receipt["routing"] = _routing(severity, confidence, review_status)
+            receipt["routing"] = _routing(severity, confidence, review_status, caps)
             if human_review:
                 receipt["human_review"] = human_review
 
@@ -1496,12 +1564,18 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             "district": place.district if place else None,
             "state": place.state if place else None,
             "precision": place.precision if place else None,
+            "etype": event_type,
+            "family": family_of(event_type),
         }
 
         if existing is not None:
             await db.execute(
                 text("""
                     UPDATE verified_events SET
+                        -- Re-typed when a merge changes the majority (T6),
+                        -- unless a commander set the type (applied above).
+                        event_type = CAST(:etype AS event_type_enum),
+                        hazard_family = :family,
                         severity = CAST(:sev AS severity_enum),
                         confidence_score = :conf,
                         review_status = CAST(:status AS review_status_enum),
@@ -1528,7 +1602,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                         (id, event_code, event_type, severity, confidence_score,
                          review_status, quadrant, impact_radius_km, center_point,
                          verification_receipt, district, state, place_precision,
-                         updated_at)
+                         hazard_family, updated_at)
                     VALUES
                         (CAST(:id AS uuid), :code,
                          CAST(:etype AS event_type_enum),
@@ -1540,9 +1614,9 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
                          CAST(:receipt AS jsonb),
                          :district, :state, :precision,
-                         NOW())
+                         :family, NOW())
                 """),
-                {**common, "code": event_code, "etype": EventType.URBAN_FLOOD.value},
+                {**common, "code": event_code},
             )
             # Link only after the event row exists — event_id is an FK.
             linked = await geo.assign_reports_to_event(
@@ -1571,7 +1645,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 operator_id=audit.SYSTEM_PIPELINE_OPERATOR,
                 action=PIPELINE_AUDIT_ACTIONS[review_status],
                 reason=(
-                    f"{event_code} {action}: confidence {confidence} over "
+                    f"{event_code} {action}: {event_type}, confidence {confidence} over "
                     f"{report_count} reports -> {review_status.value}"
                 ),
                 details={
@@ -1580,6 +1654,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     "confidence_score": confidence,
                     "report_count": report_count,
                     "severity": severity.value,
+                    "event_type": event_type,
+                    "caps": caps,
                 },
             )
 
@@ -1594,7 +1670,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         return {
             "id": str(event_id),
             "event_code": event_code,
-            "event_type": EventType.URBAN_FLOOD.value,
+            "event_type": event_type,
             "severity": severity.value,
             "confidence_score": confidence,
             "review_status": review_status.value,
