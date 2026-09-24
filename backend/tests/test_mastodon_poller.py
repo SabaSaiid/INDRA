@@ -353,3 +353,82 @@ async def test_a_state_post_keeps_coordinates_but_no_geometry(db, fake, one_tag)
     assert row["place_precision"] == "state"
     assert row["latitude"] is not None
     assert row["no_geom"]
+
+
+# ── The lake's copy (BUG-087) ──────────────────────────────────────────────────
+
+def _handles():
+    out = set()
+    for s in STATUSES:
+        acct = s["account"]["acct"].lower()
+        out |= {acct, acct.split("@")[0]}
+    return out
+
+
+def test_a_redacted_page_names_no_author():
+    raw = FIXTURE.read_bytes()
+    page = json.loads(mastodon_poller.redact_page(raw, "mastodon.social"))
+    assert len(page) == 40
+    for status in page:
+        assert set(status["account"]) <= {"author_hash", "created_at", "followers_count",
+                                          "following_count", "statuses_count", "bot"}
+        assert status["uri"].startswith("sha256:")
+        assert status["url"].startswith("https://mastodon.social/web/statuses/")
+        assert isinstance(status["mentions"], int)
+    # Handles the authors wrote into their own posts stay, as in raw_reports.
+    texts = " ".join(s.get("content", "").lower() for s in page)
+    dump = json.dumps([{k: v for k, v in s.items() if k != "content"} for s in page]).lower()
+    assert not {h for h in _handles() if h in dump and h not in texts}
+
+
+def test_redaction_keeps_the_post_and_joins_to_the_database_row():
+    page = json.loads(mastodon_poller.redact_page(FIXTURE.read_bytes(), "mastodon.social"))
+    first = STATUSES[0]
+    mapped = status_to_report(first, "mastodon.social", "IMD")
+    assert page[0]["id"] == first["id"]
+    assert page[0]["content"] == first["content"]
+    assert page[0]["uri"] == mapped["external_id"]
+    assert page[0]["account"]["author_hash"] == mapped["reporter_hash"]
+
+
+def test_a_boost_is_redacted_too():
+    boost = {"id": "2", "uri": "https://mastodon.social/users/booster/statuses/2",
+             "account": {"acct": "booster"}, "reblog": copy.deepcopy(STATUSES[0])}
+    (out,) = json.loads(mastodon_poller.redact_page(json.dumps([boost]).encode(), "mastodon.social"))
+    assert "booster" not in json.dumps(out)
+    assert set(out["reblog"]["account"]) >= {"author_hash"}
+    assert "acct" not in out["reblog"]["account"]
+
+
+def test_an_unreadable_page_is_not_archived_at_all():
+    assert mastodon_poller.redact_page(b"not json", "mastodon.social") is None
+    assert mastodon_poller.redact_page(b'{"error": "x"}', "mastodon.social") is None
+
+
+@pytest.mark.integration
+async def test_run_tick_archives_only_redacted_pages(db, one_tag, monkeypatch):
+    from app.services import lake
+
+    archived = []
+
+    async def fake_put_raw(source, payload, content_type, **kwargs):
+        archived.append((source, payload, kwargs.get("metadata")))
+        return True
+
+    async def fetch(client, instance, tag, since_id):
+        return mastodon_poller.Page(statuses=STATUSES, raw=FIXTURE.read_bytes(), remaining=299)
+
+    monkeypatch.setattr(lake, "put_raw", fake_put_raw)
+    monkeypatch.setattr(mastodon_poller, "fetch_tag", fetch)
+    async with async_session() as s:
+        await s.execute(text("DELETE FROM feed_status WHERE feed = 'mastodon'"))
+        await s.commit()
+
+    await mastodon_poller.run_tick()
+
+    (source, payload, meta), = archived
+    assert source == "mastodon" and meta["redacted"] == "authors"
+    assert b'"acct"' not in payload and b'"display_name"' not in payload
+    async with async_session() as s:
+        await s.execute(text("DELETE FROM feed_status WHERE feed = 'mastodon'"))
+        await s.commit()
