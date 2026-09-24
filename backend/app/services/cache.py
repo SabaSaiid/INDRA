@@ -8,7 +8,9 @@ exactly two customers:
 * `services/weather.py` — the Open-Meteo reading per H3 res-8 cell, so a burst of
   reports from one cell makes one HTTP call rather than fifty.
 * `workers/report_consumer.py` — the set of report ids already broadcast as
-  `NEW_REPORT`, so a Kafka re-delivery does not show the same report twice.
+  `NEW_REPORT`, so a Kafka re-delivery does not show the same report twice;
+  and, since Phase 2 T8, how many times each message has failed the pipeline,
+  so the third failure sends it to the dead-letter topic.
 
 **Redis is never load-bearing.** Every call falls back to process memory on any
 error, so a stopped Redis degrades the service (`/healthz` says `degraded`) and
@@ -181,6 +183,46 @@ async def set_if_absent(key: str, ttl_seconds: int) -> bool:
     while len(_memory_seen) > MEMORY_SEEN_SIZE:
         _memory_seen.popitem(last=False)
     return True
+
+
+async def incr(key: str, ttl_seconds: int) -> int:
+    """
+    Add one to a counter and return the new value; the TTL restarts on every
+    increment. Never raises.
+
+    On the memory path the count lives in this process only, so a restart
+    starts it again from zero: a failing message then gets three more tries,
+    never fewer.
+    """
+    client = await _get_client()
+    if client is not None:
+        try:
+            value = await client.incr(key)
+            await client.expire(key, max(1, int(ttl_seconds)))
+            _mark_up()
+            return int(value)
+        except Exception as e:
+            _mark_down(f"INCR {key}: {type(e).__name__}: {e}")
+
+    value = int(_memory_values.get(key) or 0) + 1
+    _memory_values[key] = value
+    _memory_values.move_to_end(key)
+    while len(_memory_values) > MEMORY_VALUE_SIZE:
+        _memory_values.popitem(last=False)
+    return value
+
+
+async def delete(key: str) -> None:
+    """Forget a key on both paths. Never raises."""
+    client = await _get_client()
+    if client is not None:
+        try:
+            await client.delete(key)
+            _mark_up()
+        except Exception as e:
+            _mark_down(f"DEL {key}: {type(e).__name__}: {e}")
+    _memory_values.pop(key, None)
+    _memory_seen.pop(key, None)
 
 
 async def close() -> None:
