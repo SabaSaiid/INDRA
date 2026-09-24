@@ -214,7 +214,7 @@ class ReportQuery:
 
 
 def _item(row) -> Dict[str, Any]:
-    out = {c: exports._plain(row[c]) for c in COLUMNS}
+    out = {c: exports.plain(row[c]) for c in COLUMNS}
     out["id"] = str(row["id"])
     out["duplicate_of"] = str(row["duplicate_of"]) if row["duplicate_of"] else None
     return out

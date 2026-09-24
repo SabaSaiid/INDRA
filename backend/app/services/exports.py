@@ -66,7 +66,7 @@ async def record_export(
     return row
 
 
-def _plain(value: Any) -> Any:
+def plain(value: Any) -> Any:
     """A value as JSON and CSV can carry it."""
     if isinstance(value, (datetime, date)):
         return value.isoformat()
@@ -90,11 +90,15 @@ async def _rows(sql: str, params: Dict[str, Any]) -> AsyncIterator[Sequence[Mapp
 
 
 async def stream_csv(
-    sql: str, params: Dict[str, Any], columns: List[str]
+    sql: str,
+    params: Dict[str, Any],
+    columns: List[str],
+    row_transform: Optional[Callable[[Mapping[str, Any]], Mapping[str, Any]]] = None,
 ) -> AsyncIterator[bytes]:
     """
     A header, then one line per row. `sql` must end in `LIMIT :row_cap`; one
     row past the cap is read only to know that the cap was reached.
+    `row_transform` may add derived columns (an event's family and label).
     """
     buffer = io.StringIO()
     writer = csv.writer(buffer)
@@ -110,9 +114,11 @@ async def stream_csv(
                 if count >= ROW_CAP:
                     truncated = True
                     break
+                if row_transform is not None:
+                    row = row_transform(row)
                 writer.writerow([
                     json.dumps(v, ensure_ascii=False) if isinstance(v, (list, dict)) else ("" if v is None else v)
-                    for v in (_plain(row[c]) for c in columns)
+                    for v in (plain(row[c]) for c in columns)
                 ])
                 count += 1
             yield buffer.getvalue().encode("utf-8")
@@ -142,7 +148,7 @@ async def stream_geojson(
                 if count >= ROW_CAP:
                     truncated = True
                     break
-                parts.append(("," if count else "") + json.dumps(to_feature(row), ensure_ascii=False, default=_plain))
+                parts.append(("," if count else "") + json.dumps(to_feature(row), ensure_ascii=False, default=plain))
                 count += 1
             if parts:
                 yield "".join(parts).encode("utf-8")
