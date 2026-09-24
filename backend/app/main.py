@@ -307,6 +307,7 @@ from app.api import (
     audit_router,
     meta_router,
     stations_router,
+    report_search_router,
 )
 app.include_router(dashboard_router)
 app.include_router(events_router)
@@ -320,6 +321,7 @@ app.include_router(alerts_router)
 app.include_router(audit_router)
 app.include_router(meta_router)
 app.include_router(stations_router)
+app.include_router(report_search_router)
 logger.info("✓ All API routers mounted successfully")
 
 

@@ -11,6 +11,7 @@ from app.api.alerts import router as alerts_router
 from app.api.audit import router as audit_router
 from app.api.meta import router as meta_router
 from app.api.stations import router as stations_router
+from app.api.report_search import router as report_search_router
 
 __all__ = [
     "dashboard_router",
@@ -25,5 +26,6 @@ __all__ = [
     "audit_router",
     "meta_router",
     "stations_router",
+    "report_search_router",
 ]
 
