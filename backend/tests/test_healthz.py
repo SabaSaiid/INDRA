@@ -40,7 +40,7 @@ def _hangs():
 
 @pytest.fixture
 def checks(monkeypatch):
-    """All five checks up; tests override one at a time."""
+    """All six checks up; tests override one at a time."""
     patched = {name: (_up(), critical) for name, (_, critical) in health.CHECKS.items()}
     monkeypatch.setattr(health, "CHECKS", patched)
 
@@ -57,7 +57,7 @@ async def test_all_up_is_200_healthy(client, checks):
     body = r.json()
     assert body["status"] == "healthy"
     assert set(body["checks"]) == {
-        "database", "streaming_bus", "redis", "weather_api", "outbox_backlog",
+        "database", "streaming_bus", "redis", "weather_api", "outbox_backlog", "object_store",
     }
     assert all(c["status"] == "up" for c in body["checks"].values())
     assert all(c["latency_ms"] >= 0 for c in body["checks"].values())
@@ -100,6 +100,16 @@ async def test_weather_down_is_200_degraded(client, checks):
 
     assert r.status_code == 200
     assert r.json()["status"] == "degraded"
+
+
+async def test_object_store_down_is_200_degraded(client, checks):
+    """Phase 2 T1: the platform can lose its object store without breaking."""
+    checks("object_store", _raises())
+    r = await client.get("/healthz")
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "degraded"
+    assert r.json()["checks"]["object_store"]["status"] == "down"
 
 
 async def test_kafka_false_is_503(client, checks):
