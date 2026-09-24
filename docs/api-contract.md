@@ -6,7 +6,9 @@ dashboard, a teammate's script, or a judge with `curl`.
 
 **Last verified against the code and a running stack: 23 Sep 2026 (Phase 1).** The 24 Sep additions
 (feed streams, IST trend, `/api/reports/recent` fields, `/api/meta/sources`, `/api/geo/stations`) were
-checked by running their SQL on the team database; their pytest cases are written and not yet run. Every endpoint below
+checked by running their SQL on the team database; their pytest cases are written and not yet run.
+**Phase 2's additions (24 Sep, branch `aditya_24sep_c`) are written and not yet tested:** their
+shapes below are read from the code, none is *captured*, and each is marked "Phase 2". Every endpoint below
 was read out of its router, not out of an older document, and every example response marked
 *captured* was copied from `curl` against a running stack. If this file and the code disagree, the
 code is right and this file is a bug.
@@ -25,10 +27,13 @@ Interactive docs: `/docs`.
 |---|---|---|
 | `/api/dashboard` | KPI summary | open |
 | `/api/events` | list (**with the PS's filters**), distribution, detail, **review**, **provenance** | review and provenance require a token |
+| `/api/events` | **export** (Phase 2) | requires an **analyst** token |
 | `/api/reports` | submit, **official**, **track**, trend, recent | `official` requires a token |
-| `/api/meta` | **filters**: the values the event filters can take | open |
+| `/api/reports` | **search**, **export** (Phase 2) | require an **analyst** token |
+| `/api/meta` | **filters**: the values the event filters can take; **sources**: whether each feed is alive | open |
 | `/api/feed` | recent activity | open |
-| `/api/geo` | heatmap | open |
+| `/api/geo` | heatmap, rainfall stations | open |
+| `/api/stations` | **latest** airport observations (Phase 2) | open |
 | `/api/alerts` | official SACHET warnings (IMD, CWC, SDMAs) | open |
 | `/api/audit` | the newest ledger rows, chain verified | requires a token |
 | `/api/auth` | token | — |
@@ -195,6 +200,62 @@ event, not a suppressed duplicate) and the Field Reports page (`unfused_only=fal
 `event_id`, `event_code`, `observed_at` and `credibility_score` since 24 Sep. The docket is never
 included: it is the citizen's credential for `/track`, and this list is open.
 
+**Phase 2:** each item adds `place_precision` (`gps`, `district`, `state`, `none`) and `platform`
+(`null`, `mastodon`, `google_news`). `raw_reports` now also holds collected posts and headlines,
+most placed only at a district's or state's centroid or not at all; they are **left out unless
+`include_feeds=true`**, so the map layer draws exactly what it drew before. With
+`include_feeds=true`, `lat` and `lng` are `null` for a post that names no place.
+
+### `GET /api/reports/search` — **requires an analyst token** (Phase 2 T10)
+
+Every report INDRA holds — citizen reports, official dispatches, Mastodon posts, news headlines —
+filtered. The body is a list; the number of matches is in `X-Total-Count`. ANALYST, COMMANDER or
+ADMIN: unlike the open routes this returns exact coordinates and full text, which are personal data
+under the DPDP Act.
+
+| Parameter | Meaning |
+|---|---|
+| `from`, `to` | an IST day (`YYYY-MM-DD`, `to` inclusive) or an ISO 8601 timestamp, on `observed_at`; `time_field=created` switches to the time INDRA received it |
+| `source_type` | comma list: `CITIZEN_APP`, `OFFICIAL_DISPATCH`, `SOCIAL_MEDIA`, `NEWS_MEDIA`, … |
+| `platform` | comma list: `mastodon`, `google_news` |
+| `publisher` | a news publisher's name, any case |
+| `state`, `district` | exact name, any case |
+| `precision` | comma list: `gps`, `district`, `state`, `none` |
+| `status` | comma list: `duplicate` (suppressed copy), `fused` (in an event), `stale` (a headline already 48 h old when collected), `held` (a post or headline held out of clustering until Phase 3), `unfused` (a filed report not in an event) — one per report, in that order of precedence |
+| `has_media` | `true` / `false` |
+| `language` | comma list of codes: `en`, `hi`, `hinglish`, or a post's own |
+| `hazard` | comma list of event types. Today: the category a citizen picked; Phase 3 adds tagged posts |
+| `q` | text contains, any case; `%` and `_` match only themselves |
+| `sort` | `observed_at`, `created_at` or `credibility`, then `:asc` or `:desc` (default `observed_at:desc`) |
+| `limit`, `offset` | 1–200 (default 50), ≥ 0 |
+
+```json
+[{"id": "…", "docket": null, "source_type": "SOCIAL_MEDIA", "platform": "mastodon",
+  "publisher": null, "url": "https://mastodon.social/web/statuses/117317830212677931",
+  "text": "Yellow alert in …", "language": "en", "district": null, "state": "Kerala",
+  "precision": "state", "lat": 10.3528, "lng": 76.5122, "observed_at": "2026-09-23T01:47:04.487000+00:00",
+  "created_at": "…", "status": "held", "event_code": null, "duplicate_of": null,
+  "credibility": 0.5, "media_count": 1, "hazard": null}]
+```
+
+`docket` is filled for citizen reports only. `text` is at most 500 characters; `lat`/`lng` are
+rounded to 4 decimals. `401` without a token, `403` for a citizen token, `422` for an unknown
+value in any list parameter, `503` on a database error — never demo data.
+
+### `GET /api/reports/export?format=csv|geojson` — **requires an analyst token** (Phase 2 T10)
+
+The search's selection, with the same filters and `sort`, as a download: `text/csv` (a header row,
+then one line per report, the columns of the search item) or `application/geo+json` (a
+FeatureCollection; a report with no place is a feature with a `null` geometry, as GeoJSON allows).
+Streamed from a server-side cursor, so memory stays flat; **capped at 100,000 rows**. A GeoJSON
+export ends with an `indra` member, `{"features": n, "truncated": bool, "row_cap": 100000}`; a
+truncated CSV ends with a `# truncated at 100000 rows` line. The file name is in
+`Content-Disposition`, which CORS exposes.
+
+**Every export appends one `DATA_EXPORT` row to the audit ledger before the first byte is sent**:
+who, which kind, which format, which filters. An export the ledger cannot record is refused with
+`503`.
+
 ---
 
 ## `/api/events`
@@ -257,6 +318,15 @@ nothing is `200 []` with `X-Total-Count: 0` — never demo data.
 > **`ADVISORY` is reachable and common.** Most fresh clusters are two to four reports with no
 > depth quoted, which grades `ADVISORY`. A severity filter offering only
 > `ALL / CRITICAL / HIGH / MODERATE` will show these under ALL and be unable to filter them.
+
+### `GET /api/events/export?format=csv|geojson` — **requires an analyst token** (Phase 2 T10)
+
+Every event `GET /api/events` would list for the same filters and `sort` (no `limit`/`offset`),
+as CSV or GeoJSON, capped and audited exactly like the report export. Columns and properties:
+`id, event_code, event_type, family, label, severity, confidence_score, factor_coverage,
+review_status, quadrant, impact_radius_km, lat, lng, district, state, place_precision,
+report_count, verified_at, updated_at`. The GeoJSON geometry is the event's footprint polygon, or
+its centre point when it has none.
 
 ### `GET /api/events/distribution`
 
@@ -409,6 +479,8 @@ who filed an `OFFICIAL_DISPATCH`; it is `null` for a citizen report.
 | `POST /api/teams` | 401 | 401 | 403 | 403 | 201 | 201 |
 | `PATCH /api/teams/{id}/assign` | 401 | 401 | 403 | 403 | 200 | 200 |
 | `PATCH /api/profile/me`, `/preferences` | 401 | 401 | 200 | 200 | 200 | 200 |
+| `GET /api/reports/search`, `/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
+| `GET /api/events/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `POST /api/reports/submit` | 202 | 202 | 202 | 202 | 202 | 202 |
 | `GET /api/events` | 200 | 200 | 200 | 200 | 200 | 200 |
 
@@ -443,13 +515,43 @@ Every rainfall station with its newest reading and the last 48 h, one row per ob
 (the poller stores each hour several times), wettest first. `rainfall_mm` is the trailing 24 h
 accumulation; `0.0` is a measured dry day. Today these are six **Open-Meteo model points**
 (`agency: OPEN_METEO`), not IMD gauges. A station silent for 48 h is left out. `503` on a database
-error.
+error. **Phase 2:** rows with no rainfall amount (the airport observations now in the same table)
+are left out, so this list stays what it was; they are served by `/api/stations/latest`.
 
 ```json
 [{"station_code": "OM-KOLKATA", "station_name": "Kolkata", "agency": "OPEN_METEO",
   "lat": 22.5726, "lng": 88.3639, "rainfall_mm": 24.2, "recorded_at": "2026-09-24T04:00:00+00:00",
   "series": [{"at": "2026-09-23T17:00:00+00:00", "rainfall_mm": 19.8}, …]}]
 ```
+
+---
+
+## `/api/stations` (Phase 2 T3)
+
+### `GET /api/stations/latest?feed=metar&max_age_hours=3`
+
+The newest observation from each station of one feed, for a map layer. `feed=metar` is India's
+aerodromes (about 105 reporting on 24 Sep): **observed** weather from each airport's METAR, not a
+model. `feed=open_meteo` is the six modelled rainfall points. A station whose newest reading is
+older than `max_age_hours` (1–48, default 3) is left out rather than drawn with an old number.
+Open. `422` for another `feed`, `503` on a database error.
+
+The example is the real 24 Sep 05:30 UTC Delhi report from the test fixture, parsed as the code
+parses it (11009KT → 9 kt × 1.852 = 16.7 km/h); it was not captured from a running stack.
+
+```json
+{"feed": "metar", "generated_at": "…", "max_age_hours": 3, "count": 105,
+ "stations": [{"station_code": "VIDP", "station_name": "New Delhi/Gandhi Intl", "agency": "AERODROME_METAR",
+   "feed": "metar", "lat": 28.567, "lng": 77.117, "recorded_at": "2026-09-24T05:30:00+00:00", "age_minutes": 22,
+   "temperature_c": 31.0, "dewpoint_c": 24.0, "wind_kmh": 16.7, "gust_kmh": null, "visibility_m": 5000,
+   "weather_codes": ["HZ"], "convective_cloud": false, "rainfall_mm": null,
+   "raw_observation": "METAR VIDP 240530Z 11009KT 5000 HZ FEW030 31/24 Q1010 NOSIG"}]}
+```
+
+`visibility_m` 10,000 means "10 km or more". `weather_codes` is present weather only, normalised:
+`+TSRA` → `["TS", "RA+"]`, `VCTS` (a storm in the vicinity) stays `["VCTS"]`. `rainfall_mm` is
+`null` because a METAR carries no rainfall amount. `agency` is `AERODROME_METAR`, not `IMD`: some
+Indian METAR stations are military airfields.
 
 ---
 
@@ -480,26 +582,37 @@ Empty database: every list `[]` and both dates `null`. Cached for **60 s** (Redi
 `meta:filters`, with an in-memory fallback), so a new event can take up to a minute to appear in the
 options; it appears in the list at once. `503` on a database error, never invented options.
 
-### `GET /api/meta/sources` (24 Sep, Phase 2 T2's contract served early)
+### `GET /api/meta/sources` (Phase 2 T2)
 
-Whether each feed is alive. Until T2's `feed_status` table exists there is no poller heartbeat, so
-status is **derived from each feed's newest row**, and each entry says so in `basis`:
-`newest_row` for pollers (stale after `stale_after_s`), `push` for intake routes, which are never
-stale for being quiet. `last_error` is `null` until T2 records errors. `status` is `ok`, `stale` or
-`disabled` today (`failing` arrives with T2).
+Whether each feed is alive. Since Phase 2 each poller records a **heartbeat** at the end of every
+tick (`feed_status`), and `status` is read from it:
+
+| `status` | When |
+|---|---|
+| `ok` | the last successful tick is within 3 poll intervals; a push feed is always `ok` |
+| `stale` | no successful tick for 3 × `poll_interval_s` (`stale_after_s`), or never one yet |
+| `failing` | the last 3 ticks failed in a row; `last_error` says why |
+| `disabled` | the poller's setting is off |
+
+`basis` is `heartbeat` for a poller and `push` for the intake routes (citizen, official), whose
+`last_success_at` is the newest report received. `rows_24h` and `rows_total` are counted from the
+table each feed writes to; `newest_row_at` is that table's newest row (what `last_success_at` meant
+before the heartbeat). `last_attempt_at`, `last_error_at`, `consecutive_failures` and
+`items_last_tick` come from the heartbeat. `dead_letters` counts the report-stream messages the
+pipeline gave up on (Phase 2 T8); `0` is healthy.
 
 ```json
-{"generated_at": "2026-09-24T05:10:00+00:00",
+{"generated_at": "…",
  "feeds": [
-  {"feed": "citizen", "kind": "citizen", "title": "Citizen reports", "enabled": true, "status": "ok",
-   "last_success_at": "2026-09-21T14:57:17.653497+00:00", "last_error": null, "rows_24h": 0, "rows_total": 1,
-   "poll_interval_s": null, "stale_after_s": null, "basis": "push"},
-  {"feed": "sachet", "kind": "warnings", "title": "Official warnings (SACHET CAP)", "enabled": true, "status": "ok",
-   "last_success_at": "2026-09-24T05:08:09+00:00", "last_error": null, "rows_24h": 109, "rows_total": 340,
-   "poll_interval_s": 300, "stale_after_s": 3600, "basis": "newest_row"}, …]}
+  {"feed": "metar", "kind": "station", "title": "Airport weather (METAR)", "enabled": true, "status": "ok",
+   "last_success_at": "…", "last_attempt_at": "…", "last_error": null, "last_error_at": null,
+   "consecutive_failures": 0, "items_last_tick": 104, "newest_row_at": "…", "rows_24h": 4800,
+   "rows_total": 9120, "poll_interval_s": 600, "stale_after_s": 1800, "basis": "heartbeat"}, …],
+ "dead_letters": {"total": 0, "last_at": null, "last_error": null, "topic": "indra.raw.reports.dlq"}}
 ```
 
-Feeds: `citizen`, `official`, `sachet`, `open_meteo`. `503` on a database error.
+Feeds, in order: `citizen`, `official`, `sachet`, `open_meteo`, `metar`, `mastodon`, `google_news`.
+`503` on a database error (including a database not yet migrated to `0015`).
 
 ---
 
@@ -508,7 +621,8 @@ Feeds: `citizen`, `official`, `sachet`, `open_meteo`. `503` on a database error.
 ### `GET /api/dashboard/summary`
 
 KPI counts for the dashboard cards: total reports, verified events, critical events and citizen
-reports, each with a 24-hour delta percentage, plus `awaiting_review` (escalated or quarantined)
+reports, each with a 24-hour delta percentage (**since Phase 2, `total_reports` also counts the
+posts and headlines the pollers collect; `citizen_reports` does not**), plus `awaiting_review` (escalated or quarantined)
 and `active_alerts` (unexpired SACHET warnings). `verified_events` counts only `AUTO_PUBLISHED` and
 `HUMAN_APPROVED` (BUG-034). Every number comes from the database.
 
@@ -534,7 +648,9 @@ clock time until 24 Sep. `source` is `citizen`, `official`, `social`, `news`, `e
   "status": "pending", "at": "2026-09-21T14:57:17.653497+00:00", "time": "20:27"}]
 ```
 
-A report's `status` is `pending`, `in_event` or `duplicate`.
+A report's `status` is `pending`, `in_event` or `duplicate`. **Phase 2:** a collected item's
+`sourceLabel` is `Mastodon` for a post and the publisher's name for a headline (`"The Hindu"`), and it
+carries `platform` (`mastodon`, `google_news`).
 
 ---
 
@@ -621,13 +737,13 @@ failed profile edit answered `200` after `except: pass`. Both now fail loudly.
 
 ### `GET /healthz`
 
-Checks Postgres (**including whether the schema exists**), Kafka/Redpanda, Redis, Open-Meteo and
-the outbox backlog concurrently, each capped at 2 s.
+Checks Postgres (**including whether the schema exists**), Kafka/Redpanda, Redis, Open-Meteo,
+the outbox backlog and (Phase 2) the **object store** concurrently, each capped at 2 s.
 
 | Status | HTTP | When |
 |---|---|---|
 | `healthy` | 200 | everything up |
-| `degraded` | 200 | Redis or Open-Meteo is down, or a report has waited more than 60 s for Kafka — none of these loses anything |
+| `degraded` | 200 | Redis, Open-Meteo or the object store is down (or the store is not configured), or a report has waited more than 60 s for Kafka — none of these loses anything |
 | `unhealthy` | 503 | Postgres or Kafka is down. Postgres: reports are refused. Kafka: reports wait in the outbox, but nothing new is processed until it is back |
 
 `outbox_backlog` carries `count` (reports stored but not yet published to Kafka) and `oldest_s` (how
@@ -649,6 +765,7 @@ long the oldest has waited). Captured 23 Sep:
 | `NEW_REPORT` | `{type, report}` | A report was accepted. Once per report id, now across a restart |
 | `VERIFIED_EVENT` | `{type, event}` | The pipeline created or updated an event |
 | `EVENT_REVIEWED` | `{type, event}` | A commander approved, rejected or re-graded one |
+| `NEW_FEED_ITEM` | `{type, report}` | **Phase 2.** A poller collected a post or headline. Same payload as `NEW_REPORT` (`source_type` `SOCIAL_MEDIA` or `NEWS_MEDIA`; `latitude`/`longitude` may be `null`). A separate type so a news tick storing dozens of headlines does not fire dozens of `NEW_REPORT` refetches; a dashboard that ignores it is unaffected |
 
 `report` carries `raw_text`, `h3_res8`, `credibility_score` and `source_type`. The key is
 `raw_text`, **not** `text`. Its keys are exactly the nine the Kafka message has always had; the
@@ -660,18 +777,14 @@ connected browser.
 
 ---
 
-## Proposed — Phase 2, 4, 5 and 6
+## Proposed — Phase 4, 5 and 6
 
-**Not built yet.** These are the names later phases will use, published now so the dashboard can be
+Phase 2's four are built (above). **The rest are not built yet.** These are the names later phases will use, published now so the dashboard can be
 built against them. Shapes will be fixed in this file when each one lands; until then treat
 everything but the path as provisional.
 
 | Phase | Endpoint | For |
 |---|---|---|
-| 2 | `GET /api/reports/search` | Search and filter reports, with `X-Total-Count` like `/api/events` |
-| 2 | `GET /api/reports/export`, `GET /api/events/export` | CSV and GeoJSON downloads of a filtered set |
-| 2 | `GET /api/meta/sources` | **Served early on 24 Sep** (above), derived from newest rows; T2 adds the heartbeat table |
-| 2 | `GET /api/stations/latest?feed=metar` | The latest airport weather observations |
 | 4 | `GET /api/review/queue` | The review queue's tabs |
 | 4 | `POST /api/events/{id}/claim`, `DELETE /api/events/{id}/claim` | Claiming an event for review |
 | 4 | `GET /api/events/{id}/history` | An event's score and status over time |
