@@ -289,6 +289,14 @@ async def seed():
         sev_counts[ev["severity"]] = sev_counts.get(ev["severity"], 0) + 1
     print(f"  Severity breakdown: {sev_counts}")
 
+    # A report may be linked only to an event in its own city (BUG-065). It used
+    # to be any of the 37, so a Patna event owned reports in Chennai, and the
+    # first real report the pipeline merged into it recomputed its footprint
+    # across the country: a radius of 1,500 km and a polygon to match.
+    events_by_city = {}
+    for ev in events:
+        events_by_city.setdefault(ev["city"]["name"], []).append(ev["id"])
+
     # ── 2. Generate raw reports ────────────────────────────────────────────
     print("\n📝 Generating ~1,200 mixed-source raw reports...")
     report_count = 0
@@ -302,8 +310,9 @@ async def seed():
         lat = jitter(city["lat"], 0.03)
         lng = jitter(city["lng"], 0.03)
 
-        # Assign to a random event (or none)
-        event_id = random.choice(events)["id"] if random.random() < 0.4 else None
+        # Assign to one of this city's events (or none)
+        city_events = events_by_city.get(city["name"])
+        event_id = random.choice(city_events) if city_events and random.random() < 0.4 else None
 
         day_index = random.choices(range(7), weights=[1, 2, 3, 5, 8, 12, 18])[0]
         created_at = upward_curve_timestamp(day_index)
@@ -341,7 +350,8 @@ async def seed():
         lat = jitter(city["lat"], 0.04)
         lng = jitter(city["lng"], 0.04)
 
-        event_id = random.choice(events)["id"] if random.random() < 0.3 else None
+        city_events = events_by_city.get(city["name"])
+        event_id = random.choice(city_events) if city_events and random.random() < 0.3 else None
 
         day_index = random.choices(range(7), weights=[1, 2, 3, 5, 8, 12, 18])[0]
         created_at = upward_curve_timestamp(day_index)
