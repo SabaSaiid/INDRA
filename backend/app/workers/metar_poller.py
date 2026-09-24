@@ -231,6 +231,15 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> Tuple[int
         observations = indian_observations(rows)
         written = await store_observations(db, observations)
         _last_modified = fetched.last_modified
+
+        # The lake keeps India's rows as fetched, not the world's 260 KB (T9).
+        # Never raises; the readings are already stored either way.
+        from app.services import lake
+
+        await lake.put_raw(
+            FEED, indian_rows_csv(fetched.content), "text/csv",
+            metadata={"stations": len(observations), "last_modified": fetched.last_modified},
+        )
         return written, len(observations)
     except Exception as e:
         try:
