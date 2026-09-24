@@ -196,3 +196,44 @@ class DedupService:
             self.find_duplicate(new_text, new_lat, new_lng, new_time, existing_reports)
             is not None
         )
+
+
+def find_similar_text(
+    new_text: str,
+    candidate_texts: List[str],
+    cosine_threshold: Optional[float] = None,
+) -> Optional[Tuple[int, float, str]]:
+    """
+    The first candidate whose text is a copy of `new_text`, as
+    (index, similarity, method), or None. Text only: no distance, no clock.
+
+    Used for posts and headlines (Phase 2 T7), which have their own gates for
+    place and time; citizen reports keep DedupService above, unchanged. The
+    threshold is the same measured 0.88 by default (BUG-013). Without the model
+    the Levenshtein fallback and its own threshold apply, as for citizens.
+
+    Synchronous and CPU-bound: call it through asyncio.to_thread.
+    """
+    if not candidate_texts or not (new_text or "").strip():
+        return None
+    cosine, _gps, _minutes, levenshtein = _gates()
+    threshold = cosine if cosine_threshold is None else cosine_threshold
+
+    model = _get_embedding_model()
+    if model is not None:
+        try:
+            vectors = model.encode([new_text] + list(candidate_texts), convert_to_numpy=True)
+            for i, vec in enumerate(vectors[1:]):
+                sim = _cosine_similarity(vectors[0], vec)
+                if sim >= threshold:
+                    return i, round(sim, 4), "cosine"
+            return None
+        except Exception as e:
+            logger.warning(f"Embedding failed for a post, using Levenshtein: {e}")
+
+    for i, text_ in enumerate(candidate_texts):
+        sim = _levenshtein_similarity(new_text, text_)
+        if sim >= levenshtein:
+            return i, round(sim, 4), "levenshtein"
+    return None
+
