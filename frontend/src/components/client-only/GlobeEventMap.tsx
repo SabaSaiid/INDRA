@@ -418,6 +418,8 @@ export default function GlobeEventMap({
       if (e.key === 'Escape') {
         setLegendOpen(false);
         setClusterPopover(null);
+        // The roster opens over the same corner and stayed open on Escape.
+        setIsRosterOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
