@@ -84,6 +84,11 @@ SEVERITY_ORDER = (
     Severity.CRITICAL,
 )
 
+# Positions the spatial pipeline may use (raw_reports.place_precision, 0015):
+# a device's GPS fix, or a post's single named district. A state centroid and
+# "no place" are never clustered.
+CLUSTERABLE_PRECISIONS = {"gps", "district"}
+
 # Dedup candidate window, mirroring DedupService's own gates.
 DEDUP_WINDOW_MINUTES = 15
 DEDUP_RADIUS_METRES = 1000
@@ -401,12 +406,21 @@ def _routing(severity: Severity, confidence: float, review_status: ReviewStatus)
 
 
 async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, Any]]:
-    """Re-read the stored row — the authority on this report's coordinates."""
+    """
+    Re-read the stored row — the authority on this report's coordinates.
+
+    Since Phase 2 a report may have no coordinates (a post that names no
+    place) or coordinates without a geometry (a state centroid): `latitude`
+    and `longitude` are then None, `has_geom` False, and the pipeline measures
+    no distance from it.
+    """
     row = (
         await db.execute(
             text("""
                 SELECT id, raw_text, latitude, longitude, created_at, event_id,
-                       duplicate_of
+                       duplicate_of, CAST(source_type AS text), place_precision,
+                       platform, source_meta, observed_at,
+                       geom_point IS NOT NULL AS has_geom, district, state
                 FROM raw_reports
                 WHERE id = CAST(:id AS uuid)
             """),
@@ -420,11 +434,19 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
     return {
         "id": row[0],
         "raw_text": row[1],
-        "latitude": float(row[2]),
-        "longitude": float(row[3]),
+        "latitude": float(row[2]) if row[2] is not None else None,
+        "longitude": float(row[3]) if row[3] is not None else None,
         "created_at": row[4],
         "event_id": row[5],
         "duplicate_of": row[6],
+        "source_type": row[7],
+        "place_precision": row[8] or "gps",
+        "platform": row[9],
+        "source_meta": row[10] or {},
+        "observed_at": row[11],
+        "has_geom": bool(row[12]),
+        "district": row[13],
+        "state": row[14],
     }
 
 
@@ -452,6 +474,11 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
                                    - make_interval(mins => CAST(:window AS int))
                   AND created_at <= CAST(:created_at AS timestamptz)
                   AND geom_point IS NOT NULL
+                  -- Reports people filed only. A post placed at a district
+                  -- centroid is not "within 1 km" of anyone: it has its own
+                  -- dedup path (_feed_duplicate), and citizen dedup stays
+                  -- exactly as measured (BUG-013).
+                  AND COALESCE(place_precision, 'gps') = 'gps'
                   AND ST_DWithin(
                         geom_point::geography,
                         ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
@@ -771,6 +798,25 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
 
         if stored["duplicate_of"] is not None:
             logger.info(f"Pipeline: report {report_id} already suppressed as a duplicate — skipping")
+            return None
+
+        # ── 1a. No point, no spatial pipeline ───────────────────────────────
+        # A post that names no place, or only a state, has nothing to measure a
+        # distance from: it is stored and shown, never deduplicated on distance
+        # and never clustered (Phase 2 T4, T6).
+        # Coordinates, not geom_point: a row stored without a geometry gets one
+        # backfilled at step 3, as it always has.
+        if (
+            stored["latitude"] is None
+            or stored["longitude"] is None
+            or stored["place_precision"] not in CLUSTERABLE_PRECISIONS
+        ):
+            logger.info(
+                f"Pipeline: report {report_id} has no clusterable position "
+                f"({stored['place_precision']}) — stored, not clustered"
+            )
+            await _mark_processed(db, report_id)
+            await db.commit()
             return None
 
         # ── 2. Deduplication ────────────────────────────────────────────────
