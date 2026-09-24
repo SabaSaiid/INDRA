@@ -38,11 +38,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.models.enums import AuditAction, EventType, ReviewStatus, Severity
 from app.services import audit
-from app.services.dedup import DedupService
+from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
 from app.services.geocoding import reverse_geocode
-from app.services.text_processing import extract_metadata
+from app.services.text_processing import core_text, extract_metadata
 from app.services.weather import rainfall_to_score, weather_score
 
 logger = logging.getLogger("indra.services.pipeline")
@@ -88,6 +88,13 @@ SEVERITY_ORDER = (
 # a device's GPS fix, or a post's single named district. A state centroid and
 # "no place" are never clustered.
 CLUSTERABLE_PRECISIONS = {"gps", "district"}
+
+# Source types a poller collects (Phase 2): Mastodon posts, news headlines.
+# They take their own dedup path, _feed_duplicate, never the citizen one.
+FEED_SOURCE_TYPES = {"SOCIAL_MEDIA", "NEWS_MEDIA"}
+# The most recent posts compared by text for one new post: bounds the model's
+# work on a busy day.
+FEED_TEXT_CANDIDATES = 200
 
 # Dedup candidate window, mirroring DedupService's own gates.
 DEDUP_WINDOW_MINUTES = 15
@@ -502,6 +509,98 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
     return original_ids, candidates
 
 
+async def _feed_duplicate(db: AsyncSession, report: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    The earlier post or headline this one repeats, as {"original", "basis"}, or
+    None. Phase 2 T7: re-sharing is not witnessing — "crowd volume is not
+    independent confirmation" — so one story shared twenty times counts once.
+
+    Two rules, checked in order, against earlier SOCIAL_MEDIA and NEWS_MEDIA
+    reports only:
+
+    1. **The same article.** Both link to the same page once URLs are
+       canonicalised (tracking parameters, `www.`, AMP paths and trailing
+       slashes removed at collection), within FEED_DEDUP_LINK_WINDOW_HOURS.
+    2. **The same text about the same place.** Same district (or the same
+       state for a state-level post, or both placed nowhere), observed within
+       FEED_DEDUP_TEXT_WINDOW_HOURS of each other, and the same words: an
+       identical headline key, or MiniLM cosine ≥ DEDUP_COSINE_THRESHOLD on
+       the text without its links and hashtag tail. This is how a news
+       outlet's Mastodon post and its own RSS item become one.
+
+    Citizen dedup (1 km, 15 min, 0.88) is not touched by any of this.
+    """
+    params = {"id": str(report["id"]), "created_at": report["created_at"]}
+
+    links = [l for l in (report["source_meta"].get("links") or []) if isinstance(l, str)]
+    if links:
+        row = (await db.execute(
+            text("""
+                SELECT COALESCE(duplicate_of, id)
+                FROM raw_reports
+                WHERE id <> CAST(:id AS uuid)
+                  AND CAST(source_type AS text) IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+                  AND created_at <= CAST(:created_at AS timestamptz)
+                  AND created_at > CAST(:created_at AS timestamptz)
+                                   - make_interval(hours => CAST(:hours AS int))
+                  AND jsonb_typeof(source_meta->'links') = 'array'
+                  AND jsonb_exists_any(source_meta->'links', CAST(:links AS text[]))
+                ORDER BY created_at, id
+                LIMIT 1
+            """),
+            {**params, "hours": settings.FEED_DEDUP_LINK_WINDOW_HOURS, "links": links},
+        )).first()
+        if row is not None:
+            return {"original": row[0], "basis": {"rule": "shared_link"}}
+
+    observed = report["observed_at"] or report["created_at"]
+    rows = (await db.execute(
+        text("""
+            SELECT COALESCE(duplicate_of, id), raw_text, source_meta->>'headline_key'
+            FROM raw_reports
+            WHERE id <> CAST(:id AS uuid)
+              AND CAST(source_type AS text) IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+              AND created_at <= CAST(:created_at AS timestamptz)
+              AND COALESCE(observed_at, created_at)
+                    BETWEEN CAST(:observed AS timestamptz) - make_interval(hours => CAST(:hours AS int))
+                        AND CAST(:observed AS timestamptz) + make_interval(hours => CAST(:hours AS int))
+              AND district IS NOT DISTINCT FROM CAST(:district AS varchar)
+              AND state IS NOT DISTINCT FROM CAST(:state AS varchar)
+            ORDER BY created_at DESC, id DESC
+            LIMIT :limit
+        """),
+        {
+            **params,
+            "observed": observed,
+            "hours": settings.FEED_DEDUP_TEXT_WINDOW_HOURS,
+            "district": report["district"],
+            "state": report["state"],
+            "limit": FEED_TEXT_CANDIDATES,
+        },
+    )).fetchall()
+    if not rows:
+        return None
+    # Oldest first, so the earliest copy is the one matched.
+    rows = list(reversed(rows))
+
+    key = report["source_meta"].get("headline_key")
+    if key:
+        for original, _text, candidate_key in rows:
+            if candidate_key == key:
+                return {"original": original, "basis": {"rule": "same_headline"}}
+
+    mine = core_text(report["raw_text"])
+    theirs = [core_text(r[1]) for r in rows]
+    match = await asyncio.to_thread(find_similar_text, mine, theirs)
+    if match is None:
+        return None
+    index, similarity, method = match
+    return {
+        "original": rows[index][0],
+        "basis": {"rule": "same_text_same_place", "similarity": similarity, "method": method},
+    }
+
+
 async def _find_mergeable_event(
     db: AsyncSession, lat: float, lng: float
 ) -> Optional[Dict[str, Any]]:
@@ -800,6 +899,47 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             logger.info(f"Pipeline: report {report_id} already suppressed as a duplicate — skipping")
             return None
 
+        # ── 1b. Posts and headlines: their own dedup, then held ─────────────
+        # Phase 2 T7, T8. A post repeating an earlier post or headline is
+        # suppressed exactly as a citizen duplicate is: duplicate_of, and never
+        # counted again. What is left is held out of clustering until Phase 3
+        # can say what hazard it is about (SOCIAL_CLUSTERING_ENABLED), and a
+        # headline that was already old when collected is never clustered.
+        if stored["source_type"] in FEED_SOURCE_TYPES:
+            duplicate = await _feed_duplicate(db, stored)
+            if duplicate is not None:
+                await db.execute(
+                    text("""
+                        UPDATE raw_reports
+                        SET duplicate_of = CAST(:original AS uuid),
+                            source_meta = COALESCE(source_meta, '{}'::jsonb)
+                                          || jsonb_build_object('duplicate_basis', CAST(:basis AS jsonb))
+                        WHERE id = CAST(:id AS uuid)
+                    """),
+                    {
+                        "original": str(duplicate["original"]),
+                        "basis": json.dumps(duplicate["basis"]),
+                        "id": str(report_id),
+                    },
+                )
+                await _mark_processed(db, report_id)
+                await db.commit()
+                logger.info(
+                    f"Pipeline: {stored['source_type']} {report_id} suppressed as a copy of "
+                    f"{duplicate['original']} ({duplicate['basis']['rule']})"
+                )
+                return None
+
+            stale = bool(stored["source_meta"].get("stale"))
+            if stale or not settings.SOCIAL_CLUSTERING_ENABLED:
+                logger.info(
+                    f"Pipeline: {stored['source_type']} {report_id} stored and held "
+                    f"({'stale' if stale else 'social clustering off until Phase 3'})"
+                )
+                await _mark_processed(db, report_id)
+                await db.commit()
+                return None
+
         # ── 1a. No point, no spatial pipeline ───────────────────────────────
         # A post that names no place, or only a state, has nothing to measure a
         # distance from: it is stored and shown, never deduplicated on distance
@@ -823,7 +963,11 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         # A suppressed report is marked, not just skipped: duplicate_of keeps it
         # out of every later clustering run, so it is never counted as
         # corroboration by the reports that arrive after it.
-        original_ids, candidates = await _dedup_candidates(db, stored)
+        # Posts reaching here (clustering on, Phase 3) already had their own.
+        if stored["source_type"] in FEED_SOURCE_TYPES:
+            original_ids, candidates = [], []
+        else:
+            original_ids, candidates = await _dedup_candidates(db, stored)
         if candidates:
             # Off the event loop, via a worker thread.
             #
