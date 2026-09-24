@@ -83,6 +83,12 @@ class Settings(BaseSettings):
     S3_LAKE_BUCKET: str = "indra-lake"
     S3_MEDIA_BUCKET: str = "indra-media"
     S3_TIMEOUT_SECONDS: float = 5.0
+    # The report stream's archive (Phase 2 T9): its own consumer group writes
+    # every message to the lake, one object per LAKE_FLUSH_SECONDS or
+    # LAKE_FLUSH_BYTES. Needs the store configured; off otherwise.
+    LAKE_ARCHIVE_ENABLED: bool = True
+    LAKE_FLUSH_SECONDS: int = 60
+    LAKE_FLUSH_BYTES: int = 5 * 1024 * 1024
 
     # ── AI & Verification Thresholds ───────────────────────────────────────
     # AUTO_PUBLISH_THRESHOLD is deliberately high: publishing a disaster without
