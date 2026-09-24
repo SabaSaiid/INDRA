@@ -29,8 +29,10 @@ class RawReport(Base):
         Enum(SourceType, name="source_type_enum"), nullable=False
     )
     raw_text = Column(Text, nullable=False)
-    latitude = Column(Float, nullable=False)
-    longitude = Column(Float, nullable=False)
+    # Nullable since migration 0015: a post that names no place is stored
+    # anyway, with no coordinates. place_precision says what they are worth.
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     geom_point = Column(Geometry("POINT", srid=4326), nullable=True)
     h3_res8 = Column(String(20), nullable=True)
     # Resolved from the report's own coordinates at ingest. NULL when the
@@ -82,6 +84,9 @@ class RawReport(Base):
     citizen_hazard = Column(String(32), nullable=True)
     # When the pipeline finished with this report, whatever it decided.
     processed_at = Column(DateTime(timezone=True), nullable=True)
+    # gps | district | state | none (migration 0015). Only gps and district
+    # positions are ever clustered.
+    place_precision = Column(String(10), nullable=True)
 
     # Constraints
     __table_args__ = (
