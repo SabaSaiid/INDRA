@@ -10,7 +10,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 24 Sep 2026, after the frontend team's backend report (BUG-064 … BUG-070).**
+**Last updated: 24 Sep 2026 evening, after the frontend repair (BUG-070 fixed, BUG-071 … BUG-080).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1507,14 +1507,84 @@ job.
 `DEMO_MODE=true`, which stays false, but an impossible pair should not exist even there.
 
 ### BUG-070 — The dashboard shows its own review status, never the API's
-**S2** · Layer 9 · **`OPEN`** — handover `frontend-handover.md` §15 · Found by: marking up the report,
-24 Sep
+**S2** · Layer 9 · **`FIXED`** by `44f2486` (branch `aditya_24sept_frontend`) · Found by: marking up
+the report, 24 Sep
 
 `frontend/src/lib/eventState.ts::safeEventState()` derives the status and the quadrant from severity
 and confidence with a 0.90 / 0.70 matrix, and discards the API's `review_status`. `HUMAN_APPROVED` and
 `REJECTED` are never shown, so an approved event keeps its machine pill and its Approve button, and
 Moderate events in human review show as "Quarantined" (0.60–0.69, the Patna scene on 24 Sep) or
-"Auto-Published" (0.70–0.89). Read from the code, not yet run; frontend-owned, so not edited.
+"Auto-Published" (0.70–0.89).
+
+Fix: `safeEventState` returns the API's `review_status` and `quadrant` whenever present and derives
+only for a response without them. Aditya made the frontend edit on 24 Sep with his own go-ahead for
+that day; handover §16 lists it for the frontend team. Not yet exercised against an approved event.
+
+## 24 Sep — the frontend repair (BUG-071 … BUG-080)
+
+Aditya reported every dashboard page as not working. On the team server the database held **one
+report and no events**, so most panels were honestly empty; beside that, these defects were real.
+All fixed on `aditya_24sept_frontend`; written and built, the backend parts' SQL run read-only on the
+team database, pytest cases written and not yet run.
+
+### BUG-071 — The live feed printed UTC clock times as local, and carried reports only
+**S2** · Layer 8a · **`FIXED`** by `5434f51`
+
+`GET /api/feed/recent` formatted `created_at` (UTC) with `strftime("%H:%M")`: a report filed at 20:27
+IST showed as "14:57", with no date, three days later. It read `raw_reports` alone, so with no citizen
+reports the feed sat still while SACHET stored 107 warnings in 24 h. Now three streams (report, event,
+warning in force), each with `at` and an IST `time`. Tests: `tests/test_feed_api.py`.
+
+### BUG-072 — Reports per day bucketed by UTC date, and 7d returned eight days
+**S3** · Layer 8a · **`FIXED`** by `bfa9350`
+
+A report between 00:00 and 05:30 IST was counted on the previous day. Now IST days, exactly N rows.
+
+### BUG-073 — Incident Events' ADVISORY filter could never match
+**S2** · Layer 9 · **`FIXED`** by `068203c`
+
+The page compared the button name with `severity.toUpperCase()`, and the list API calls ADVISORY
+`low`. The same page swallowed request errors and then said "No events match the current filters".
+
+### BUG-074 — Field Reports had no place, status or date
+**S2** · Layer 9 · **`FIXED`** by `6f20b66`
+
+Built on the feed endpoint: no district, no fused/duplicate status, a UTC clock time, and a location
+search that could not match. Now reads `/api/reports/recent?unfused_only=false` for 30 days.
+
+### BUG-075 — A refetch after VERIFIED_EVENT could get the pre-event list
+**S3** · Layer 9 · **`FIXED`** by `6a88062`
+
+`fetchEvents` kept resolved requests 15 s for deduplication; a live update inside that window was
+answered from the cache. Window now 2 s.
+
+### BUG-076 — One tab opened five WebSockets to `/ws/events`
+**S3** · Layer 9 · **`FIXED`** by `55fe2ab`
+
+Each `useIndraWebSocket()` call opened its own socket and two components opened raw ones. Now one
+module-level connection per tab.
+
+### BUG-077 — The KPI strip was a four-column grid holding six readings
+**S3** · Layer 9 · **`FIXED`** by `1fbb5d1`, `96cbf35`
+
+It wrapped 4 + 2 with two empty cells, and two readings with no comparison window printed "0%".
+
+### BUG-078 — The map dropped field reports after 72 h and never refreshed warnings
+**S3** · Layer 9 · **`FIXED`** by `2ff657b`
+
+The one Patna report was hours from vanishing; expired warnings kept their pins until a reload.
+Reports now 7 days like events; the map refetches every 2 min.
+
+### BUG-079 — Dashboard frame: fixed-height maps, a short Recent Events card, a dead "View all"
+**S3** · Layer 9 · **`FIXED`** by `e3b21ff`, `6fcd548`, `e6c80d1`, `fb445b0`, `fefbada`
+
+Viewport-relative map heights, the map sets the row's height, India framed for the canvas it has,
+"View all" links to `/events`.
+
+### BUG-080 — Reports Trend drew one report as a bell curve, with a 0.5 tick
+**S3** · Layer 9 · **`FIXED`** by `5ee85a9`
+
+A monotone spline over 0-0-1-0-0; now linear with dots, whole-number axis, a total, live refresh.
 
 ### Not defects
 
