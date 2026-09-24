@@ -223,6 +223,14 @@ async def run_tick(session_factory=None) -> TickResult:
         await record_tick(FEED, ok=False, error=f"{type(e).__name__}: {e}")
         raise
 
+    # Each query's RSS as fetched, into the lake's raw layer (T9). Never raises.
+    from app.services import lake
+
+    for language, query, body in result.feeds:
+        await lake.put_raw(
+            FEED, body, "application/rss+xml", metadata={"query": query, "language": language}
+        )
+
     if result.written:
         logger.info(
             f"Google News poll stored {result.written} new headlines "
