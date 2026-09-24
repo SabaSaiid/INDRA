@@ -39,6 +39,17 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import asyncpg
+from pathlib import Path
+
+# The engine's own routing, so a seeded event gets the review status and the
+# quadrant a real event with the same severity and confidence would get. They
+# were drawn at random until 24 Sep (BUG-064): half the events read
+# AUTO_PUBLISHED at confidences the engine never publishes.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+from app.models.enums import Severity  # noqa: E402
+from app.services.fusion_engine import FusionEngine  # noqa: E402
+
+ENGINE = FusionEngine()
 from dotenv import load_dotenv
 import os
 
@@ -81,8 +92,6 @@ EVENT_DISTRIBUTION = [
 SEVERITIES = ["ADVISORY", "MODERATE", "HIGH", "CRITICAL"]
 SEVERITY_WEIGHTS = [0.15, 0.35, 0.30, 0.20]
 
-REVIEW_STATUSES = ["AUTO_PUBLISHED", "PENDING_HUMAN_REVIEW", "QUARANTINED"]
-REVIEW_WEIGHTS = [0.50, 0.35, 0.15]
 
 SOURCE_TYPES = ["CITIZEN_APP", "TWITTER_IMD", "AWS_SENSOR", "CWC_GAUGE", "OFFICIAL_DISPATCH"]
 
@@ -122,19 +131,6 @@ def generate_event_code() -> str:
     hex_part = uuid.uuid4().hex[:8].upper()
     suffix = random.choice("ABCDEFGH")
     return f"WX-EV-{hex_part}-{suffix}"
-
-
-def compute_quadrant(severity: str, confidence: float) -> str:
-    """Assign quadrant based on severity and confidence."""
-    high_sev = {"HIGH", "CRITICAL"}
-    if severity in high_sev and confidence >= 0.90:
-        return "Critical Verified Event"
-    elif severity in high_sev:
-        return "Unverified Threat"
-    elif confidence >= 0.70:
-        return "Confirmed Minor Event"
-    else:
-        return "Noise"
 
 
 def generate_verification_receipt(city_data: dict, display_type: str) -> dict:
@@ -232,12 +228,8 @@ async def seed():
             city = CITIES[event_idx % len(CITIES)]
             severity = random.choices(SEVERITIES, SEVERITY_WEIGHTS)[0]
             confidence = round(random.uniform(0.55, 0.98), 4)
-            quadrant = compute_quadrant(severity, confidence)
-            review_status = random.choices(REVIEW_STATUSES, REVIEW_WEIGHTS)[0]
-
-            # If critical + high confidence, force AUTO_PUBLISHED
-            if severity == "CRITICAL" and confidence >= 0.90:
-                review_status = "AUTO_PUBLISHED"
+            quadrant = ENGINE.assign_quadrant(Severity(severity), confidence).value
+            review_status = ENGINE.determine_review_status(confidence).value
 
             receipt = generate_verification_receipt(city, display_type)
             receipt["confidence_score"] = confidence
