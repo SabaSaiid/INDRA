@@ -59,6 +59,21 @@ import {
 export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
 
 // Basemap Styles with Globe Projection, Glyphs & Atmospheric Sky
+/**
+ * The camera that frames all of India in the canvas it is given. The fixed
+ * zoom 5.0 it replaces was tuned for one canvas size: on the dashboard's
+ * shorter map it cut off the south of the peninsula and the pins on it, and a
+ * taller canvas left sea at the edges. The pitch is applied on top, which only
+ * widens what the top of the view shows.
+ */
+const INDIA_BOUNDS: [[number, number], [number, number]] = [[68.0, 6.5], [97.5, 35.5]];
+function indiaCamera(map: maplibregl.Map): { center: [number, number]; zoom: number } {
+  const cam = map.cameraForBounds(INDIA_BOUNDS, { padding: 24 });
+  const zoom = Math.min(5.0, Math.max(3.4, cam?.zoom ?? 5.0));
+  const c = cam?.center ? maplibregl.LngLat.convert(cam.center) : null;
+  return { center: c ? [c.lng, c.lat] : [82.0, 22.0], zoom };
+}
+
 const BASEMAP_STYLES: Record<BasemapMode, any> = {
   satellite: {
     version: 8,
@@ -283,10 +298,17 @@ export default function GlobeEventMap({
   selectedEventId,
   onEventSelect,
   variant = 'full',
+  canvasClassName,
 }: {
   selectedEventId?: string;
   onEventSelect?: (marker: MapMarker | null) => void;
   variant?: 'full' | 'preview';
+  /**
+   * Height classes for the map canvas, replacing the fixed default. Pages pass
+   * a viewport-relative height so the map fills the screen instead of leaving
+   * a band of empty page under it.
+   */
+  canvasClassName?: string;
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -1181,6 +1203,14 @@ export default function GlobeEventMap({
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    map.jumpTo({ ...indiaCamera(map), pitch: 30 });
+
+    // The canvas follows its container, not only the window: collapsing the
+    // sidebar or a viewport-relative height change resizes the container
+    // without a window resize, and MapLibre then drew a stretched frame.
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => map.resize()) : null;
+    resizeObserver?.observe(mapContainerRef.current);
 
     // Through the ref, never the closure. This handler is registered once, at
     // mount, and fires twice (style.load, then load). Calling the
@@ -1254,6 +1284,7 @@ export default function GlobeEventMap({
     }
 
     return () => {
+      resizeObserver?.disconnect();
       if (zoomAnimFrame) {
         cancelAnimationFrame(zoomAnimFrame);
       }
@@ -1391,6 +1422,12 @@ export default function GlobeEventMap({
     });
   };
 
+  const focusIndia = () => {
+    if (!mapRef.current) return;
+    const { center, zoom } = indiaCamera(mapRef.current);
+    flyToHotspot(center, zoom, 30, 0);
+  };
+
   // Toggle Fullscreen
   const toggleFullscreen = () => {
     setIsFullscreen((prev) => {
@@ -1458,7 +1495,7 @@ export default function GlobeEventMap({
 
             {/* Quick jump: India Focus */}
             <button
-              onClick={() => flyToHotspot([82.0, 22.0], 5.0, 30, 0)}
+              onClick={focusIndia}
               className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
               title="Focus on Indian Subcontinent"
             >
@@ -1532,7 +1569,7 @@ export default function GlobeEventMap({
                 <Compass className="w-3 h-3 text-primary" /> View:
               </span>
               <button
-                onClick={() => flyToHotspot([82.0, 22.0], 5.0, 30, 0)}
+                onClick={focusIndia}
                 className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1 text-[11px]"
                 title="Focus view on Indian subcontinent"
               >
@@ -1675,6 +1712,8 @@ export default function GlobeEventMap({
             'relative w-full overflow-hidden globe-space-bg',
             isFullscreen
               ? 'flex-1 min-h-[520px]'
+              : canvasClassName
+              ? canvasClassName
               : variant === 'preview'
               ? 'h-[360px]'
               : 'h-[500px] lg:h-[560px]'

@@ -116,9 +116,12 @@ export default function LiveMapPage() {
             </div>
           </motion.div>
 
-          {/* 3D Globe Event Map */}
+          {/* 3D Globe Event Map. The canvas takes the height the viewport
+              leaves under the banner and the map's two control rows, so the
+              frame ends at the bottom of the screen: at a fixed 560 px it
+              stopped short on a large monitor and cut labels off on a laptop. */}
           <div className="w-full">
-            <GlobeEventMap />
+            <GlobeEventMap canvasClassName="h-[clamp(420px,calc(100dvh-318px),1100px)]" />
           </div>
         </main>
       </div>
