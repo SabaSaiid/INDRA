@@ -6,7 +6,8 @@ at CHECK_TIMEOUT_SECONDS, so a hung dependency costs at most that long.
 
     status      HTTP  when
     healthy     200   every check is up
-    degraded    200   a non-critical check is down (Redis, Open-Meteo, outbox backlog)
+    degraded    200   a non-critical check is down (Redis, Open-Meteo, outbox
+                      backlog, object store)
     unhealthy   503   a critical check is down (Postgres, Kafka/Redpanda)
 
 Postgres and Kafka are critical because without either a submitted report is
@@ -15,6 +16,12 @@ cache and the broadcast-dedup set, and both fall back to process memory when it
 is gone (`services/cache.py`), so losing it costs cross-restart memory and
 nothing else. Open-Meteo being down only marks the weather factor offline in new
 receipts. Both therefore degrade rather than fail.
+
+The object store (Phase 2 T1) holds the data lake. It is non-critical because
+nothing on the report path writes to it: a report is stored in Postgres and
+published through the outbox whether the lake is up or not, and the archive
+catches up from Kafka once it returns (T9). An unconfigured store (no S3 keys)
+is reported down with that reason, so a deployment that forgot its keys says so.
 
 The outbox backlog is the reports stored but not yet published to Kafka. It is
 non-critical because nothing is lost while they wait — that is what the outbox
@@ -125,6 +132,16 @@ async def check_outbox_backlog() -> Tuple[bool, Dict[str, Any]]:
     return True, details
 
 
+async def check_object_store() -> Tuple[bool, Dict[str, Any]]:
+    """The S3 API answers for the lake bucket with the configured keys."""
+    from app.services import objectstore
+
+    if not objectstore.configured():
+        return False, {"error": "not configured: set S3_ACCESS_KEY and S3_SECRET_KEY"}
+    await objectstore.ping()
+    return True, {}
+
+
 async def check_weather_api() -> bool:
     async with httpx.AsyncClient(timeout=CHECK_TIMEOUT_SECONDS) as client:
         resp = await client.get(settings.OPEN_METEO_API_URL, params=_WEATHER_PROBE_PARAMS)
@@ -139,6 +156,7 @@ CHECKS: Dict[str, Tuple[Callable[[], Awaitable[Any]], bool]] = {
     "redis": (check_redis, False),
     "weather_api": (check_weather_api, False),
     "outbox_backlog": (check_outbox_backlog, False),
+    "object_store": (check_object_store, False),
 }
 
 
