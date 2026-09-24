@@ -1,7 +1,7 @@
 """Airport weather observations in station_readings
 
 Revision ID: 0016_station_observations
-Revises: 0015_feed_status_and_placeless_reports
+Revises: 0015_feed_status_placeless
 Create Date: 2026-09-24
 
 **Phase 2 T3.** `station_readings` held one kind of row: Open-Meteo's modelled
@@ -41,7 +41,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import ARRAY
 
 revision = "0016_station_observations"
-down_revision = "0015_feed_status_and_placeless_reports"
+down_revision = "0015_feed_status_placeless"
 branch_labels = None
 depends_on = None
 

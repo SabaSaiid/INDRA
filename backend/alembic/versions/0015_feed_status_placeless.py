@@ -1,6 +1,6 @@
 """Feed heartbeats, reports without a place, and the export audit action
 
-Revision ID: 0015_feed_status_and_placeless_reports
+Revision ID: 0015_feed_status_placeless
 Revises: 0014_event_filter_indexes
 Create Date: 2026-09-24
 
@@ -52,7 +52,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 
-revision = "0015_feed_status_and_placeless_reports"
+revision = "0015_feed_status_placeless"
 down_revision = "0014_event_filter_indexes"
 branch_labels = None
 depends_on = None
