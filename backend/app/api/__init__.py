@@ -10,6 +10,7 @@ from app.api.profile import router as profile_router
 from app.api.alerts import router as alerts_router
 from app.api.audit import router as audit_router
 from app.api.meta import router as meta_router
+from app.api.stations import router as stations_router
 
 __all__ = [
     "dashboard_router",
@@ -23,5 +24,6 @@ __all__ = [
     "alerts_router",
     "audit_router",
     "meta_router",
+    "stations_router",
 ]
 
