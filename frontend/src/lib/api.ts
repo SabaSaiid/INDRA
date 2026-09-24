@@ -757,7 +757,7 @@ export function agencyAlertsToDistribution(
       color: WARNING_SEVERITY_STYLE[k]?.color ?? '#94A3B8',
     }));
   }
-  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const top = sorted.slice(0, 6);
   const rest = sorted.slice(6).reduce((n, [, c]) => n + c, 0);
   const items = top.map(([name, n], i) => ({
