@@ -415,6 +415,32 @@ need the 24 Sep backend (feed warnings, rainfall, feed status) against a deploye
 
 ---
 
+## 17. Phase 2 (24 Sep): five live feeds, airport weather, a data lake, search and export
+
+**Backend status: written, not yet tested** (branch `aditya_24sep_c`). The shapes are in
+[`api-contract.md`](api-contract.md), each marked "Phase 2"; none is captured from a running stack
+yet. **Nothing here breaks the dashboard as it is:** every existing response keeps its shape, the one
+behaviour change to an existing route keeps the map drawing exactly what it drew, and everything
+else is additive. No file in `frontend/` was touched.
+
+| Change | What the dashboard can do with it | |
+|---|---|---|
+| **New `source_type`s arrive: `SOCIAL_MEDIA` (Mastodon posts tagged #IMD and other weather hashtags) and `NEWS_MEDIA` (Google News headlines)**, each with a `platform` (`mastodon`, `google_news`) | **F7, the social and news panel.** In `GET /api/feed/recent` a post's `sourceLabel` is `Mastodon`, a headline's is its publisher (`"The Hindu"`), `source` is `social` or `news`, and the item has `platform`. The existing icons for `social` and `news` already fit | recommended |
+| **A new WebSocket message, `NEW_FEED_ITEM`** — same payload as `NEW_REPORT`, for a collected post or headline | Collected items no longer arrive as `NEW_REPORT`: one news tick stores dozens of headlines at once, and every screen refetches on each `NEW_REPORT`. If you want the live feed to move when posts arrive, listen for `NEW_FEED_ITEM` **and debounce the refetch** (one per second is plenty). Ignoring it is safe | optional |
+| **Reports can now have no coordinates.** `raw_reports.latitude`/`longitude` are nullable; each report has `place_precision`: `gps`, `district`, `state` or `none` | `GET /api/reports/recent` **leaves collected items out by default**, so the field-reports layer draws exactly what it drew before. With `?include_feeds=true` it includes them, and `lat`/`lng` are `null` for a post that names no place: draw nothing for those, and label a `district` or `state` precision as approximate ("near Ernakulam", "Kerala"), never as a pin on a street | behaviour note |
+| **`GET /api/meta/sources` reads real heartbeats** | **F3, the feed-status panel** (`/datasets` already reads it). Three more feeds are listed — `metar`, `mastodon`, `google_news` — and `status` can now be **`failing`** (3 failed ticks, with `last_error`). `basis` is `heartbeat` for pollers, so `last_success_at` now means *the last successful poll*, not the newest row: the card's "Newest row" label should read "Last polled" when `basis` is `heartbeat` (the old figure is `newest_row_at`). New: `last_attempt_at`, `last_error_at`, `consecutive_failures`, `items_last_tick`, and a top-level `dead_letters: {total, last_at, last_error}` — 0 is healthy | recommended |
+| **`GET /api/stations/latest?feed=metar`** — open | **F4, a map layer of real airport observations**: ~105 Indian aerodromes, each with temperature, dewpoint, wind and gusts (km/h), visibility (m; 10,000 = "10 km or more"), `weather_codes` (`["HZ"]`, `["TS", "RA+"]`, `["FG"]`) and `convective_cloud`. These are **observed**, not modelled: say "airport observation" rather than "forecast". `GET /api/geo/stations` (the six Open-Meteo rainfall points) is unchanged | new |
+| **`GET /api/reports/search`** — **analyst token** | **F3, the data explorer**: every report, post and headline with the filters in the contract (`from`/`to`, `source_type`, `platform`, `publisher`, `state`, `district`, `precision`, `status`, `has_media`, `language`, `hazard`, `q`, `sort`, `limit`/`offset`); total in `X-Total-Count`. Send the analyst's bearer token as for provenance; a citizen token gets 403. Show `status` `held` as "collected — not clustered until hazard tagging" | new |
+| **`GET /api/reports/export` and `GET /api/events/export`** (`format=csv` or `geojson`) — **analyst token** | Download buttons beside the explorer and the event list, passing the same filters the screen shows. Fetch with the token and save the blob; the file name is in `Content-Disposition`, which CORS now exposes. **Every export is written to the audit ledger**, so a button label like "Export (recorded)" is honest | new |
+| **`/healthz` gains `object_store`** | Non-critical, like Redis: down or unconfigured makes the whole status `degraded`, never `unhealthy`. The admin console can show it beside `outbox_backlog` | optional |
+| **`total_reports` in `/api/dashboard/summary` now includes collected posts and headlines**; `citizen_reports` does not | If the KPI card is labelled "Total reports", "Signals collected" would now describe it better; or show `citizen_reports` there instead | behaviour note |
+
+**Test, once the branch is deployed:** `curl -s localhost:8000/api/meta/sources | python3 -m json.tool`
+lists seven feeds and `dead_letters`; `curl -s 'localhost:8000/api/stations/latest?feed=metar' | head -c 400`
+shows airport observations once `METAR_POLLER_ENABLED=true`.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |
