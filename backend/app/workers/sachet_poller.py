@@ -68,6 +68,15 @@ settings = get_settings()
 # NDMA asks agencies to identify themselves rather than poll anonymously.
 USER_AGENT = "INDRA-SIH2026/1.0 (Team Sixth Sense; disaster situational awareness)"
 
+# This feed's name in feed_status and GET /api/meta/sources.
+FEED = "sachet"
+
+# Why the last tick failed, or None. fetch_index answers None both for "304,
+# nothing changed" and for "unreachable", which is right for the tick's work but
+# not for its heartbeat: the first is a success and the second is not. This is
+# where the difference is kept (Phase 2 T2).
+last_tick_error: Optional[str] = None
+
 # Process-local ETag for the index. Deliberately not persisted: after a restart
 # one full fetch is correct, since the database may have been rebuilt.
 _index_etag: Optional[str] = None
@@ -77,6 +86,13 @@ def _reset_etag_for_tests() -> None:
     """Tests share a module, and a stale ETag would make the second one see 304."""
     global _index_etag
     _index_etag = None
+
+
+def _failed(message: str) -> None:
+    """Log a tick-level failure and keep it for the heartbeat."""
+    global last_tick_error
+    last_tick_error = message
+    logger.warning(message)
 
 
 async def fetch_index(client: httpx.AsyncClient) -> Optional[List[RssItem]]:
@@ -99,14 +115,14 @@ async def fetch_index(client: httpx.AsyncClient) -> Optional[List[RssItem]]:
             timeout=settings.SACHET_TIMEOUT_SECONDS,
         )
     except Exception as e:
-        logger.warning(f"SACHET index fetch failed: {type(e).__name__}: {e}")
+        _failed(f"SACHET index fetch failed: {type(e).__name__}: {e}")
         return None
 
     if resp.status_code == 304:
         logger.debug("SACHET index unchanged (304)")
         return None
     if resp.status_code != 200:
-        logger.warning(f"SACHET index returned HTTP {resp.status_code}")
+        _failed(f"SACHET index returned HTTP {resp.status_code}")
         return None
 
     # Only remember the ETag once the body parsed. Storing it first would mean a
@@ -114,7 +130,7 @@ async def fetch_index(client: httpx.AsyncClient) -> Optional[List[RssItem]]:
     # sends its ETag and is told 304.
     items = parse_rss(resp.content)
     if not items:
-        logger.warning("SACHET index parsed to zero alerts; ETag not stored")
+        _failed("SACHET index parsed to zero alerts; ETag not stored")
         return None
 
     _index_etag = resp.headers.get("ETag") or None
@@ -251,6 +267,9 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> Tuple[int
     (0, 99) means every alert in the feed was already stored, which is the steady
     state and is why this poller is cheap to run at a short interval.
     """
+    global last_tick_error
+    last_tick_error = None
+
     own_client = client is None
     if own_client:
         client = httpx.AsyncClient(timeout=settings.SACHET_TIMEOUT_SECONDS)
@@ -303,7 +322,7 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> Tuple[int
 
     except Exception as e:
         await db.rollback()
-        logger.warning(f"SACHET poll tick failed: {type(e).__name__}: {e}")
+        _failed(f"SACHET poll tick failed: {type(e).__name__}: {e}")
         return 0, 0
     finally:
         if own_client:
@@ -390,6 +409,38 @@ async def _upsert(
         existing.polygon_points = None
 
 
+async def run_tick(session_factory=None) -> Tuple[int, int]:
+    """
+    One scheduled tick: poll, then record the heartbeat GET /api/meta/sources
+    reads (Phase 2 T2). Returns (alerts_written, alerts_seen).
+
+    A 304 is a successful tick that wrote nothing; an unreachable index or a
+    tick that raised is a failed one.
+    """
+    from app.services.feed_status import record_tick
+
+    if session_factory is None:
+        from app.core.database import async_session as session_factory
+
+    try:
+        async with session_factory() as db:
+            written, seen = await poll_once(db)
+    except Exception as e:
+        # Includes a database that is not up yet on a cold start.
+        await record_tick(FEED, ok=False, error=f"{type(e).__name__}: {e}")
+        raise
+
+    if written:
+        logger.info(f"SACHET poll stored {written} alerts ({seen} in feed)")
+    elif seen:
+        logger.debug(f"SACHET poll: all {seen} alerts already current")
+
+    await record_tick(
+        FEED, ok=last_tick_error is None, items=written, error=last_tick_error
+    )
+    return written, seen
+
+
 async def start_sachet_poller() -> None:
     """
     The lifespan task. Polls immediately so a fresh stack has warnings within
@@ -408,18 +459,12 @@ async def start_sachet_poller() -> None:
 
     while True:
         try:
-            async with async_session() as db:
-                written, seen = await poll_once(db)
-            if written:
-                logger.info(f"SACHET poll stored {written} alerts ({seen} in feed)")
-            elif seen:
-                logger.debug(f"SACHET poll: all {seen} alerts already current")
+            await run_tick(async_session)
         except asyncio.CancelledError:
             logger.info("SACHET poller shutting down...")
             raise
         except Exception as e:
-            # The task must outlive any single failure, including a database
-            # that is not up yet on a cold start.
+            # The task must outlive any single failure.
             logger.warning(f"SACHET poll failed (non-fatal): {type(e).__name__}: {e}")
 
         try:
