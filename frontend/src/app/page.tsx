@@ -26,10 +26,10 @@ import { useSidebar } from '@/lib/useSidebar';
 
 // The dashboard map's canvas fills what the viewport leaves after the topbar,
 // the status strip, the KPI row, the map's own header and the chart row
-// (≈470 px together), so the page ends at the bottom of the screen instead of
-// leaving a band of empty paper under the charts. Clamped for short and very
-// tall screens.
-const DASHBOARD_MAP_HEIGHT = 'h-[clamp(340px,calc(100dvh-470px),680px)]';
+// (≈490 px together, measured), so the page ends at the bottom of the screen
+// instead of leaving a band of empty paper under the charts. Clamped for short
+// and very tall screens.
+const DASHBOARD_MAP_HEIGHT = 'h-[clamp(340px,calc(100dvh-490px),680px)]';
 const MAP_FOCUS_HEIGHT = 'h-[clamp(420px,calc(100dvh-330px),860px)]';
 
 export default function Home() {

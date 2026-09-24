@@ -69,9 +69,12 @@ export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
 const INDIA_BOUNDS: [[number, number], [number, number]] = [[68.0, 6.5], [97.5, 35.5]];
 function indiaCamera(map: maplibregl.Map): { center: [number, number]; zoom: number } {
   const cam = map.cameraForBounds(INDIA_BOUNDS, { padding: 24 });
-  const zoom = Math.min(5.0, Math.max(3.4, cam?.zoom ?? 5.0));
+  // The flat fit is computed without the 30° pitch, which shows more ground at
+  // the top of the view, so it can sit about half a level closer; the centre
+  // moves south by the same token to keep the peninsula's tip in frame.
+  const zoom = Math.min(5.0, Math.max(3.6, (cam?.zoom ?? 4.4) + 0.6));
   const c = cam?.center ? maplibregl.LngLat.convert(cam.center) : null;
-  return { center: c ? [c.lng, c.lat] : [82.0, 22.0], zoom };
+  return { center: c ? [c.lng, c.lat - 1.2] : [82.0, 21.0], zoom };
 }
 
 const BASEMAP_STYLES: Record<BasemapMode, any> = {
@@ -1503,10 +1506,11 @@ export default function GlobeEventMap({
               <span>India</span>
             </button>
 
-            {/* Quick jump: Global View */}
+            {/* Quick jump: Global View. On the dashboard's narrower card it
+                gives way below 2xl so the map's title is not truncated. */}
             <button
               onClick={() => flyToHotspot([80.0, 15.0], 1.6, 0, 0, 3000)}
-              className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
+              className={`hidden ${variant === 'preview' ? '2xl:flex' : 'lg:flex'} items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all`}
               title="Zoom out to Global View"
             >
               <Globe className="w-3 h-3 text-indigo-500" />

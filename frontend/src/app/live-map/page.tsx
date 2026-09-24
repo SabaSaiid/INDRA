@@ -136,7 +136,7 @@ export default function LiveMapPage() {
               frame ends at the bottom of the screen: at a fixed 560 px it
               stopped short on a large monitor and cut labels off on a laptop. */}
           <div className="w-full">
-            <GlobeEventMap canvasClassName="h-[clamp(420px,calc(100dvh-318px),1100px)]" />
+            <GlobeEventMap canvasClassName="h-[clamp(420px,calc(100dvh-336px),1100px)]" />
           </div>
         </main>
       </div>
