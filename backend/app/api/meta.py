@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.services import cache
-from app.services.feed_status import FEEDS, feed_state, load_heartbeats, stale_after_s
+from app.services.feed_status import DEAD_LETTER, FEEDS, feed_state, load_heartbeats, stale_after_s
 from app.services.hazards import FAMILIES, family_of, label_of
 
 logger = logging.getLogger("indra.api.meta")
@@ -212,4 +212,14 @@ async def data_sources(db: AsyncSession = Depends(get_db)):
         logger.warning(f"Database query failed in data_sources: {e}")
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    return {"generated_at": now.isoformat(), "feeds": feeds}
+    # Messages the pipeline gave up on after its retries (Phase 2 T8). 0 is
+    # the healthy answer; anything else is waiting in the dead-letter topic for
+    # scripts/replay_dlq.py.
+    dead = heartbeats.get(DEAD_LETTER, {})
+    dead_letters = {
+        "total": int(dead.get("rows_total") or 0),
+        "last_at": _iso(dead.get("last_error_at")),
+        "last_error": dead.get("last_error"),
+        "topic": settings.KAFKA_DLQ_TOPIC,
+    }
+    return {"generated_at": now.isoformat(), "feeds": feeds, "dead_letters": dead_letters}
