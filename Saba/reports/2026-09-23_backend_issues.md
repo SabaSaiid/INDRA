@@ -5,6 +5,30 @@
 > **Target System:** INDRA (Indian National Disaster Response & Alerting Platform)  
 > **Scope:** Backend Pipeline, Data Seeding, Geo-Clustering, Database Schemas, and API Endpoints  
 > **Verification Status:** 100% Verified against Active Codebase  
+> **Backend Resolution:** Checked item by item against the code by Aditya on 24 September 2026; fixes merged to `main` in PR #31. Status per item in the table below and at the end of each issue.  
+
+---
+
+<details open>
+<summary>✅ <b>Resolution Status — 24 September 2026</b></summary>
+
+Every item was checked against the code on `main` @ `c6b8354`, and the fixes were merged in **PR #31**. Both example cards (`WX-EV-B85B4E8E-E`, `WX-EV-43DDEC9C-B`) carry the `WX-EV-…` code that only the synthetic seeder (`scripts/seed_national_data.py --synthetic`) writes; the pipeline writes `INDRA-YYYYMMDD-NNN`. So the symptoms came from seeded rows, and two of the root causes were in the seeder. Bug numbers refer to [`docs/bug-register.md`](../../docs/bug-register.md).
+
+| # | Item | Status | Resolution |
+| :--- | :--- | :--- | :--- |
+| 1A | Seeder picks `review_status` at random | ✅ **Done** | BUG-064 (`da63990`): the seeder takes `quadrant` and `review_status` from `FusionEngine`, exactly as the pipeline does |
+| 1B | `determine_review_status` ignores severity | ✅ **Done** | BUG-067 (`6083572`, docs `5d0a7e1`): a High or Critical event is never quarantined; below 0.90 it always goes to `PENDING_HUMAN_REVIEW` |
+| 1B | Low / Moderate / Advisory at ≥ 0.70 → `AUTO_PUBLISHED` | ❌ **Not adopted**, by design | Nothing is published without a human below 0.90. Moderate and Advisory events at 0.60–0.89 go to human review |
+| 1.2 | The docs give the review gate as 0.70 | ✅ **Done** | BUG-068 (`a1cfe84`): README and ARCHITECTURE say 0.60, the value since 20 Sep |
+| 2 | 1,564 km impact radius | ✅ **Done** (root cause) | BUG-065 (`e55ea41`): the seeder linked reports to random events anywhere in India; now only to an event in the report's own city |
+| 2A–2C | The merge catchment and the radius have no ceiling | ⏳ **Open — Phase 3** | BUG-066: capped per hazard family when Phase 3 makes clustering and merging per hazard. It changes scores, so it is not patched on its own |
+| 3A | "Total Reports" (all time) vs the 7-day trend | ✅ **No backend defect** | Both numbers are right: the card counts all time, the chart the last 7 days |
+| 3B | `DEMO_KPIS` has more citizen reports than reports | ✅ **Done** | BUG-069 (`a89d948`), with a test |
+| 4 | Map default view | ✅ **No backend change needed** | No backend endpoint serves a default map view |
+
+**One follow-up on the frontend side (BUG-070, [`docs/frontend-handover.md`](../../docs/frontend-handover.md) §15).** Now that the backend sends a consistent status, `frontend/src/lib/eventState.ts::safeEventState()` should show the API's `review_status` instead of re-deriving it. Today it ignores what the API sent, so `HUMAN_APPROVED` and `REJECTED` never appear, and Moderate events in human review show as "Quarantined" (0.60–0.69) or "Auto-Published" (0.70–0.89).
+
+</details>
 
 ---
 
@@ -21,7 +45,7 @@ This document provides a 100% verified, line-by-line technical audit of the four
 ---
 
 <details>
-<summary>🚨 <b>Issue 1: Desynchronization of <code>review_status</code> and <code>quadrant</code> (2×2 Matrix Violation)</b></summary>
+<summary>🚨 <b>Issue 1: Desynchronization of <code>review_status</code> and <code>quadrant</code> (2×2 Matrix Violation)</b> — ✅ <b>Resolved</b> (one suggestion not adopted)</summary>
 
 ### 1.1 The Symptom
 On the Incident Events view (`/events`) and Alert feed (`/alerts`):
@@ -107,12 +131,20 @@ To protect users before backend remediation, [`frontend/src/lib/eventState.ts`](
 2. Update `scripts/seed_national_data.py` to use `derive_event_state` rather than selecting `review_status` via `random.choices()`.
 3. Update `backend/app/services/pipeline.py` to call `derive_event_state`.
 
+### 1.6 ✅ Resolution (24 Sep 2026)
+
+- **1.3A — ✅ Done** (BUG-064, `da63990`). The seeder now takes `quadrant` and `review_status` from `FusionEngine`, the same two calls the pipeline makes, instead of `random.choices()`. Its own `compute_quadrant()`, with the old 0.70 gate, is gone. Seeded on an empty database: 0 of 37 events off the engine's rule (the old seeder: 11 `AUTO_PUBLISHED` below 0.90).
+- **1.3B — ✅ Done** (BUG-067, `6083572`; docs `5d0a7e1`). `determine_review_status()` now takes the severity. A `HIGH` or `CRITICAL` event is never quarantined: below 0.90 it always goes to `PENDING_HUMAN_REVIEW`, and it still needs 0.90 to publish on its own. The receipt's `routing.basis` reads `severity` when that is why. Under this rule `WX-EV-43DDEC9C-B` (High, 47%) and `WX-EV-B85B4E8E-E` (High, 83%) would both be Pending Human Review.
+- **The two functions drifting apart — ✅ Done.** `assign_quadrant()` and `determine_review_status()` read the same two gates from settings (`AUTO_PUBLISH_THRESHOLD` 0.90, `HUMAN_REVIEW_THRESHOLD` 0.60), so they cannot disagree about where a threshold is (BUG-017).
+- **Auto-publishing Low / Moderate / Advisory events at ≥ 0.70 — ❌ not adopted, by design.** Nothing is published without a human below 0.90 (`AUTO_PUBLISH_THRESHOLD`, `backend/app/core/config.py`). A Moderate or Advisory event at 0.60–0.89 goes to `PENDING_HUMAN_REVIEW`; below 0.60 it is `QUARANTINED`. The 0.70 in the docs was out of date: the review gate has been 0.60 since 20 Sep. BUG-068 (`a1cfe84`) corrected the docs, and also removed their claim that auto-publishing sounds sirens, sends SMS and dispatches NDRF: the alert engine was cancelled on 20 Sep.
+- **1.4 — the frontend safeguard now disagrees with the backend (BUG-070, open, frontend).** `safeEventState()` returns its own 0.70 matrix whatever the API sent. With the backend fixed, that hides `HUMAN_APPROVED` and `REJECTED` (an approved event keeps its old pill and its Approve button), shows the Patna scene (Moderate, 0.62, in human review) as "Quarantined", and shows a Moderate event at 0.75 as "Auto-Published" though nothing published it. Please show `review_status` as sent; see `docs/frontend-handover.md` §15.
+
 </details>
 
 ---
 
 <details>
-<summary>📏 <b>Issue 2: Impact Radius Scaling Anomalies (<code>impact_radius_km = 1564.0</code>)</b></summary>
+<summary>📏 <b>Issue 2: Impact Radius Scaling Anomalies (<code>impact_radius_km = 1564.0</code>)</b> — 🟡 <b>Root cause fixed</b>; the ceiling is open for Phase 3</summary>
 
 ### 2.1 The Symptom
 On the Incident Events view (`/events`), card `WX-EV-43DDEC9C-B` (a rainfall event in Bhojpur, Bihar) displayed:
@@ -173,12 +205,19 @@ impact_radius = max(stats["radius_km"], 0.5)
 2. Cap the search window in `_find_mergeable_event` with a maximum merge limit (e.g. `LEAST(impact_radius_km, 50.0) + eps`) to stop runaway snowball merges.
 3. In `geo_clustering.py`, replace strict `MAX(ST_Distance)` with the 95th percentile distance to reject spatial outliers.
 
+### 2.5 🟡 Resolution (24 Sep 2026)
+
+- **The 1,564 km radius — ✅ Done, at the root cause** (BUG-065, `e55ea41`). The seeder linked 40% of its ~1,200 mixed-source reports and 30% of its ~8,200 citizen reports to a random event anywhere in India, so a Bhojpur event owned reports in Chennai and Delhi. Seeded rows keep their stored 2–25 km radius, but once the live pipeline merges one real report into such an event it recomputes the footprint over every linked report, and the radius becomes the distance to the farthest city. A seeded report now links only to an event in its own city: farthest linked report 11.7 km, median 4.7 km (the old seeder: 2,096 km).
+- **2.2B / 2.2C — the merge catchment grows with the event and has no ceiling — ⏳ Open, Phase 3** (BUG-066, confirmed). With real data the growth is bounded by DBSCAN's 5 km chaining and the 120-minute merge window, but nothing caps it. Phase 3 makes clustering and merging per hazard family, each with its own radius and time window (water 5 km / 6 h, convective 10 km / 3 h, thermal 25 km / 24 h, visibility 15 km / 12 h, already defined in `backend/app/services/hazards.py`), and the catchment and the radius get their ceiling there. It is not patched on its own because it changes scores.
+- **2.2A — `MAX(ST_Distance)` with no outlier filter — ⏳ Open, with BUG-066.** Coordinates outside India are refused with a 422 and never stored, so no such point can join a cluster; the remaining path to a far-off member is the unbounded merge above.
+- Until Phase 3 lands, the frontend's `clampImpactRadius()` / `clampImpactKm()` guard stays useful.
+
 </details>
 
 ---
 
 <details>
-<summary>📊 <b>Issue 3: Discrepancy Between Reports Trend and Dashboard Summary (KPI Strip)</b></summary>
+<summary>📊 <b>Issue 3: Discrepancy Between Reports Trend and Dashboard Summary (KPI Strip)</b> — ✅ <b>Resolved</b></summary>
 
 ### 3.1 The Symptom
 On the Commander Dashboard (`/`):
@@ -249,12 +288,18 @@ When running with fallback mock data (`DEMO_MODE=true` or database unavailable):
 2. In `scripts/seed_national_data.py`, ensure seeded timestamps are generated relative to execution time (`NOW()`), or provide a replay mechanism so demo environments always have fresh data within the active 7-day window.
 3. Fix the mock constant in `backend/app/api/dashboard.py` where `citizen_reports (8421)` exceeds `total_reports (1248)`.
 
+### 3.4 ✅ Resolution (24 Sep 2026)
+
+- **3.2B — `DEMO_KPIS` has 8,421 citizen reports out of 1,248 — ✅ Done** (BUG-069, `a89d948`, with a test in `backend/tests/test_demo_mode.py`). Demo KPIs are served only with `DEMO_MODE=true`, which stays false on the team server.
+- **3.2A — "Total Reports" vs the 7-day trend — ✅ no backend defect.** Both numbers are right: `total_reports` counts every report ever received (its deltas are over 24 hours), and the trend chart covers the last 7–30 days. A database seeded a week earlier has thousands of old rows and a flat recent week. If the card should read "all time", that is its label on the dashboard.
+- **3.3, recommendation 2 — seeded timestamps — ✅ already so.** The seeder stamps rows `now − timedelta(hours=…)` at the moment it runs; rows seeded a week ago simply age out of the 7-day window. A replay of a real day is Phase 6.
+
 </details>
 
 ---
 
 <details>
-<summary>🗺️ <b>Issue 4: Map Viewport & Default Focus</b></summary>
+<summary>🗺️ <b>Issue 4: Map Viewport & Default Focus</b> — ✅ <b>No backend change needed</b></summary>
 
 ### 4.1 The Symptom
 On the main live map (`/` and `/events`):
@@ -266,6 +311,10 @@ On the main live map (`/` and `/events`):
 ### 4.3 Recommended Backend Alignment
 Any backend configurations or metadata endpoints delivering default bounding boxes (e.g., `INDIA_BOUNDS` or map tile presets) should align with `zoom: 5.0` / Center `[22.5, 82.5]`.
 
+### 4.4 ✅ Resolution (24 Sep 2026)
+
+No backend change needed. No backend endpoint or setting serves a default map view, zoom or bounding box. The only India box in the backend (`INDIA_MIN_LNG`, `INDIA_MAX_LAT`, … in `backend/app/services/geocoding.py`) refuses out-of-India coordinates on submit; it is a validation limit, not a view, and nothing in it has to match the map. The frontend's `zoom 5.0` / `[22.5, 82.5]` is the only default.
+
 </details>
 
 ---
@@ -273,16 +322,17 @@ Any backend configurations or metadata endpoints delivering default bounding box
 <details open>
 <summary>📋 <b>Summary Table of Files & Recommended Backend Changes</b></summary>
 
-| File | Exact Bug Description | Severity | Recommended Fix |
-| :--- | :--- | :--- | :--- |
-| [`scripts/seed_national_data.py` (L233–241)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/scripts/seed_national_data.py#L233-L241) | `review_status` picked via `random.choices()`, violating `quadrant` and the 2×2 decision matrix. | **High** | Replace random selection with deterministic `derive_event_state(severity, confidence)`. |
-| [`backend/app/services/fusion_engine.py` (L263–293)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/services/fusion_engine.py#L263-L293) | `determine_review_status` does not consider `severity`. | **High** | Unify `assign_quadrant` and `determine_review_status` into a single matrix resolver. |
-| [`backend/app/services/pipeline.py` (L485–489, L870)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/services/pipeline.py#L870) | No upper ceiling clamp on `impact_radius`; runaway merge window causes snowball cluster expansion. | **Medium** | Enforce domain-specific radius ceilings (e.g. 100 km for rain); cap merge search window. |
-| [`backend/app/services/geo_clustering.py` (L170–178)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/services/geo_clustering.py#L170-L178) | Radius uses `MAX(ST_Distance)` without outlier filtering. | **Medium** | Use 95th percentile distance or reject spatial outliers prior to radius derivation. |
-| [`backend/app/api/dashboard.py` (L17–23, L56–61)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/api/dashboard.py#L56-L61) | `total_reports` counts lifetime table rows, conflicting with 7-day trend; `citizen_reports > total_reports` in `DEMO_KPIS`. | **Medium** | Align time filters between dashboard KPI and trend endpoints; fix impossible numbers in `DEMO_KPIS`. |
+| File | Exact Bug Description | Severity | Recommended Fix | Status (24 Sep 2026) |
+| :--- | :--- | :--- | :--- | :--- |
+| [`scripts/seed_national_data.py` (L233–241)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/scripts/seed_national_data.py#L233-L241) | `review_status` picked via `random.choices()`, violating `quadrant` and the 2×2 decision matrix. | **High** | Replace random selection with deterministic `derive_event_state(severity, confidence)`. | ✅ **Done** — BUG-064 (`da63990`): status and quadrant from `FusionEngine`. Also BUG-065 (`e55ea41`): reports link only to an event in their own city |
+| [`backend/app/services/fusion_engine.py` (L263–293)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/services/fusion_engine.py#L263-L293) | `determine_review_status` does not consider `severity`. | **High** | Unify `assign_quadrant` and `determine_review_status` into a single matrix resolver. | ✅ **Done** — BUG-067 (`6083572`): High and Critical never quarantined; both functions read the same gates. Auto-publishing minor events at ≥ 0.70 ❌ not adopted |
+| [`backend/app/services/pipeline.py` (L485–489, L870)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/services/pipeline.py#L870) | No upper ceiling clamp on `impact_radius`; runaway merge window causes snowball cluster expansion. | **Medium** | Enforce domain-specific radius ceilings (e.g. 100 km for rain); cap merge search window. | ⏳ **Open** — BUG-066, capped per hazard family in Phase 3 |
+| [`backend/app/services/geo_clustering.py` (L170–178)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/services/geo_clustering.py#L170-L178) | Radius uses `MAX(ST_Distance)` without outlier filtering. | **Medium** | Use 95th percentile distance or reject spatial outliers prior to radius derivation. | ⏳ **Open** — with BUG-066, Phase 3 |
+| [`backend/app/api/dashboard.py` (L17–23, L56–61)](file:///Users/sabasaeed/0_Saba%20CSE/Hackathons/SIH%2026/INDRA/backend/app/api/dashboard.py#L56-L61) | `total_reports` counts lifetime table rows, conflicting with 7-day trend; `citizen_reports > total_reports` in `DEMO_KPIS`. | **Medium** | Align time filters between dashboard KPI and trend endpoints; fix impossible numbers in `DEMO_KPIS`. | ✅ **Done** — BUG-069 (`a89d948`). All time vs 7 days is not a defect |
 
 </details>
 
 ---
 
-*Document generated for engineering alignment and backend handover.*
+*Document generated for engineering alignment and backend handover.*  
+*Resolution status added 24 Sep 2026 by Aditya (backend).*
