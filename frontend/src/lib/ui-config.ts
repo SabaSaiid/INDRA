@@ -161,7 +161,8 @@ export interface KpiItem {
   id: string;
   label: string;
   value: number;
-  delta: number;
+  /** Change over the last 24 h in percent; null when the figure has no comparison window. */
+  delta: number | null;
   deltaLabel: string;
   color: string;
   bgColor: string;

@@ -54,8 +54,10 @@ function Reading({ item, index }: ReadingProps) {
   // downward arrow, which reads as a decline that never happened — and two of
   // these readings carry a hardcoded delta of 0 because they have no
   // comparison window at all.
-  const isPositive = item.delta > 0;
-  const isFlat = item.delta === 0;
+  const hasWindow = item.delta !== null;
+  const delta = item.delta ?? 0;
+  const isPositive = delta > 0;
+  const isFlat = delta === 0;
 
   return (
     <motion.div
@@ -79,23 +81,26 @@ function Reading({ item, index }: ReadingProps) {
 
       {/* Right: delta badge */}
       <div className="instrument-reading-delta">
-        <p
-          className="text-[9px] tabular-nums leading-none"
-          style={{ fontFamily: 'JetBrains Mono, monospace' }}
-        >
-          <span
-            className={
-              isFlat
-                ? 'text-[#7A8599]'
-                : isPositive
-                  ? 'text-[#4C7A5B]'
-                  : 'text-[#8C2F26]'
-            }
+        {/* A figure with no comparison window shows its label alone, never "0%". */}
+        {hasWindow && (
+          <p
+            className="text-[9px] tabular-nums leading-none"
+            style={{ fontFamily: 'JetBrains Mono, monospace' }}
           >
-            {isFlat ? '' : isPositive ? '↑' : '↓'}
-            {Math.abs(item.delta)}%
-          </span>
-        </p>
+            <span
+              className={
+                isFlat
+                  ? 'text-[#7A8599]'
+                  : isPositive
+                    ? 'text-[#4C7A5B]'
+                    : 'text-[#8C2F26]'
+              }
+            >
+              {isFlat ? '' : isPositive ? '↑' : '↓'}
+              {Math.abs(delta)}%
+            </span>
+          </p>
+        )}
         <p className="text-[8px] text-[#B0A898] leading-none mt-0.5 whitespace-nowrap">
           {item.deltaLabel}
         </p>

@@ -168,9 +168,11 @@
   .spine-low      { border-left: 3px solid var(--s-low); }
 
   /* ── Instrument Strip ────────────────────────────────── */
+  /* Six readings. At four columns the strip wrapped into a 4 + 2 grid with two
+     empty cells; one row of six at desktop widths, three by two below that. */
   .instrument-strip {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     background-color: #FDFAF5;
     border: 1px solid var(--paper-3);
     border-radius: 0.5rem;
@@ -259,22 +261,35 @@
     }
   }
 
+  @media (max-width: 1279px) {
+    .instrument-strip {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .instrument-reading:nth-child(3n + 1)::before {
+      display: none;
+    }
+    .instrument-reading:nth-child(n + 4) {
+      border-top: 1px solid var(--paper-3);
+    }
+  }
+
   @media (max-width: 767px) {
     .instrument-strip {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .instrument-reading:nth-child(3n + 1)::before {
+      display: block;
+    }
+    .instrument-reading:nth-child(odd)::before {
+      display: none;
+    }
+    .instrument-reading:nth-child(n + 3) {
+      border-top: 1px solid var(--paper-3);
     }
     .instrument-reading {
       flex-direction: column;
       align-items: flex-start;
       gap: 0.15rem;
-    }
-    .instrument-reading:nth-child(3)::before,
-    .instrument-reading:nth-child(2)::before {
-      display: none;
-    }
-    .instrument-reading:nth-child(3),
-    .instrument-reading:nth-child(4) {
-      border-top: 1px solid var(--paper-3);
     }
   }
 
