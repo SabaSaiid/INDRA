@@ -115,9 +115,12 @@ class StoreError(Exception):
 
 @dataclass
 class StoredReport:
-    id: uuid.UUID
+    id: Optional[uuid.UUID]
     docket: Optional[str]
     queued: bool     # published to Kafka before store_report() returned
+    # False when a fed item with this (platform, external_id) was already
+    # stored: nothing was written, nothing queued, and `id` is None.
+    created: bool = True
 
 
 def reporter_hash_for(client_id: Optional[str]) -> Optional[str]:
@@ -214,6 +217,11 @@ _INSERT_REPORT = text("""
         COALESCE(CAST(:observed_at AS timestamptz), NOW()), :reporter_hash, :citizen_hazard, :docket,
         :platform, :external_id, CAST(:source_meta AS jsonb), :place_precision
     )
+    -- A poller that sees the same post twice stores it once (Phase 2 T4). The
+    -- target is the partial unique index from 0012; a citizen report has no
+    -- external_id and can never conflict here, and a docket clash still raises.
+    ON CONFLICT (platform, external_id) WHERE external_id IS NOT NULL DO NOTHING
+    RETURNING id
 """)
 
 # Positions precise enough to measure distances from. See _INSERT_REPORT.
@@ -327,6 +335,8 @@ async def store_report(
         docket = new_docket() if issue_docket else None
         try:
             outbox_id = await _insert(db, report_id, topic, payload, {**row, "docket": docket})
+            if outbox_id is None:
+                return StoredReport(id=None, docket=None, queued=False, created=False)
             break
         except IntegrityError as e:
             await _rollback_quietly(db)
@@ -344,9 +354,16 @@ async def store_report(
     return StoredReport(id=report_id, docket=docket, queued=queued)
 
 
-async def _insert(db, report_id, topic, payload, row) -> int:
-    """The report and its message, committed together. Returns the outbox id."""
-    await db.execute(_INSERT_REPORT, row)
+async def _insert(db, report_id, topic, payload, row) -> Optional[int]:
+    """
+    The report and its message, committed together. Returns the outbox id, or
+    None when the report was already stored (a fed item seen again), in which
+    case nothing is written.
+    """
+    inserted = (await db.execute(_INSERT_REPORT, row)).fetchone()
+    if inserted is None:
+        await db.rollback()
+        return None
     outbox_id = (await db.execute(_INSERT_OUTBOX, {
         "topic": topic,
         "key": str(report_id),
