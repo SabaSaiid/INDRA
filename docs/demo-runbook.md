@@ -132,6 +132,12 @@ on 23 Sep, as Patna's rainfall changed. Every other factor was identical, includ
 clustering radius became a true great-circle distance on 22 Sep and after Phase 1 added the outbox,
 the dockets and 12 event types on 23 Sep.
 
+> **On a wet day the scene reaches a human.** 24 Sep, after 22.1 mm of rain in Patna: weather
+> factor 0.3965, confidence **0.6198**, **`PENDING_HUMAN_REVIEW`** — every other factor unchanged,
+> and the receipt's `routing.basis` reads `confidence`. That is the receipt's own story: real
+> rainfall is corroboration. Check the Scene 1 reading before presenting, and say which case you
+> are in.
+
 Receipt:
 
 | Factor | Weight | Score | Points | State |
