@@ -6,11 +6,9 @@
  * 2x2 matrix (Feature 3.3 in understand.md) so every rendering path shows an
  * internally consistent state, regardless of what the API actually sent.
  *
- * NOTE TO BACKEND TEAM: The correct fix is to move this same logic into the
- * backend event-generation and review-status derivation paths, so that
- * review_status and quadrant are always derived from (severity, confidence_score)
- * rather than set independently. Until that happens, the frontend corrects the
- * inconsistency here and logs a warning so the mismatch stays visible in dev-tools.
+ * Since 24 Sep (BUG-070) this is a fallback only: safeEventState shows the
+ * API's review_status and quadrant whenever the response carries them, and
+ * derives a state only for a response that does not.
  *
  * Rule (understand.md section 3.3 - 2x2 Severity x Confidence Matrix):
  *   High/Critical  + >= 90%   -> Critical Verified Event / AUTO_PUBLISHED
@@ -105,17 +103,39 @@ export function warnIfMismatch(
   }
 }
 
+const REVIEW_LABELS: Record<string, string> = {
+  AUTO_PUBLISHED: "Auto-Published",
+  PENDING_HUMAN_REVIEW: "Pending Human Review",
+  QUARANTINED: "Quarantined",
+  HUMAN_APPROVED: "Approved",
+  REJECTED: "Rejected",
+};
+
 /**
- * Derive state, warn on mismatch, return derived state.
- * Use this wherever you previously read event.review_status directly.
+ * The event's review state as the API sent it (BUG-070).
+ *
+ * This used to return the derivation above whatever the API said, and use the
+ * API's value only for a console warning. So an approved event kept its
+ * machine pill and its Approve button (a second approve then 409s), a
+ * Moderate event at 0.60-0.69 waiting for a human was shown as "Quarantined /
+ * Noise", and one at 0.70-0.89 as "Auto-Published", a publication that never
+ * happened. The backend routes at 0.60 and applies the severity rule itself
+ * (BUG-067), so its status is the truth to show. The derivation is kept only
+ * as the fallback for a response that carries no status at all.
  */
 export function safeEventState(
   eventId: string,
   severity: string | null | undefined,
   confidenceScore: number | null | undefined,
   apiReviewStatus?: string | null,
+  apiQuadrant?: string | null,
 ): DerivedEventState {
-  const derived = deriveEventState(severity, confidenceScore);
-  warnIfMismatch(eventId, apiReviewStatus, derived);
-  return derived;
+  if (apiReviewStatus && REVIEW_LABELS[apiReviewStatus]) {
+    return {
+      reviewStatus: apiReviewStatus,
+      reviewLabel: REVIEW_LABELS[apiReviewStatus],
+      quadrant: apiQuadrant || deriveEventState(severity, confidenceScore).quadrant,
+    };
+  }
+  return deriveEventState(severity, confidenceScore);
 }
