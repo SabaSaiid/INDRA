@@ -190,8 +190,8 @@ H  N      │   │            NOISE            │    CONFIRMED MINOR EVENT    
    E
 ```
 
-- **Critical Verified Event (High Severity, High Confidence)**: Multi-source consensus confirmed. Auto-publishes and triggers instant sirens, SMS broadcast, and NDRF dispatch.
-- **Unverified Threat (High Severity, Low Confidence)**: A catastrophic claim (e.g. dam breach or landslide) with only 1 or 2 uncorroborated reports. **Never ignored, never auto-published**—flagged with highest priority in the human review queue.
+- **Critical Verified Event (High Severity, High Confidence)**: Multi-source consensus confirmed. Auto-publishes. Sirens, SMS broadcast and NDRF dispatch were the alert engine's job; it was cancelled on 20 Sep, so publishing to the Command Center is where INDRA stops.
+- **Unverified Threat (High Severity, Low Confidence)**: A catastrophic claim (e.g. dam breach or landslide) with only 1 or 2 uncorroborated reports. **Never auto-published.** Between 60% and 90% it is in the human review queue; below 60% it is quarantined today, because routing uses confidence alone. Whether it should always reach a human is an open decision (BUG-067).
 - **Confirmed Minor Event (Low Severity, High Confidence)**: Confirmed minor waterlogging; logged for urban municipal tracking without inducing public panic.
 - **Noise (Low Severity, Low Confidence)**: Filtered out before reaching operators.
 
@@ -335,12 +335,14 @@ window, excluding `REJECTED` events) and re-scores it, instead of creating a com
 To guarantee accountability, every human intervention is recorded with an immutable SHA-256 hash in PostgreSQL:
 
 - **$\mathbf{\ge 90\%}$**: Automatically Verified & Published to Command Center.
-- **$\mathbf{70\% - 90\%}$ (Probable)**: Flagged for Emergency Analyst review.
-- **$\mathbf{< 70\%}$ (Suspicious)**: Retained in quarantine buffer. If severity is Critical, escalated to Emergency Review.
+- **$\mathbf{60\% - 90\%}$ (Probable)**: Flagged for Emergency Analyst review.
+- **$\mathbf{< 60\%}$ (Suspicious)**: Retained in quarantine buffer.
 
-> These are the real figures — `AUTO_PUBLISH_THRESHOLD=0.90` and `HUMAN_REVIEW_THRESHOLD=0.70`
-> in `.env`, applied by `fusion_engine.determine_review_status()`. Earlier revisions of this
-> document and the README quoted a 60% lower bound, which never matched the code.
+> These are the real figures — `AUTO_PUBLISH_THRESHOLD=0.90` and `HUMAN_REVIEW_THRESHOLD=0.60`,
+> applied by `fusion_engine.determine_review_status()`. The review gate was 0.70 until 20 Sep
+> (BUG-018). Routing uses confidence alone, so a Critical event below 60% is quarantined like any
+> other; whether High and Critical events should always reach a human instead is an open decision
+> (BUG-067).
 
 > **Status (see §0, updated Day 3):** built. Every pipeline decision and every human review
 > appends one row to a single SHA-256 chain (`services/audit.py`):

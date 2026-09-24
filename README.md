@@ -153,12 +153,14 @@ $$\text{Confidence} = 25\% (\text{Weather}) + 20\% (\text{Reports}) + 20\% (\tex
 
 ### Review Thresholds
 - **$\ge 90\%$ (Auto-Verified)**: Auto-published to Command Center and emergency responders.
-- **$70\% - 90\%$ (Probable)**: Flagged for Emergency Analyst review with pre-compiled evidence.
-- **$< 70\%$ (Suspicious)**: Quarantined in buffer; escalated if Severity is Critical.
+- **$60\% - 90\%$ (Probable)**: Flagged for Emergency Analyst review with pre-compiled evidence.
+- **$< 60\%$ (Suspicious)**: Quarantined in buffer.
 
-> These match the code: `AUTO_PUBLISH_THRESHOLD=0.90` and `HUMAN_REVIEW_THRESHOLD=0.70` in
-> `.env`, applied by `fusion_engine.determine_review_status()`. Earlier revisions of this
-> README quoted a 60% lower bound, which the implementation never used.
+> These match the code: `AUTO_PUBLISH_THRESHOLD=0.90` and `HUMAN_REVIEW_THRESHOLD=0.60`,
+> applied by `fusion_engine.determine_review_status()`. The review gate was 0.70 until 20 Sep,
+> when it was lowered because a quarantined real flood is invisible (BUG-018). Routing uses
+> confidence alone: a Critical event below 60% is quarantined like any other. Whether High and
+> Critical events should always reach a human instead is an open decision (BUG-067).
 
 ---
 
