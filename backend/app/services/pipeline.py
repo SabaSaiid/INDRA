@@ -930,7 +930,9 @@ async def _mark_coordinated(db: AsyncSession, report: Dict[str, Any]) -> List[UU
         text("""
             UPDATE raw_reports SET
                 flags = array_append(COALESCE(flags, '{}'::text[]), 'coordinated'),
-                credibility_score = GREATEST(:floor, round(CAST(credibility_score * :factor AS numeric), 4)),
+                credibility_score = GREATEST(CAST(:floor AS double precision),
+                    CAST(round(CAST(credibility_score * CAST(:factor AS double precision) AS numeric), 4)
+                         AS double precision)),
                 analysis = CASE WHEN analysis IS NULL THEN NULL ELSE
                     jsonb_set(
                         jsonb_set(analysis, '{flags}',
