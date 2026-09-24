@@ -154,6 +154,12 @@ _UPSERT = text("""
 """)
 
 
+# Not a feed, but kept in the same table the same way: every message the
+# consumer dead-letters is one "tick" of this row, so rows_total is the count
+# and last_error the latest reason (Phase 2 T8).
+DEAD_LETTER = "dead_letter"
+
+
 async def record_tick(
     feed: str,
     *,
@@ -161,6 +167,7 @@ async def record_tick(
     items: int = 0,
     error: Optional[str] = None,
     cursor: Optional[Dict[str, Any]] = None,
+    kind: Optional[str] = None,
 ) -> None:
     """
     Record one tick's outcome. Never raises.
@@ -179,7 +186,7 @@ async def record_tick(
         async with async_session() as db:
             await db.execute(_UPSERT, {
                 "feed": feed,
-                "kind": spec.kind if spec else "unknown",
+                "kind": kind or (spec.kind if spec else "unknown"),
                 "enabled": spec.enabled() if spec else True,
                 "ok": bool(ok),
                 "error": error[:MAX_ERROR_LENGTH] if error else None,

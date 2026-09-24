@@ -63,6 +63,12 @@ class Settings(BaseSettings):
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:19092"
     KAFKA_REPORTS_TOPIC: str = "indra.raw.reports"
     KAFKA_EVENTS_TOPIC: str = "indra.verified.events"
+    # Phase 2 T8. A message the pipeline fails on PIPELINE_MAX_ATTEMPTS times
+    # goes here, with its error, and the stream moves on past it.
+    # scripts/replay_dlq.py sends them back once the cause is fixed.
+    KAFKA_DLQ_TOPIC: str = "indra.raw.reports.dlq"
+    PIPELINE_MAX_ATTEMPTS: int = 3
+    PIPELINE_RETRY_DELAY_SECONDS: float = 2.0
 
     # ── Object storage (layer 7, Phase 2 T1) ───────────────────────────────
     # SeaweedFS's S3 API in docker-compose.yml, spoken to with boto3, so any
