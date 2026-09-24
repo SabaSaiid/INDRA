@@ -222,16 +222,28 @@ export interface DistributionItem {
 }
 export interface TrendDataPoint {
   date: string;
+  /** The IST day as YYYY-MM-DD; absent from a backend older than 24 Sep. */
+  day?: string;
   reports: number;
 }
-export type FeedSourceType = 'citizen' | 'official' | 'social' | 'imd' | 'news' | 'event' | 'review';
+export type FeedSourceType =
+  | 'citizen' | 'official' | 'social' | 'imd' | 'news' | 'event' | 'review' | 'warning';
 
 export interface FeedItem {
   id: string;
   source: FeedSourceType;
   sourceLabel: string;
   message: string;
+  /** HH:MM in IST. */
   time: string;
+  /** Which stream the item came from (backend since 24 Sep). */
+  kind?: 'report' | 'event' | 'warning';
+  /** ISO 8601 instant, for relative times and dates (backend since 24 Sep). */
+  at?: string | null;
+  place?: string | null;
+  severity?: string | null;
+  status?: string | null;
+  event_id?: string;
   city?: string;
   confidence?: number;
   eventType?: string;
@@ -262,6 +274,7 @@ export const feedSourceConfig: Record<FeedSourceType, { color: string; bg: strin
   official: { color: '#1B2432', bg: '#E8E2D4' },
   event: { color: '#8C2F26', bg: '#FEE2E2' },
   review: { color: '#065F46', bg: '#D1FAE5' },
+  warning: { color: '#9A3412', bg: '#FFEDD5' },
 };
 
 // ─── Team & Profile Types & Configuration ─────────────────────────────────────
