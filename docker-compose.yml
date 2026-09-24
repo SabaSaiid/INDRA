@@ -68,7 +68,33 @@ services:
     volumes:
       - redpanda_data:/var/lib/redpanda/data
 
+  # -------------------------------------------------------------
+  # SeaweedFS: S3-compatible object storage (layer 7, Phase 2 T1)
+  # The data lake's raw "bronze" layer (indra-lake) and, from Phase 5, report
+  # media (indra-media). The backend speaks plain S3 to it through boto3, so it
+  # can be swapped for MinIO, Garage or real S3 with a config change only.
+  # MinIO's Docker Hub repository is gone, which is why this is not MinIO.
+  #
+  # infra/seaweedfs/s3.json holds the access keys and is gitignored. Generate it
+  # BEFORE the first `docker compose up`: if the file is missing, Docker creates
+  # an empty directory at that path and the S3 gateway refuses to start.
+  #   python scripts/make_s3_config.py
+  # -------------------------------------------------------------
+  objectstore:
+    # 4.47, the newest release on 24 Sep 2026 (published 14 Sep).
+    image: chrislusf/seaweedfs:4.47
+    container_name: indra-objectstore
+    restart: unless-stopped
+    command: "server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json"
+    ports:
+      # S3 API, bound to localhost only: never exposed to the internet.
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - objectstore_data:/data
+      - ./infra/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
 volumes:
   postgres_data:
   redis_data:
   redpanda_data:
+  objectstore_data:
