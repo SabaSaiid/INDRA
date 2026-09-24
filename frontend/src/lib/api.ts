@@ -525,9 +525,13 @@ export function formatPlace(
  *
  * A rejected promise is evicted immediately. Caching a failure for 15 s would
  * make a backend that recovered in between look like it was still down.
+ *
+ * The window is 2 s, not the 15 s it was. A VERIFIED_EVENT arriving within 15 s
+ * of the last fetch made every listener's refetch get the cached, pre-event
+ * list back, so a new event could take a reload to appear.
  */
 const eventsInFlight = new Map<string, { promise: Promise<ApiEvent[]>; timestamp: number }>();
-const EVENTS_CACHE_TTL_MS = 15000;
+const EVENTS_CACHE_TTL_MS = 2000;
 
 export async function fetchEvents(
   params?: {
