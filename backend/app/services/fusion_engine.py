@@ -83,6 +83,14 @@ def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
     return max(scores) if scores else None
 
 
+def _is_high(severity: Any) -> bool:
+    """True for HIGH or CRITICAL, given a Severity or its value; False for anything else."""
+    try:
+        return Severity(severity) in (Severity.HIGH, Severity.CRITICAL)
+    except ValueError:
+        return False
+
+
 class FusionEngine:
     """
     Computes the multi-factor verification receipt and assigns quadrant + status.
@@ -274,13 +282,23 @@ class FusionEngine:
         confidence: float,
         auto_threshold: Optional[float] = None,
         review_threshold: Optional[float] = None,
+        severity: Optional[Any] = None,
     ) -> ReviewStatus:
         """
-        Route event to the appropriate review status based on confidence.
+        Route event to the appropriate review status.
 
         - C ≥ auto_threshold → AUTO_PUBLISHED
         - C ≥ review_threshold → PENDING_HUMAN_REVIEW
+        - severity HIGH or CRITICAL → PENDING_HUMAN_REVIEW, however low C is
         - else → QUARANTINED
+
+        **A High or Critical claim is never quarantined** (BUG-067, 24 Sep). It
+        still needs 0.90 to publish on its own, but below the review gate it goes
+        to a human rather than out of sight: one uncorroborated report of a dam
+        breach is exactly the event an operator must see. The same asymmetry
+        lowered the review gate on 20 Sep (BUG-018): a quarantined real disaster
+        is invisible, while an escalated weak signal costs an operator ten
+        seconds. ADVISORY and MODERATE events are routed on confidence alone.
 
         Both thresholds default to settings, exactly as assign_quadrant's do, so
         the two methods can never disagree about where a gate is. They used to
@@ -296,6 +314,8 @@ class FusionEngine:
         if confidence >= auto_threshold:
             return ReviewStatus.AUTO_PUBLISHED
         elif confidence >= review_threshold:
+            return ReviewStatus.PENDING_HUMAN_REVIEW
+        elif _is_high(severity):
             return ReviewStatus.PENDING_HUMAN_REVIEW
         else:
             return ReviewStatus.QUARANTINED

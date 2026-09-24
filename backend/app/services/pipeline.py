@@ -332,6 +332,7 @@ def score_cluster(
         confidence,
         settings.AUTO_PUBLISH_THRESHOLD,
         settings.HUMAN_REVIEW_THRESHOLD,
+        severity=severity,
     )
 
     def _state(value: Optional[float]) -> str:
@@ -355,6 +356,7 @@ def score_cluster(
     # and what phrase it came from. A new top-level block rather than more keys
     # under provenance, whose key set is asserted exactly by the determinism test.
     receipt["severity_basis"] = decided["basis"]
+    receipt["routing"] = _routing(severity, confidence, review_status)
     receipt["cluster"] = {
         "size": stats["count"],
         "centroid_lat": stats["centroid_lat"],
@@ -376,6 +378,25 @@ def score_cluster(
         "severity": severity,
         "quadrant": quadrant,
         "review_status": review_status,
+    }
+
+
+def _routing(severity: Severity, confidence: float, review_status: ReviewStatus) -> Dict[str, Any]:
+    """
+    Why the event is where it is, for the receipt. "severity" means a HIGH or
+    CRITICAL event below the review gate that went to a human instead of into
+    quarantine (BUG-067); an operator seeing a 0.45 event in the queue should
+    be able to read why.
+    """
+    by_severity = (
+        confidence < settings.HUMAN_REVIEW_THRESHOLD
+        and review_status is ReviewStatus.PENDING_HUMAN_REVIEW
+    )
+    return {
+        "review_status": review_status.value,
+        "basis": "severity" if by_severity else "confidence",
+        "auto_publish_threshold": settings.AUTO_PUBLISH_THRESHOLD,
+        "human_review_threshold": settings.HUMAN_REVIEW_THRESHOLD,
     }
 
 
@@ -940,6 +961,12 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 quadrant = FusionEngine.human_approved_quadrant(severity)
             else:
                 quadrant = FusionEngine().assign_quadrant(severity, confidence)
+                # Routing depends on severity too (BUG-067), so a commander's
+                # override to HIGH keeps the event in front of a human.
+                review_status = FusionEngine().determine_review_status(
+                    confidence, severity=severity
+                )
+            receipt["routing"] = _routing(severity, confidence, review_status)
             if human_review:
                 receipt["human_review"] = human_review
 

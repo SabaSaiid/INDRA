@@ -229,7 +229,7 @@ async def seed():
             severity = random.choices(SEVERITIES, SEVERITY_WEIGHTS)[0]
             confidence = round(random.uniform(0.55, 0.98), 4)
             quadrant = ENGINE.assign_quadrant(Severity(severity), confidence).value
-            review_status = ENGINE.determine_review_status(confidence).value
+            review_status = ENGINE.determine_review_status(confidence, severity=severity).value
 
             receipt = generate_verification_receipt(city, display_type)
             receipt["confidence_score"] = confidence
