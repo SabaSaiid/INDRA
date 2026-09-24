@@ -87,23 +87,33 @@ async def reports_trend(
     range: str = Query("7d", description="Time range: 7d, 14d, 30d"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Daily total_reports counts for the line chart."""
+    """
+    Reports per IST day for the line chart, oldest first, one row per day.
+
+    Days are Indian days. The series used to be bucketed by the database's UTC
+    date, so a report filed between midnight and 05:30 IST was counted on the
+    day before; and "7d" returned eight days (BUG-072).
+    """
     interval_map = {"7d": 7, "14d": 14, "30d": 30}
     days = interval_map.get(range, 7)
 
     query = text("""
-        WITH date_series AS (
+        WITH today AS (
+            SELECT (now() AT TIME ZONE 'Asia/Kolkata')::date AS d
+        ),
+        date_series AS (
             SELECT generate_series(
-                (CURRENT_DATE - :days * INTERVAL '1 day')::date,
-                CURRENT_DATE::date,
+                (SELECT d FROM today) - (CAST(:days AS int) - 1),
+                (SELECT d FROM today),
                 '1 day'::interval
             )::date AS day
         )
         SELECT
             ds.day,
-            COALESCE(COUNT(r.id), 0) AS reports
+            COUNT(r.id) AS reports
         FROM date_series ds
-        LEFT JOIN raw_reports r ON r.created_at::date = ds.day
+        LEFT JOIN raw_reports r
+               ON (r.created_at AT TIME ZONE 'Asia/Kolkata')::date = ds.day
         GROUP BY ds.day
         ORDER BY ds.day
     """)
@@ -117,7 +127,8 @@ async def reports_trend(
             return [
                 {
                     "date": row[0].strftime("%d %b"),
-                    "reports": row[1],
+                    "day": row[0].isoformat(),
+                    "reports": int(row[1]),
                 }
                 for row in rows
             ]
