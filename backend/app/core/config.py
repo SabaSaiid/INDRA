@@ -64,6 +64,20 @@ class Settings(BaseSettings):
     KAFKA_REPORTS_TOPIC: str = "indra.raw.reports"
     KAFKA_EVENTS_TOPIC: str = "indra.verified.events"
 
+    # ── Object storage (layer 7, Phase 2 T1) ───────────────────────────────
+    # SeaweedFS's S3 API in docker-compose.yml, spoken to with boto3, so any
+    # S3-compatible store works by changing these values alone. Non-critical:
+    # with the store down or unconfigured, reports are still accepted and
+    # /healthz says degraded. Empty keys (or the .env.example placeholders)
+    # mean "not configured", and nothing tries to connect.
+    S3_ENDPOINT_URL: str = "http://localhost:8333"
+    S3_REGION: str = "us-east-1"
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_LAKE_BUCKET: str = "indra-lake"
+    S3_MEDIA_BUCKET: str = "indra-media"
+    S3_TIMEOUT_SECONDS: float = 5.0
+
     # ── AI & Verification Thresholds ───────────────────────────────────────
     # AUTO_PUBLISH_THRESHOLD is deliberately high: publishing a disaster without
     # a human in the loop is the most expensive mistake this system can make.
