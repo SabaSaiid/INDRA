@@ -305,7 +305,7 @@ for it. Two of its symptoms came from the synthetic seeder, not from the pipelin
 | 1A: random review status on `WX-EV-…` events | Confirmed in `scripts/seed_national_data.py`: statuses were drawn at random, half `AUTO_PUBLISHED` below 0.90 | **Fixed** 24 Sep (BUG-064). The seeder now asks the engine, as the pipeline does |
 | 2: a 1,564 km impact radius | Root cause: the seeder linked each report to a random event anywhere in India, so one merged real report recomputed the footprint across the country | **Fixed** (BUG-065): farthest linked report 11.7 km, was 2,096 km |
 | 2B/2C: the merge catchment grows without a ceiling | Confirmed in the pipeline | Open (BUG-066), for Phase 3's per-hazard radii — it moves scores |
-| 1B: a High event at 0.47 is quarantined, though the docs said "never ignored" | Confirmed: routing uses confidence alone | Open (BUG-067), a decision for Aditya. **Not adopted:** auto-publishing Moderate events at ≥ 0.70 — nothing is published without a human below 0.90 |
+| 1B: a High event at 0.47 is quarantined, though the docs said "never ignored" | Confirmed: routing used confidence alone | **Fixed** 24 Sep (BUG-067): High and Critical events below 0.60 now go to review, never quarantine; the receipt's `routing.basis` says `severity` when that is why. **Not adopted:** auto-publishing Moderate events at ≥ 0.70 — nothing is published without a human below 0.90 |
 | 3B: demo KPIs had citizen > total | Confirmed | **Fixed** (BUG-069) |
 | 3A: "Total Reports" vs the 7-day trend | Not a defect: the card counts all time, the chart the last 7 days. If the card should say "all time", that is its label | — |
 | 4: map default view | Frontend only; no backend endpoint serves map defaults | — |

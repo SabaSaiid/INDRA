@@ -191,7 +191,7 @@ H  N      │   │            NOISE            │    CONFIRMED MINOR EVENT    
 ```
 
 - **Critical Verified Event (High Severity, High Confidence)**: Multi-source consensus confirmed. Auto-publishes. Sirens, SMS broadcast and NDRF dispatch were the alert engine's job; it was cancelled on 20 Sep, so publishing to the Command Center is where INDRA stops.
-- **Unverified Threat (High Severity, Low Confidence)**: A catastrophic claim (e.g. dam breach or landslide) with only 1 or 2 uncorroborated reports. **Never auto-published.** Between 60% and 90% it is in the human review queue; below 60% it is quarantined today, because routing uses confidence alone. Whether it should always reach a human is an open decision (BUG-067).
+- **Unverified Threat (High Severity, Low Confidence)**: A catastrophic claim (e.g. dam breach or landslide) with only 1 or 2 uncorroborated reports. **Never ignored, never auto-published**: it is in the human review queue at any confidence below 90%, including below the 60% review gate (BUG-067, 24 Sep).
 - **Confirmed Minor Event (Low Severity, High Confidence)**: Confirmed minor waterlogging; logged for urban municipal tracking without inducing public panic.
 - **Noise (Low Severity, Low Confidence)**: Filtered out before reaching operators.
 
@@ -336,13 +336,12 @@ To guarantee accountability, every human intervention is recorded with an immuta
 
 - **$\mathbf{\ge 90\%}$**: Automatically Verified & Published to Command Center.
 - **$\mathbf{60\% - 90\%}$ (Probable)**: Flagged for Emergency Analyst review.
-- **$\mathbf{< 60\%}$ (Suspicious)**: Retained in quarantine buffer.
+- **$\mathbf{< 60\%}$ (Suspicious)**: Retained in quarantine buffer — unless the event is High or Critical, which goes to Emergency Review instead.
 
 > These are the real figures — `AUTO_PUBLISH_THRESHOLD=0.90` and `HUMAN_REVIEW_THRESHOLD=0.60`,
 > applied by `fusion_engine.determine_review_status()`. The review gate was 0.70 until 20 Sep
-> (BUG-018). Routing uses confidence alone, so a Critical event below 60% is quarantined like any
-> other; whether High and Critical events should always reach a human instead is an open decision
-> (BUG-067).
+> (BUG-018). Since 24 Sep, a High or Critical event below 60% goes to review rather than
+> quarantine (BUG-067); the receipt's `routing.basis` reads `severity` when that is the reason.
 
 > **Status (see §0, updated Day 3):** built. Every pipeline decision and every human review
 > appends one row to a single SHA-256 chain (`services/audit.py`):
