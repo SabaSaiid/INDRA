@@ -1606,3 +1606,30 @@ is retried by seeking back to it, and the third failure publishes it with its er
 crash from "no event" without making `process_report` raise, which every caller relies on.
 Commits: `b40b7d0`, `87c5c5d`, `f73f5c8`, `6e97592`, `84e33d1`. To be marked `FIXED` when the T8
 tests in the phase file pass.
+
+# Phase 3 — 25 Sep 2026 (branch `aditya_25sept`, written, not yet tested)
+
+### BUG-090 — Clustering ran DBSCAN over every unassigned report ever stored
+**S2** · Layer 5 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T5)
+
+No time window, no locality, no hazard: a week-old report could cluster with today's, a heatwave
+with a flood, and the candidate set grew with the table. `cluster_around(report)` pre-filters in
+SQL (unassigned, clusterable, same family or untagged, inside the family's window, within 3 × eps)
+and runs DBSCAN over that set. Commits `b1d4e52`, `c8e8025`. `FIXED` when T5's cases pass,
+including the 10,000-row timing.
+
+### BUG-091 — Every report's credibility was computed at ingest and read by nothing
+**S2** · Layer 6 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T8)
+
+Report Density counted reports, so five from one device were five witnesses. It now scores
+`n_eff = Σ_distinct reporters min(1, best credibility / 0.60)`, the misleading-text flags lower
+credibility, and a news publisher counts once. Commits `2b0131e`, `9a4c91d`, `eefdf69`, `778e301`,
+`c8e8025`.
+
+### BUG-092 — Every event was stored as `URBAN_FLOOD`
+**S2** · Layer 6 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T6)
+
+The type was hard-coded at insert. It is now the majority of the reports' tagged hazards, ties by
+precedence, UNCLASSIFIED (never auto-published) with no votes; a commander can override it on the
+record. Commits `ddeef6e`, `c8e8025`, `36d231b`.
+
