@@ -156,7 +156,7 @@ export default function RecentEventsList({
       initial="hidden"
       animate="visible"
       transition={{ delay: 0.4 }}
-      className="h-full min-h-[300px] max-h-[520px] lg:max-h-none flex flex-col"
+      className="h-full min-h-[300px] max-h-[520px] lg:min-h-0 lg:max-h-none flex flex-col"
     >
       {/* Fills the row beside the map. A 318 px cap left the card ending
           ninety pixels above the map it sits next to. */}

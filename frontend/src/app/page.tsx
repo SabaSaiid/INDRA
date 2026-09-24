@@ -233,14 +233,20 @@ export default function Home() {
                           canvasClassName={DASHBOARD_MAP_HEIGHT}
                         />
                       </div>
-                      <div className="lg:col-span-2 flex flex-col">
-                        <RecentEventsList
-                          selectedEventId={selectedIncidentId}
-                          onSelectEvent={handleEventSelect}
-                          events={events}
-                          loading={eventsLoading}
-                          error={eventsError}
-                        />
+                      {/* The map sets the row's height and the list scrolls
+                          inside it: absolutely filling the column (lg and up)
+                          keeps a long list from stretching the map card and
+                          leaving empty space under the canvas. */}
+                      <div className="lg:col-span-2 flex flex-col lg:relative">
+                        <div className="flex flex-col h-full lg:absolute lg:inset-0">
+                          <RecentEventsList
+                            selectedEventId={selectedIncidentId}
+                            onSelectEvent={handleEventSelect}
+                            events={events}
+                            loading={eventsLoading}
+                            error={eventsError}
+                          />
+                        </div>
                       </div>
                     </div>
 
