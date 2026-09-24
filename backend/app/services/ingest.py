@@ -199,6 +199,29 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
         return None
 
 
+def derive_text_fields(source_type: str, raw_text: str, report_id) -> Dict[str, Any]:
+    """
+    Everything ingest derives from a report's text, in one place so the
+    backfill (scripts/backfill_hazards.py) writes exactly what a newly stored
+    report gets:
+
+        analysis         the layer-3 extraction (None if it failed)
+        hazard_primary   the hazard the text is about, or None
+        hazard_family    its family, or None
+        flags            the misleading-text flags (Phase 3 T8)
+        credibility      the per-report credibility score
+    """
+    analysis = analyse(raw_text, report_id)
+    fields = analysis or {}
+    return {
+        "analysis": analysis,
+        "hazard_primary": fields.get("hazard_primary"),
+        "hazard_family": fields.get("hazard_family"),
+        "flags": list(fields.get("flags") or []),
+        "credibility": compute_credibility(source_type, raw_text),
+    }
+
+
 def _h3_cell(lat: float, lng: float) -> Optional[str]:
     try:
         import h3
@@ -298,12 +321,13 @@ async def store_report(
         )
 
     report_id = uuid.uuid4()
-    credibility = compute_credibility(source_type, raw_text)
+    derived = derive_text_fields(source_type, raw_text, report_id)
+    credibility = derived["credibility"]
+    analysis = derived["analysis"]
     # The H3 cell is a claim about a 0.46 km hexagon, so only a GPS fix earns
     # one: a district centroid in the heat map would light up a street nobody
     # reported from.
     h3_cell = _h3_cell(latitude, longitude) if place_precision == "gps" else None
-    analysis = analyse(raw_text, report_id)
 
     # The message is exactly what ingest has always published, and nothing
     # more: report_consumer broadcasts it verbatim to every connected browser as
@@ -346,9 +370,9 @@ async def store_report(
         "with_geom": has_point and place_precision in GEOMETRY_PRECISIONS,
         # Phase 3 (0017). NULL when the analysis failed, exactly as a report
         # whose text names no hazard: clustering treats both as untagged.
-        "hazard_primary": (analysis or {}).get("hazard_primary"),
-        "hazard_family": (analysis or {}).get("hazard_family"),
-        "flags": list((analysis or {}).get("flags") or []),
+        "hazard_primary": derived["hazard_primary"],
+        "hazard_family": derived["hazard_family"],
+        "flags": derived["flags"],
     }
 
     for attempt in range(1, _DOCKET_ATTEMPTS + 1):
