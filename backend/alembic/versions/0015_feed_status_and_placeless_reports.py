@@ -23,6 +23,24 @@ holds:
 * `kind`, `enabled` — as last reported by the poller.
 
 Push feeds (citizen and official reports) have no row: they have no tick.
+
+**Part 2 (T4, T6): reports without a place.** The PS asks for every weather
+post to be collected, and most posts name no point: "#IMD orange alert for
+Kerala" is a state, "Rain again" is nowhere. `raw_reports.latitude` and
+`longitude` were NOT NULL, so such a post could not be stored at all. They are
+nullable now; the range checks still pass on NULL, because a CHECK is only
+violated by a false result and a comparison with NULL is unknown.
+
+`place_precision` says how much a report's position is worth:
+
+* `gps` — the device's own coordinates: citizen reports, official dispatches.
+  Every existing row is backfilled to `gps`, the only kind there has been.
+* `district` — a post naming one district (or several close together),
+  placed at its centroid by `geocoding.place_from_text`.
+* `state` — a post naming only a state. Coordinates are the state's centroid,
+  kept for filtering; no `geom_point`, so it is never clustered or deduplicated
+  on distance.
+* `none` — nothing recognisable. NULL coordinates.
 """
 
 from alembic import op
@@ -55,6 +73,41 @@ def upgrade() -> None:
         ),
     )
 
+    # ── Part 2 (T4, T6): reports without a place ─────────────────────────────
+    op.alter_column("raw_reports", "latitude", existing_type=sa.Float, nullable=True)
+    op.alter_column("raw_reports", "longitude", existing_type=sa.Float, nullable=True)
+    op.add_column("raw_reports", sa.Column("place_precision", sa.String(10), nullable=True))
+    op.execute("UPDATE raw_reports SET place_precision = 'gps' WHERE place_precision IS NULL")
+    op.create_check_constraint(
+        "ck_raw_reports_place_precision",
+        "raw_reports",
+        "place_precision IN ('gps', 'district', 'state', 'none')",
+    )
+    # A report has coordinates exactly when it has a place to put them.
+    op.create_check_constraint(
+        "ck_raw_reports_coordinates_pair",
+        "raw_reports",
+        "(latitude IS NULL) = (longitude IS NULL)",
+    )
+
 
 def downgrade() -> None:
+    # Part 2. Rows without coordinates cannot survive NOT NULL; they are the
+    # posts this migration made storable, so they go with it.
+    op.drop_constraint("ck_raw_reports_coordinates_pair", "raw_reports", type_="check")
+    op.drop_constraint("ck_raw_reports_place_precision", "raw_reports", type_="check")
+    op.drop_column("raw_reports", "place_precision")
+    op.execute(
+        "UPDATE raw_reports SET duplicate_of = NULL WHERE duplicate_of IN "
+        "(SELECT id FROM raw_reports WHERE latitude IS NULL)"
+    )
+    op.execute(
+        "DELETE FROM outbox WHERE key IN "
+        "(SELECT CAST(id AS text) FROM raw_reports WHERE latitude IS NULL)"
+    )
+    op.execute("DELETE FROM raw_reports WHERE latitude IS NULL OR longitude IS NULL")
+    op.alter_column("raw_reports", "longitude", existing_type=sa.Float, nullable=False)
+    op.alter_column("raw_reports", "latitude", existing_type=sa.Float, nullable=False)
+
+    # Part 1.
     op.drop_table("feed_status")
