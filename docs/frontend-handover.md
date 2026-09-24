@@ -7,7 +7,9 @@ section 13, Phase 1** — sixteen event types, the PS's filters, citizen dockets
 **New on 24 Sep: section 14** — a browser test the map redesign broke, and the frontend team's
 backend report, checked — **and section 15**: the dashboard shows its own review status instead of
 the API's, so a commander's approval never appears. **Also 24 Sep: the team server is on HTTPS** at
-`https://indra-sixthsense.duckdns.org` (section 13, last row).
+`https://indra-sixthsense.duckdns.org` (section 13, last row). **New on 24 Sep evening: section 16**
+— Aditya repaired seven dashboard pages inside `frontend/` (his go-ahead for that day), which also
+closes section 15. Please read 16 before your next merge into `frontend/`.
 
 **Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
 request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
@@ -319,7 +321,7 @@ writes `INDRA-YYYYMMDD-NNN`. To see what the engine really does, start from an e
 
 ---
 
-## 15. The dashboard replaces the API's review status with its own matrix — please show `review_status` as sent
+## 15. ✅ Fixed 24 Sep (section 16): the dashboard replaced the API's review status with its own matrix
 
 **Found 24 Sep while marking up the backend report (BUG-070, S2, layer 9).** Nothing in `frontend/`
 was changed.
@@ -363,6 +365,53 @@ decided in the open, not a display rule: below 0.90 nothing is published without
 
 **Check:** approve a quarantined event from the modal. The pill and the card should read "Approved",
 and the Approve button should disappear.
+
+---
+
+## 16. What changed in `frontend/` on 24 Sep, and why
+
+Aditya reported the dashboard, Incident Events, Field Reports, Telemetry Analytics and Geospatial
+Feeds as "not working", and the frame of the dashboard and the live map as off, and gave himself the
+go-ahead to change `frontend/` for the day (not its core design). Branch `aditya_24sept_frontend`,
+one commit per change, reason in each message. The design language is unchanged: same cards,
+colours, fonts and layout grid.
+
+**First, what was not broken.** The team database held one report and no events, so Recent Events,
+Event Distribution and Incident Events were honestly empty. That is still true of the event panels
+until reports arrive; the panels now say why and show the live data that does exist beside them.
+
+| Area | Change | Commit |
+|---|---|---|
+| `lib/useIndraWebSocket.ts` | **One socket per tab.** Same hook signature (`{connected, subscribe}`); the connection is module-level. Please do not open raw `new WebSocket(...)` in components; subscribe instead | `55fe2ab` |
+| `lib/eventState.ts` | `safeEventState(id, sev, conf, apiStatus, apiQuadrant?)` **returns the API's status and quadrant**; derives only when they are missing (BUG-070) | `44f2486` |
+| `lib/api.ts` | `fetchRecentFeed(limit, include?)`, `fetchFieldReports(limit, hours, unfusedOnly)`, `fetchDataSources`, `fetchStations`, `agencyAlertsToDistribution`, `fetchEvents({from, limit})`; the events dedupe window is 2 s, not 15 | `4a0f762`, `6a88062` |
+| `lib/ui-config.ts` | `KpiItem.delta` is `number \| null` (null = no comparison window, no "0%"); `FeedItem` gains `kind`, `at`, `place`, `severity`, `status`; feed source `warning` | `1fbb5d1`, `4a0f762` |
+| `lib/utils.ts` | `formatIst(at)` ("20:27" today, "21 Sept 20:27" otherwise) and `formatAgo(at)` | `4a0f762` |
+| KPI strip (`globals.css`, `KpiCard`) | six across at ≥ 1280 px, 3 × 2 below, 2 × 3 on phones | `1fbb5d1`, `96cbf35` |
+| `GlobeEventMap` | `canvasClassName` prop for viewport-relative heights; opening camera fitted to India; `ResizeObserver`; warnings refetched every 2 min; field reports 7 days; shared socket; Escape closes the roster | `e3b21ff`, `2ff657b`, `fb445b0`, `40794c5` |
+| Dashboard (`app/page.tsx`) | map height `clamp(340px, 100dvh − 490px, 680px)`; the map sets the row height and Recent Events scrolls | `e3b21ff`, `e6c80d1`, `fb445b0` |
+| `RecentEventsList` | fills its row; "View all" → `/events`; with no events, lists **official warnings in force**, labelled as such | `6fcd548` |
+| `EventDistributionChart` | header switch **Events N \| Warnings N**; opens on warnings once when there are no events | `9e65ea7` |
+| `ReportsTrendChart` | linear line with dots, whole-number axis, total, refetch on `NEW_REPORT` | `5ee85a9` |
+| `LiveFeed` | merged feed (reports, events, warnings) in IST, rows link to their page, refetch every minute | `4c95253` |
+| `/events` | 24H / 7D / 30D / ALL; ADVISORY filter fixed (the API says `low`); error state; empty state with links | `068203c` |
+| `/reports` | reads `/api/reports/recent?unfused_only=false` for 30 days: place, status, event code, depth, IST time; source and status filters | `6f20b66` |
+| `/analytics` | rainfall panel (`/api/geo/stations`) and warnings-by-agency panel; figures refresh | `d8db6b4`, `7bc68f5` |
+| `/datasets` | per-feed LIVE / STALE / DISABLED, newest row, rows 24 h / total, from `/api/meta/sources` | `841f600` |
+| `/live-map` | canvas `clamp(420px, 100dvh − 352px, 1100px)`; header counts the report layer; refreshes | `fdc2d4f`, `fefbada` |
+
+**Checked:** `tsc --noEmit` and `next build` pass; every page was opened in a browser against the
+team API at 1425 × 780 with no console errors. **Not checked:** phone widths, and the three parts that
+need the 24 Sep backend (feed warnings, rainfall, feed status) against a deployed backend.
+
+**For you:**
+
+1. Please review the PR, since it is your layer.
+2. `e2e/dashboard-cold-load.spec.ts` looks for a `\d+ Incidents` badge. The map has said
+   "N map pins" since before today, so that test skips or fails on its own; worth updating to
+   `/\d+ map pins/`.
+3. Lint: `GlobeEventMap.tsx` has an unnecessary `smartDeclutter` dependency in a `useCallback`
+   (warning only, present before today).
 
 ---
 
