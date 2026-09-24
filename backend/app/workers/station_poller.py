@@ -62,6 +62,14 @@ STATIONS: Dict[str, Tuple[float, float]] = {
 }
 
 
+# This feed's name in feed_status and GET /api/meta/sources.
+FEED = "open_meteo"
+
+# Why the last tick wrote nothing, when it failed as a whole; None otherwise.
+# Read by run_tick for the heartbeat.
+last_tick_error: Optional[str] = None
+
+
 def station_code(city: str) -> str:
     return f"OM-{city.upper()}"
 
@@ -140,6 +148,9 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> int:
     failed simply has no row for this tick, which is visible in the data rather
     than papered over with a zero.
     """
+    global last_tick_error
+    last_tick_error = None
+
     own_client = client is None
     if own_client:
         client = httpx.AsyncClient(timeout=settings.WEATHER_TIMEOUT_SECONDS)
@@ -169,12 +180,46 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> int:
             await db.commit()
     except Exception as e:
         await db.rollback()
-        logger.warning(f"Station poll tick failed: {type(e).__name__}: {e}")
+        last_tick_error = f"{type(e).__name__}: {e}"
+        logger.warning(f"Station poll tick failed: {last_tick_error}")
         return 0
     finally:
         if own_client:
             await client.aclose()
 
+    return written
+
+
+async def run_tick(session_factory=None) -> int:
+    """
+    One scheduled tick: poll every station, then record the heartbeat that
+    GET /api/meta/sources reads (Phase 2 T2). Returns the rows written.
+
+    A tick is a success when at least one station answered. Zero rows is a
+    failure: six cities that all fail to answer is Open-Meteo being down, not
+    a dry day (a dry day is six rows of 0.0 mm).
+    """
+    from app.services.feed_status import record_tick
+
+    if session_factory is None:
+        from app.core.database import async_session as session_factory
+
+    try:
+        async with session_factory() as db:
+            written = await poll_once(db)
+    except Exception as e:
+        # Includes a database that is not up yet on a cold start.
+        await record_tick(FEED, ok=False, error=f"{type(e).__name__}: {e}")
+        raise
+
+    if written:
+        logger.info(f"Station poll wrote {written}/{len(STATIONS)} readings")
+        await record_tick(FEED, ok=True, items=written)
+    else:
+        logger.warning("Station poll wrote no readings — Open-Meteo unreachable?")
+        await record_tick(
+            FEED, ok=False, error=last_tick_error or "no station answered (Open-Meteo unreachable?)"
+        )
     return written
 
 
@@ -196,18 +241,12 @@ async def start_station_poller() -> None:
 
     while True:
         try:
-            async with async_session() as db:
-                written = await poll_once(db)
-            if written:
-                logger.info(f"Station poll wrote {written}/{len(STATIONS)} readings")
-            else:
-                logger.warning("Station poll wrote no readings — Open-Meteo unreachable?")
+            await run_tick(async_session)
         except asyncio.CancelledError:
             logger.info("Station poller shutting down...")
             raise
         except Exception as e:
-            # The task must outlive any single failure, including a database
-            # that is not up yet on a cold start.
+            # The task must outlive any single failure.
             logger.warning(f"Station poll failed (non-fatal): {type(e).__name__}: {e}")
 
         try:
