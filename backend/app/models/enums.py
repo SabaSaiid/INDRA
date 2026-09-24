@@ -11,6 +11,11 @@ class SourceType(str, enum.Enum):
     AWS_SENSOR = "AWS_SENSOR"
     CWC_GAUGE = "CWC_GAUGE"
     OFFICIAL_DISPATCH = "OFFICIAL_DISPATCH"
+    # Added 23 Sep (migration 0011) for Phase 2's feeds: Mastodon posts and news
+    # items. Never stored as TWITTER_IMD — a row naming a platform it did not
+    # come from is a fabricated source.
+    SOCIAL_MEDIA = "SOCIAL_MEDIA"
+    NEWS_MEDIA = "NEWS_MEDIA"
 
 
 class EventType(str, enum.Enum):
@@ -18,6 +23,22 @@ class EventType(str, enum.Enum):
     CLOUDBURST = "CLOUDBURST"
     CYCLONE_INUNDATION = "CYCLONE_INUNDATION"
     RIVER_BREACH = "RIVER_BREACH"
+    # Added 23 Sep (migration 0011) so every hazard the PS names can be stored.
+    # Labels, families and what corroborates each one: services/hazards.py.
+    RAINFALL = "RAINFALL"
+    THUNDERSTORM = "THUNDERSTORM"
+    LIGHTNING = "LIGHTNING"
+    HAILSTORM = "HAILSTORM"
+    DUST_STORM = "DUST_STORM"
+    STRONG_WIND = "STRONG_WIND"
+    CYCLONE = "CYCLONE"
+    HEATWAVE = "HEATWAVE"
+    COLD_WAVE = "COLD_WAVE"
+    FOG = "FOG"
+    LANDSLIDE = "LANDSLIDE"
+    # Nothing identified the hazard. Distinct from every real type, so an
+    # unknown report is never stored as a flood.
+    UNCLASSIFIED = "UNCLASSIFIED"
 
 
 class Severity(str, enum.Enum):

@@ -1,6 +1,6 @@
 """
 INDRA Platform — Events API
-GET /api/events — list with filters
+GET /api/events — list with the PS's date, event, location and status filters
 GET /api/events/distribution — counts by event_type for donut chart
 GET /api/events/{event_id} — full event detail
 PATCH /api/events/{event_id}/review — commander/admin approve, reject, re-grade
@@ -9,10 +9,11 @@ GET /api/events/{event_id}/provenance — contributing reports + audit chain
 
 import json
 import logging
-from typing import Literal, Optional, List, Dict, Any
+from datetime import date, datetime, timedelta, timezone
+from typing import Callable, Iterable, Literal, Optional, List, Dict, Any, Tuple
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,20 +21,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.demo import demo_fallback
 from app.core.security import DEMO_USERS, TokenData, require_roles
-from app.models.enums import AuditAction, ReviewStatus, Severity
+from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, SourceType
 from app.services import audit
 from app.services.fusion_engine import FusionEngine
+# Display label and thumbnail per event type. They live in the hazard taxonomy
+# with the rest of each type's description, so a new type is added in one place.
+from app.services.hazards import (
+    EVENT_TYPE_LABELS,
+    FAMILIES,
+    IMAGE_GRADIENTS,
+    color_of,
+    family_of,
+    label_of,
+    types_in_family,
+)
 
 logger = logging.getLogger("indra.api.events")
 router = APIRouter(prefix="/api/events", tags=["Events"])
-
-# Map DB event_type values to display labels matching the frontend
-EVENT_TYPE_LABELS = {
-    "URBAN_FLOOD": "Flood",
-    "CLOUDBURST": "Rainfall",
-    "CYCLONE_INUNDATION": "Rainfall",
-    "RIVER_BREACH": "Flood",
-}
 
 # Map severity for frontend compatibility
 SEVERITY_LABELS = {
@@ -49,14 +53,6 @@ REVIEW_STATUS_LABELS = {
     "QUARANTINED": "under-review",
     "REJECTED": "rejected",
     "HUMAN_APPROVED": "verified",
-}
-
-# Gradient styles per event type for the thumbnail
-IMAGE_GRADIENTS = {
-    "URBAN_FLOOD": "linear-gradient(135deg, #2563EB, #1E3A8A)",
-    "CLOUDBURST": "linear-gradient(135deg, #3B82F6, #6366F1)",
-    "CYCLONE_INUNDATION": "linear-gradient(135deg, #EF4444, #C2410C)",
-    "RIVER_BREACH": "linear-gradient(135deg, #F59E0B, #92400E)",
 }
 
 # Rich fallback verified events when database is offline
@@ -214,25 +210,226 @@ DEMO_SEVERITY_DISTRIBUTION: List[Dict[str, Any]] = [
 
 
 
+# ── GET /api/events: the PS's filters (Phase 1 T5) ─────────────────────────────
+#
+# "Date-wise filtering • Event-wise filtering • Location-wise filtering •
+# Verification status tracking" (PS 26069). Every value is a bound parameter;
+# every list and enum value is checked before the query runs, so a typo is a
+# 422 naming the parameter rather than a database error reported as an outage
+# (BUG-061).
+
+# India Standard Time has no daylight saving, so a fixed offset is exact and
+# needs no timezone database.
+IST = timezone(timedelta(hours=5, minutes=30))
+MAX_RANGE_DAYS = 366
+TIME_RANGE_HOURS = {"24h": 24, "48h": 48, "7d": 168}
+# Severity sorts by meaning, not by the enum's declaration order.
+_SEVERITY_RANK = (
+    "CASE severity WHEN 'ADVISORY' THEN 0 WHEN 'MODERATE' THEN 1 "
+    "WHEN 'HIGH' THEN 2 WHEN 'CRITICAL' THEN 3 END"
+)
+SORT_COLUMNS = {
+    "verified_at": "verified_at",
+    "confidence": "confidence_score",
+    "severity": _SEVERITY_RANK,
+}
+INCLUDES = {"boundary"}
+
+
+def _invalid(param: str, msg: str, value: Any) -> HTTPException:
+    """A 422 in FastAPI's own shape, so a bad `event_type` reads like a bad `limit`."""
+    return HTTPException(
+        status_code=422,
+        detail=[{"type": "value_error", "loc": ["query", param], "msg": msg, "input": value}],
+    )
+
+
+def _csv(
+    param: str,
+    raw: Optional[str],
+    allowed: Iterable[str],
+    normalise: Callable[[str], str] = str.upper,
+) -> Optional[List[str]]:
+    """A comma-separated parameter as a list of known values, or None if absent."""
+    if raw is None:
+        return None
+    allowed = set(allowed)
+    values = [normalise(v.strip()) for v in raw.split(",") if v.strip()]
+    unknown = [v for v in values if v not in allowed]
+    if unknown or not values:
+        raise _invalid(
+            param, f"unknown value {unknown[0] if unknown else raw!r}; expected any of {sorted(allowed)}", raw
+        )
+    return list(dict.fromkeys(values))
+
+
+def _instant(param: str, raw: Optional[str], end: bool) -> Optional[Tuple[datetime, bool]]:
+    """
+    `from` / `to` as (instant, exclusive).
+
+    A date (YYYY-MM-DD) is a whole day in IST: `from` starts at its first
+    instant, and `to` includes it, so the bound is the next day's midnight,
+    exclusive. A 23:30 IST event is on the day an Indian operator would say it
+    was, not the UTC one. A timestamp is used as given; one without an offset
+    is read as IST.
+    """
+    if raw is None:
+        return None
+    try:
+        if len(raw) == 10:
+            d = date.fromisoformat(raw)
+            midnight = datetime(d.year, d.month, d.day, tzinfo=IST)
+            return (midnight + timedelta(days=1), True) if end else (midnight, False)
+        ts = datetime.fromisoformat(raw)
+        return (ts if ts.tzinfo else ts.replace(tzinfo=IST)), False
+    except ValueError:
+        raise _invalid(param, "expected a date (YYYY-MM-DD) or an ISO 8601 timestamp", raw)
+
+
+def _like(q: str) -> str:
+    """A contains-pattern for ILIKE in which % and _ match only themselves."""
+    return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
+def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
+    event_type_raw = row["event_type"]
+    receipt = row["verification_receipt"] or {}
+    item = {
+        "id": str(row["id"]),
+        "event_code": row["event_code"],
+        "eventType": receipt.get("event_type_display", EVENT_TYPE_LABELS.get(event_type_raw, event_type_raw)),
+        # The enum and its family, for a client to key icons and filters on
+        # instead of the display label.
+        "event_type": event_type_raw,
+        "family": family_of(event_type_raw),
+        "severity": SEVERITY_LABELS.get(row["severity"], "moderate"),
+        "confidence_score": row["confidence_score"],
+        "verification": REVIEW_STATUS_LABELS.get(row["review_status"], "under-review"),
+        "review_status": row["review_status"],
+        "quadrant": row["quadrant"],
+        "impact_radius_km": row["impact_radius_km"],
+        "lat": row["lat"],
+        "lng": row["lng"],
+        # Was receipt.get("city", "Unknown") — read from a receipt key only the
+        # synthetic seeder ever wrote, so every real event was served as
+        # "Unknown". These are columns now, and a name we do not have is null
+        # rather than a word that looks like one.
+        "city": row["district"],
+        "state": row["state"],
+        "place_precision": row["place_precision"],
+        "imageGradient": IMAGE_GRADIENTS.get(event_type_raw, "linear-gradient(135deg, #64748B, #334155)"),
+        "verified_at": row["verified_at"].isoformat() if row["verified_at"] else None,
+        "timestamp": row["verified_at"].isoformat() if row["verified_at"] else None,
+    }
+    if include_boundary:
+        # The same GeoJSON string the detail route returns.
+        item["boundary_geojson"] = row["boundary_geojson"]
+    return item
+
+
 @router.get("")
 async def list_events(
-    severity: Optional[str] = Query(None, description="Filter by severity: ADVISORY, MODERATE, HIGH, CRITICAL"),
+    response: Response,
+    date_from: Optional[str] = Query(
+        None, alias="from",
+        description="From this date (YYYY-MM-DD, an IST day) or ISO 8601 timestamp, inclusive",
+    ),
+    date_to: Optional[str] = Query(
+        None, alias="to",
+        description="To this date (YYYY-MM-DD, an IST day, inclusive) or ISO 8601 timestamp",
+    ),
+    event_type: Optional[str] = Query(None, description="Comma-separated event types, e.g. HEATWAVE,FOG"),
+    family: Optional[str] = Query(None, description="Comma-separated: water, convective, thermal, visibility"),
+    review_status: Optional[str] = Query(
+        None, description="Comma-separated review statuses; REJECTED is shown only when named"
+    ),
+    severity: Optional[str] = Query(None, description="Comma-separated: ADVISORY, MODERATE, HIGH, CRITICAL"),
+    state: Optional[str] = Query(None, max_length=120, description="Exact state name, any case"),
+    district: Optional[str] = Query(None, max_length=120, description="Exact district name, any case"),
+    source_type: Optional[str] = Query(
+        None, description="Comma-separated; events with at least one report from these sources"
+    ),
+    min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
     time_range: Optional[str] = Query(None, description="Time range: 24h, 48h, 7d"),
     bbox: Optional[str] = Query(None, description="Bounding box: min_lng,min_lat,max_lng,max_lat"),
+    q: Optional[str] = Query(None, max_length=100, description="Search the event code, district and state"),
+    include: Optional[str] = Query(None, description="boundary: add boundary_geojson to each event"),
+    sort: str = Query("verified_at:desc", description="verified_at, confidence or severity, then :asc or :desc"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    """List verified events for the map and Recent Weather Events panel."""
-    conditions = ["review_status != 'REJECTED'"]
-    params = {}
+    """
+    List verified events for the map, the Recent Weather Events panel and the
+    filter bar. The body is a list; the number of matching events is in the
+    X-Total-Count header.
+    """
+    conditions: List[str] = []
+    params: Dict[str, Any] = {}
 
-    if severity:
-        conditions.append("severity = :severity")
-        params["severity"] = severity.upper()
+    statuses = _csv("review_status", review_status, [s.value for s in ReviewStatus])
+    if statuses:
+        conditions.append("CAST(review_status AS text) = ANY(CAST(:statuses AS text[]))")
+        params["statuses"] = statuses
+    else:
+        conditions.append("review_status != 'REJECTED'")
+
+    severities = _csv("severity", severity, [s.value for s in Severity])
+    if severities:
+        conditions.append("CAST(severity AS text) = ANY(CAST(:severities AS text[]))")
+        params["severities"] = severities
+
+    types = _csv("event_type", event_type, [t.value for t in EventType])
+    if types:
+        conditions.append("CAST(event_type AS text) = ANY(CAST(:types AS text[]))")
+        params["types"] = types
+
+    families = _csv("family", family, FAMILIES, normalise=str.lower)
+    if families:
+        conditions.append("CAST(event_type AS text) = ANY(CAST(:family_types AS text[]))")
+        params["family_types"] = [t for f in families for t in types_in_family(f)]
+
+    sources = _csv("source_type", source_type, [s.value for s in SourceType])
+    if sources:
+        conditions.append("""EXISTS (
+            SELECT 1 FROM raw_reports r
+            WHERE r.event_id = verified_events.id
+              AND CAST(r.source_type AS text) = ANY(CAST(:sources AS text[]))
+        )""")
+        params["sources"] = sources
+
+    if state is not None:
+        conditions.append("lower(state) = lower(:state)")
+        params["state"] = state.strip()
+    if district is not None:
+        conditions.append("lower(district) = lower(:district)")
+        params["district"] = district.strip()
+
+    if min_confidence is not None:
+        conditions.append("confidence_score >= :min_confidence")
+        params["min_confidence"] = min_confidence
+
+    start = _instant("from", date_from, end=False)
+    stop = _instant("to", date_to, end=True)
+    if start and stop:
+        # stop[1]: a date's bound is exclusive, so from may not reach it; a
+        # timestamp's is inclusive, so from may equal it.
+        if start[0] > stop[0] or (stop[1] and start[0] >= stop[0]):
+            raise _invalid("from", "from is later than to", date_from)
+        if stop[0] - start[0] > timedelta(days=MAX_RANGE_DAYS):
+            raise _invalid("from", f"the range is longer than {MAX_RANGE_DAYS} days", date_from)
+    if start:
+        conditions.append("verified_at >= :from_ts")
+        params["from_ts"] = start[0]
+    if stop:
+        conditions.append("verified_at < :to_ts" if stop[1] else "verified_at <= :to_ts")
+        params["to_ts"] = stop[0]
 
     if time_range:
-        interval_map = {"24h": "24 hours", "48h": "48 hours", "7d": "7 days"}
-        interval = interval_map.get(time_range, "7 days")
-        conditions.append(f"verified_at >= NOW() - INTERVAL '{interval}'")
+        # An unknown value still means 7 days, as it always has; the dashboard
+        # sends 7d.
+        conditions.append("verified_at >= NOW() - make_interval(hours => CAST(:range_hours AS int))")
+        params["range_hours"] = TIME_RANGE_HOURS.get(time_range, 168)
 
     if bbox:
         try:
@@ -248,76 +445,76 @@ async def list_events(
         except (ValueError, IndexError):
             pass
 
-    where_clause = " AND ".join(conditions)
+    if q and q.strip():
+        conditions.append(
+            "(event_code ILIKE :q ESCAPE '\\' OR district ILIKE :q ESCAPE '\\' OR state ILIKE :q ESCAPE '\\')"
+        )
+        params["q"] = _like(q.strip())
 
+    includes = _csv("include", include, INCLUDES, normalise=str.lower) or []
+    include_boundary = "boundary" in includes
+
+    field, _, direction = sort.partition(":")
+    direction = (direction or "desc").lower()
+    if field not in SORT_COLUMNS or direction not in ("asc", "desc"):
+        raise _invalid("sort", f"expected one of {sorted(SORT_COLUMNS)}, then :asc or :desc", sort)
+    order_by = f"{SORT_COLUMNS[field]} {direction.upper()}, id {direction.upper()}"
+
+    where_clause = " AND ".join(conditions)
+    boundary_column = ", ST_AsGeoJSON(boundary_polygon) AS boundary_geojson" if include_boundary else ""
     query = text(f"""
         SELECT
-            id, event_code, event_type, severity, confidence_score,
-            review_status, quadrant, impact_radius_km,
-            ST_Y(center_point) as lat, ST_X(center_point) as lng,
+            id, event_code, CAST(event_type AS text) AS event_type,
+            CAST(severity AS text) AS severity, confidence_score,
+            CAST(review_status AS text) AS review_status, quadrant, impact_radius_km,
+            ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
             verification_receipt, verified_at,
-            district, state, place_precision
+            district, state, place_precision{boundary_column}
         FROM verified_events
         WHERE {where_clause}
-        ORDER BY verified_at DESC
-        LIMIT 50
+        ORDER BY {order_by}
+        LIMIT :limit OFFSET :offset
     """)
+    params.update(limit=limit, offset=offset)
+
+    # A filter that matches nothing is an answer, never a cue for demo data.
+    # Only the unfiltered call — what the dashboard has always made — keeps the
+    # demo_fallback behaviour on an empty database.
+    filtered = any(
+        v is not None
+        for v in (date_from, date_to, event_type, family, review_status, state, district,
+                  source_type, min_confidence, q)
+    ) or offset > 0
 
     db_error = None
     try:
-        result = await db.execute(query, params)
-        rows = result.fetchall()
-
-        if rows:
-            events = []
-            for row in rows:
-                event_type_raw = row[2]
-                severity_raw = row[3]
-                review_raw = row[5]
-
-                receipt = row[10] or {}
-                # Was receipt.get("city", "Unknown") — read from a receipt key
-                # only the synthetic seeder ever wrote, so every real event
-                # was served as "Unknown". These are columns now, and a name
-                # we do not have is null rather than a word that looks like one.
-                city = row[12]
-                state = row[13]
-                place_precision = row[14]
-
-                events.append({
-                    "id": str(row[0]),
-                    "event_code": row[1],
-                    "eventType": receipt.get("event_type_display", EVENT_TYPE_LABELS.get(event_type_raw, event_type_raw)),
-                    "severity": SEVERITY_LABELS.get(severity_raw, "moderate"),
-                    "confidence_score": row[4],
-                    "verification": REVIEW_STATUS_LABELS.get(review_raw, "under-review"),
-                    "review_status": review_raw,
-                    "quadrant": row[6],
-                    "impact_radius_km": row[7],
-                    "lat": row[8],
-                    "lng": row[9],
-                    "city": city,
-                    "state": state,
-                    "place_precision": place_precision,
-                    "imageGradient": IMAGE_GRADIENTS.get(event_type_raw, "linear-gradient(135deg, #64748B, #334155)"),
-                    "verified_at": row[11].isoformat() if row[11] else None,
-                    "timestamp": row[11].isoformat() if row[11] else None,
-                })
-            return events
+        rows = (await db.execute(query, params)).mappings().all()
+        if rows or filtered:
+            if len(rows) < limit and (rows or offset == 0):
+                total = offset + len(rows)
+            else:
+                count = (
+                    await db.execute(text(f"SELECT count(*) FROM verified_events WHERE {where_clause}"), params)
+                ).fetchone()
+                total = int(count[0]) if count else 0
+            response.headers["X-Total-Count"] = str(total)
+            return [_event_item(row, include_boundary) for row in rows]
     except Exception as e:
         logger.warning(f"Database query failed in list_events: {e}")
         db_error = e
 
     def _demo_events():
-        filtered = DEMO_EVENTS
+        filtered_demo = DEMO_EVENTS
         if severity:
-            filtered = [
-                e for e in filtered
+            filtered_demo = [
+                e for e in filtered_demo
                 if e["severity"].lower() == severity.lower() or e["review_status"].lower() == severity.lower()
             ]
-        return filtered
+        return filtered_demo
 
-    return demo_fallback("GET /api/events", _demo_events, list, db_error)
+    events = demo_fallback("GET /api/events", _demo_events, list, db_error)
+    response.headers["X-Total-Count"] = str(len(events))
+    return events
 
 
 @router.get("/distribution")
@@ -362,15 +559,23 @@ async def event_distribution(
             "Advisory": "#10B981",
         }
     else:
+        # Grouped by the stored type as well as the display name, and named in
+        # Python. Only scripts/seed_national_data.py writes event_type_display,
+        # so every event the pipeline made fell through to its enum value and
+        # was drawn as a grey "URBAN_FLOOD" slice (BUG-062); it is now named
+        # from the hazard taxonomy, and merged with any seeded slice of the
+        # same name.
         query = text(f"""
             SELECT
-                COALESCE(verification_receipt->>'event_type_display', CAST(event_type AS text)) as display_type,
+                verification_receipt->>'event_type_display' as display_type,
+                CAST(event_type AS text) as event_type,
                 COUNT(*) as count
             FROM verified_events
             WHERE review_status != 'REJECTED' {time_clause}
-            GROUP BY COALESCE(verification_receipt->>'event_type_display', CAST(event_type AS text))
-            ORDER BY count DESC
+            GROUP BY 1, 2
         """)
+        # The seeder's display names. A taxonomy label not listed here takes
+        # its colour from the taxonomy.
         color_map = {
             "Rainfall": "#3B82F6",
             "Flood": "#F59E0B",
@@ -388,11 +593,11 @@ async def event_distribution(
         result = await db.execute(query, params)
         rows = result.fetchall()
 
-        if rows:
+        if rows and group_by_severity:
             distribution = []
             for row in rows:
-                raw_name = row[0] or ("Advisory" if group_by_severity else "Others")
-                name = raw_name.capitalize() if group_by_severity else raw_name
+                raw_name = row[0] or "Advisory"
+                name = raw_name.capitalize()
                 cnt = int(row[1])
                 distribution.append({
                     "name": name,
@@ -401,6 +606,18 @@ async def event_distribution(
                     "color": color_map.get(raw_name, color_map.get(name, "#94A3B8")),
                 })
             return distribution
+
+        if rows:
+            counts: Dict[str, int] = {}
+            colors: Dict[str, str] = {}
+            for display_type, event_type, cnt in rows:
+                name = display_type or label_of(event_type)
+                counts[name] = counts.get(name, 0) + int(cnt)
+                colors.setdefault(name, color_map.get(name) or color_of(event_type))
+            return [
+                {"name": name, "count": cnt, "value": cnt, "color": colors[name]}
+                for name, cnt in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+            ]
     except Exception as e:
         logger.warning(f"Database query failed in event_distribution: {e}")
         db_error = e

@@ -1,8 +1,9 @@
 # Handover — Backend → Dashboard
 
 **From:** Aditya (layers 1–3, 5, 6, 7, 8a) · **To:** whoever owns `INDRA/frontend/`
-**Covers:** every backend change from 16–22 Sep 2026 that the dashboard can see, and — new on
-22 Sep — **what was changed inside `frontend/` that day, and why** (section 0).
+**Covers:** every backend change from 16–23 Sep 2026 that the dashboard can see, and — new on
+22 Sep — **what was changed inside `frontend/` that day, and why** (section 0). **New on 23 Sep:
+section 13, Phase 1** — sixteen event types, the PS's filters, citizen dockets, and no lost reports.
 
 **Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
 request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
@@ -252,6 +253,40 @@ Once `npm run build` passes, the server unit switches to `next start`.
 
 ---
 
+## 13. Phase 1 (23 Sep): sixteen event types, the PS's filters, dockets, and no lost reports
+
+Nothing here breaks the dashboard as it is: every existing response keeps its shape and values, and
+everything below is additive. Shapes and captured examples: [`api-contract.md`](api-contract.md).
+
+| Change | What the dashboard can do with it | |
+|---|---|---|
+| **12 new event types**, 16 in all (contract: *Event types*) | Labels still come from the API as `eventType`. Each list item now also has **`event_type`** (the enum) and **`family`**. Please key icons and colours on `event_type` rather than the label, and render any type you do not recognise as its `eventType` label — never throw. `GlobeEventMap.tsx`'s `eventTypeEmojis` keys on labels; the five it knows (`Flood`, `Thunderstorm`, `Strong Winds`, `Fog`, `Heavy Rainfall`) were kept exactly so it keeps working | recommended |
+| **`GET /api/events` filters** | **F1, the filter bar**: `from`/`to` (IST days), `event_type`, `family`, `review_status`, `severity` (lists), `state`, `district`, `source_type`, `min_confidence`, `q`, `sort`, `limit`/`offset`. The body is still a list; **the total is in the `X-Total-Count` header**, which CORS now exposes so `response.headers.get('X-Total-Count')` works from the browser. A bad value is a 422 naming the parameter | new |
+| **`GET /api/meta/filters`** | The filter bar's options, each with its count — no hard-coded option lists, and nothing offered that has no events behind it. Cached 60 s server-side | new |
+| **The 202 body gains `docket` and `will_retry`** | **F5**: after a submit, show the docket (`R-7K3M9QX2`) and tell the citizen to keep it; add a "track my report" box that calls **`GET /api/reports/track/{docket}`**. `queued: false` now means *stored, and it will be processed when the event bus is back* — please do not show it as a failure | new |
+| **Optional `observed_at`, `hazard` and `X-Reporter-Id` on submit** | Generate a random id once per browser (`crypto.randomUUID()`), keep it in `localStorage`, and send it as the `X-Reporter-Id` header; only a keyed hash is stored. Offer a hazard picker (values from `/api/meta/filters` or the contract's table) and an optional "when did this happen?" — send `observed_at` **with its timezone** (`toISOString()`); a naive time is a 422 | optional |
+| **`/healthz` gains `outbox_backlog`** | The admin console can show `{count, oldest_s}`: reports stored but still waiting for the event bus | optional |
+| An `https://` address for the team server | Coming with Phase 1 T7, so phones can use the report form's location button (browsers allow GPS only over HTTPS). Nothing to do until it is announced here; `wss://` will follow automatically, because `useIndraWebSocket.ts` derives it from the API base | later |
+
+**Track statuses, in words a citizen understands** — a suggestion, yours to change:
+
+| `status` | Say |
+|---|---|
+| `received` | Received — being checked |
+| `duplicate` | Already reported — thank you, it was counted with the first report |
+| `not_yet_an_event` | Received — not yet confirmed by other reports |
+| `part_of_event` | Part of event `event_code`, being reviewed |
+| `event_approved` | Confirmed |
+| `event_rejected` | Reviewed and not confirmed |
+
+The track route never returns the report's text, coordinates or anything about who sent it, so the
+page can show everything it returns.
+
+**Test:** with the backend running, `curl -s -D - 'localhost:8000/api/events?limit=1' | grep -i x-total-count`
+prints the total, and `curl -s localhost:8000/api/meta/filters` returns the options.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |
@@ -260,7 +295,7 @@ Once `npm run build` passes, the server unit switches to `next start`.
 | **Risk zones** | Not built, not scheduled |
 | **Image / vision analysis** | Out of scope. `media_url` is stored as a string and nothing opens it |
 | **Anomaly detection** | Out of scope. Permanently `offline` in the receipt |
-| **Event-type classification from text** | Trained, measured below its gate, unwired |
+| **Event-type classification by a model** | Trained, measured below its gate, unwired, and frozen with the rest of layer 4. Tagging the 16 types by published rules is Phase 3; until then every event is `URBAN_FLOOD` |
 
 If the dashboard currently renders any of these with mock data, that is the highest-value thing to
 remove before the demo — a panel showing invented telemetry is exactly what we spent 20–21 Sep

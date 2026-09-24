@@ -116,6 +116,25 @@ def _isolated_cache():
     cache.use_memory_only(False)
 
 
+# ── Kafka isolation ────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def _isolated_kafka_publisher():
+    """
+    Every test starts with no process producer.
+
+    The test client does not run the lifespan, so nothing starts one: a report
+    submitted in a test is stored with its outbox row and not published, and
+    no test reaches the local broker by accident. A test that wants a publish
+    injects a fake with `kafka.set_publisher()`; this forgets it afterwards.
+    """
+    from app.services import kafka
+
+    kafka.set_publisher(None)
+    yield
+    kafka.set_publisher(None)
+
+
 # ── Service fixtures (no DB) ───────────────────────────────────────────────────
 
 @pytest.fixture
@@ -181,7 +200,7 @@ async def client():
 
 async def wipe_event_tables(session) -> None:
     """
-    Empty audit_logs, raw_reports and verified_events, then commit.
+    Empty audit_logs, the outbox, raw_reports and verified_events, then commit.
 
     audit_logs has to go first and has to be a TRUNCATE: its rows reference
     verified_events, and trg_audit_immutable is a row-level BEFORE DELETE
@@ -193,6 +212,9 @@ async def wipe_event_tables(session) -> None:
     from sqlalchemy import text
 
     await session.execute(text("TRUNCATE audit_logs"))
+    # The outbox holds each report's message; a test that counts unpublished
+    # rows must not see the last test's.
+    await session.execute(text("DELETE FROM outbox"))
     await session.execute(text("DELETE FROM raw_reports"))
     await session.execute(text("DELETE FROM verified_events"))
     await session.commit()

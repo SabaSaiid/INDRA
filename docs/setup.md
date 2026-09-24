@@ -75,7 +75,7 @@ healthcheck; `/healthz` checks it once the API is running).
 cd backend
 python3 -m venv .venv                     # if it does not exist
 .venv/bin/pip install -r requirements.txt
-.venv/bin/alembic upgrade head            # → 0010_report_submitted_by (head)
+.venv/bin/alembic upgrade head            # → 0014_event_filter_indexes (head)
 ```
 
 **Read the output of `alembic upgrade head`.** A silently failed migration leaves a database with
@@ -113,7 +113,7 @@ API answers immediately; wait for `✓ Embedding model warm` before timing anyth
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                        # 746 passed, 2 skipped
+.venv/bin/pytest -q                                        # 948 passed, 2 skipped
 .venv/bin/pytest -q -m "not integration"                   # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```

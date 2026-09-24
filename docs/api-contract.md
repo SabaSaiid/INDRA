@@ -4,11 +4,13 @@
 shape and every status code it can return. Written for whoever is calling this API — the
 dashboard, a teammate's script, or a judge with `curl`.
 
-**Last verified against the code and a running stack: 22 Sep 2026.** Every endpoint below was
-read out of its router, not out of an older document. If this file and the code disagree, the
+**Last verified against the code and a running stack: 23 Sep 2026 (Phase 1).** Every endpoint below
+was read out of its router, not out of an older document, and every example response marked
+*captured* was copied from `curl` against a running stack. If this file and the code disagree, the
 code is right and this file is a bug.
 
-Base URL in development: `http://localhost:8000`. Interactive docs: `/docs`.
+Base URL in development: `http://localhost:8000`. On the team server: `http://15.252.50.176:8000`.
+Interactive docs: `/docs`.
 
 ---
 
@@ -17,8 +19,9 @@ Base URL in development: `http://localhost:8000`. Interactive docs: `/docs`.
 | Group | Endpoints | Auth |
 |---|---|---|
 | `/api/dashboard` | KPI summary | open |
-| `/api/events` | list, distribution, detail, **review**, **provenance** | review and provenance require a token |
-| `/api/reports` | submit, **official**, trend, recent | `official` requires a token |
+| `/api/events` | list (**with the PS's filters**), distribution, detail, **review**, **provenance** | review and provenance require a token |
+| `/api/reports` | submit, **official**, **track**, trend, recent | `official` requires a token |
+| `/api/meta` | **filters**: the values the event filters can take | open |
 | `/api/feed` | recent activity | open |
 | `/api/geo` | heatmap | open |
 | `/api/alerts` | official SACHET warnings (IMD, CWC, SDMAs) | open |
@@ -43,7 +46,9 @@ The one write path into the platform.
 ```json
 { "latitude": 25.5941, "longitude": 85.1376,
   "text": "Knee deep water outside my house, drain overflowing",
-  "media_url": null }
+  "media_url": null,
+  "observed_at": "2026-09-23T19:40:00+05:30",
+  "hazard": "URBAN_FLOOD" }
 ```
 
 | Field | Rule |
@@ -51,14 +56,38 @@ The one write path into the platform.
 | `latitude`, `longitude` | Must be inside India's bounding box (lat 6.5–37.6, lng 68.0–97.5) |
 | `text` | 5–2000 characters |
 | `media_url` | Optional string. **Nothing opens it** — there is no image analysis |
+| `observed_at` | Optional. **When it happened**, ISO 8601 **with a timezone**. No more than 5 minutes ahead or 7 days back, otherwise 422. Omitted, it is stored equal to the time the report was received |
+| `hazard` | Optional. The category the citizen picked: one of the 16 event types below, upper case. Stored as the citizen's claim; the event's type is still the platform's decision |
+
+| Header | Rule |
+|---|---|
+| `X-Reporter-Id` | Optional, at most 200 characters. A random id the client generates once and keeps (a UUID in `localStorage`). **Only an HMAC of it is stored**, so reports from one device can be linked to each other and never to the device. Missing or blank means "unknown", never a shared identity |
 
 **Responses**
 
 | Code | When |
 |---|---|
-| `202 {id, status: "accepted", queued: true\|false, source_type}` | Stored. `queued: false` means it is in the database but the Kafka publish failed, so it will not be processed until replayed. `source_type` is always `CITIZEN_APP` here |
-| `422` | Validation failed, including **coordinates outside India** — nothing is stored |
+| `202 {id, docket, status: "accepted", queued, will_retry, source_type}` | Stored. `docket` is what the citizen keeps to follow the report (see `/track` below). `queued: true` means it was published to Kafka at once. `queued: false, will_retry: true` means **it is stored with its message and will be processed as soon as Kafka answers** — nothing is lost (BUG-060, fixed 23 Sep). `source_type` is always `CITIZEN_APP` here |
+| `422` | Validation failed, including **coordinates outside India**, an implausible `observed_at` and an unknown `hazard` — nothing is stored |
 | `503` | The database write failed. **Nothing is stored and nothing is published** |
+
+Captured 23 Sep:
+
+```json
+{"id":"52478975-5fe2-4964-a65c-f555a256db72","docket":"R-24H48YNK","status":"accepted",
+ "queued":true,"will_retry":false,"source_type":"CITIZEN_APP"}
+```
+
+```json
+{"detail":[{"type":"value_error","loc":["body","observed_at"],
+  "msg":"Value error, observed_at is more than 5 minutes in the future",
+  "input":"2030-01-01T00:00:00+05:30","ctx":{"error":{}}}]}
+```
+
+**Why a report cannot be lost.** The report and its Kafka message (a row in `outbox`) are written in
+one database transaction. The request publishes the message straight away if it can, for at most
+2 s; if it cannot, a relay publishes it within seconds of Kafka coming back. Measured with Redpanda
+stopped: ten reports kept, all published 1.0 s after it restarted (`demo-runbook.md`, Scene 5).
 
 On the way in, the report is given an H3 res-8 cell, a computed `credibility_score`
 (source prior × text quality — a 60-character citizen report scores 0.60, the bare word
@@ -95,7 +124,7 @@ five plus one dispatch scored **0.6065 `PENDING_HUMAN_REVIEW`**.
 
 | Code | When |
 |---|---|
-| `202 {id, status, queued, source_type: "OFFICIAL_DISPATCH"}` | Stored |
+| `202 {id, docket, status, queued, will_retry, source_type: "OFFICIAL_DISPATCH"}` | Stored |
 | `401` | No token, or an invalid one — nothing stored |
 | `403` | A citizen or analyst token — nothing stored |
 | `422`, `503` | As `/submit` |
@@ -103,6 +132,37 @@ five plus one dispatch scored **0.6065 `PENDING_HUMAN_REVIEW`**.
 The route is only as trusted as the account behind it. The demo accounts' passwords are part of
 the dashboard's persona switcher, so in this build it shows the mechanism — role-gated and
 attributed — not a secret.
+
+### `GET /api/reports/track/{docket}`
+
+Where a report is now, for the person holding its docket. **Open**, like `/submit`: the docket is
+the credential. So it answers only what that person is entitled to know, and **never the text, the
+coordinates or anything about who sent it**.
+
+A docket is `R-` and 8 characters of Crockford base32, e.g. `R-7K3M9QX2`. The alphabet has no I, L, O
+or U, so nothing read aloud or copied off a screen is mistaken for another character. It is random,
+not a counter: nobody can guess one or walk through other people's reports. Case, spaces, hyphens
+and the `R` prefix are forgiven, and O/I/L are read as 0/1/1.
+
+| `status` | Meaning |
+|---|---|
+| `received` | Stored; the pipeline has not finished with it yet |
+| `duplicate` | Suppressed as a copy of an earlier report |
+| `not_yet_an_event` | Processed, but alone: nothing corroborates it yet. A later report nearby can still turn it into an event |
+| `part_of_event` | Linked to an event that is in review or quarantine |
+| `event_approved` | Linked to an event a commander approved, or that was published automatically |
+| `event_rejected` | Linked to an event a commander rejected |
+
+Captured 23 Sep:
+
+```json
+{"docket":"R-24H48YNK","received_at":"2026-09-23T14:35:49.914494+00:00","status":"part_of_event",
+ "event_code":"INDRA-20260923-001","review_status":"QUARANTINED","district":"Patna","state":"Bihar"}
+```
+
+`event_code` and `review_status` are `null` until the report is part of an event. `404
+{"detail": "No report with that docket"}` for an unknown docket **and** for one that cannot exist,
+so the answer never helps anyone guess. `503` on a database error; there is no demo answer.
 
 ### `GET /api/reports/trend?range=7d|14d|30d`
 
@@ -114,13 +174,58 @@ Daily report counts. Always returns a row per day, including zeros.
 
 ### `GET /api/events`
 
+The PS's *"Date-wise filtering • Event-wise filtering • Location-wise filtering • Verification status
+tracking"*. Every parameter is optional and they combine with AND. Lists are comma-separated.
+
 | Query param | Values |
 |---|---|
-| `severity` | `ADVISORY` · `MODERATE` · `HIGH` · `CRITICAL` |
-| `time_range` | `24h` · `48h` · `7d` |
-| `bbox` | `min_lng,min_lat,max_lng,max_lat` |
+| `from`, `to` | `YYYY-MM-DD` — a whole day **in IST**, both ends inclusive — or an ISO 8601 timestamp (one without an offset is read as IST). An event at 23:30 IST on the 20th is on the 20th, though it is 18:00 UTC. **Encode `+` as `%2B`** in a query string, or it arrives as a space |
+| `event_type` | one or more of the 16 types below |
+| `family` | `water` · `convective` · `thermal` · `visibility` |
+| `review_status` | one or more statuses. **`REJECTED` appears only when named** |
+| `severity` | one or more of `ADVISORY` · `MODERATE` · `HIGH` · `CRITICAL`. The old single value still works |
+| `state`, `district` | exact name, any case (`bihar` matches `Bihar`) |
+| `source_type` | events with at least one report from these sources, e.g. `OFFICIAL_DISPATCH` |
+| `min_confidence` | 0–1 |
+| `q` | text in the event code, district or state; `%` and `_` match only themselves |
+| `bbox` | `min_lng,min_lat,max_lng,max_lat` (unchanged) |
+| `time_range` | `24h` · `48h` · `7d` (unchanged; the dashboard sends `7d`) |
+| `include` | `boundary` adds `boundary_geojson` (a GeoJSON string, as on the detail route) to each item |
+| `sort` | `verified_at`, `confidence` or `severity`, then `:asc` or `:desc`. Default `verified_at:desc`. Severity sorts by meaning, not alphabetically |
+| `limit`, `offset` | `limit` 1–200, default 50 |
 
-Up to 50, newest first. `REJECTED` events are always excluded.
+**The body is still a list**, newest first. **The number of matching events is in the
+`X-Total-Count` header**, which CORS exposes to the dashboard's origin. Each item has the keys it
+always had, plus `event_type` (the enum — key icons on this, not on the display label `eventType`)
+and `family`.
+
+Captured 23 Sep:
+
+```
+GET /api/events?state=bihar&event_type=URBAN_FLOOD&from=2026-09-23&to=2026-09-23&limit=1
+HTTP/1.1 200 OK
+x-total-count: 1
+
+[{"id":"3e57d37f-a703-42a2-93e8-d780ee4f2604","event_code":"INDRA-20260923-001","eventType":"Flood",
+  "event_type":"URBAN_FLOOD","family":"water","severity":"moderate","confidence_score":0.5464,
+  "verification":"under-review","review_status":"QUARANTINED","quadrant":"Noise",
+  "impact_radius_km":0.5,"lat":25.594399999999997,"lng":85.13763333333333,"city":"Patna","state":"Bihar",
+  "place_precision":"district","imageGradient":"linear-gradient(135deg, #2563EB, #1E3A8A)",
+  "verified_at":"2026-09-23T14:21:38.845208+00:00","timestamp":"2026-09-23T14:21:38.845208+00:00"}]
+```
+
+A bad value is a **422 naming the parameter**, in the same shape FastAPI uses for its own checks
+(`limit=500` and `event_type=TORNADO` look alike):
+
+```json
+{"detail":[{"type":"value_error","loc":["query","event_type"],
+  "msg":"unknown value 'TORNADO'; expected any of ['CLOUDBURST', 'COLD_WAVE', 'CYCLONE', 'CYCLONE_INUNDATION', 'DUST_STORM', 'FOG', 'HAILSTORM', 'HEATWAVE', 'LANDSLIDE', 'LIGHTNING', 'RAINFALL', 'RIVER_BREACH', 'STRONG_WIND', 'THUNDERSTORM', 'UNCLASSIFIED', 'URBAN_FLOOD']",
+  "input":"TORNADO"}]}
+```
+
+Also 422: `from` after `to`, a range longer than 366 days, an unknown `sort` or `include`. Until
+23 Sep an unknown severity answered **503 "Database unavailable"** (BUG-061). A filter that matches
+nothing is `200 []` with `X-Total-Count: 0` — never demo data.
 
 > **`ADVISORY` is reachable and common.** Most fresh clusters are two to four reports with no
 > depth quoted, which grades `ADVISORY`. A severity filter offering only
@@ -128,7 +233,40 @@ Up to 50, newest first. `REJECTED` events are always excluded.
 
 ### `GET /api/events/distribution`
 
-Event counts grouped by type, for the donut chart.
+Event counts grouped by type, for the donut chart. Each slice is named with the type's label from
+the table below (`"Flood"`); until 23 Sep an event the pipeline made was drawn as a grey
+`"URBAN_FLOOD"` slice (BUG-062).
+
+### Event types
+
+Sixteen since 23 Sep (migration `0011`), described in one place: `app/services/hazards.py`. The
+pipeline still names every event `URBAN_FLOOD`; tagging reports with the other types is Phase 3.
+
+| `event_type` | Label | Family | Precedence |
+|---|---|---|---|
+| `CLOUDBURST` | Cloudburst | water | 1 |
+| `CYCLONE_INUNDATION` | Storm surge | water | 1 |
+| `URBAN_FLOOD` | Flood | water | 1 |
+| `RIVER_BREACH` | River flood | water | 2 |
+| `CYCLONE` | Cyclone | convective | 3 |
+| `LANDSLIDE` | Landslide | water | 3 |
+| `DUST_STORM` | Dust storm | convective | 4 |
+| `HAILSTORM` | Hailstorm | convective | 5 |
+| `LIGHTNING` | Lightning | convective | 5 |
+| `THUNDERSTORM` | Thunderstorm | convective | 5 |
+| `STRONG_WIND` | Strong Winds | convective | 6 |
+| `COLD_WAVE` | Cold wave | thermal | 7 |
+| `HEATWAVE` | Heatwave | thermal | 7 |
+| `FOG` | Fog | visibility | 8 |
+| `RAINFALL` | Heavy Rainfall | water | 9 |
+| `UNCLASSIFIED` | Unclassified | — | 99 |
+
+A **family** decides which reports may cluster together (Phase 3); **precedence** names a mixed
+cluster for its impact rather than its cause (a flood beats the rain). The labels the dashboard
+already keys on are unchanged: `Flood`, `Thunderstorm`, `Strong Winds`, `Fog`, `Heavy Rainfall`.
+
+Source types: `CITIZEN_APP`, `OFFICIAL_DISPATCH`, `AWS_SENSOR`, `CWC_GAUGE`, `TWITTER_IMD`, and since
+23 Sep `SOCIAL_MEDIA` and `NEWS_MEDIA` (for Phase 2's Mastodon and news feeds).
 
 ### `GET /api/events/{event_id}`
 
@@ -263,6 +401,35 @@ database error.
 
 ---
 
+## `/api/meta`
+
+### `GET /api/meta/filters`
+
+The values the event filters can take, each with how many events have it, so the filter bar never
+hard-codes an option or offers one with nothing behind it. Counts are over non-rejected events, as
+the list shows them by default — except `review_statuses`, which includes `REJECTED` so the dropdown
+can offer what `?review_status=REJECTED` returns. A `NULL` district counts for its state and is
+never listed as a district. Dates are IST.
+
+Captured 23 Sep (one event in the database):
+
+```json
+{"event_types":[{"value":"URBAN_FLOOD","label":"Flood","family":"water","count":1}],
+ "families":[{"value":"water","count":1}],
+ "review_statuses":[{"value":"QUARANTINED","count":1}],
+ "severities":[{"value":"MODERATE","count":1}],
+ "source_types":[{"value":"CITIZEN_APP","count":1}],
+ "states":[{"name":"Bihar","count":1,"districts":[{"name":"Patna","count":1}]}],
+ "date_min":"2026-09-23","date_max":"2026-09-23",
+ "generated_at":"2026-09-23T14:35:54.192358+00:00"}
+```
+
+Empty database: every list `[]` and both dates `null`. Cached for **60 s** (Redis key
+`meta:filters`, with an in-memory fallback), so a new event can take up to a minute to appear in the
+options; it appears in the list at once. `503` on a database error, never invented options.
+
+---
+
 ## `/api/dashboard`
 
 ### `GET /api/dashboard/summary`
@@ -366,17 +533,25 @@ failed profile edit answered `200` after `except: pass`. Both now fail loudly.
 
 ### `GET /healthz`
 
-Checks Postgres (**including whether the schema exists**), Kafka/Redpanda, Redis and Open-Meteo
-concurrently, each capped at 2 s.
+Checks Postgres (**including whether the schema exists**), Kafka/Redpanda, Redis, Open-Meteo and
+the outbox backlog concurrently, each capped at 2 s.
 
 | Status | HTTP | When |
 |---|---|---|
 | `healthy` | 200 | everything up |
-| `degraded` | 200 | Redis or Open-Meteo is down — neither is load-bearing |
-| `unhealthy` | 503 | Postgres or Kafka is down — a report would be lost or unprocessed |
+| `degraded` | 200 | Redis or Open-Meteo is down, or a report has waited more than 60 s for Kafka — none of these loses anything |
+| `unhealthy` | 503 | Postgres or Kafka is down. Postgres: reports are refused. Kafka: reports wait in the outbox, but nothing new is processed until it is back |
+
+`outbox_backlog` carries `count` (reports stored but not yet published to Kafka) and `oldest_s` (how
+long the oldest has waited). Captured 23 Sep:
 
 ```json
-{"status":"healthy","checks":{"database":{"status":"up","latency_ms":50.7,"critical":true}, ...}}
+{"status":"healthy","checks":{
+  "database":{"status":"up","latency_ms":9.0,"critical":true},
+  "streaming_bus":{"status":"up","latency_ms":4.6,"critical":true},
+  "redis":{"status":"up","latency_ms":6.7,"critical":false},
+  "weather_api":{"status":"up","latency_ms":1228.5,"critical":false},
+  "outbox_backlog":{"status":"up","count":0,"oldest_s":0.0,"latency_ms":3.5,"critical":false}}}
 ```
 
 ### `WS /ws/events`
@@ -388,10 +563,37 @@ concurrently, each capped at 2 s.
 | `EVENT_REVIEWED` | `{type, event}` | A commander approved, rejected or re-graded one |
 
 `report` carries `raw_text`, `h3_res8`, `credibility_score` and `source_type`. The key is
-`raw_text`, **not** `text`.
+`raw_text`, **not** `text`. Its keys are exactly the nine the Kafka message has always had; the
+docket, the reporter hash and feed metadata are never added, because this message goes to every
+connected browser.
 
 > Fan-out is in-process by design, so **run one backend process**. Two backends against one broker
 > will re-deliver reports (BUG-011).
+
+---
+
+## Proposed — Phase 2, 4, 5 and 6
+
+**Not built yet.** These are the names later phases will use, published now so the dashboard can be
+built against them. Shapes will be fixed in this file when each one lands; until then treat
+everything but the path as provisional.
+
+| Phase | Endpoint | For |
+|---|---|---|
+| 2 | `GET /api/reports/search` | Search and filter reports, with `X-Total-Count` like `/api/events` |
+| 2 | `GET /api/reports/export`, `GET /api/events/export` | CSV and GeoJSON downloads of a filtered set |
+| 2 | `GET /api/meta/sources` | Each feed's status: last success, last error, items collected |
+| 2 | `GET /api/stations/latest?feed=metar` | The latest airport weather observations |
+| 4 | `GET /api/review/queue` | The review queue's tabs |
+| 4 | `POST /api/events/{id}/claim`, `DELETE /api/events/{id}/claim` | Claiming an event for review |
+| 4 | `GET /api/events/{id}/history` | An event's score and status over time |
+| 4 | `GET /api/events?verdict=` | Corroborated / contradicted / no official match |
+| 5 | `POST /api/reports/submit` as multipart | Photo and video upload |
+| 5 | `GET /api/media/{id}` | A report's media |
+| 5 | `DELETE /api/reports/{docket}` | A citizen withdrawing their own report |
+| 5 | `GET /api/admin/sources` | Per-source credibility |
+| 6 | `GET /api/analytics/kpis`, `/timeseries`, `/by-state`, `/latency`, `/verification-funnel` | The analytics page |
+| 6 | `POST /api/ingest/batch` | Bulk ingest for the load test and the replay |
 
 ---
 

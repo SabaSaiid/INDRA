@@ -216,7 +216,7 @@ real keys.
 
 ### How do you know any of this works?
 
-**746 automated backend tests**, run against a separate database, green with the network off, and
+**948 automated backend tests**, run against a separate database, green with the network off, and
 **26 browser tests** against the running dashboard. But the more honest answer is the second half:
 
 **Every one of the most serious defects in this project was invisible to a green suite.** With 518

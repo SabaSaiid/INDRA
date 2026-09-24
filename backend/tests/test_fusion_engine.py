@@ -330,6 +330,10 @@ def test_high_severity_at_085_goes_to_a_human_not_to_publish_or_bin(fusion):
         (["CITIZEN_APP"] * 5 + ["CWC_GAUGE"], 0.95),
         (["CITIZEN_APP"] * 5 + ["OFFICIAL_DISPATCH"], 1.0),
         (["AWS_SENSOR"], 0.90),
+        (["SOCIAL_MEDIA"] * 3, 0.50),
+        (["NEWS_MEDIA"], 0.55),
+        # A post and an article never outrank one first-hand geotagged report.
+        (["SOCIAL_MEDIA", "NEWS_MEDIA", "CITIZEN_APP"], 0.60),
     ],
 )
 def test_source_reliability_table(sources, expected):

@@ -44,6 +44,26 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Report consumer startup skipped (non-fatal): {e}")
 
+    # One Kafka producer for the whole process, instead of one per report.
+    # If the broker is down this returns False at once (a TCP probe, not a
+    # 40 s client timeout) and the platform starts anyway: reports wait in the
+    # outbox until the producer can be started.
+    try:
+        from app.services.kafka import get_publisher
+        await get_publisher().ensure_started()
+    except Exception as e:
+        logger.warning(f"Kafka producer startup skipped (non-fatal): {e}")
+
+    # Publishes every report the request could not (BUG-060): stored while
+    # Kafka was down, or whose immediate publish failed. It also restarts the
+    # producer after an outage.
+    relay_task = None
+    try:
+        from app.workers.outbox_relay import start_outbox_relay
+        relay_task = asyncio.create_task(start_outbox_relay())
+    except Exception as e:
+        logger.warning(f"Outbox relay startup skipped (non-fatal): {e}")
+
     # Warm the embedding model, off the event loop, without delaying readiness.
     #
     # MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.
@@ -127,6 +147,20 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
+    # The relay first, then the producer it publishes through.
+    if relay_task:
+        relay_task.cancel()
+        try:
+            await relay_task
+        except asyncio.CancelledError:
+            pass
+
+    try:
+        from app.services.kafka import get_publisher
+        await get_publisher().stop()
+    except Exception as e:
+        logger.warning(f"Kafka producer shutdown skipped (non-fatal): {e}")
+
     try:
         from app.services import cache
         await cache.close()
@@ -155,6 +189,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # A browser hides every non-standard response header from the page unless
+    # the server names it here. GET /api/events puts its total in X-Total-Count
+    # so the body can stay the list the dashboard already parses.
+    expose_headers=["X-Total-Count"],
 )
 
 class ConnectionManager:
@@ -182,32 +220,36 @@ ws_manager = ConnectionManager()
 
 
 # ── Mount API Routers ──────────────────────────────────────────────────────────
-try:
-    from app.api import (
-        dashboard_router,
-        events_router,
-        reports_router,
-        feed_router,
-        geo_router,
-        auth_router,
-        teams_router,
-        profile_router,
-        alerts_router,
-        audit_router,
-    )
-    app.include_router(dashboard_router)
-    app.include_router(events_router)
-    app.include_router(reports_router)
-    app.include_router(feed_router)
-    app.include_router(geo_router)
-    app.include_router(auth_router)
-    app.include_router(teams_router)
-    app.include_router(profile_router)
-    app.include_router(alerts_router)
-    app.include_router(audit_router)
-    logger.info("✓ All API routers mounted successfully")
-except Exception as e:
-    logger.warning(f"⚠ Could not mount API routers (non-fatal): {e}")
+# Deliberately not wrapped in try/except (BUG-063). It used to be, and a router
+# that failed to import then unmounted every route while the process ran on:
+# /healthz, defined in this file, still answered "healthy" and systemd saw a
+# running service, but every dashboard call was a 404. An import error must
+# stop the app where the traceback can be read.
+from app.api import (
+    dashboard_router,
+    events_router,
+    reports_router,
+    feed_router,
+    geo_router,
+    auth_router,
+    teams_router,
+    profile_router,
+    alerts_router,
+    audit_router,
+    meta_router,
+)
+app.include_router(dashboard_router)
+app.include_router(events_router)
+app.include_router(reports_router)
+app.include_router(feed_router)
+app.include_router(geo_router)
+app.include_router(auth_router)
+app.include_router(teams_router)
+app.include_router(profile_router)
+app.include_router(alerts_router)
+app.include_router(audit_router)
+app.include_router(meta_router)
+logger.info("✓ All API routers mounted successfully")
 
 
 

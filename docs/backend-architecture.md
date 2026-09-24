@@ -63,9 +63,12 @@ backend/app/
 │   └── demo.py          demo_fallback() — the single gate every demo response goes through.
 ├── api/                 one router per domain, each prefixed /api/<domain>
 │   ├── dashboard.py     GET /summary
-│   ├── events.py        GET "", /distribution, /{id}, PATCH /{id}/review, GET /{id}/provenance
+│   ├── events.py        GET "" (the PS's date/event/location/status filters, X-Total-Count),
+│   │                    /distribution, /{id}, PATCH /{id}/review, GET /{id}/provenance
 │   ├── reports.py       GET /trend, GET /recent, POST /submit (anonymous, always
-│   │                    CITIZEN_APP), POST /official (COMMANDER/ADMIN → OFFICIAL_DISPATCH)
+│   │                    CITIZEN_APP), POST /official (COMMANDER/ADMIN → OFFICIAL_DISPATCH),
+│   │                    GET /track/{docket} (open; status only, never text or place)
+│   ├── meta.py          GET /filters — the filter bar's options with counts, cached 60 s
 │   ├── feed.py          GET /recent
 │   ├── geo.py           GET /heatmap
 │   ├── auth.py          POST /token
@@ -77,8 +80,16 @@ backend/app/
 │                        controlled vocabulary (SourceType, Severity, ReviewStatus,
 │                        Quadrant, Agency, AuditAction, OperatorRole, …)
 ├── services/            where the intelligence lives
+│   ├── ingest.py        store_report(): the report and its outbox message in one
+│   │                    transaction, then an immediate publish if the producer is up.
+│   │                    Dockets, and the HMAC reporter pseudonym.
+│   ├── kafka.py         the process's one Kafka producer. Requests never connect;
+│   │                    the outbox relay (re)starts it.
+│   ├── hazards.py       the hazard taxonomy: 16 event types, 4 families, precedence,
+│   │                    labels and gradients, in one table.
 │   ├── pipeline.py      the orchestrator above. Fails soft: one bad report cannot
-│   │                    kill the consumer loop.
+│   │                    kill the consumer loop. Stamps processed_at on every report
+│   │                    it finishes with.
 │   ├── fusion_engine.py compute_receipt / assign_quadrant / determine_review_status.
 │   ├── dedup.py         the three-gate AND. MiniLM encode runs in a thread.
 │   ├── geo_clustering.py DBSCAN (haversine), H3 assignment, cluster stats, report→event linking.
@@ -91,9 +102,11 @@ backend/app/
 │   ├── cache.py         Redis, with an in-memory fallback. Never load-bearing.
 │   ├── audit.py         the SHA-256 hash chain.
 │   ├── event_publisher.py verified events → indra.verified.events
-│   └── health.py        the four real dependency checks behind /healthz.
+│   └── health.py        the five real checks behind /healthz, including the outbox backlog.
 ├── workers/
 │   ├── report_consumer.py  aiokafka consumer driving the pipeline.
+│   ├── outbox_relay.py     publishes every outbox row the request could not, every 2 s,
+│   │                       FOR UPDATE SKIP LOCKED, so no report is lost to a Kafka outage.
 │   ├── station_poller.py   the scheduled Open-Meteo feed into station_readings.
 │   └── sachet_poller.py    NDMA SACHET CAP warnings into agency_alerts, every 5 min.
 └── ml/                  FROZEN. event_classifier.py is trained, measured below its
@@ -155,13 +168,16 @@ the point. The receipt names the winning axis and the phrase it read.
 
 | Store | What it holds | What happens without it |
 |---|---|---|
-| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
-| **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit returns 202 `queued: false`, `/healthz` 503. **Critical** |
-| **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s) and the broadcast-dedup set (`bcast:{id}`, TTL 24 h) | both fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
+| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, `outbox`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
+| **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit still returns 202 (`queued: false, will_retry: true`) and the report waits in the outbox; the relay publishes it within seconds of Redpanda returning. `/healthz` 503. **Critical**, but no longer lossy (BUG-060) |
+| **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s), the broadcast-dedup set (`bcast:{id}`, TTL 24 h) and the filter options (`meta:filters`, 60 s) | all fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
 | **Object storage** | nothing — configured in `.env`, not deployed | n/a |
 
-Ten migrations, `0001` … `0010` (`0010_report_submitted_by` records who filed an official
-report). `audit_logs` carries a row-level trigger rejecting `UPDATE` and `DELETE`. On a fresh
+Fourteen migrations, `0001` … `0014`. Phase 1 added four: `0011` the hazard and source enum values,
+`0012` the report intake columns (`observed_at`, `reporter_hash`, `docket`, `platform`,
+`external_id`, `source_meta`, `citizen_hazard`, `processed_at`), `0013` the outbox, `0014` the event
+filter indexes and the long-missing index on `raw_reports.event_id`. Alembic runs every pending
+migration in one transaction, so a migration never uses an enum value added in the same run. `audit_logs` carries a row-level trigger rejecting `UPDATE` and `DELETE`. On a fresh
 volume, Postgres is reported healthy only once it listens on TCP, which is after `indra_db` exists
 (BUG-028); `./start.sh infra up` waits for that.
 
@@ -217,7 +233,7 @@ The settings worth knowing: `DEMO_MODE` (default **false**, and it must stay fal
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                   # 746 passed, 2 skipped
+.venv/bin/pytest -q                                   # 948 passed, 2 skipped
 .venv/bin/pytest -q -m "not integration"              # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```

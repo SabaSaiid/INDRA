@@ -40,3 +40,25 @@ def test_is_deterministic():
     assert compute_credibility("CITIZEN_APP", SPECIFIC_60) == compute_credibility(
         "CITIZEN_APP", SPECIFIC_60
     )
+
+
+# ── Phase 1 T2: social posts and news items are written by people ──────────────
+
+@pytest.mark.parametrize("source", ["SOCIAL_MEDIA", "NEWS_MEDIA"])
+def test_social_and_news_text_is_judged_like_a_citizen_report(source):
+    """
+    Not given the instrument's text quality of 1.0: a one-word post or headline
+    says as little as a one-word citizen report, so it earns partial credit.
+    """
+    assert compute_credibility(source, "flood") < compute_credibility(source, SPECIFIC_60)
+
+
+@pytest.mark.parametrize(
+    "source, body, expected",
+    [
+        ("SOCIAL_MEDIA", "flood", 0.2708),     # 0.50 × (0.5 + 0.5 × 5/60)
+        ("NEWS_MEDIA", SPECIFIC_60, 0.55),     # 0.55 × 1.0 — full credit at ~60 characters
+    ],
+)
+def test_social_and_news_credibility_values(source, body, expected):
+    assert compute_credibility(source, body) == pytest.approx(expected, abs=1e-4)

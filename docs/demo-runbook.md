@@ -56,7 +56,7 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0010_report_submitted_by (head)
+# → 0014_event_filter_indexes (head)
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
@@ -76,9 +76,9 @@ curl -s localhost:8000/healthz | jq .status
 
 | `/healthz` says | Meaning | Do |
 |---|---|---|
-| `healthy` | all four checks up | continue |
-| `degraded` (200) | Redis or Open-Meteo down | **continue** — neither is load-bearing, and this is worth showing |
-| `unhealthy` (503) | Postgres or Kafka down | stop and fix; a report would be lost |
+| `healthy` | all five checks up | continue |
+| `degraded` (200) | Redis or Open-Meteo down, or reports have waited over 60 s for Kafka (`outbox_backlog`) | **continue** — none of these loses anything, and this is worth showing |
+| `unhealthy` (503) | Postgres or Kafka down | stop and fix. Postgres down: reports are refused with 503. Kafka down: reports are kept in the outbox and processed when it is back, but nothing new reaches the map until then |
 
 **Cold start to a ready API: under 5 minutes**, nearly all of it Docker pulling and the embedding
 model loading. The model is warmed on a background thread, so `/healthz` answers immediately and
@@ -112,23 +112,25 @@ backend/.venv/bin/python scripts/run_patna_demo.py
 The script posts five synthetic citizen reports to `POST /api/reports/submit`, waits for the
 cluster to settle, then reads **every number back out of the API**.
 
-**Expected** (21 Sep reproduced twice; 22 Sep once, from an empty database):
+**Expected** (21 Sep reproduced twice; 22 Sep once; 23 Sep twice, after each Phase 1 change to the
+schema and the pipeline — all from an empty database):
 
-| | 21 Sep | 22 Sep |
-|---|---|---|
-| Reports stored | 5 / 5 | 5 / 5 |
-| Events created | **1** | **1** |
-| Severity | `MODERATE` | `MODERATE` |
-| Review status | **`QUARANTINED`** | **`QUARANTINED`** |
-| Quadrant | `Noise` | `Noise` |
-| Confidence | **0.4984** | **0.5146** |
-| Factor coverage | **0.80** | **0.80** |
-| Boundary | Polygon, **39 vertices** | Polygon, **39 vertices** |
-| Heat map | 2 H3 cells at res 8, 5 reports | the same |
+| | 21 Sep | 22 Sep | 23 Sep (Phase 1) |
+|---|---|---|---|
+| Reports stored | 5 / 5 | 5 / 5 | 5 / 5, each with a docket |
+| Events created | **1** | **1** | **1** `URBAN_FLOOD` |
+| Severity | `MODERATE` | `MODERATE` | `MODERATE` |
+| Review status | **`QUARANTINED`** | **`QUARANTINED`** | **`QUARANTINED`** |
+| Quadrant | `Noise` | `Noise` | `Noise` |
+| Confidence | **0.4984** | **0.5146** | **0.5319**, then **0.5295** |
+| Factor coverage | **0.80** | **0.80** | **0.80** |
+| Boundary | Polygon, **39 vertices** | Polygon, **39 vertices** | Polygon, **39 vertices** |
+| Heat map | 2 H3 cells at res 8, 5 reports | the same | the same |
 
-Only the weather factor moved: **0.0080** on 21 Sep, **0.0600** on 22 Sep, when Patna was wetter.
-Every other factor was identical, including after the clustering radius became a true
-great-circle distance on 22 Sep.
+Only the weather factor moved: **0.0080** on 21 Sep, **0.0600** on 22 Sep, **0.1153** and **0.1076**
+on 23 Sep, as Patna's rainfall changed. Every other factor was identical, including after the
+clustering radius became a true great-circle distance on 22 Sep and after Phase 1 added the outbox,
+the dockets and 12 event types on 23 Sep.
 
 Receipt:
 
@@ -262,6 +264,42 @@ docker stop indra-postgres
 curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/healthz   # → 503, in under 5 s
 docker start indra-postgres                                        # recovers, no app restart
 ```
+
+### The event bus goes down, and no report is lost
+
+Until 23 Sep this was the one outage that lost data (BUG-060): a report accepted while Redpanda was
+down was stored, answered 202, and never processed. Each report's message is now written to an
+outbox in the same transaction as the report, and a relay publishes whatever is waiting.
+
+```bash
+docker stop indra-redpanda
+curl -s -X POST localhost:8000/api/reports/submit -H 'Content-Type: application/json' \
+  -d '{"latitude":25.5941,"longitude":85.1376,"text":"Water entering ground floor shops near Kankarbagh main road"}'
+# → 202 … "queued": false, "will_retry": true, and a "docket"
+curl -s localhost:8000/healthz | jq '.status, .checks.outbox_backlog'
+# → "unhealthy" (Kafka is critical) and {"status": "up", "count": 1, "oldest_s": …}
+docker start indra-redpanda
+curl -s localhost:8000/healthz | jq '.checks.outbox_backlog.count'   # → 0 within a couple of seconds
+curl -s localhost:8000/api/reports/track/<docket> | jq .status       # → "not_yet_an_event" or "part_of_event"
+```
+
+**Measured 23 Sep** — ten Patna reports sent with Redpanda stopped, on an empty database:
+
+| | |
+|---|---|
+| Submits during the outage | 10 × 202, `queued: false, will_retry: true`. The first waited 2.06 s (the request's publish cap); after it the producer is taken out of service and the other nine answered in 4–66 ms |
+| Waiting in the outbox | 10 rows |
+| `/healthz` during | 503 `unhealthy`: `streaming_bus` down, `outbox_backlog` count 10 |
+| After `docker start indra-redpanda` | all 10 published in **1.0 s**, all 10 processed in **4.8 s** |
+| Result | **one `URBAN_FLOOD` event, 10 of 10 reports linked, 0 lost**; `/healthz` back to `healthy` |
+
+**What to say:** Kafka is the one dependency that takes reports to the pipeline, and it is still
+critical: while it is down nothing new reaches the map. But nothing is dropped either. The report and
+the message that announces it are one database transaction, and a relay retries every two seconds, so
+the backlog clears within seconds of the bus coming back.
+
+`outbox.attempts` counts failed publishes. While the broker does not answer at all the relay only
+probes it, so a clean outage leaves `attempts` at 0.
 
 ---
 

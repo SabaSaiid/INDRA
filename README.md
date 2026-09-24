@@ -202,7 +202,7 @@ Legend: ✅ built · 🟡 partial · ⬛ out of scope
 dedup → spatial clustering → deterministic confidence scoring (with real Open-Meteo rainfall, read
 from this platform's own polled table) → a persisted event with a boundary polygon and a
 hash-chained audit row → live WebSocket push, and a commander can approve it through an auth-gated
-review endpoint.* That path is covered by **746 automated tests** (746 passed, 2 skipped, run
+review endpoint.* That path is covered by **948 automated tests** (948 passed, 2 skipped, run
 against a separate test database, and green with the network off), and the dashboard by 26
 browser tests.
 
@@ -354,9 +354,9 @@ INDRA/
 │   │   ├── api/                    # REST routes: dashboard, events (+ review, provenance), reports (+ official), feed, geo, alerts, audit, auth, teams, profile
 │   │   ├── core/                   # config, database (async SQLAlchemy), security (JWT/bcrypt/RBAC), demo (DEMO_MODE gate)
 │   │   ├── models/                 # SQLAlchemy ORM + enums.py (all controlled vocabularies)
-│   │   ├── services/               # pipeline, fusion_engine, dedup, geo_clustering, geocoding, weather, credibility, audit, cache, text_processing, health
-│   │   └── workers/                # report_consumer (Kafka → pipeline), station_poller (Open-Meteo), sachet_poller (CAP warnings)
-│   ├── alembic/                    # Database migrations, 0001_initial … 0010_report_submitted_by
+│   │   ├── services/               # ingest (store + outbox), kafka, hazards, pipeline, fusion_engine, dedup, geo_clustering, geocoding, weather, credibility, audit, cache, text_processing, health
+│   │   └── workers/                # report_consumer (Kafka → pipeline), outbox_relay (outbox → Kafka), station_poller (Open-Meteo), sachet_poller (CAP warnings)
+│   ├── alembic/                    # Database migrations, 0001_initial … 0014_event_filter_indexes
 │   ├── tests/                      # pytest suite — unit + integration (`-m integration` needs Docker)
 │   ├── pytest.ini                  # asyncio loop scope pinned to session
 │   └── requirements.txt            # Python dependencies

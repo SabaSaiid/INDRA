@@ -43,12 +43,21 @@ FACTORS = {
 #   TWITTER_IMD        0.50  Social posts: frequently second-hand, reshared
 #                            from elsewhere, or geotagged to the poster rather
 #                            than the incident.
+#   SOCIAL_MEDIA       0.50  The same kind of evidence from the platform it
+#                            actually came from (Mastodon, Phase 2), so the same
+#                            prior as TWITTER_IMD, for the same reasons.
+#   NEWS_MEDIA         0.55  Edited and attributed, which a post is not, but
+#                            almost always second-hand: a reporter relaying what
+#                            officials or residents said, often hours later.
+#                            Above a post, below a first-hand geotagged report.
 SOURCE_RELIABILITY: Dict[SourceType, float] = {
     SourceType.OFFICIAL_DISPATCH: 1.00,
     SourceType.CWC_GAUGE: 0.95,
     SourceType.AWS_SENSOR: 0.90,
     SourceType.CITIZEN_APP: 0.60,
+    SourceType.NEWS_MEDIA: 0.55,
     SourceType.TWITTER_IMD: 0.50,
+    SourceType.SOCIAL_MEDIA: 0.50,
 }
 
 

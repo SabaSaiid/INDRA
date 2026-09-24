@@ -1,7 +1,7 @@
 # INDRA — Bug Register
 
-**What this is:** every defect found in the backend (layers 1, 2, 3, 5, 6, 7, 8a) during the
-16–21 Sep 2026 sprint, what was done about it, and — for the ones still open — the honest sentence
+**What this is:** every defect found in the backend (layers 1, 2, 3, 5, 6, 7, 8a) since the
+16 Sep 2026 sprint began, through Phase 1 (23 Sep), what was done about it, and — for the ones still open — the honest sentence
 to say if someone asks. Nothing has been removed: rows change status, they do not disappear.
 
 **Why it is published.** A defect list is the most useful document a team can share and the one
@@ -9,7 +9,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 21 Sep 2026, after the Day 8 browser session (BUG-043, BUG-044).**
+**Last updated: 23 Sep 2026, after Phase 1 (BUG-057 … BUG-063).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1379,3 +1379,69 @@ Reading the pages. The 21 Sep suite asserted the absence of mock-data markers, s
 see invented data that arrived through a fallback; a constant typed into JSX went straight past
 it. And one more time, the rehearsal: BUG-055 appeared only on a backend started seconds earlier,
 and BUG-056 only once a change shifted an event by 150 ms.
+
+---
+
+# Day 9, the deploy — 22 Sep 2026
+
+Found while deploying PRs #28 and #29 to the team server. The full rows, with repro commands, are in
+the live register (`aditya/bug.md`).
+
+### BUG-057 — The server `.env` still had the pre-20 Sep review threshold, 0.70
+**S2** · Layer 6 / infra · **`FIXED`** on the server, 22 Sep 19:56 IST · Found by: comparing the
+server's `.env` key by key against `.env.example`
+
+`.env` beats the code default, so on the server an event scoring 0.60–0.69 was `QUARANTINED`
+instead of `PENDING_HUMAN_REVIEW`, and the official-dispatch scene (0.6065) could not reach a human.
+The rule since: **compare `.env` with `.env.example` on every deploy.**
+
+### BUG-058 — The team dashboard answered HTTP 500 on every page
+**S1** · Infra + layer 9 · **`FIXED`** on the server, 22 Sep 20:00 IST — production build
+
+`next dev` had its `.next/` deleted underneath it by a second frontend started from `start.sh`,
+whose `predev` runs `rm -rf .next`. The unit now runs `next start` on a production build. Until
+`start.sh` learns to skip the frontend: **never run plain `./start.sh` or `npm run dev` on the
+server.**
+
+### BUG-059 — The test suite reads the machine's `.env`
+**S3** · Tests · **`OPEN`**
+
+On the server one test compares `CORS_ORIGINS` with the code default and fails, because the server
+correctly adds its public origin. New tests pin the settings they depend on.
+
+---
+
+# Phase 1 — 23 Sep 2026
+
+Found while mapping the code for Phase 1 (`aditya/development/phase-1-foundation.md`), each reproduced
+on the local stack before it was fixed. Suite **746 → 948** passed, 2 skipped.
+
+### BUG-060 — A report stored while Kafka was down was never published
+**S1** · Layer 2 · **`FIXED`** by `59ce1eb`, `75bb2ef`, `c2dcc43`, `d9e7bfe`
+
+Submit stored the report, tried once to publish it, and answered 202 `queued: false`; nothing ever
+tried again, so the report was never deduplicated, clustered or scored. The 20 Sep failure drill
+recorded exactly that as a pass. The report and its message are now one transaction (an outbox), and
+a relay publishes whatever is waiting. Drilled live with Redpanda stopped: ten reports kept, all
+published 1.0 s after it restarted, one event, nothing lost (`demo-runbook.md`, Scene 5). The same
+drill found two follow-ups, fixed that day: every submit during the outage waited out the 2 s
+publish cap, and only one of ten linked reports was stamped `processed_at`.
+
+### BUG-061 — `GET /api/events?severity=foo` answered 503 "Database unavailable"
+**S2** · Layer 8a · **`FIXED`** by `92e4f54`
+
+The value went straight to Postgres, failed as an enum cast, and the handler reported the database
+error as an outage. Every filter value is now checked first; a bad one is a 422 naming the parameter.
+
+### BUG-062 — `/api/events/distribution` drew live events as a grey, raw `URBAN_FLOOD`
+**S3** · Layer 8a · **`FIXED`** by `90aadc4`
+
+Slices were named from a receipt key only the seeder writes. They are now named from the hazard
+taxonomy (`"Flood"`).
+
+### BUG-063 — One router that failed to import unmounted every route, and `/healthz` stayed green
+**S2** · Layer 8a · **`FIXED`** by `ba4358d`
+
+The ten routers were mounted inside one `try/except` that logged a warning. The app then ran with no
+`/api` routes at all while `/healthz`, defined in `main.py`, answered `healthy`. An import error now
+stops the app.
