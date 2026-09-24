@@ -1,6 +1,6 @@
 # INDRA Dashboard Repair — Report, 24 Sep 2026
 
-24 Sep 2026 · Aditya · branch `aditya_24sept_frontend` · 34 commits
+24 Sep 2026 · Aditya · branch `aditya_24sept_frontend` · 35 commits · [PR #33](https://github.com/SabaSaiid/INDRA/pull/33) · frontend issue [#34](https://github.com/SabaSaiid/INDRA/issues/34)
 
 All seven dashboard pages reported as broken are fixed on the branch, which builds cleanly. The
 biggest single cause was not a bug. The team database holds **1 report and 0 events**, so most event
@@ -81,7 +81,7 @@ Build and visual checks are done. The pytest run waits for the testing pass, per
 
 | Step | Who | Note |
 | --- | --- | --- |
-| Review and merge the PR | Frontend team + Aditya | Touches their layer; handover §16 |
+| Review and merge PR #33 | Frontend team + Aditya | Touches their layer; handover §16; issue #34 asks them |
 | Build on the Mac, then redeploy the server (API restart + frontend rebuild) | Aditya | No migration, no new `.env` key. Build with `NEXT_PUBLIC_API_BASE_URL=https://indra-sixthsense.duckdns.org` |
 | Run the three new pytest files and the full suite | Aditya | Testing pass |
 | Put events on the dashboard | Aditya | Needs real reports, or `./start.sh demo` on the server (synthetic Patna reports through the real pipeline). It was left unseeded on purpose; your call |
@@ -90,11 +90,11 @@ Build and visual checks are done. The pytest run waits for the testing pass, per
 ## WhatsApp message
 
 > *INDRA dashboard update (24 Sep)*
-> Fixed all 7 pages on branch `aditya_24sept_frontend` (PR open, 34 commits). Main finding: the team DB has only 1 report and 0 events, so the event panels were empty rather than broken. The real bugs are fixed too:
+> Fixed all 7 pages on branch `aditya_24sept_frontend` (PR #33, 35 commits). Main finding: the team DB has only 1 report and 0 events, so the event panels were empty rather than broken. The real bugs are fixed too:
 > • Dashboard: one-row KPI strip, map fills the screen, Recent Events and the Event Distribution donut show live official warnings when there are no events, Live Feed now shows reports + events + warnings in IST, Trend chart fixed
 > • Live map: full-screen frame, all of India in view, warnings refresh every 2 min
 > • Incident Events: ADVISORY filter fixed, time range picker, the review status is now the API's (BUG-070)
 > • Field Reports: place, status, event code, date for every report
 > • Analytics: live rainfall for 6 cities + warnings by agency
 > • Geospatial Feeds: LIVE/STALE status per feed
-> Frontend team: please review the PR (details in docs/frontend-handover.md §16). It goes on the server after merge.
+> Frontend team: please review PR #33 (issue #34, details in docs/frontend-handover.md §16). It goes on the server after merge.
