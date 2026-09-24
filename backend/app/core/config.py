@@ -109,6 +109,18 @@ class Settings(BaseSettings):
     DEDUP_TIME_DELTA_MINUTES: int = 15
     DEDUP_LEVENSHTEIN_THRESHOLD: float = 0.75
 
+    # ── Posts and headlines (Phase 2 T7, T8) ───────────────────────────────
+    # Their own dedup path; citizen dedup above is untouched. A post sharing an
+    # article another post or headline already shared within the link window is
+    # a re-share; the same text (cosine ≥ DEDUP_COSINE_THRESHOLD) about the same
+    # place within the text window is a copy. Either is `duplicate_of` the first.
+    FEED_DEDUP_LINK_WINDOW_HOURS: int = 72
+    FEED_DEDUP_TEXT_WINDOW_HOURS: int = 24
+    # False until Phase 3 tags hazards: every cluster is still URBAN_FLOOD, so a
+    # headline about a Delhi heatwave would otherwise become a Delhi flood.
+    # Posts are stored, deduplicated and shown; they are not clustered.
+    SOCIAL_CLUSTERING_ENABLED: bool = False
+
     DBSCAN_EPS_KM: float = 5.0
     DBSCAN_MIN_SAMPLES: int = 2
     H3_HEX_RESOLUTION: int = 8
