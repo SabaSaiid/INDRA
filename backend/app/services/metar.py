@@ -28,11 +28,13 @@ observer saw: `… BECMG 5000 HZ` says haze is expected, and must not be stored
 as present weather.
 
 Present weather is normalised into a list, one entry per descriptor and per
-phenomenon, with intensity carried on the phenomenon:
+phenomenon, with intensity carried on the phenomenon it qualifies
+(precipitation, DS, SS, FC; never mist, haze, fog or smoke):
 
     HZ      → ["HZ"]            -RA    → ["RA-"]
     +TSRA   → ["TS", "RA+"]     SHRA   → ["SH", "RA"]
     TSGR    → ["TS", "GR"]      VCTS   → ["VCTS"]   (in the vicinity, not overhead)
+    -RABR   → ["RA-", "BR"]     +DS    → ["DS+"]
 """
 
 import csv
@@ -71,6 +73,11 @@ _PHENOMENA = (
     "BR", "FG", "FU", "VA", "DU", "SA", "HZ", "PY",             # obscuration
     "PO", "SQ", "FC", "SS", "DS",                               # other
 )
+# What an intensity sign (+ or -) can qualify: precipitation, and the three
+# phenomena that have a "heavy" form (+DS heavy dust storm, +SS, +FC tornado).
+# Obscurations never take one: in "-RABR" the rain is light and the mist is
+# just mist.
+_TAKES_INTENSITY = {"DZ", "RA", "SN", "SG", "IC", "PL", "GR", "GS", "UP", "DS", "SS", "FC"}
 _WEATHER_RE = re.compile(
     r"^(\+|-|VC)?((?:" + "|".join(_DESCRIPTORS) + r"))?((?:" + "|".join(_PHENOMENA) + r")*)$"
 )
@@ -134,7 +141,7 @@ def normalise_weather(token: str) -> Optional[List[str]]:
         codes.append(descriptor)
     suffix = prefix if prefix in {"+", "-"} else ""
     if parts:
-        codes.extend(p + suffix for p in parts)
+        codes.extend(p + suffix if p in _TAKES_INTENSITY else p for p in parts)
     elif suffix:
         # A lone descriptor with intensity, e.g. "+TS": heavy thunderstorm.
         codes[-1] = codes[-1] + suffix
