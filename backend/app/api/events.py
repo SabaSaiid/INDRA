@@ -279,42 +279,26 @@ def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
     return item
 
 
-@router.get("")
-async def list_events(
-    response: Response,
-    date_from: Optional[str] = Query(
-        None, alias="from",
-        description="From this date (YYYY-MM-DD, an IST day) or ISO 8601 timestamp, inclusive",
-    ),
-    date_to: Optional[str] = Query(
-        None, alias="to",
-        description="To this date (YYYY-MM-DD, an IST day, inclusive) or ISO 8601 timestamp",
-    ),
-    event_type: Optional[str] = Query(None, description="Comma-separated event types, e.g. HEATWAVE,FOG"),
-    family: Optional[str] = Query(None, description="Comma-separated: water, convective, thermal, visibility"),
-    review_status: Optional[str] = Query(
-        None, description="Comma-separated review statuses; REJECTED is shown only when named"
-    ),
-    severity: Optional[str] = Query(None, description="Comma-separated: ADVISORY, MODERATE, HIGH, CRITICAL"),
-    state: Optional[str] = Query(None, max_length=120, description="Exact state name, any case"),
-    district: Optional[str] = Query(None, max_length=120, description="Exact district name, any case"),
-    source_type: Optional[str] = Query(
-        None, description="Comma-separated; events with at least one report from these sources"
-    ),
-    min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
-    time_range: Optional[str] = Query(None, description="Time range: 24h, 48h, 7d"),
-    bbox: Optional[str] = Query(None, description="Bounding box: min_lng,min_lat,max_lng,max_lat"),
-    q: Optional[str] = Query(None, max_length=100, description="Search the event code, district and state"),
-    include: Optional[str] = Query(None, description="boundary: add boundary_geojson to each event"),
-    sort: str = Query("verified_at:desc", description="verified_at, confidence or severity, then :asc or :desc"),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
-):
+def event_conditions(
+    *,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    event_type: Optional[str] = None,
+    family: Optional[str] = None,
+    review_status: Optional[str] = None,
+    severity: Optional[str] = None,
+    state: Optional[str] = None,
+    district: Optional[str] = None,
+    source_type: Optional[str] = None,
+    min_confidence: Optional[float] = None,
+    time_range: Optional[str] = None,
+    bbox: Optional[str] = None,
+    q: Optional[str] = None,
+) -> Tuple[List[str], Dict[str, Any]]:
     """
-    List verified events for the map, the Recent Weather Events panel and the
-    filter bar. The body is a list; the number of matching events is in the
-    X-Total-Count header.
+    The WHERE conditions and bound parameters for GET /api/events' filters, over
+    `verified_events`. Shared with GET /api/events/export (Phase 2 T10), so a
+    download is exactly the list the analyst was looking at. Raises the 422s.
     """
     conditions: List[str] = []
     params: Dict[str, Any] = {}
@@ -402,6 +386,53 @@ async def list_events(
             "(event_code ILIKE :q ESCAPE '\\' OR district ILIKE :q ESCAPE '\\' OR state ILIKE :q ESCAPE '\\')"
         )
         params["q"] = _like(q.strip())
+
+    return conditions, params
+
+
+@router.get("")
+async def list_events(
+    response: Response,
+    date_from: Optional[str] = Query(
+        None, alias="from",
+        description="From this date (YYYY-MM-DD, an IST day) or ISO 8601 timestamp, inclusive",
+    ),
+    date_to: Optional[str] = Query(
+        None, alias="to",
+        description="To this date (YYYY-MM-DD, an IST day, inclusive) or ISO 8601 timestamp",
+    ),
+    event_type: Optional[str] = Query(None, description="Comma-separated event types, e.g. HEATWAVE,FOG"),
+    family: Optional[str] = Query(None, description="Comma-separated: water, convective, thermal, visibility"),
+    review_status: Optional[str] = Query(
+        None, description="Comma-separated review statuses; REJECTED is shown only when named"
+    ),
+    severity: Optional[str] = Query(None, description="Comma-separated: ADVISORY, MODERATE, HIGH, CRITICAL"),
+    state: Optional[str] = Query(None, max_length=120, description="Exact state name, any case"),
+    district: Optional[str] = Query(None, max_length=120, description="Exact district name, any case"),
+    source_type: Optional[str] = Query(
+        None, description="Comma-separated; events with at least one report from these sources"
+    ),
+    min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
+    time_range: Optional[str] = Query(None, description="Time range: 24h, 48h, 7d"),
+    bbox: Optional[str] = Query(None, description="Bounding box: min_lng,min_lat,max_lng,max_lat"),
+    q: Optional[str] = Query(None, max_length=100, description="Search the event code, district and state"),
+    include: Optional[str] = Query(None, description="boundary: add boundary_geojson to each event"),
+    sort: str = Query("verified_at:desc", description="verified_at, confidence or severity, then :asc or :desc"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List verified events for the map, the Recent Weather Events panel and the
+    filter bar. The body is a list; the number of matching events is in the
+    X-Total-Count header.
+    """
+    conditions, params = event_conditions(
+        date_from=date_from, date_to=date_to, event_type=event_type, family=family,
+        review_status=review_status, severity=severity, state=state, district=district,
+        source_type=source_type, min_confidence=min_confidence, time_range=time_range,
+        bbox=bbox, q=q,
+    )
 
     includes = _csv("include", include, INCLUDES, normalise=str.lower) or []
     include_boundary = "boundary" in includes
