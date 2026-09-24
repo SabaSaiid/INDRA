@@ -94,6 +94,9 @@ class GeoClusteringService:
                     WHERE event_id IS NULL
                       AND duplicate_of IS NULL
                       AND geom_point IS NOT NULL
+                      -- A state centroid has no geometry anyway; this also
+                      -- keeps a hand-edited row from sneaking one in.
+                      AND COALESCE(place_precision, 'gps') IN ('gps', 'district')
                     ORDER BY created_at, id
                 """)
             )
@@ -231,12 +234,15 @@ class GeoClusteringService:
         try:
             import h3
 
+            # GPS fixes only: a centroid's cell would claim a 0.46 km hexagon
+            # for a post that named a whole district (see ingest._h3_cell).
             query = text("""
                 SELECT id, latitude, longitude
                 FROM raw_reports
                 WHERE h3_res8 IS NULL
                   AND latitude IS NOT NULL
                   AND longitude IS NOT NULL
+                  AND COALESCE(place_precision, 'gps') = 'gps'
             """)
             result = await self.db.execute(query)
             rows = result.fetchall()
@@ -267,6 +273,8 @@ class GeoClusteringService:
             WHERE geom_point IS NULL
               AND latitude IS NOT NULL
               AND longitude IS NOT NULL
+              -- Never backfill a state centroid into a point (migration 0015).
+              AND COALESCE(place_precision, 'gps') IN ('gps', 'district')
         """))
         await self.db.commit()
         count = result.rowcount or 0
