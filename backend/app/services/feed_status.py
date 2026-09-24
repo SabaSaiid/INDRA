@@ -86,6 +86,10 @@ FEEDS: List[Feed] = [
     # made in the last day", which is what an airport network is judged on.
     Feed("metar", "station", "Airport weather (METAR)", "station_readings", "recorded_at",
          "feed = 'metar'", "METAR_POLLER_ENABLED", "METAR_POLL_INTERVAL_SECONDS"),
+    # Counted on created_at, when INDRA collected the post: a first run stores
+    # weeks-old posts, which are real rows collected today.
+    Feed("mastodon", "social", "Mastodon #IMD posts", "raw_reports", "created_at",
+         "platform = 'mastodon'", "MASTODON_POLLER_ENABLED", "MASTODON_POLL_INTERVAL_SECONDS"),
 ]
 
 FEEDS_BY_NAME: Dict[str, Feed] = {f.feed: f for f in FEEDS}

@@ -145,6 +145,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"METAR poller startup skipped (non-fatal): {e}")
 
+    # Phase 2 T4: posts tagged #IMD and other weather hashtags, from Mastodon.
+    mastodon_task = None
+    try:
+        from app.workers.mastodon_poller import start_mastodon_poller
+        mastodon_task = asyncio.create_task(start_mastodon_poller())
+    except Exception as e:
+        logger.warning(f"Mastodon poller startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
@@ -183,7 +191,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    for task in (metar_task,):
+    for task in (metar_task, mastodon_task):
         if task:
             task.cancel()
             try:
