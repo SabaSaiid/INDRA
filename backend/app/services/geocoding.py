@@ -641,6 +641,8 @@ _STATE_ALIASES: Dict[str, str] = {
     "मणिपुर": "Manipur", "मिजोरम": "Mizoram", "नागालैंड": "Nagaland",
     "त्रिपुरा": "Tripura", "अरुणाचल प्रदेश": "Arunachal Pradesh",
     "लद्दाख": "Ladakh",
+    # How Hindi headlines abbreviate: "यूपी में मानसून की री-एंट्री".
+    "यूपी": "Uttar Pradesh", "एमपी": "Madhya Pradesh",
 }
 
 # Written in capitals as standalone tokens, and matched only so: "up" and "ap"
