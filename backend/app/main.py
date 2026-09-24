@@ -161,6 +161,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Google News poller startup skipped (non-fatal): {e}")
 
+    # Phase 2 T9: every message on the report stream, archived raw to the lake
+    # by a second consumer group. Off unless the object store is configured.
+    archiver_task = None
+    try:
+        from app.workers.lake_archiver import start_lake_archiver
+        archiver_task = asyncio.create_task(start_lake_archiver())
+    except Exception as e:
+        logger.warning(f"Lake archiver startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
@@ -199,7 +208,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    for task in (metar_task, mastodon_task, news_task):
+    for task in (metar_task, mastodon_task, news_task, archiver_task):
         if task:
             task.cancel()
             try:
