@@ -220,7 +220,8 @@ _INSERT_REPORT = text("""
     INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8,
                              district, state, media_url, credibility_score, analysis, submitted_by,
                              observed_at, reporter_hash, citizen_hazard, docket,
-                             platform, external_id, source_meta, place_precision)
+                             platform, external_id, source_meta, place_precision,
+                             hazard_primary, hazard_family, flags)
     VALUES (
         :id, :source_type, :raw_text, CAST(:lat AS double precision), CAST(:lng AS double precision),
         CASE WHEN :with_geom
@@ -228,7 +229,8 @@ _INSERT_REPORT = text("""
         END,
         :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by,
         COALESCE(CAST(:observed_at AS timestamptz), NOW()), :reporter_hash, :citizen_hazard, :docket,
-        :platform, :external_id, CAST(:source_meta AS jsonb), :place_precision
+        :platform, :external_id, CAST(:source_meta AS jsonb), :place_precision,
+        :hazard_primary, :hazard_family, CAST(:flags AS text[])
     )
     -- A poller that sees the same post twice stores it once (Phase 2 T4). The
     -- target is the partial unique index from 0012; a citizen report has no
@@ -342,6 +344,11 @@ async def store_report(
         "source_meta": json.dumps(source_meta) if source_meta is not None else None,
         "place_precision": place_precision,
         "with_geom": has_point and place_precision in GEOMETRY_PRECISIONS,
+        # Phase 3 (0017). NULL when the analysis failed, exactly as a report
+        # whose text names no hazard: clustering treats both as untagged.
+        "hazard_primary": (analysis or {}).get("hazard_primary"),
+        "hazard_family": (analysis or {}).get("hazard_family"),
+        "flags": list((analysis or {}).get("flags") or []),
     }
 
     for attempt in range(1, _DOCKET_ATTEMPTS + 1):
