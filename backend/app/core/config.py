@@ -202,6 +202,32 @@ class Settings(BaseSettings):
                 out.append(tag)
         return out
 
+    # ── Google News poller (layer 1, Phase 2 T5: weather headlines) ────────
+    # The RSS search feed, no key. Headline, link and publisher only; never the
+    # article. Queries are comma-separated, in English and in Hindi. Off by
+    # default.
+    NEWS_POLLER_ENABLED: bool = False
+    NEWS_RSS_URL: str = "https://news.google.com/rss/search"
+    NEWS_QUERIES_EN: str = (
+        "IMD warning,IMD heavy rain,heatwave India,dense fog India,dust storm India,"
+        "thunderstorm lightning India,cloudburst,cyclone IMD,flood India,cold wave India"
+    )
+    NEWS_QUERIES_HI: str = "भारी बारिश,लू,कोहरा,आंधी"
+    NEWS_POLL_INTERVAL_SECONDS: int = 900
+    NEWS_REQUEST_DELAY_SECONDS: float = 2.0
+    NEWS_TIMEOUT_SECONDS: float = 15.0
+    # An item already older than this when first seen is stored as stale and
+    # never clustered: it describes a day that is over.
+    NEWS_STALE_AFTER_HOURS: int = 48
+
+    @property
+    def news_queries(self) -> list[tuple[str, str]]:
+        """(language, query) pairs, English first."""
+        out = []
+        for lang, raw in (("en", self.NEWS_QUERIES_EN), ("hi", self.NEWS_QUERIES_HI)):
+            out.extend((lang, q.strip()) for q in raw.split(",") if q.strip())
+        return out
+
     # How fresh and how near a stored reading must be for the weather factor to
     # prefer it over a live fetch.
     #
