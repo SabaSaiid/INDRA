@@ -6,28 +6,104 @@ marker so `pytest -m "not integration"` stays runnable on a machine with no
 Docker.
 
 **The suite never touches the dev database.** Integration fixtures truncate
-audit_logs, raw_reports and verified_events, so they run against a separate
-`indra_test` database on the same container. `app.core.database` builds its
-engine at import time from DATABASE_URL, so the override below has to happen
-before *any* `app.` import — including the ones further down this file.
+audit_logs, raw_reports and verified_events and overwrite the accounts'
+password hashes, so they run against a separate `indra_test` database on the
+same container. `app.core.database` builds its engine at import time from
+DATABASE_URL, so the override below has to happen before *any* `app.` import —
+including the ones further down this file.
+
+Before the override, on every run (integration or not), the test URL must name
+a database called indra_test or indra_test_<suffix>, on this machine unless
+INDRA_ALLOW_REMOTE_TEST_DB=1, and not the database DATABASE_URL names (from the
+environment, else the .env files the backend reads). Anything else stops the
+run before a single connection is made.
 """
 
 import os
+import re
+from pathlib import Path
+
+import pytest
+from sqlalchemy.engine import make_url
+
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+# The files core/config.py reads, in its order: the later one wins.
+_ENV_FILES = (_BACKEND_DIR.parent / ".env", _BACKEND_DIR / ".env")
+
+TEST_DATABASE_NAME = re.compile(r"^indra_test(_[a-z0-9]+)?$")
+LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+
+
+def _dotenv(key: str):
+    """key's value in the backend's .env files, without importing the app."""
+    value = None
+    for path in _ENV_FILES:
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            name, sep, raw = line.strip().removeprefix("export ").partition("=")
+            if sep and name.strip() == key:
+                raw = raw.strip()
+                if raw[:1] in ("'", '"'):
+                    value = raw[1:].split(raw[0], 1)[0]
+                else:
+                    value = raw.split(" #", 1)[0].strip()
+    return value or None
+
+
+def _where(url):
+    host = "loopback" if (url.host or "localhost") in LOOPBACK else url.host
+    return host, url.port or 5432, url.database
+
+
+def _describe(url: str) -> str:
+    """host:port/database. Never the password in the URL."""
+    u = make_url(url)
+    return f"{u.host}:{u.port or 5432}/{u.database}"
+
+
+def database_refusal(test_url: str, dev_url, allow_remote: bool = False) -> str:
+    """Why the suite must not run against test_url, or "" when it may."""
+    test = make_url(test_url)
+    if not TEST_DATABASE_NAME.match(test.database or ""):
+        return f"the database {test.database!r} is not indra_test or indra_test_<suffix>"
+    if not allow_remote and (test.host or "localhost") not in LOOPBACK:
+        return f"{test.host!r} is not this machine (INDRA_ALLOW_REMOTE_TEST_DB=1 allows it)"
+    if dev_url and _where(test) == _where(make_url(dev_url)):
+        return "it is the database DATABASE_URL names, the one the backend itself uses"
+    return ""
+
+
+def refuse_unless_test_database_name(name) -> None:
+    """For a live connection: raise unless Postgres says it is a test database."""
+    if not TEST_DATABASE_NAME.match(name or ""):
+        raise RuntimeError(f"refusing to touch {name!r}: it is not indra_test or indra_test_<suffix>")
+
 
 # Must stay above every app import. See the module docstring.
-TEST_DATABASE_URL = os.environ.get(
-    "TEST_DATABASE_URL",
-    "postgresql+asyncpg://indra_user:indra_password@localhost:5433/indra_test",
+TEST_DATABASE_URL = (
+    os.environ.get("TEST_DATABASE_URL")
+    or _dotenv("TEST_DATABASE_URL")
+    or "postgresql+asyncpg://indra_user:indra_password@localhost:5433/indra_test"
 )
+_DEV_DATABASE_URL = os.environ.get("DATABASE_URL") or _dotenv("DATABASE_URL")
+_refusal = database_refusal(
+    TEST_DATABASE_URL, _DEV_DATABASE_URL, os.environ.get("INDRA_ALLOW_REMOTE_TEST_DB") == "1"
+)
+if _refusal:
+    raise pytest.UsageError(
+        f"refusing to run the suite against {_describe(TEST_DATABASE_URL)}: {_refusal}. "
+        "TEST_DATABASE_URL chooses the suite's database (default localhost:5433/indra_test)."
+    )
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 import asyncio
 import subprocess
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
-import pytest
 import pytest_asyncio
 
 from app.services.dedup import DedupService, _get_embedding_model
@@ -36,17 +112,14 @@ from app.services.fusion_engine import FusionEngine
 
 # ── Test database bootstrap ────────────────────────────────────────────────────
 
-_BACKEND_DIR = Path(__file__).resolve().parents[1]
-
-
 async def _ensure_test_database(url: str) -> None:
     """Create the test database (with PostGIS) if it does not exist yet."""
     import asyncpg
-    from sqlalchemy.engine import make_url
 
+    refusal = database_refusal(url, _DEV_DATABASE_URL, os.environ.get("INDRA_ALLOW_REMOTE_TEST_DB") == "1")
+    if refusal:
+        raise RuntimeError(f"refusing to use {_describe(url)} as the test database: {refusal}")
     u = make_url(url)
-    if not u.database or u.database == "indra_db":
-        raise RuntimeError(f"refusing to use {u.database!r} as the test database")
 
     conn_args = dict(
         user=u.username, password=u.password, host=u.host, port=u.port, timeout=5
@@ -106,13 +179,13 @@ TEST_ACCOUNTS = {
 async def _set_test_passwords(url: str) -> None:
     import asyncpg
     import bcrypt
-    from sqlalchemy.engine import make_url
 
     u = make_url(url)
     conn = await asyncpg.connect(
         user=u.username, password=u.password, host=u.host, port=u.port, database=u.database, timeout=5
     )
     try:
+        refuse_unless_test_database_name(await conn.fetchval("SELECT current_database()"))
         for username, (password, *_rest) in TEST_ACCOUNTS.items():
             # Cost 4, not the default 12: a test login need not be slow to be real.
             hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=4)).decode()
@@ -259,6 +332,7 @@ async def wipe_event_tables(session) -> None:
     """
     from sqlalchemy import text
 
+    refuse_unless_test_database_name((await session.execute(text("SELECT current_database()"))).scalar())
     await session.execute(text("TRUNCATE audit_logs"))
     # The outbox holds each report's message; a test that counts unpublished
     # rows must not see the last test's.
