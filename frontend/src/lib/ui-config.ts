@@ -393,37 +393,13 @@ export const teamAgencyConfig: Record<string, { label: string; color: string; bg
   MUNICIPAL: { label: 'Municipal', color: '#4F46E5', bg: '#EEF2FF', border: '#A5B4FC' },
 };
 /**
- * Rendering placeholder for the operator chrome (sidebar footer, topbar chip)
- * while `/api/profile/me` has not answered, or could not be reached.
- *
- * **This is not a fake operator and must never be mistaken for one.** Every
- * visible field is an em-dash or an explicit "unavailable" string, so a viewer
- * sees that the identity is missing rather than reading a plausible name and
- * badge number that belong to nobody. It exists only so the layout does not
- * collapse; the moment the backend answers it is replaced.
- */
-export const PLACEHOLDER_OPERATOR: UserProfile = {
-  id: '',
-  username: '',
-  full_name: 'Operator unavailable',
-  role: '—',
-  agency: '—',
-  operator_id: '—',
-  badge_number: '—',
-  callsign: '—',
-  duty_status: 'OFF_DUTY',
-  avatar_initials: '—',
-};
-
-/**
  * What each role may actually do, transcribed from the backend's enforced auth
  * matrix (`backend/tests/test_auth_enforcement.py` and, since 22 Sep,
  * `test_mutation_auth.py`, `test_official_ingest.py` and `test_audit_api.py`).
  *
  * Everything below is a statement about behaviour the backend really enforces.
  *
- * Session expiry is the real JWT lifetime (`JWT_EXPIRY_HOURS = 8`, HS256).
- * Ledger immutability is real too: `services/audit.py` hash-chains every
+ * Session expiry is read from the signed-in session's token. Ledger immutability is real too: `services/audit.py` hash-chains every
  * decision with SHA-256 and `GET /api/events/{id}/provenance` verifies the
  * chain from genesis.
  */
@@ -471,7 +447,5 @@ export const ROLE_CAPABILITIES: Record<string, RoleCapability[]> = {
   ],
 };
 
-/** HS256, 8 h — `JWT_EXPIRY_HOURS` in backend/app/core/config.py. */
-export const SESSION_TOKEN_LIFETIME = '8 h · HS256';
 /** services/audit.py chains every decision; provenance verifies from genesis. */
 export const LEDGER_IMMUTABILITY = 'SHA-256 hash chain';
