@@ -27,6 +27,7 @@ import {
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { useSidebar } from '@/lib/useSidebar';
+import { useSession } from '@/lib/auth';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import {
   fetchHealth,
@@ -78,6 +79,10 @@ export default function AdminPage() {
   const [ledger, setLedger] = useState<AuditLedger | null>(null);
   const [ledgerError, setLedgerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // The ledger needs an Analyst, Commander or Admin session, so it is read
+  // again whenever this tab signs in or out.
+  const session = useSession();
+  const sessionToken = session?.accessToken ?? null;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,7 +107,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, sessionToken]);
 
   const overall = health ? STATUS_STYLE[health.status] ?? STATUS_STYLE.unhealthy : null;
 
@@ -233,7 +238,11 @@ export default function AdminPage() {
                 Access control
               </h2>
               <ul className="space-y-1.5 text-xs text-slate-600 list-disc pl-4">
-                <li>Bearer JWT (HS256, 8-hour expiry) from POST /api/auth/token.</li>
+                <li>
+                  Operators sign in with a username and password (POST /api/auth/token) and get a
+                  Bearer JWT (HS256, 8-hour expiry). The dashboard keeps only that token, for this
+                  browser tab, never the password.
+                </li>
                 <li>
                   Every write is role-checked: reviewing an event, dispatching a team and filing an
                   official report need a Commander or Admin; editing a profile needs its owner.
@@ -241,8 +250,9 @@ export default function AdminPage() {
                 <li>Reading provenance and this ledger needs an Analyst, Commander or Admin.</li>
                 <li>Dashboard reads are open. There is no MFA.</li>
                 <li>
-                  Demo accounts only; their passwords are part of the dashboard&apos;s persona
-                  switcher, so the gate demonstrates roles and attribution, not secrecy.
+                  Accounts are the rows of user_profiles. A password is stored only as a bcrypt hash
+                  and is set on the server with scripts/set_operator_password.py; an account with no
+                  password cannot sign in.
                 </li>
               </ul>
             </div>
