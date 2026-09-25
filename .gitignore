@@ -59,6 +59,7 @@ venv.bak/
 node_modules/
 .next/
 .next-verify/
+.next-e2e/
 out/
 npm-debug.log*
 yarn-debug.log*
