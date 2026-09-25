@@ -1658,9 +1658,10 @@ record. Commits `ddeef6e`, `c8e8025`, `36d231b`.
 Aditya asked for every demo, invented, placeholder and synthetic value to be **removed** from the
 application, not switched off, keeping the real feeds, the real datasets and the honestly labelled
 test fixtures. A read-only audit of every layer, the dashboard included, found the rows below. Each
-is fixed on the branch, one commit per change; the dashboard's share is written up for its owners in
-[`frontend-handover.md`](frontend-handover.md) §19. The tests are named per row; the whole backend
-suite and the browser suite are re-run in the testing pass that follows the code.
+is fixed on the branch, one commit per change, unless its status says otherwise; the dashboard's
+share is written up for its owners in [`frontend-handover.md`](frontend-handover.md) §19. The tests
+are named per row; the whole backend suite and the browser suite are re-run in the testing pass that
+follows the code.
 
 ### BUG-093 — The dashboard shipped four passwords and signed every visitor in as the commander
 **S1** · Layers 8a, 9 · **`FIXED`** by `891b95a`, `252033b`, `b262ec5`, `7da3156` (backend, scripts),
@@ -1709,7 +1710,8 @@ snap and the fixed point are gone, so such a report is a 422, and the map plots 
 the API sent, labelling reports as unrated citizen reports.
 
 ### BUG-097 — The browser suite wrote "E2E probe" reports into the live `indra_db`
-**S2** · Test infrastructure · **`FIXED`** by `4016a72`, `2cb7dbb` and the E2E-mode commits
+**S2** · Test infrastructure · **`FIXED`** by `6390492` (E2E mode), `4016a72` (`make e2e-backend`),
+`8b839ee` (Playwright's guard), `2cb7dbb` · Test: `test_e2e_identity.py`
 
 `e2e/dashboard-live-data.spec.ts` posted its probe to whatever `E2E_API_URL` named, `:8000` by
 default, so the probes were stored, published and clustered in the development database; four of
@@ -1726,15 +1728,16 @@ Google Generative AI", with alt text saying they showed the event at its place. 
 tile (colour and icon) that makes no claim about the place; the photos are deleted.
 
 ### BUG-099 — Demo and test rows committed in `data/live/`
-**S3** · Layer 7 · **`FIXED`** by `047c1e3`, `5f3aa85` and the snapshot cleanup
+**S3** · Layer 7 · **`IN-PROGRESS`** — the exporter is fixed by `047c1e3`, `5f3aa85`; the rows are
+not yet deleted from the snapshot
 
 The snapshot held the five Patna reports `run_patna_demo.py` posted on 20 Sep, four Playwright
-probes, the event `INDRA-20260920-001` they formed and its audit row, none marked as test data.
-Fix: those rows are deleted from the CSVs and `indra_live.db`; the exporter no longer claims nothing
-is seeded and never writes password hashes.
+probes, the event `INDRA-20260920-001` the five formed and its audit row, none marked as test data.
+Fix: the exporter no longer claims nothing is seeded and never writes password hashes. Deleting those
+rows from the CSVs and `indra_live.db` is the remaining step; this row is `FIXED` with that commit.
 
 ### BUG-100 — `DEMO_MODE`, the `DEMO_*` payloads and the demo scripts removed, not switched off
-**S3** · Layers 2, 8a, 9, `scripts/` · **`FIXED`** by `2c20b97`, `a32c995`, `ae45bd5`, `02bec4b`,
+**S3** · Layers 8a, 9, `scripts/` · **`FIXED`** by `2c20b97`, `a32c995`, `ae45bd5`, `02bec4b`,
 `a0eac46`, `7351243` · Test: `test_empty_and_unavailable.py`
 
 Off by default since 20 Sep (BUG-024), the fallback still sat one `.env` line away (BUG-045). Deleted:
