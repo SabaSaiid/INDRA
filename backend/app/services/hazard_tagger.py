@@ -85,8 +85,9 @@ tomorrow" is evidence, not a forecast. "Kal" is both yesterday and tomorrow in
 Hindi, so it sets nothing.
 
 Measured, not asserted: `scripts/measure_hazard_tagger.py` scores this module
-on `tests/fixtures/hazards_v1.csv` (a frozen held-out split) and on 100 real
-posts collected from 24 Sep, and writes `hazard_tagger_metrics.json`.
+on `tests/fixtures/hazards_v1.csv` (a frozen held-out split) and, once
+`tests/fixtures/hazards_real_v1.csv` has been sampled and labelled, on 100 real
+posts; it writes `hazard_tagger_metrics.json` (not generated yet).
 """
 
 import re

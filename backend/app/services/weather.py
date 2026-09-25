@@ -11,7 +11,7 @@ event's location support a flood report?
   not a rain-gauge reading — the receipt's evidence line says so.
 * **Curve.** Accumulated 24 h rainfall is scored against IMD's own daily
   rainfall categories, so every breakpoint is a published threshold rather than
-  a number picked for the demo. See RAINFALL_CURVE.
+  a hand-picked number. See RAINFALL_CURVE.
 * **Cache.** One entry per H3 res-8 cell for 10 minutes, in Redis under
   `wx:{cell}` and in process memory when Redis is down (`services/cache.py`). A
   flood cluster sends many reports from the same few cells in quick succession;

@@ -70,7 +70,7 @@ async def check_database() -> bool:
     **healthy** against a database with no `raw_reports` table at all. The first
     citizen report then failed with a 503 and `UndefinedTableError`. A health check
     that goes green on a schemaless database is telling the operator the one thing
-    they must not be told before a demo.
+    they must not be told before going live.
 
     So this also confirms the table the whole platform writes to actually exists.
     It is a catalogue lookup, not a table scan, so it costs nothing.

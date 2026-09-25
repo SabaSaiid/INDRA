@@ -7,7 +7,7 @@ Open-Meteo — which meant layer 1 had no feed on a schedule and layer 7 had no
 historical table with anything in it.
 
 This task closes both. Every STATION_POLL_INTERVAL_SECONDS it reads Open-Meteo's
-accumulated 24 h precipitation for the demo cities and writes one row each:
+accumulated 24 h precipitation for the points in STATIONS and writes one row each:
 
     station_code    OM-PATNA, OM-DELHI, …
     agency          OPEN_METEO          — never IMD or CWC; there is no feed for
@@ -26,7 +26,7 @@ The task never takes the app down. Every tick is wrapped; a failure logs one
 WARNING and the next tick retries. With STATION_POLLER_ENABLED=false nothing is
 started and nothing else changes.
 
-Single process only, like the rest of the demo stack: two backends polling would
+Single process only, like the rest of this deployment: two backends polling would
 write each reading twice. That is the same rule already recorded for the Kafka
 consumer (BUG-011).
 """
@@ -50,8 +50,9 @@ settings = get_settings()
 # a live one if it measures the same window.
 LOOKBACK_HOURS = 24
 
-# The same six cities scripts/burst_reports.py uses, so a demo and a poll talk
-# about the same places. (lat, lng).
+# Six fixed city-centre points (lat, lng), each read from Open-Meteo every tick.
+# Nowhere else has a stored reading; the weather factor fetches live for any
+# other location.
 STATIONS: Dict[str, Tuple[float, float]] = {
     "Patna": (25.5941, 85.1376),
     "Delhi": (28.6139, 77.2090),

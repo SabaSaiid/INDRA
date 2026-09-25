@@ -144,10 +144,10 @@ class Settings(BaseSettings):
     WEATHER_TIMEOUT_SECONDS: float = 3.0
 
     # ── Station poller (layer 1: the one scheduled external feed) ──────────
-    # Every interval, Open-Meteo 24 h accumulated precipitation for the demo
-    # cities is written to station_readings. Off means no task is started and the table
-    # stays empty; the weather factor then fetches live per event, exactly as it
-    # did before Day 6.
+    # Every interval, Open-Meteo 24 h accumulated precipitation for the points in
+    # workers/station_poller.STATIONS is written to station_readings. Off means
+    # no task is started and the table stays empty; the weather factor then
+    # fetches live per event, exactly as it did before Day 6.
     STATION_POLLER_ENABLED: bool = True
     STATION_POLL_INTERVAL_SECONDS: int = 600
 

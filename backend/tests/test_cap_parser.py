@@ -1,12 +1,13 @@
 """
 The SACHET CAP parser — layer 1's official-warning feed.
 
-Every fixture in `tests/fixtures/` is a **real payload captured from the live
-NDMA feed on 21 Sep 2026**, not a hand-written approximation. That matters: the
-two defects this parser is most likely to have — swapped polygon coordinates and
-namespace-sensitive tag matching — both look fine against a fixture written by
-the same person who wrote the parser, because the assumption gets baked into
-both. A captured payload does not share the assumption.
+The SACHET fixtures (`tests/fixtures/sachet_*.xml`) are **real payloads
+captured from the live NDMA feed on 21 Sep 2026**, not hand-written
+approximations. That matters: the two defects this parser is most likely to
+have — swapped polygon coordinates and namespace-sensitive tag matching — both
+look fine against a fixture written by the same person who wrote the parser,
+because the assumption gets baked into both. A captured payload does not share
+the assumption.
 
 The Gujarat alert used throughout covers Navsari / The Dangs / Valsad, and its
 first real vertex is `21.068749,72.796081` — southern Gujarat. If the parser ever

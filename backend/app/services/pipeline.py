@@ -1138,7 +1138,8 @@ async def _next_event_code(db: AsyncSession) -> str:
 
     Derived from the count of events already created today. Two events created
     in the same millisecond could collide; event_code is UNIQUE so the insert
-    would fail loudly rather than corrupt anything. Fine at demo volume.
+    would fail loudly rather than corrupt anything. Acceptable at
+    single-process volume.
     """
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
     count = (
@@ -1292,7 +1293,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             # hard way: GET /api/events timed out completely, then answered in
             # 0.03 s once the model was in memory. Nothing could be served in that
             # window: not the API, not /healthz, not the WebSocket, on a cold start,
-            # which is exactly when a demo begins.
+            # which is exactly when the first operators connect.
             #
             # to_thread fixes the class of problem rather than the first instance —
             # every dedup check was serialising the loop for its own duration, not
