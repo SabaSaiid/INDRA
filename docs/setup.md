@@ -232,12 +232,14 @@ migrates it to head, gives every account there the password in `E2E_OPERATOR_PAS
 has a default that only ever exists in that database), and starts the API with `ENVIRONMENT=e2e`
 on its own Kafka topics (`indra.e2e.*`), consumer group, Redis database (15) and media bucket,
 with every poller and the lake archive off. In that mode the backend refuses to start unless its
-database name ends in `_e2e`, its topics start with `indra.e2e.` and its consumer group with
-`indra-e2e-`, and it answers `GET /api/e2e/identity`; in every other mode that route is a `404`.
+database name ends in `_e2e`, its topics start with `indra.e2e.`, its consumer group with
+`indra-e2e-` and the lake archive is off, and it answers `GET /api/e2e/identity`; in every other
+mode that route is a `404`.
 
 Playwright refuses to run unless `E2E_API_URL` is set to a loopback address that is not port
-8000, `/api/e2e/identity` reports `environment: "e2e"` and a database ending in `_e2e` equal to
-`E2E_EXPECT_DB` (default `indra_e2e`), and `/healthz` reports the database up. It builds the
+8000, `/api/e2e/identity` reports `environment: "e2e"`, a database ending in `_e2e` equal to
+`E2E_EXPECT_DB` (default `indra_e2e`), an `indra.e2e.*` topic and an `indra-e2e-*` consumer group,
+and `/healthz` reports the database up. It builds the
 dashboard with `NEXT_PUBLIC_API_BASE_URL` pointed at that backend, into `.next-e2e` so the
 development build is left alone. **The specs cannot write into `indra_db`.** `make e2e-reset`
 (`./start.sh e2e-reset`) drops and recreates `indra_e2e`, and refuses any name that does not end
