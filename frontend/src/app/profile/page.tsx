@@ -157,6 +157,8 @@ export default function ProfilePage() {
     },
   ];
   const roleKey = String(profile?.role ?? '').toUpperCase();
+  // As the backend stores it, with underscores read as spaces: 'SDMA_BIHAR' → 'SDMA BIHAR'.
+  const agencyDisplay = (profile?.agency || '').replace(/_/g, ' ');
   const currentCapabilities = ROLE_CAPABILITIES[roleKey] ?? [];
 
   // Icon mapping for dynamic telemetry
@@ -307,9 +309,11 @@ export default function ProfilePage() {
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-primary border border-blue-100">
                         {profile.role}
                       </span>
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                        {profile.agency}
-                      </span>
+                      {agencyDisplay && (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                          {agencyDisplay}
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-xs sm:text-sm text-text-secondary font-medium">
@@ -518,8 +522,8 @@ export default function ProfilePage() {
                         </div>
                         <div className="min-w-0">
                           <span className="text-slate-400 block text-[11px]">Badge Number</span>
-                          <span className="font-mono font-bold text-slate-800 truncate block">
-                            {profile.badge_number || '—'}
+                          <span className={`truncate block ${profile.badge_number ? 'font-mono font-bold text-slate-800' : 'text-slate-400'}`}>
+                            {profile.badge_number || 'Not on record'}
                           </span>
                         </div>
                       </div>
@@ -715,7 +719,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
                       <span className="text-slate-500 font-medium">Agency</span>
-                      <span className="font-bold text-slate-800">{profile.agency}</span>
+                      <span className="font-bold text-slate-800">{agencyDisplay || 'Not on record'}</span>
                     </div>
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
                       <span className="text-slate-500 font-medium">Session expires</span>
