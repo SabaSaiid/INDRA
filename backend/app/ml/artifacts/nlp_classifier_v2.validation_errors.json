@@ -1,0 +1,496 @@
+{
+  "schema_version": "1.0",
+  "report_scope": "VALIDATION_ONLY",
+  "split_sha256": "3c29e91f4243e0b5f543270e3df3b3b8d06e546de8395f83d8026d02d0a70101",
+  "selected_configuration_id": "D_CHAR125_BALANCED_C1",
+  "false_positives": [
+    {
+      "record_id": "r130",
+      "true_label": "CLOUDBURST",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+    },
+    {
+      "record_id": "r189",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+    },
+    {
+      "record_id": "r217",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "RIVER_BREACH",
+      "language": "en",
+      "text": "Seawater gushed into the low-lying Gosaba island villages, thousands in shelters"
+    },
+    {
+      "record_id": "r195",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "URBAN_FLOOD",
+      "language": "en",
+      "text": "Swell waves entering the fishing harbour in Kochi, boats being tied up"
+    },
+    {
+      "record_id": "r299",
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "CLOUDBURST",
+      "language": "hi",
+      "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+    },
+    {
+      "record_id": "r250",
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "URBAN_FLOOD",
+      "language": "en",
+      "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+    },
+    {
+      "record_id": "r100",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "CYCLONE_INUNDATION",
+      "language": "hinglish",
+      "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+    },
+    {
+      "record_id": "r118",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "CYCLONE_INUNDATION",
+      "language": "hi",
+      "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+    },
+    {
+      "record_id": "r065",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "URBAN_FLOOD",
+      "language": "en",
+      "text": "Yamuna crossing the warning mark at Old Railway Bridge, no flooding in the city yet"
+    },
+    {
+      "record_id": "r040",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+    },
+    {
+      "record_id": "r041",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "RIVER_BREACH",
+      "language": "hinglish",
+      "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+    },
+    {
+      "record_id": "r055",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "RIVER_BREACH",
+      "language": "hinglish",
+      "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+    }
+  ],
+  "false_negatives": [
+    {
+      "record_id": "r130",
+      "true_label": "CLOUDBURST",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+    },
+    {
+      "record_id": "r189",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+    },
+    {
+      "record_id": "r217",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "RIVER_BREACH",
+      "language": "en",
+      "text": "Seawater gushed into the low-lying Gosaba island villages, thousands in shelters"
+    },
+    {
+      "record_id": "r195",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "URBAN_FLOOD",
+      "language": "en",
+      "text": "Swell waves entering the fishing harbour in Kochi, boats being tied up"
+    },
+    {
+      "record_id": "r299",
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "CLOUDBURST",
+      "language": "hi",
+      "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+    },
+    {
+      "record_id": "r250",
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "URBAN_FLOOD",
+      "language": "en",
+      "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+    },
+    {
+      "record_id": "r100",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "CYCLONE_INUNDATION",
+      "language": "hinglish",
+      "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+    },
+    {
+      "record_id": "r118",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "CYCLONE_INUNDATION",
+      "language": "hi",
+      "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+    },
+    {
+      "record_id": "r065",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "URBAN_FLOOD",
+      "language": "en",
+      "text": "Yamuna crossing the warning mark at Old Railway Bridge, no flooding in the city yet"
+    },
+    {
+      "record_id": "r040",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+    },
+    {
+      "record_id": "r041",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "RIVER_BREACH",
+      "language": "hinglish",
+      "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+    },
+    {
+      "record_id": "r055",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "RIVER_BREACH",
+      "language": "hinglish",
+      "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+    }
+  ],
+  "most_confused_class_pairs": [
+    {
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "CYCLONE_INUNDATION",
+      "count": 2
+    },
+    {
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "RIVER_BREACH",
+      "count": 2
+    },
+    {
+      "true_label": "CLOUDBURST",
+      "predicted_label": "NOT_RELEVANT",
+      "count": 1
+    },
+    {
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "NOT_RELEVANT",
+      "count": 1
+    },
+    {
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "RIVER_BREACH",
+      "count": 1
+    },
+    {
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "URBAN_FLOOD",
+      "count": 1
+    },
+    {
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "CLOUDBURST",
+      "count": 1
+    },
+    {
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "URBAN_FLOOD",
+      "count": 1
+    },
+    {
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "URBAN_FLOOD",
+      "count": 1
+    },
+    {
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "NOT_RELEVANT",
+      "count": 1
+    }
+  ],
+  "not_relevant_errors": [
+    {
+      "record_id": "r130",
+      "true_label": "CLOUDBURST",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+    },
+    {
+      "record_id": "r189",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+    },
+    {
+      "record_id": "r299",
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "CLOUDBURST",
+      "language": "hi",
+      "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+    },
+    {
+      "record_id": "r250",
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "URBAN_FLOOD",
+      "language": "en",
+      "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+    },
+    {
+      "record_id": "r040",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+    }
+  ],
+  "hindi_errors": [
+    {
+      "record_id": "r299",
+      "true_label": "NOT_RELEVANT",
+      "predicted_label": "CLOUDBURST",
+      "language": "hi",
+      "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+    },
+    {
+      "record_id": "r118",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "CYCLONE_INUNDATION",
+      "language": "hi",
+      "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+    }
+  ],
+  "hinglish_errors": [
+    {
+      "record_id": "r130",
+      "true_label": "CLOUDBURST",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+    },
+    {
+      "record_id": "r189",
+      "true_label": "CYCLONE_INUNDATION",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+    },
+    {
+      "record_id": "r100",
+      "true_label": "RIVER_BREACH",
+      "predicted_label": "CYCLONE_INUNDATION",
+      "language": "hinglish",
+      "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+    },
+    {
+      "record_id": "r040",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "NOT_RELEVANT",
+      "language": "hinglish",
+      "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+    },
+    {
+      "record_id": "r041",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "RIVER_BREACH",
+      "language": "hinglish",
+      "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+    },
+    {
+      "record_id": "r055",
+      "true_label": "URBAN_FLOOD",
+      "predicted_label": "RIVER_BREACH",
+      "language": "hinglish",
+      "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+    }
+  ],
+  "hindi_hinglish_errors": {
+    "hinglish": [
+      {
+        "record_id": "r130",
+        "true_label": "CLOUDBURST",
+        "predicted_label": "NOT_RELEVANT",
+        "language": "hinglish",
+        "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+      },
+      {
+        "record_id": "r189",
+        "true_label": "CYCLONE_INUNDATION",
+        "predicted_label": "NOT_RELEVANT",
+        "language": "hinglish",
+        "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+      },
+      {
+        "record_id": "r100",
+        "true_label": "RIVER_BREACH",
+        "predicted_label": "CYCLONE_INUNDATION",
+        "language": "hinglish",
+        "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+      },
+      {
+        "record_id": "r040",
+        "true_label": "URBAN_FLOOD",
+        "predicted_label": "NOT_RELEVANT",
+        "language": "hinglish",
+        "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+      },
+      {
+        "record_id": "r041",
+        "true_label": "URBAN_FLOOD",
+        "predicted_label": "RIVER_BREACH",
+        "language": "hinglish",
+        "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+      },
+      {
+        "record_id": "r055",
+        "true_label": "URBAN_FLOOD",
+        "predicted_label": "RIVER_BREACH",
+        "language": "hinglish",
+        "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+      }
+    ],
+    "hi": [
+      {
+        "record_id": "r299",
+        "true_label": "NOT_RELEVANT",
+        "predicted_label": "CLOUDBURST",
+        "language": "hi",
+        "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+      },
+      {
+        "record_id": "r118",
+        "true_label": "RIVER_BREACH",
+        "predicted_label": "CYCLONE_INUNDATION",
+        "language": "hi",
+        "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+      }
+    ]
+  },
+  "examples_grouped_by_actual_and_predicted": {
+    "CLOUDBURST -> NOT_RELEVANT": [
+      {
+        "record_id": "r130",
+        "true_label": "CLOUDBURST",
+        "predicted_label": "NOT_RELEVANT",
+        "language": "hinglish",
+        "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+      }
+    ],
+    "CYCLONE_INUNDATION -> NOT_RELEVANT": [
+      {
+        "record_id": "r189",
+        "true_label": "CYCLONE_INUNDATION",
+        "predicted_label": "NOT_RELEVANT",
+        "language": "hinglish",
+        "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+      }
+    ],
+    "CYCLONE_INUNDATION -> RIVER_BREACH": [
+      {
+        "record_id": "r217",
+        "true_label": "CYCLONE_INUNDATION",
+        "predicted_label": "RIVER_BREACH",
+        "language": "en",
+        "text": "Seawater gushed into the low-lying Gosaba island villages, thousands in shelters"
+      }
+    ],
+    "CYCLONE_INUNDATION -> URBAN_FLOOD": [
+      {
+        "record_id": "r195",
+        "true_label": "CYCLONE_INUNDATION",
+        "predicted_label": "URBAN_FLOOD",
+        "language": "en",
+        "text": "Swell waves entering the fishing harbour in Kochi, boats being tied up"
+      }
+    ],
+    "NOT_RELEVANT -> CLOUDBURST": [
+      {
+        "record_id": "r299",
+        "true_label": "NOT_RELEVANT",
+        "predicted_label": "CLOUDBURST",
+        "language": "hi",
+        "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+      }
+    ],
+    "NOT_RELEVANT -> URBAN_FLOOD": [
+      {
+        "record_id": "r250",
+        "true_label": "NOT_RELEVANT",
+        "predicted_label": "URBAN_FLOOD",
+        "language": "en",
+        "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+      }
+    ],
+    "RIVER_BREACH -> CYCLONE_INUNDATION": [
+      {
+        "record_id": "r100",
+        "true_label": "RIVER_BREACH",
+        "predicted_label": "CYCLONE_INUNDATION",
+        "language": "hinglish",
+        "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+      },
+      {
+        "record_id": "r118",
+        "true_label": "RIVER_BREACH",
+        "predicted_label": "CYCLONE_INUNDATION",
+        "language": "hi",
+        "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+      }
+    ],
+    "RIVER_BREACH -> URBAN_FLOOD": [
+      {
+        "record_id": "r065",
+        "true_label": "RIVER_BREACH",
+        "predicted_label": "URBAN_FLOOD",
+        "language": "en",
+        "text": "Yamuna crossing the warning mark at Old Railway Bridge, no flooding in the city yet"
+      }
+    ],
+    "URBAN_FLOOD -> NOT_RELEVANT": [
+      {
+        "record_id": "r040",
+        "true_label": "URBAN_FLOOD",
+        "predicted_label": "NOT_RELEVANT",
+        "language": "hinglish",
+        "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+      }
+    ],
+    "URBAN_FLOOD -> RIVER_BREACH": [
+      {
+        "record_id": "r041",
+        "true_label": "URBAN_FLOOD",
+        "predicted_label": "RIVER_BREACH",
+        "language": "hinglish",
+        "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+      },
+      {
+        "record_id": "r055",
+        "true_label": "URBAN_FLOOD",
+        "predicted_label": "RIVER_BREACH",
+        "language": "hinglish",
+        "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+      }
+    ]
+  },
+  "report_sha256": "ca0ac1c003ccf0aac7fbcd285c03b33df0415fc5373dc52daa1e4fdafeb26125"
+}

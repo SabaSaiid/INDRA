@@ -1,42 +1,37 @@
+"""Backend compatibility adapter for the frozen, local Phase 19 matcher.
+
+The public service accepts ordered ``(text, lat, lng, created_at)`` tuples and
+returns the first matching index. The Phase 19 matcher supplies the text and
+combined similarity decision. Backend distance and time gates remain the
+stricter legacy eligibility envelope; old similarity settings do not override
+the frozen artifact's validation selected thresholds.
 """
-INDRA Platform — Deduplication Service
-Detects duplicate incoming reports using:
-  1. Cosine similarity via sentence-transformers (primary)
-  2. Levenshtein distance (fallback)
-  + GPS delta ≤ 1.0 km
-  + Time delta ≤ 15 minutes
-"""
+
+from __future__ import annotations
 
 import logging
 import math
-from datetime import datetime, timedelta
-from typing import Optional, List, Tuple
+from datetime import datetime
+from functools import lru_cache
+from uuid import UUID
 
 from app.core.config import get_settings
+from app.ml.contracts import CandidateReport, PredictionStatus, ReportInput
 
 logger = logging.getLogger("indra.services.dedup")
 
-# ── Thresholds ─────────────────────────────────────────────────────────────────
-# These live in settings since 20 Sep, with exactly the values they were
-# hard-coded at, so they can be tuned from .env rather than by editing this file.
-# Nothing about dedup behaviour changed in that move.
-#
-# They are resolved **per call**, not at import time: a threshold read once at
-# import cannot be overridden by an environment variable in a running process,
-# which would have made the setting decorative. See _gates().
-#
-# The bare module names remain as the documented defaults; several docstrings and
-# notes cite COSINE_THRESHOLD = 0.88 by name.
 _DEFAULTS = get_settings()
 
+# Kept as public legacy constants for callers and operational diagnostics.
+# The cosine and edit values are historical, not Phase 19 decision thresholds.
 COSINE_THRESHOLD = _DEFAULTS.DEDUP_COSINE_THRESHOLD
 GPS_DELTA_KM = _DEFAULTS.DEDUP_GPS_DELTA_KM
 TIME_DELTA_MINUTES = _DEFAULTS.DEDUP_TIME_DELTA_MINUTES
-LEVENSHTEIN_THRESHOLD = _DEFAULTS.DEDUP_LEVENSHTEIN_THRESHOLD  # normalized similarity
+LEVENSHTEIN_THRESHOLD = _DEFAULTS.DEDUP_LEVENSHTEIN_THRESHOLD
 
 
-def _gates():
-    """The four dedup gates as configured right now."""
+def _gates() -> tuple[float, float, int, float]:
+    """Read current backend settings; only geo/time are adapter gates."""
     s = get_settings()
     return (
         s.DEDUP_COSINE_THRESHOLD,
@@ -45,29 +40,26 @@ def _gates():
         s.DEDUP_LEVENSHTEIN_THRESHOLD,
     )
 
-# ── Lazy-loaded embedding model ────────────────────────────────────────────────
-_model = None
-_model_failed = False
+
+@lru_cache(maxsize=1)
+def _get_local_matcher():
+    """Authorize the committed Phase 19 artifact and companion state locally."""
+
+    from app.ml.training.duplicate_validation import load_duplicate_development_artifact
+
+    artifact, matcher = load_duplicate_development_artifact()
+    logger.info("Loaded frozen local duplicate matcher %s", artifact.artifact_version)
+    return matcher
 
 
-def _get_embedding_model():
-    """Load sentence-transformers model lazily. Returns None if unavailable."""
-    global _model, _model_failed
-    if _model_failed:
-        return None
-    if _model is not None:
-        return _model
-    try:
-        from sentence_transformers import SentenceTransformer
-        # CPU, not MPS: MPS kernels are not bit-reproducible, and the event
-        # classifier reuses this instance and must give identical outputs.
-        _model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
-        logger.info("✓ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup")
-        return _model
-    except Exception as e:
-        _model_failed = True
-        logger.warning(f"⚠ Could not load sentence-transformers: {e}. Using Levenshtein fallback.")
-        return None
+def _get_embedding_model() -> None:
+    """Retired compatibility symbol for the quarantined historical classifier.
+
+    It has no package import, checkpoint lookup, cache lookup, network access,
+    or production caller.
+    """
+
+    return
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -84,40 +76,8 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-def _cosine_similarity(vec_a, vec_b) -> float:
-    """Compute cosine similarity between two numpy vectors."""
-    import numpy as np
-    dot = np.dot(vec_a, vec_b)
-    norm = np.linalg.norm(vec_a) * np.linalg.norm(vec_b)
-    if norm == 0:
-        return 0.0
-    return float(dot / norm)
-
-
-def _levenshtein_similarity(s1: str, s2: str) -> float:
-    """Normalized Levenshtein similarity (1.0 = identical)."""
-    try:
-        import Levenshtein
-        dist = Levenshtein.distance(s1, s2)
-        max_len = max(len(s1), len(s2), 1)
-        return 1.0 - (dist / max_len)
-    except ImportError:
-        # Ultra-fallback: simple keyword overlap
-        words1 = set(s1.lower().split())
-        words2 = set(s2.lower().split())
-        if not words1 or not words2:
-            return 0.0
-        return len(words1 & words2) / max(len(words1), len(words2))
-
-
 class DedupService:
-    """
-    Check if an incoming report is a duplicate of existing recent reports.
-    A report is duplicate if ALL three conditions hold:
-      - text_similarity ≥ 0.88 (cosine) or ≥ 0.75 (Levenshtein fallback)
-      - gps_delta ≤ 1.0 km
-      - time_delta ≤ 15 min
-    """
+    """Preserve the backend's ordered-index duplicate relationship contract."""
 
     def find_duplicate(
         self,
@@ -125,61 +85,67 @@ class DedupService:
         new_lat: float,
         new_lng: float,
         new_time: datetime,
-        existing_reports: List[Tuple[str, float, float, datetime]],
-    ) -> Optional[int]:
-        """
-        Check against a list of existing (text, lat, lng, created_at) tuples.
+        existing_reports: list[tuple[str, float, float, datetime]],
+    ) -> int | None:
+        """Return the earliest eligible Phase 19 duplicate, or ``None``.
 
-        Returns the index in `existing_reports` of the first report this one
-        duplicates, or None. Candidates are checked in the order given, so a
-        caller that passes them oldest first gets the earliest match.
+        Deterministic UUIDs are local adapter identities only. The caller
+        retains the real database IDs at the corresponding tuple indexes.
+        Missing model inference raises instead of becoming a negative match.
         """
         if not existing_reports:
             return None
 
-        cosine_threshold, gps_delta_km, time_delta_minutes, levenshtein_threshold = _gates()
-
-        model = _get_embedding_model()
-        use_embeddings = model is not None
-
-        if use_embeddings:
-            try:
-                new_embedding = model.encode(new_text, convert_to_numpy=True)
-            except Exception:
-                use_embeddings = False
-
-        for index, (ex_text, ex_lat, ex_lng, ex_time) in enumerate(existing_reports):
-            # Time delta check (fastest, do first)
-            if abs((new_time - ex_time).total_seconds()) > time_delta_minutes * 60:
+        _, gps_gate_km, time_gate_minutes, _ = _gates()
+        eligible: list[tuple[int, CandidateReport]] = []
+        for index, (text, lat, lng, occurred_at) in enumerate(existing_reports):
+            if abs((new_time - occurred_at).total_seconds()) > time_gate_minutes * 60:
                 continue
-
-            # GPS delta check
-            dist_km = _haversine_km(new_lat, new_lng, ex_lat, ex_lng)
-            if dist_km > gps_delta_km:
+            if _haversine_km(new_lat, new_lng, lat, lng) > gps_gate_km:
                 continue
+            eligible.append(
+                (
+                    index,
+                    CandidateReport(
+                        report_id=UUID(int=index + 1),
+                        text=text,
+                        occurred_at=occurred_at,
+                        latitude=lat,
+                        longitude=lng,
+                        source_type="BACKEND_CANDIDATE",
+                    ),
+                )
+            )
+        if not eligible:
+            return None
 
-            # Text similarity check
-            if use_embeddings:
-                try:
-                    ex_embedding = model.encode(ex_text, convert_to_numpy=True)
-                    sim = _cosine_similarity(new_embedding, ex_embedding)
-                    if sim >= cosine_threshold:
-                        logger.info(
-                            f"Duplicate detected (cosine={sim:.3f}, dist={dist_km:.2f}km)"
-                        )
-                        return index
-                except Exception:
-                    # Fall through to Levenshtein
-                    sim = _levenshtein_similarity(new_text, ex_text)
-                    if sim >= levenshtein_threshold:
-                        return index
-            else:
-                sim = _levenshtein_similarity(new_text, ex_text)
-                if sim >= levenshtein_threshold:
-                    logger.info(
-                        f"Duplicate detected (levenshtein={sim:.3f}, dist={dist_km:.2f}km)"
-                    )
-                    return index
+        matcher = _get_local_matcher()
+        for index, candidate in eligible:
+            report = ReportInput(
+                report_id=UUID(int=0),
+                text=new_text,
+                occurred_at=new_time,
+                latitude=new_lat,
+                longitude=new_lng,
+                source_type="BACKEND_REPORT",
+                candidate_reports=[candidate],
+            )
+            prediction = matcher.predict(report)
+            if prediction.status is not PredictionStatus.AVAILABLE:
+                raise RuntimeError(
+                    "frozen duplicate inference unavailable: "
+                    + ", ".join(prediction.reason_codes or [prediction.status.value])
+                )
+            if prediction.is_duplicate is True:
+                if prediction.matched_report_id != candidate.report_id:
+                    raise RuntimeError("frozen duplicate result identity mismatch")
+                logger.info(
+                    "Duplicate detected by frozen local matcher at candidate index %d",
+                    index,
+                )
+                return index
+            if prediction.is_duplicate is not False:
+                raise RuntimeError("frozen duplicate inference omitted a decision")
 
         return None
 
@@ -189,9 +155,9 @@ class DedupService:
         new_lat: float,
         new_lng: float,
         new_time: datetime,
-        existing_reports: List[Tuple[str, float, float, datetime]],
+        existing_reports: list[tuple[str, float, float, datetime]],
     ) -> bool:
-        """True if any existing report is considered a duplicate."""
+        """True when the frozen matcher identifies an eligible duplicate."""
         return (
             self.find_duplicate(new_text, new_lat, new_lng, new_time, existing_reports)
             is not None

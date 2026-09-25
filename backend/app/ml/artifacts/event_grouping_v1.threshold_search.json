@@ -1,0 +1,461 @@
+{
+  "candidates": [
+    {
+      "metrics": {
+        "event_level_f1": 0.8917881811,
+        "event_level_precision": 0.8730277986,
+        "event_level_recall": 0.911372549,
+        "event_matching_f1": 0.9576013118,
+        "event_matching_precision": 0.9822200865,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0177799135,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": 0.0439215686
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.8917881811,
+        "event_level_precision": 0.8730277986,
+        "event_level_recall": 0.911372549,
+        "event_matching_f1": 0.9576013118,
+        "event_matching_precision": 0.9822200865,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0177799135,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": 0.0439215686
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.8689601855,
+        "event_level_precision": 0.8567073171,
+        "event_level_recall": 0.8815686275,
+        "event_matching_f1": 0.949372968,
+        "event_matching_precision": 0.9650613787,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0349386213,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": 0.0290196078
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.8309859155,
+        "event_level_precision": 0.8290398126,
+        "event_level_recall": 0.8329411765,
+        "event_matching_f1": 0.9361117472,
+        "event_matching_precision": 0.9380449748,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0619550252,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": 0.0047058824
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.8309859155,
+        "event_level_precision": 0.8290398126,
+        "event_level_recall": 0.8329411765,
+        "event_matching_f1": 0.9361117472,
+        "event_matching_precision": 0.9380449748,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0619550252,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": 0.0047058824
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.8072526606,
+        "event_level_precision": 0.8114104596,
+        "event_level_recall": 0.8031372549,
+        "event_matching_f1": 0.9282470481,
+        "event_matching_precision": 0.9223826715,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0776173285,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": -0.0101960784
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.776119403,
+        "event_level_precision": 0.7878787879,
+        "event_level_recall": 0.7647058824,
+        "event_matching_f1": 0.9188581704,
+        "event_matching_precision": 0.9040247678,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0959752322,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": -0.0294117647
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.776119403,
+        "event_level_precision": 0.7878787879,
+        "event_level_recall": 0.7647058824,
+        "event_matching_f1": 0.9188581704,
+        "event_matching_precision": 0.9040247678,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0959752322,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": -0.0294117647
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.7272727273,
+        "event_level_precision": 0.75,
+        "event_level_recall": 0.7058823529,
+        "event_matching_f1": 0.9040247678,
+        "event_matching_precision": 0.8757497858,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.1242502142,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": -0.0588235294
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.7106598985,
+        "event_level_precision": 0.7368421053,
+        "event_level_recall": 0.6862745098,
+        "event_matching_f1": 0.8990543215,
+        "event_matching_precision": 0.8664688427,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.1335311573,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": -0.068627451
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.7106598985,
+        "event_level_precision": 0.7368421053,
+        "event_level_recall": 0.6862745098,
+        "event_matching_f1": 0.8990543215,
+        "event_matching_precision": 0.8664688427,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.1335311573,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": -0.068627451
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6815175774,
+        "event_level_precision": 0.612640801,
+        "event_level_recall": 0.7678431373,
+        "event_matching_f1": 0.8920284791,
+        "event_matching_precision": 1.0,
+        "event_matching_recall": 0.8051005484,
+        "false_merge_rate": 0.0,
+        "false_split_rate": 0.1948994516,
+        "normalized_event_count_error": 0.2533333333
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6815175774,
+        "event_level_precision": 0.612640801,
+        "event_level_recall": 0.7678431373,
+        "event_matching_f1": 0.8920284791,
+        "event_matching_precision": 1.0,
+        "event_matching_recall": 0.8051005484,
+        "false_merge_rate": 0.0,
+        "false_split_rate": 0.1948994516,
+        "normalized_event_count_error": 0.2533333333
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6815175774,
+        "event_level_precision": 0.612640801,
+        "event_level_recall": 0.7678431373,
+        "event_matching_f1": 0.8920284791,
+        "event_matching_precision": 1.0,
+        "event_matching_recall": 0.8051005484,
+        "false_merge_rate": 0.0,
+        "false_split_rate": 0.1948994516,
+        "normalized_event_count_error": 0.2533333333
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 180.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6597938144,
+        "event_level_precision": 0.6956521739,
+        "event_level_recall": 0.6274509804,
+        "event_matching_f1": 0.8848484848,
+        "event_matching_precision": 0.8404605263,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.1595394737,
+        "false_split_rate": 0.0658135283,
+        "normalized_event_count_error": -0.0980392157
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.7343976778,
+        "event_level_precision": 0.6833220797,
+        "event_level_recall": 0.7937254902,
+        "event_matching_f1": 0.8821904044,
+        "event_matching_precision": 0.9793641941,
+        "event_matching_recall": 0.802559415,
+        "false_merge_rate": 0.0206358059,
+        "false_split_rate": 0.197440585,
+        "normalized_event_count_error": 0.1615686275
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.7343976778,
+        "event_level_precision": 0.6833220797,
+        "event_level_recall": 0.7937254902,
+        "event_matching_f1": 0.8821904044,
+        "event_matching_precision": 0.9793641941,
+        "event_matching_recall": 0.802559415,
+        "false_merge_rate": 0.0206358059,
+        "false_split_rate": 0.197440585,
+        "normalized_event_count_error": 0.1615686275
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.7117281695,
+        "event_level_precision": 0.6662106703,
+        "event_level_recall": 0.7639215686,
+        "event_matching_f1": 0.8740666999,
+        "event_matching_precision": 0.9595628415,
+        "event_matching_recall": 0.802559415,
+        "false_merge_rate": 0.0404371585,
+        "false_split_rate": 0.197440585,
+        "normalized_event_count_error": 0.1466666667
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 5.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6227417641,
+        "event_level_precision": 0.5678294574,
+        "event_level_recall": 0.6894117647,
+        "event_matching_f1": 0.8704305804,
+        "event_matching_precision": 0.9472993611,
+        "event_matching_recall": 0.8051005484,
+        "false_merge_rate": 0.0527006389,
+        "false_split_rate": 0.1948994516,
+        "normalized_event_count_error": 0.2141176471
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6227417641,
+        "event_level_precision": 0.5678294574,
+        "event_level_recall": 0.6894117647,
+        "event_matching_f1": 0.8704305804,
+        "event_matching_precision": 0.9472993611,
+        "event_matching_recall": 0.8051005484,
+        "false_merge_rate": 0.0527006389,
+        "false_split_rate": 0.1948994516,
+        "normalized_event_count_error": 0.2141176471
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6227417641,
+        "event_level_precision": 0.5678294574,
+        "event_level_recall": 0.6894117647,
+        "event_matching_f1": 0.8704305804,
+        "event_matching_precision": 0.9472993611,
+        "event_matching_recall": 0.8051005484,
+        "false_merge_rate": 0.0527006389,
+        "false_split_rate": 0.1948994516,
+        "normalized_event_count_error": 0.2141176471
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 300.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6683804627,
+        "event_level_precision": 0.5936073059,
+        "event_level_recall": 0.7647058824,
+        "event_matching_f1": 0.8652864789,
+        "event_matching_precision": 1.0,
+        "event_matching_recall": 0.762559415,
+        "false_merge_rate": 0.0,
+        "false_split_rate": 0.237440585,
+        "normalized_event_count_error": 0.2882352941
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6683804627,
+        "event_level_precision": 0.5936073059,
+        "event_level_recall": 0.7647058824,
+        "event_matching_f1": 0.8652864789,
+        "event_matching_precision": 1.0,
+        "event_matching_recall": 0.762559415,
+        "false_merge_rate": 0.0,
+        "false_split_rate": 0.237440585,
+        "normalized_event_count_error": 0.2882352941
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6683804627,
+        "event_level_precision": 0.5936073059,
+        "event_level_recall": 0.7647058824,
+        "event_matching_f1": 0.8652864789,
+        "event_matching_precision": 1.0,
+        "event_matching_recall": 0.762559415,
+        "false_merge_rate": 0.0,
+        "false_split_rate": 0.237440585,
+        "normalized_event_count_error": 0.2882352941
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 3.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6197183099,
+        "event_level_precision": 0.5945945946,
+        "event_level_recall": 0.6470588235,
+        "event_matching_f1": 0.8440278779,
+        "event_matching_precision": 0.8900152053,
+        "event_matching_recall": 0.802559415,
+        "false_merge_rate": 0.1099847947,
+        "false_split_rate": 0.197440585,
+        "normalized_event_count_error": 0.0882352941
+      },
+      "minimum_type_probability": 0.4,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.6197183099,
+        "event_level_precision": 0.5945945946,
+        "event_level_recall": 0.6470588235,
+        "event_matching_f1": 0.8440278779,
+        "event_matching_precision": 0.8900152053,
+        "event_matching_recall": 0.802559415,
+        "false_merge_rate": 0.1099847947,
+        "false_split_rate": 0.197440585,
+        "normalized_event_count_error": 0.0882352941
+      },
+      "minimum_type_probability": 0.35,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 90.0
+    },
+    {
+      "metrics": {
+        "event_level_f1": 0.5714285714,
+        "event_level_precision": 0.5555555556,
+        "event_level_recall": 0.5882352941,
+        "event_matching_f1": 0.8294756731,
+        "event_matching_precision": 0.8582600196,
+        "event_matching_recall": 0.802559415,
+        "false_merge_rate": 0.1417399804,
+        "false_split_rate": 0.197440585,
+        "normalized_event_count_error": 0.0588235294
+      },
+      "minimum_type_probability": 0.6,
+      "spatial_radius_km": 8.0,
+      "temporal_window_minutes": 90.0
+    }
+  ],
+  "cluster_constraint_frozen_not_tuned": "COMPLETE_LINK_ALL_MEMBER_PAIRS",
+  "merge_logic_frozen_not_tuned": "SPATIAL_AND_TEMPORAL_AND_TYPE_COMPATIBILITY",
+  "minimum_independent_reports_frozen_not_tuned": 2,
+  "objective": "maximize pairwise F1, then exact-event F1; minimize false merges, false splits, and count error; prefer tighter gates",
+  "search_version": "event-threshold-search-v1",
+  "selected": {
+    "metrics": {
+      "event_level_f1": 0.8917881811,
+      "event_level_precision": 0.8730277986,
+      "event_level_recall": 0.911372549,
+      "event_matching_f1": 0.9576013118,
+      "event_matching_precision": 0.9822200865,
+      "event_matching_recall": 0.9341864717,
+      "false_merge_rate": 0.0177799135,
+      "false_split_rate": 0.0658135283,
+      "normalized_event_count_error": 0.0439215686
+    },
+    "minimum_type_probability": 0.4,
+    "spatial_radius_km": 5.0,
+    "temporal_window_minutes": 180.0
+  },
+  "selection_split": "validation",
+  "test_rows_accessed_for_selection": false,
+  "validation_batch_count": 1650,
+  "validation_report_count": 16500
+}

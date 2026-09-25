@@ -48,7 +48,7 @@ The one write path into the platform.
 |---|---|
 | `latitude`, `longitude` | Must be inside India's bounding box (lat 6.5–37.6, lng 68.0–97.5) |
 | `text` | 5–2000 characters |
-| `media_url` | Optional string. **Nothing opens it** — there is no image analysis |
+| `media_url` | Optional string. **This backend API does not open it**; the frozen local image model is not yet integrated into this path. |
 
 **Responses**
 
@@ -142,8 +142,9 @@ The receipt is the product. It explains every number it states.
 
 **`confidence = total_weighted / factor_coverage`**, and the numbers are printed so you can check
 it. `factor_coverage` is the share of the designed model that actually reported: **0.80**, because
-`vision_analysis` (0.15) and `anomaly_detection` (0.05) are **permanently offline** — the AI/ML
-layer left this project's scope on 20 Sep. **Never display the score without the coverage.**
+`vision_analysis` (0.15) and `anomaly_detection` (0.05) did not report in the historical 21 Sep
+receipt. Frozen development models now exist, but are not yet wired into this backend score.
+**Never display the score without the coverage.**
 
 `weather.source` is `station_reading` when the rainfall came from this platform's own polled
 table, `open_meteo_live` when it was fetched while scoring.

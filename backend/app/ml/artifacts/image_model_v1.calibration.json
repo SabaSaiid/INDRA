@@ -1,0 +1,208 @@
+{
+  "after": {
+    "bins": [
+      {
+        "count": 48717,
+        "lower": 0.0,
+        "mean_score": 0.0036781862,
+        "positive_rate": 0.0043106103,
+        "upper": 0.1
+      },
+      {
+        "count": 811,
+        "lower": 0.1,
+        "mean_score": 0.1423176476,
+        "positive_rate": 0.2207151665,
+        "upper": 0.2
+      },
+      {
+        "count": 440,
+        "lower": 0.2,
+        "mean_score": 0.2476902829,
+        "positive_rate": 0.3954545455,
+        "upper": 0.3
+      },
+      {
+        "count": 353,
+        "lower": 0.3,
+        "mean_score": 0.3481264853,
+        "positive_rate": 0.5042492918,
+        "upper": 0.4
+      },
+      {
+        "count": 271,
+        "lower": 0.4,
+        "mean_score": 0.4464198261,
+        "positive_rate": 0.6051660517,
+        "upper": 0.5
+      },
+      {
+        "count": 292,
+        "lower": 0.5,
+        "mean_score": 0.5507766157,
+        "positive_rate": 0.6952054795,
+        "upper": 0.6
+      },
+      {
+        "count": 357,
+        "lower": 0.6,
+        "mean_score": 0.6498850655,
+        "positive_rate": 0.8543417367,
+        "upper": 0.7
+      },
+      {
+        "count": 465,
+        "lower": 0.7,
+        "mean_score": 0.7520106769,
+        "positive_rate": 0.864516129,
+        "upper": 0.8
+      },
+      {
+        "count": 785,
+        "lower": 0.8,
+        "mean_score": 0.8579557207,
+        "positive_rate": 0.927388535,
+        "upper": 0.9
+      },
+      {
+        "count": 22509,
+        "lower": 0.9,
+        "mean_score": 0.9943484187,
+        "positive_rate": 0.997689813,
+        "upper": 1.0
+      }
+    ],
+    "brier_score": 0.0122864507,
+    "expected_calibration_error": 0.0073964472,
+    "per_label_brier": {
+      "FLOODED_SCENE": 0.028033229,
+      "HEAVY_RAIN_VISUAL": 0.0006778356,
+      "NORMAL_SCENE": 0.0069926844,
+      "STANDING_WATER": 0.0170520863,
+      "STORM_DAMAGE": 0.008676418
+    }
+  },
+  "before": {
+    "bins": [
+      {
+        "count": 47724,
+        "lower": 0.0,
+        "mean_score": 0.0071766225,
+        "positive_rate": 0.0029125807,
+        "upper": 0.1
+      },
+      {
+        "count": 1390,
+        "lower": 0.1,
+        "mean_score": 0.1418728653,
+        "positive_rate": 0.1172661871,
+        "upper": 0.2
+      },
+      {
+        "count": 655,
+        "lower": 0.2,
+        "mean_score": 0.2447009515,
+        "positive_rate": 0.2977099237,
+        "upper": 0.3
+      },
+      {
+        "count": 458,
+        "lower": 0.3,
+        "mean_score": 0.3495339564,
+        "positive_rate": 0.4366812227,
+        "upper": 0.4
+      },
+      {
+        "count": 365,
+        "lower": 0.4,
+        "mean_score": 0.4464284376,
+        "positive_rate": 0.5698630137,
+        "upper": 0.5
+      },
+      {
+        "count": 386,
+        "lower": 0.5,
+        "mean_score": 0.5517114128,
+        "positive_rate": 0.7305699482,
+        "upper": 0.6
+      },
+      {
+        "count": 456,
+        "lower": 0.6,
+        "mean_score": 0.6514053623,
+        "positive_rate": 0.8399122807,
+        "upper": 0.7
+      },
+      {
+        "count": 596,
+        "lower": 0.7,
+        "mean_score": 0.7528891934,
+        "positive_rate": 0.8976510067,
+        "upper": 0.8
+      },
+      {
+        "count": 1069,
+        "lower": 0.8,
+        "mean_score": 0.8564815077,
+        "positive_rate": 0.9625818522,
+        "upper": 0.9
+      },
+      {
+        "count": 21901,
+        "lower": 0.9,
+        "mean_score": 0.9917074731,
+        "positive_rate": 0.9984018995,
+        "upper": 1.0
+      }
+    ],
+    "brier_score": 0.0126776554,
+    "expected_calibration_error": 0.0114493447,
+    "per_label_brier": {
+      "FLOODED_SCENE": 0.0284606926,
+      "HEAVY_RAIN_VISUAL": 0.0011856703,
+      "NORMAL_SCENE": 0.007131523,
+      "STANDING_WATER": 0.017096268,
+      "STORM_DAMAGE": 0.0095141223
+    }
+  },
+  "field_probability_claim": false,
+  "fit_source": "VALIDATION_ONLY",
+  "method": "PER_LABEL_TEMPERATURE_GRID_MINIMUM_BINARY_CROSS_ENTROPY",
+  "score_interpretation": "VALIDATION_TEMPERATURE_CALIBRATED_SYNTHETIC_CONFIDENCE_SCORE",
+  "search": {
+    "FLOODED_SCENE": {
+      "candidate_count": 26,
+      "selected_binary_cross_entropy": 0.0950710547,
+      "selected_temperature": 0.8
+    },
+    "HEAVY_RAIN_VISUAL": {
+      "candidate_count": 26,
+      "selected_binary_cross_entropy": 0.0027828963,
+      "selected_temperature": 0.5
+    },
+    "NORMAL_SCENE": {
+      "candidate_count": 26,
+      "selected_binary_cross_entropy": 0.0247930299,
+      "selected_temperature": 0.8
+    },
+    "STANDING_WATER": {
+      "candidate_count": 26,
+      "selected_binary_cross_entropy": 0.0616233686,
+      "selected_temperature": 0.9
+    },
+    "STORM_DAMAGE": {
+      "candidate_count": 26,
+      "selected_binary_cross_entropy": 0.0312230458,
+      "selected_temperature": 0.6
+    }
+  },
+  "temperatures": {
+    "FLOODED_SCENE": 0.8,
+    "HEAVY_RAIN_VISUAL": 0.5,
+    "NORMAL_SCENE": 0.8,
+    "STANDING_WATER": 0.9,
+    "STORM_DAMAGE": 0.6
+  },
+  "test_images_accessed": false,
+  "version": "image-validation-temperature-v1"
+}

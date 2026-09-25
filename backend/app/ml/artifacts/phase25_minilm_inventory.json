@@ -1,0 +1,3809 @@
+{
+  "classification_counts": {
+    "DEAD_CODE": 13,
+    "DOCUMENTATION_ONLY": 318,
+    "LIVE_PRODUCTION_PATH": 2,
+    "MIGRATION_TARGET": 73,
+    "TEST_ONLY": 64
+  },
+  "classification_note": "Textual reference classification is not execution proof. The Phase 25 call-path, AST, and socket-denial audits separately decide live runtime use.",
+  "excluded_globs": [
+    "!.git/**",
+    "!**/__pycache__/**",
+    "!**/.pytest*/**",
+    "!**/.ruff_cache/**",
+    "!**/.venv/**",
+    "!**/node_modules/**",
+    "!**/.next/**",
+    "!**/dist/**",
+    "!**/build/**",
+    "!**/phase25_minilm_inventory.json",
+    "!**/phase25_minilm_migration_manifest.json",
+    "!**/phase25_event_evidence_report.json"
+  ],
+  "file_count": 100,
+  "live_legacy_embedding_reference_files": [],
+  "live_production_reference_files": [
+    "backend/app/main.py"
+  ],
+  "occurrence_count": 470,
+  "occurrences": [
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "# Model checkpoints and large cache",
+      "file": ".gitignore",
+      "legacy_embedding_reference": false,
+      "line": 84,
+      "match": "Model checkpoint"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "**FastAPI** â€¢ **PostgreSQL + PostGIS** â€¢ **Uber H3** â€¢ **Redpanda / Kafka** â€¢ **Redis** â€¢ **Sentence-Transformers** â€¢ **Next.js**",
+      "file": "README.md",
+      "legacy_embedding_reference": true,
+      "line": 15,
+      "match": "Sentence-Transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "â€¢ MiniLM dedup             â€¢ Coverage:   0.80",
+      "file": "README.md",
+      "legacy_embedding_reference": true,
+      "line": 47,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "detection are deliberately absent**: the only model in the data path is MiniLM sentence embeddings for",
+      "file": "README.md",
+      "legacy_embedding_reference": true,
+      "line": 53,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "> geocoding, `ST_ClusterDBSCAN` and H3 indexing are real; Sentence-Transformers runs **for",
+      "file": "README.md",
+      "legacy_embedding_reference": true,
+      "line": 124,
+      "match": "Sentence-Transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "| 4 | **AI / ML Layer** | â¬› | **Out of scope since 20 Sep.** Sentence-Transformers (MiniLM) embeddings run for duplicate matching and nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macr",
+      "file": "README.md",
+      "legacy_embedding_reference": true,
+      "line": 190,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "| 4 | **AI / ML Layer** | â¬› | **Out of scope since 20 Sep.** Sentence-Transformers (MiniLM) embeddings run for duplicate matching and nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macr",
+      "file": "README.md",
+      "legacy_embedding_reference": true,
+      "line": 190,
+      "match": "Sentence-Transformers"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"340\" time=\"57.063\" timestamp=\"2026-09-25T01:28:10.636342+05:30\" hostname=\"PRITAM\"><testcase classname=",
+      "file": "backend/.phase25-ml-junit.xml",
+      "legacy_embedding_reference": true,
+      "line": 1,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"340\" time=\"57.063\" timestamp=\"2026-09-25T01:28:10.636342+05:30\" hostname=\"PRITAM\"><testcase classname=",
+      "file": "backend/.phase25-ml-junit.xml",
+      "legacy_embedding_reference": true,
+      "line": 1,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"340\" time=\"57.063\" timestamp=\"2026-09-25T01:28:10.636342+05:30\" hostname=\"PRITAM\"><testcase classname=",
+      "file": "backend/.phase25-ml-junit.xml",
+      "legacy_embedding_reference": true,
+      "line": 1,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"340\" time=\"57.063\" timestamp=\"2026-09-25T01:28:10.636342+05:30\" hostname=\"PRITAM\"><testcase classname=",
+      "file": "backend/.phase25-ml-junit.xml",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"340\" time=\"57.063\" timestamp=\"2026-09-25T01:28:10.636342+05:30\" hostname=\"PRITAM\"><testcase classname=",
+      "file": "backend/.phase25-ml-junit.xml",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_or_external_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"340\" time=\"57.063\" timestamp=\"2026-09-25T01:28:10.636342+05:30\" hostname=\"PRITAM\"><testcase classname=",
+      "file": "backend/.phase25-ml-junit.xml",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "remote_identifier"
+    },
+    {
+      "classification": "LIVE_PRODUCTION_PATH",
+      "excerpt": "async def _warm_local_duplicate_matcher():",
+      "file": "backend/app/main.py",
+      "legacy_embedding_reference": false,
+      "line": 50,
+      "match": "warm_local_duplicate"
+    },
+    {
+      "classification": "LIVE_PRODUCTION_PATH",
+      "excerpt": "warmup_task = asyncio.create_task(_warm_local_duplicate_matcher())",
+      "file": "backend/app/main.py",
+      "legacy_embedding_reference": false,
+      "line": 59,
+      "match": "warm_local_duplicate"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "pretrained_model_used: Literal[False] = False",
+      "file": "backend/app/ml/anomaly_artifacts.py",
+      "legacy_embedding_reference": false,
+      "line": 59,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "or provenance.pretrained_model_used",
+      "file": "backend/app/ml/anomaly_artifacts.py",
+      "legacy_embedding_reference": false,
+      "line": 98,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained or externally sourced anomaly models are prohibited\"",
+      "file": "backend/app/ml/anomaly_artifacts.py",
+      "legacy_embedding_reference": false,
+      "line": 102,
+      "match": "pretrained or externally sourced anomaly model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "pretrained model, or runtime-download dependency.",
+      "file": "backend/app/ml/artifacts/README.md",
+      "legacy_embedding_reference": false,
+      "line": 37,
+      "match": "pretrained model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "weights are rejected. NO PRETRAINED OR OPEN-WEIGHT VISION MODEL IS USED.",
+      "file": "backend/app/ml/artifacts/README.md",
+      "legacy_embedding_reference": false,
+      "line": 95,
+      "match": "PRETRAINED OR OPEN-WEIGHT VISION MODEL"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"PRETRAINED_MODELS\": \"NONE\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2434,
+      "match": "PRETRAINED_MODEL"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"scope_note\": \"NETWORK_ACCESS NONE describes the frozen six-component subsystem. The repository-wide runtime network-isolation audit is FAIL because the separately scoped live legacy MiniLM path can attempt remote model resolution when unca",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2437,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"legacy_minilm_audit\": {",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2439,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"live_backend_depends_on_embedding_model\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2448,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"backend/app/services/dedup.py _get_embedding_model\"",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2452,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"model_identifier\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2460,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"model_identifier\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2460,
+      "match": "model_identifier"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"model_identifier\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2460,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"new_six_component_subsystem_depends_on_embedding_model\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2461,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"# MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2465,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"# prompt_name in sentence-transformers 6.x, so passing True there\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2471,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"sentence_transformers\\\": [],\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2477,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": false,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2483,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"sentence_transformers\\\": [],\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2489,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": false,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2495,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": false,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2501,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"embedding_model\\\": \\\"sentence-transformers/all-MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2507,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"embedding_model\\\": \\\"sentence-transformers/all-MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2507,
+      "match": "embedding_model\\\": \\\"sentence-transformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"MiniLM path is excluded from the compliant subsystem and remains visibly\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2513,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"10. A separately approved, regression-tested, rollback-capable legacy MiniLM\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2519,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"The former MiniLM-based implementation remains legacy and is excluded from the\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2525,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"HTTP, or load the legacy MiniLM implementation.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2531,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"NLP v3 hashes are unchanged. `backend/app/services/dedup.py`, MiniLM, Kafka,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2537,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"-> sentence-transformers/all-MiniLM-L6-v2 when available\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2543,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"-> sentence-transformers/all-MiniLM-L6-v2 when available\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2543,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`backend/requirements.txt` declares `sentence-transformers`. These live files\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2549,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"MiniLM warm-up task and its shutdown handling from `backend/app/main.py`.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2555,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"Remove `sentence-transformers`, the legacy model loader, and legacy-only model\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2561,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"API, pipeline, Kafka, database, frontend, or legacy MiniLM path. No network,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2567,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`backend/requirements.txt` still declares `sentence-transformers`, and the\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2573,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2579,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2579,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"and event behavior, uncalibrated credibility risk, and the live legacy MiniLM\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2585,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"features   all-MiniLM-L6-v2 sentence embeddings (normalised, CPU), the same\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2591,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"model instance dedup loads, so the process holds MiniLM once\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2597,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"EMBEDDING_MODEL = \\\"sentence-transformers/all-MiniLM-L6-v2\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2603,
+      "match": "EMBEDDING_MODEL = \\\"sentence-transformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"EMBEDDING_MODEL = \\\"sentence-transformers/all-MiniLM-L6-v2\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2603,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"\\\"\\\"Normalised MiniLM embeddings, float32, shape (n, 384). None if the model is unavailable.\\\"\\\"\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2609,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"raise RuntimeError(\\\"MiniLM is unavailable; cannot train the event classifier\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2615,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"model_identifier\\\": \\\"sentence-\\\" + \\\"transformers/all-\\\" + \\\"MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2621,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"model_identifier\\\": \\\"sentence-\\\" + \\\"transformers/all-\\\" + \\\"MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2621,
+      "match": "model_identifier"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"the separately scoped live legacy MiniLM path can attempt remote \\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2627,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"legacy_minilm_audit\\\": legacy,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2633,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"all\\\" + \\\"-minilm\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2639,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"legacy_minilm_status: Literal[\\\"LEGACY_BACKEND_VIOLATION\\\"] = (\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2645,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"LEGACY_BACKEND_VIOLATION: MiniLM migration is specified but not implemented.\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2651,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"LEGACY_BACKEND_VIOLATION: live MiniLM deduplication migration is pending\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2657,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"sentence_transformers\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2663,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"The legacy MiniLM module is intentionally excluded and documented as legacy.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2669,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"checkpoint = \\\"all\\\" + \\\"-\\\" + \\\"MiniLM\\\" + \\\"-\\\" + \\\"L6-v2\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2675,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"def test_sentence_transformer_dependency_is_legacy_not_new_subsystem_usage():\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2681,
+      "match": "sentence_transformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"assert \\\"sentence-transformers\\\" in requirements.read_text(encoding=\\\"utf-8\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2687,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"if \\\"sentence_transformers\\\" in source or \\\"sentence-transformers\\\" in source:\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2693,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"if \\\"sentence_transformers\\\" in source or \\\"sentence-transformers\\\" in source:\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2693,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"r\\\"^\\\\s*(?:from|import)\\\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\\\b\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2699,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"r\\\"^\\\\s*(?:from|import)\\\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\\\b\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2705,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"def test_minilm_references_are_classified_and_live_dependency_is_explicit():\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2711,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": False,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2717,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": False,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2723,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"1. Cosine similarity via sentence-transformers (primary)\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2729,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"\\\"\\\"Load sentence-transformers model lazily. Returns None if unavailable.\\\"\\\"\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2735,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"from sentence_transformers import SentenceTransformer\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2741,
+      "match": "SentenceTransformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"from sentence_transformers import SentenceTransformer\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2741,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"_model = SentenceTransformer(\\\"sentence-transformers/all-MiniLM-L6-v2\\\", device=\\\"cpu\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2747,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"_model = SentenceTransformer(\\\"sentence-transformers/all-MiniLM-L6-v2\\\", device=\\\"cpu\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2747,
+      "match": "SentenceTransformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"_model = SentenceTransformer(\\\"sentence-transformers/all-MiniLM-L6-v2\\\", device=\\\"cpu\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2747,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"logger.info(\\\"âœ“ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2753,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"logger.info(\\\"âœ“ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2753,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"logger.warning(f\\\"âš  Could not load sentence-transformers: {e}. Using Levenshtein fallback.\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2759,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"# find_duplicate is synchronous and MiniLM's encode() is blocking,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2765,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"sentence-transformers>=2.5.1\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2771,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"True when sentence-transformers loaded successfully.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2777,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"reason=\\\"sentence-transformers model unavailable â€” dedup is on the Levenshtein fallback\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2783,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"sentence-transformers loaded, Levenshtein â‰¥ 0.75 on the fallback â€” so the one\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2789,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"Unit level (no database). Tests that embed text need MiniLM and are skipped\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2795,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"Unit level (no database). The leakage check needs the MiniLM model and is\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2801,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_none\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2836,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2844,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_none\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2855,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": []",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2867,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_none\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2877,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"minilm_modified\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2885,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2889,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"sentence_transformers\": []",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2890,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_none\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2900,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2911,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_none\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2922,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2931,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_none\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2944,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2959,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"live_backend_depends_on_embedding_model\": true,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2980,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"backend/app/services/dedup.py _get_embedding_model\"",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2984,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"model_identifier\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2992,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"model_identifier\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 2992,
+      "match": "model_identifier"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"model_identifier\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2992,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"new_six_component_subsystem_depends_on_embedding_model\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2993,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"# MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 2997,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"# prompt_name in sentence-transformers 6.x, so passing True there\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3003,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"sentence_transformers\\\": [],\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3009,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": false,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3015,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"sentence_transformers\\\": [],\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3021,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": false,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3027,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": false,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3033,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"embedding_model\\\": \\\"sentence-transformers/all-MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3039,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"embedding_model\\\": \\\"sentence-transformers/all-MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3039,
+      "match": "embedding_model\\\": \\\"sentence-transformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"MiniLM path is excluded from the compliant subsystem and remains visibly\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3045,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"10. A separately approved, regression-tested, rollback-capable legacy MiniLM\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3051,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"The former MiniLM-based implementation remains legacy and is excluded from the\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3057,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"HTTP, or load the legacy MiniLM implementation.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3063,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"NLP v3 hashes are unchanged. `backend/app/services/dedup.py`, MiniLM, Kafka,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3069,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"-> sentence-transformers/all-MiniLM-L6-v2 when available\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3075,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"-> sentence-transformers/all-MiniLM-L6-v2 when available\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3075,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`backend/requirements.txt` declares `sentence-transformers`. These live files\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3081,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"MiniLM warm-up task and its shutdown handling from `backend/app/main.py`.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3087,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"Remove `sentence-transformers`, the legacy model loader, and legacy-only model\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3093,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"API, pipeline, Kafka, database, frontend, or legacy MiniLM path. No network,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3099,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`backend/requirements.txt` still declares `sentence-transformers`, and the\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3105,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3111,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3111,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"and event behavior, uncalibrated credibility risk, and the live legacy MiniLM\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3117,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"features   all-MiniLM-L6-v2 sentence embeddings (normalised, CPU), the same\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3123,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"model instance dedup loads, so the process holds MiniLM once\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3129,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"EMBEDDING_MODEL = \\\"sentence-transformers/all-MiniLM-L6-v2\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3135,
+      "match": "EMBEDDING_MODEL = \\\"sentence-transformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"EMBEDDING_MODEL = \\\"sentence-transformers/all-MiniLM-L6-v2\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3135,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"\\\"\\\"Normalised MiniLM embeddings, float32, shape (n, 384). None if the model is unavailable.\\\"\\\"\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3141,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"raise RuntimeError(\\\"MiniLM is unavailable; cannot train the event classifier\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3147,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"model_identifier\\\": \\\"sentence-\\\" + \\\"transformers/all-\\\" + \\\"MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3153,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"model_identifier\\\": \\\"sentence-\\\" + \\\"transformers/all-\\\" + \\\"MiniLM-L6-v2\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3153,
+      "match": "model_identifier"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"the separately scoped live legacy MiniLM path can attempt remote \\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3159,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"legacy_minilm_audit\\\": legacy,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3165,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"all\\\" + \\\"-minilm\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3171,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"legacy_minilm_status: Literal[\\\"LEGACY_BACKEND_VIOLATION\\\"] = (\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3177,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"LEGACY_BACKEND_VIOLATION: MiniLM migration is specified but not implemented.\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3183,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"LEGACY_BACKEND_VIOLATION: live MiniLM deduplication migration is pending\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3189,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"sentence_transformers\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3195,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"The legacy MiniLM module is intentionally excluded and documented as legacy.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3201,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"checkpoint = \\\"all\\\" + \\\"-\\\" + \\\"MiniLM\\\" + \\\"-\\\" + \\\"L6-v2\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3207,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"def test_sentence_transformer_dependency_is_legacy_not_new_subsystem_usage():\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3213,
+      "match": "sentence_transformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"assert \\\"sentence-transformers\\\" in requirements.read_text(encoding=\\\"utf-8\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3219,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"if \\\"sentence_transformers\\\" in source or \\\"sentence-transformers\\\" in source:\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3225,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"if \\\"sentence_transformers\\\" in source or \\\"sentence-transformers\\\" in source:\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3225,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"r\\\"^\\\\s*(?:from|import)\\\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\\\b\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3231,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"r\\\"^\\\\s*(?:from|import)\\\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\\\b\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3237,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"def test_minilm_references_are_classified_and_live_dependency_is_explicit():\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3243,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": False,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3249,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"minilm_modified\\\": False,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3255,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"1. Cosine similarity via sentence-transformers (primary)\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3261,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"\\\"\\\"\\\"Load sentence-transformers model lazily. Returns None if unavailable.\\\"\\\"\\\"\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3267,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"from sentence_transformers import SentenceTransformer\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3273,
+      "match": "SentenceTransformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"from sentence_transformers import SentenceTransformer\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3273,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"_model = SentenceTransformer(\\\"sentence-transformers/all-MiniLM-L6-v2\\\", device=\\\"cpu\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3279,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"_model = SentenceTransformer(\\\"sentence-transformers/all-MiniLM-L6-v2\\\", device=\\\"cpu\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3279,
+      "match": "SentenceTransformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"_model = SentenceTransformer(\\\"sentence-transformers/all-MiniLM-L6-v2\\\", device=\\\"cpu\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3279,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"logger.info(\\\"âœ“ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3285,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"logger.info(\\\"âœ“ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3285,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"logger.warning(f\\\"âš  Could not load sentence-transformers: {e}. Using Levenshtein fallback.\\\")\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3291,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"# find_duplicate is synchronous and MiniLM's encode() is blocking,\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3297,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"sentence-transformers>=2.5.1\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3303,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"True when sentence-transformers loaded successfully.\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3309,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"reason=\\\"sentence-transformers model unavailable â€” dedup is on the Levenshtein fallback\\\",\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3315,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"sentence-transformers loaded, Levenshtein â‰¥ 0.75 on the fallback â€” so the one\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3321,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"Unit level (no database). Tests that embed text need MiniLM and are skipped\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3327,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"excerpt\": \"Unit level (no database). The leakage check needs the MiniLM model and is\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 3333,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"remote_checkpoint_retrieval\": \"ABSENT_IN_FROZEN_SUBSYSTEM\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3346,
+      "match": "remote_checkpoint"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_model_used\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3388,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_model_used\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3409,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_model_used\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3430,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_model_used\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3451,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_model_used\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3472,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_model_used\": false,",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3493,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_model_used\",",
+      "file": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 3510,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"artifact_manifest_sha256\":\"f19b7b62db6eadc84d80b3f034f7ec664ce6f1e75feb5a16a4aa79ecb347871d\",\"artifact_name\":\"anomaly_model_v1.json\",\"artifact_sha256\":\"3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb\",\"calibration\":\"NONE_",
+      "file": "backend/app/ml/artifacts/anomaly_model_v1.development_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"artifact_version\":\"anomaly-model-v1-synthetic-development\",\"baseline_name\":\"STATISTICAL_ANOMALY_BASELINE\",\"calibration\":\"NONE_VALIDATION_THRESHOLDS_ONLY\",\"dataset_hash\":\"818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546\",\"d",
+      "file": "backend/app/ml/artifacts/anomaly_model_v1.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "PRETRAINED_WEIGHTS\",\"model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"artifact_version\":\"anomaly-model-v1-synthetic-development\",\"baseline_name\":\"STATISTICAL_ANOMALY_BASELINE\",\"calibration\":\"NONE_VALIDATION_THRESHOLDS_ONLY\",\"dataset_hash\":\"818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546\",\"d",
+      "file": "backend/app/ml/artifacts/anomaly_model_v1.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"artifact_sha256\":\"3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb\",\"calibration\":\"NONE_VALIDATION_THRESHOLDS_ONLY\",\"configuration_changed_after_freeze\":false,\"configuration_frozen_before_test\":true,\"configuration_sha256\":",
+      "file": "backend/app/ml/artifacts/anomaly_model_v1.metrics.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"artifact_hash\":\"3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb\",\"artifact_name\":\"anomaly_model_v1.json\",\"baseline_version\":\"anomaly-window-preprocessing-v1\",\"configuration_sha256\":\"17c29a891bc3ab83b79736b4f667736ad9474bd",
+      "file": "backend/app/ml/artifacts/anomaly_model_v1.provenance.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"baseline_selection_score\":0.6054880863,\"candidate_selection_score\":0.9998977363,\"domain_confusion\":{\"DATA_QUALITY_ANOMALY->DATA_QUALITY_ANOMALY\":4686,\"NORMAL->NORMAL\":6561,\"NORMAL->WEATHER_BEHAVIOR_ANOMALY\":1,\"WEATHER_BEHAVIOR_ANOMALY->WE",
+      "file": "backend/app/ml/artifacts/anomaly_model_v1.validation_metrics.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"configuration_changed_after_freeze\":false,\"configuration_frozen_before_test\":true,\"configuration_sha256\":\"17c29a891bc3ab83b79736b4f667736ad9474bd42ebb9ecc0bebcf4b050f0833\",\"dataset_sha256\":\"818b82a3c91a2e263e3e2dd684c434f7072a8415135411f9",
+      "file": "backend/app/ml/artifacts/anomaly_model_v1_final_test_receipt.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": []",
+      "file": "backend/app/ml/artifacts/credibility_v1.development_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 181,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_absent\": true,",
+      "file": "backend/app/ml/artifacts/credibility_v1.golden.json",
+      "legacy_embedding_reference": false,
+      "line": 11,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/credibility_v1.json",
+      "legacy_embedding_reference": false,
+      "line": 320,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/credibility_v1_final_test_receipt.json",
+      "legacy_embedding_reference": false,
+      "line": 83,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+      "legacy_embedding_reference": false,
+      "line": 61,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"sentence_transformers\": [],",
+      "file": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+      "legacy_embedding_reference": true,
+      "line": 64,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"minilm_modified\": false,",
+      "file": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+      "legacy_embedding_reference": true,
+      "line": 68,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 160,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"sentence_transformers\": [],",
+      "file": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 163,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"minilm_modified\": false,",
+      "file": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+      "legacy_embedding_reference": true,
+      "line": 167,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"minilm_modified\": false,",
+      "file": "backend/app/ml/artifacts/duplicate_v1_final_test_receipt.json",
+      "legacy_embedding_reference": true,
+      "line": 53,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/duplicate_v1_final_test_receipt.json",
+      "legacy_embedding_reference": false,
+      "line": 54,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"embedding_model\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/event_classifier_v1.metrics.json",
+      "legacy_embedding_reference": true,
+      "line": 3,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"embedding_model\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+      "file": "backend/app/ml/artifacts/event_classifier_v1.metrics.json",
+      "legacy_embedding_reference": true,
+      "line": 3,
+      "match": "embedding_model\": \"sentence-transformer"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/event_grouping_v1.development_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/event_grouping_v1.json",
+      "legacy_embedding_reference": false,
+      "line": 53,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": []",
+      "file": "backend/app/ml/artifacts/event_grouping_v1.metrics.json",
+      "legacy_embedding_reference": false,
+      "line": 587,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": []",
+      "file": "backend/app/ml/artifacts/event_grouping_v1.validation_metrics.json",
+      "legacy_embedding_reference": false,
+      "line": 580,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/event_grouping_v1_final_test_receipt.json",
+      "legacy_embedding_reference": false,
+      "line": 35,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/image_model_v1.development_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 240,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/image_model_v1_final_test_receipt.json",
+      "legacy_embedding_reference": false,
+      "line": 192,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/nlp_classifier_v3.development_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 17167,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/artifacts/nlp_classifier_v3.metrics.json",
+      "legacy_embedding_reference": false,
+      "line": 4800,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "and manifest.get(\"pretrained_models\") == []",
+      "file": "backend/app/ml/data/dataset_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1351,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/registry/datasets.json",
+      "legacy_embedding_reference": false,
+      "line": 68,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/registry/datasets.json",
+      "legacy_embedding_reference": false,
+      "line": 119,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/registry/datasets.json",
+      "legacy_embedding_reference": false,
+      "line": 185,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/registry/datasets.json",
+      "legacy_embedding_reference": false,
+      "line": 237,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/registry/datasets.json",
+      "legacy_embedding_reference": false,
+      "line": 317,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/registry/datasets.json",
+      "legacy_embedding_reference": false,
+      "line": 369,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_anomaly/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 603,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_anomaly/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 851,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_credibility/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 1196,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_credibility/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 1319,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_duplicates/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 867,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_duplicates/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 967,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_event/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 1293,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_event/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 1409,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_image/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 1123,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_image/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 1220,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_nlp/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 416,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/data/synthetic_nlp/generator.py",
+      "legacy_embedding_reference": false,
+      "line": 525,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "pretrained/open-weight checkpoint loader, hosted AI API, runtime model",
+      "file": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+      "legacy_embedding_reference": false,
+      "line": 298,
+      "match": "pretrained/open-weight checkpoint"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "MiniLM path is excluded from the compliant subsystem and remains visibly",
+      "file": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+      "legacy_embedding_reference": true,
+      "line": 301,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "10. A separately approved, regression-tested, rollback-capable legacy MiniLM",
+      "file": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+      "legacy_embedding_reference": true,
+      "line": 338,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "The former MiniLM-based implementation remains legacy and is excluded from the",
+      "file": "backend/app/ml/docs/ARCHITECTURE.md",
+      "legacy_embedding_reference": true,
+      "line": 32,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "HTTP, or load the legacy MiniLM implementation.",
+      "file": "backend/app/ml/docs/ARCHITECTURE.md",
+      "legacy_embedding_reference": true,
+      "line": 94,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "NO PRETRAINED OR OPEN-WEIGHT VISION MODEL IS USED. Any eventual image model",
+      "file": "backend/app/ml/docs/ARCHITECTURE.md",
+      "legacy_embedding_reference": false,
+      "line": 214,
+      "match": "PRETRAINED OR OPEN-WEIGHT VISION MODEL"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "No pretrained model, open-weight model, embedding service, external API, or",
+      "file": "backend/app/ml/docs/CREDIBILITY_V1_SYNTHETIC_VALIDATION.md",
+      "legacy_embedding_reference": false,
+      "line": 177,
+      "match": "pretrained model, open-weight model, embedding"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "NO PRETRAINED OR OPEN-WEIGHT VISION MODEL IS USED. Any eventual image model",
+      "file": "backend/app/ml/docs/DATA_CARD.md",
+      "legacy_embedding_reference": false,
+      "line": 287,
+      "match": "PRETRAINED OR OPEN-WEIGHT VISION MODEL"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "The workflow is local-only and contains no pretrained model, external",
+      "file": "backend/app/ml/docs/DUPLICATE_ANNOTATION_WORKFLOW.md",
+      "legacy_embedding_reference": false,
+      "line": 25,
+      "match": "pretrained model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "NLP v3 hashes are unchanged. `backend/app/services/dedup.py`, MiniLM, Kafka,",
+      "file": "backend/app/ml/docs/DUPLICATE_V1_SYNTHETIC_VALIDATION.md",
+      "legacy_embedding_reference": true,
+      "line": 173,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "No pretrained model, open-weight model, embedding, Sentence Transformer,",
+      "file": "backend/app/ml/docs/DUPLICATE_V1_SYNTHETIC_VALIDATION.md",
+      "legacy_embedding_reference": false,
+      "line": 176,
+      "match": "pretrained model, open-weight model, embedding"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "pretrained embeddings are used for leakage checks.",
+      "file": "backend/app/ml/docs/FAKE_REPORT_ANNOTATION_GUIDE.md",
+      "legacy_embedding_reference": false,
+      "line": 62,
+      "match": "pretrained embedding"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "also run with socket construction blocked. No pretrained/open-weight model,",
+      "file": "backend/app/ml/docs/GOLDEN_BENCHMARK.md",
+      "legacy_embedding_reference": false,
+      "line": 127,
+      "match": "pretrained/open-weight model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "NO PRETRAINED OR OPEN-WEIGHT VISION MODEL IS USED for annotation, duplicate",
+      "file": "backend/app/ml/docs/IMAGE_ANNOTATION_GUIDE.md",
+      "legacy_embedding_reference": false,
+      "line": 140,
+      "match": "PRETRAINED OR OPEN-WEIGHT VISION MODEL"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "NO PRETRAINED OR OPEN-WEIGHT VISION MODEL IS USED. Any future `.pt` state dict",
+      "file": "backend/app/ml/docs/INFERENCE_CONTRACT.md",
+      "legacy_embedding_reference": false,
+      "line": 168,
+      "match": "PRETRAINED OR OPEN-WEIGHT VISION MODEL"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "-> sentence-transformers/all-MiniLM-L6-v2 when available",
+      "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "legacy_embedding_reference": true,
+      "line": 13,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "-> sentence-transformers/all-MiniLM-L6-v2 when available",
+      "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "legacy_embedding_reference": true,
+      "line": 13,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "`backend/app/main.py` also warms the embedding model during startup, and",
+      "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "legacy_embedding_reference": false,
+      "line": 18,
+      "match": "warms the embedding model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "`backend/requirements.txt` declares `sentence-transformers`. These live files",
+      "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "legacy_embedding_reference": true,
+      "line": 19,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "MiniLM warm-up task and its shutdown handling from `backend/app/main.py`.",
+      "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "legacy_embedding_reference": true,
+      "line": 102,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "Remove `sentence-transformers`, the legacy model loader, and legacy-only model",
+      "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "legacy_embedding_reference": true,
+      "line": 108,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "the legacy embedding service and must be retired or replaced before dependency",
+      "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "legacy_embedding_reference": false,
+      "line": 111,
+      "match": "embedding service"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "pickle, joblib, checkpoint, pretrained model, open-weight model, runtime",
+      "file": "backend/app/ml/docs/MODEL_CARD.md",
+      "legacy_embedding_reference": false,
+      "line": 21,
+      "match": "pretrained model, open-weight model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "- avoid pretrained or open-weight checkpoints;",
+      "file": "backend/app/ml/docs/MODEL_CARD.md",
+      "legacy_embedding_reference": false,
+      "line": 29,
+      "match": "pretrained or open-weight checkpoint"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "NO PRETRAINED OR OPEN-WEIGHT VISION MODEL IS USED. There is no transfer",
+      "file": "backend/app/ml/docs/MODEL_CARD.md",
+      "legacy_embedding_reference": false,
+      "line": 304,
+      "match": "PRETRAINED OR OPEN-WEIGHT VISION MODEL"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "No pretrained model, open-weight model, external embedding, external AI API,",
+      "file": "backend/app/ml/docs/MODEL_CARD.md",
+      "legacy_embedding_reference": false,
+      "line": 338,
+      "match": "pretrained model, open-weight model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "API, pipeline, Kafka, database, frontend, or legacy MiniLM path. No network,",
+      "file": "backend/app/ml/docs/NLP_DATASET_WORKFLOW.md",
+      "legacy_embedding_reference": true,
+      "line": 8,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "external model, embedding service, hosted AI API, translation service, or",
+      "file": "backend/app/ml/docs/NLP_DATASET_WORKFLOW.md",
+      "legacy_embedding_reference": false,
+      "line": 9,
+      "match": "embedding service"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "No transition invokes NLP v1, NLP v2, a pretrained/open-weight model,",
+      "file": "backend/app/ml/docs/NLP_DATASET_WORKFLOW.md",
+      "legacy_embedding_reference": false,
+      "line": 55,
+      "match": "pretrained/open-weight model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "remains `NOT_VALIDATED`. No pretrained model, open-weight model, external API,",
+      "file": "backend/app/ml/docs/NLP_DEVELOPMENT_VALIDATION.md",
+      "legacy_embedding_reference": false,
+      "line": 181,
+      "match": "pretrained model, open-weight model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "No pretrained model, open-weight model, external embedding, hosted API,",
+      "file": "backend/app/ml/docs/NLP_V3_SYNTHETIC_DEVELOPMENT.md",
+      "legacy_embedding_reference": false,
+      "line": 10,
+      "match": "pretrained model, open-weight model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "Transformers, Hugging Face, pretrained checkpoints, cloud AI SDKs, HTTP",
+      "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+      "legacy_embedding_reference": false,
+      "line": 121,
+      "match": "pretrained checkpoint"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "`backend/requirements.txt` still declares `sentence-transformers`, and the",
+      "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+      "legacy_embedding_reference": true,
+      "line": 127,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses",
+      "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+      "legacy_embedding_reference": true,
+      "line": 129,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses",
+      "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+      "legacy_embedding_reference": true,
+      "line": 129,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "and event behavior, uncalibrated credibility risk, and the live legacy MiniLM",
+      "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+      "legacy_embedding_reference": true,
+      "line": 218,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "features   all-MiniLM-L6-v2 sentence embeddings (normalised, CPU), the same",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 7,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "model instance dedup loads, so the process holds MiniLM once",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 8,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "EMBEDDING_MODEL = \"sentence-transformers/all-MiniLM-L6-v2\"",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 40,
+      "match": "EMBEDDING_MODEL = \"sentence-transformer"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "EMBEDDING_MODEL = \"sentence-transformers/all-MiniLM-L6-v2\"",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 40,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "\"\"\"Normalised MiniLM embeddings, float32, shape (n, 384). None if the model is unavailable.\"\"\"",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 61,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "from app.services.dedup import _get_embedding_model",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 62,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "model = _get_embedding_model()",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 64,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "return model.encode(",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 67,
+      "match": "model.encode"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "raise RuntimeError(\"MiniLM is unavailable; cannot train the event classifier\")",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 161,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "\"embedding_model\": EMBEDDING_MODEL,",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 233,
+      "match": "EMBEDDING_MODEL"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "\"embedding_model\": EMBEDDING_MODEL,",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 233,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "\"embedding_model\": EMBEDDING_MODEL,",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 239,
+      "match": "EMBEDDING_MODEL"
+    },
+    {
+      "classification": "DEAD_CODE",
+      "excerpt": "\"embedding_model\": EMBEDDING_MODEL,",
+      "file": "backend/app/ml/event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 239,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"live_backend_depends_on_embedding_model\": still_live,",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 540,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"new_six_component_subsystem_depends_on_embedding_model\": False,",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 541,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"model_identifier\": \"sentence-\" + \"transformers/all-\" + \"MiniLM-L6-v2\",",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 542,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"model_identifier\": \"sentence-\" + \"transformers/all-\" + \"MiniLM-L6-v2\",",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 542,
+      "match": "model_identifier"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"backend/app/services/dedup.py _get_embedding_model\",",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 553,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_models\": artifact[\"pretrained_models\"],",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 1696,
+      "match": "pretrained_models\": artifact[\"pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_models_none\": policy.get(\"pretrained_models\") == [],",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 1706,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_models_none\": policy.get(\"pretrained_models\") == [],",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 1706,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "six_component_pass and not legacy[\"live_backend_depends_on_embedding_model\"]",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 1750,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"remote_checkpoint_retrieval\": \"ABSENT_IN_FROZEN_SUBSYSTEM\",",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 1781,
+      "match": "remote_checkpoint"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_model_used\": False,",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 1800,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"PRETRAINED_MODELS\": \"NONE\",",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 2071,
+      "match": "PRETRAINED_MODEL"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"the separately scoped live legacy MiniLM path can attempt remote \"",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 2079,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_model_used\",",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 2099,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"legacy_minilm_audit\": legacy,",
+      "file": "backend/app/ml/final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 2123,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "pretrained_models: list[str] = Field(default_factory=list, max_length=0)",
+      "file": "backend/app/ml/models/anomaly_window_model.py",
+      "legacy_embedding_reference": false,
+      "line": 126,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"\"\"Statically reject network, hosted-AI, and pretrained-model entry points.\"\"\"",
+      "file": "backend/app/ml/release_gate.py",
+      "legacy_embedding_reference": false,
+      "line": 492,
+      "match": "pretrained-model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"huggingface\" + \"_hub\",",
+      "file": "backend/app/ml/release_gate.py",
+      "legacy_embedding_reference": false,
+      "line": 502,
+      "match": "huggingface"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"all\" + \"-minilm\",",
+      "file": "backend/app/ml/release_gate.py",
+      "legacy_embedding_reference": true,
+      "line": 524,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "legacy_minilm_status: Literal[\"LEGACY_BACKEND_VIOLATION\"] = (",
+      "file": "backend/app/ml/release_gate.py",
+      "legacy_embedding_reference": true,
+      "line": 692,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"LEGACY_BACKEND_VIOLATION: MiniLM migration is specified but not implemented.\",",
+      "file": "backend/app/ml/release_gate.py",
+      "legacy_embedding_reference": true,
+      "line": 1304,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"LEGACY_BACKEND_VIOLATION: live MiniLM deduplication migration is pending\",",
+      "file": "backend/app/ml/release_gate.py",
+      "legacy_embedding_reference": true,
+      "line": 1336,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"sentence_transformers\",",
+      "file": "backend/app/ml/tests/phase25_adapter_probe.py",
+      "legacy_embedding_reference": true,
+      "line": 54,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"huggingface_hub\",",
+      "file": "backend/app/ml/tests/phase25_adapter_probe.py",
+      "legacy_embedding_reference": false,
+      "line": 56,
+      "match": "huggingface"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert dedup._get_embedding_model() is None",
+      "file": "backend/app/ml/tests/phase25_adapter_probe.py",
+      "legacy_embedding_reference": true,
+      "line": 121,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"sentence_transformers\",",
+      "file": "backend/app/ml/tests/test_anomaly_detection.py",
+      "legacy_embedding_reference": true,
+      "line": 784,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"from_pretrained\",",
+      "file": "backend/app/ml/tests/test_anomaly_detection.py",
+      "legacy_embedding_reference": false,
+      "line": 792,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"hf_hub_download\",",
+      "file": "backend/app/ml/tests/test_anomaly_detection.py",
+      "legacy_embedding_reference": false,
+      "line": 793,
+      "match": "hf_hub_download"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"load_state_dict_from_url\",",
+      "file": "backend/app/ml/tests/test_anomaly_detection.py",
+      "legacy_embedding_reference": false,
+      "line": 794,
+      "match": "load_state_dict_from_url"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"snapshot_download\",",
+      "file": "backend/app/ml/tests/test_anomaly_detection.py",
+      "legacy_embedding_reference": false,
+      "line": 795,
+      "match": "snapshot_download"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "The legacy MiniLM module is intentionally excluded and documented as legacy.",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": true,
+      "line": 3,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"huggingface_hub\",",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": false,
+      "line": 34,
+      "match": "huggingface"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"from_pretrained\",",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"snapshot_download\",",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": false,
+      "line": 46,
+      "match": "snapshot_download"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"hf_hub_download\",",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": false,
+      "line": 47,
+      "match": "hf_hub_download"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "checkpoint = \"all\" + \"-\" + \"MiniLM\" + \"-\" + \"L6-v2\"",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": true,
+      "line": 49,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert \"sentence-transformers\" not in requirements.read_text(encoding=\"utf-8\")",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": true,
+      "line": 154,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "if \"sentence_transformers\" in source or \"sentence-transformers\" in source:",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": true,
+      "line": 158,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "if \"sentence_transformers\" in source or \"sentence-transformers\" in source:",
+      "file": "backend/app/ml/tests/test_artifact_policy.py",
+      "legacy_embedding_reference": true,
+      "line": 158,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "if name in {\"from_pretrained\", \"load_state_dict_from_url\"}:",
+      "file": "backend/app/ml/tests/test_image_analysis.py",
+      "legacy_embedding_reference": false,
+      "line": 482,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "if name in {\"from_pretrained\", \"load_state_dict_from_url\"}:",
+      "file": "backend/app/ml/tests/test_image_analysis.py",
+      "legacy_embedding_reference": false,
+      "line": 482,
+      "match": "load_state_dict_from_url"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert manifest[\"pretrained_models\"] == []",
+      "file": "backend/app/ml/tests/test_phase17_synthetic_nlp.py",
+      "legacy_embedding_reference": false,
+      "line": 325,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert artifact.policy[\"pretrained_models\"] == []",
+      "file": "backend/app/ml/tests/test_phase19_duplicate_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 214,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert receipt[\"pretrained_models\"] == []",
+      "file": "backend/app/ml/tests/test_phase19_duplicate_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 229,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "r\"^\\s*(?:from|import)\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\b\",",
+      "file": "backend/app/ml/tests/test_phase20_event_validation.py",
+      "legacy_embedding_reference": true,
+      "line": 262,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "def test_phase21_sources_have_no_network_or_pretrained_model_dependencies():",
+      "file": "backend/app/ml/tests/test_phase21_credibility_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 314,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "r\"^\\s*(?:from|import)\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\b\",",
+      "file": "backend/app/ml/tests/test_phase21_credibility_validation.py",
+      "legacy_embedding_reference": true,
+      "line": 322,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "prohibited_calls = re.compile(r\"\\b(?:urlopen|requests\\.|httpx\\.|from_pretrained)\\b\")",
+      "file": "backend/app/ml/tests/test_phase21_credibility_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 325,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "def test_phase22_sources_have_no_network_pretrained_or_external_model_calls():",
+      "file": "backend/app/ml/tests/test_phase22_image_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 300,
+      "match": "pretrained_or_external_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "if name in {\"from_pretrained\", \"load_state_dict_from_url\", \"hub.load\"}:",
+      "file": "backend/app/ml/tests/test_phase22_image_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 342,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "if name in {\"from_pretrained\", \"load_state_dict_from_url\", \"hub.load\"}:",
+      "file": "backend/app/ml/tests/test_phase22_image_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 342,
+      "match": "load_state_dict_from_url"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert artifact.pretrained_models == []",
+      "file": "backend/app/ml/tests/test_phase23_anomaly_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 217,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"from_pretrained\",",
+      "file": "backend/app/ml/tests/test_phase23_anomaly_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 316,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"hf_hub_download\",",
+      "file": "backend/app/ml/tests/test_phase23_anomaly_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 317,
+      "match": "hf_hub_download"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"load_state_dict_from_url\",",
+      "file": "backend/app/ml/tests/test_phase23_anomaly_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 318,
+      "match": "load_state_dict_from_url"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"pretrained_model_used\",",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert row[\"pretrained_model_used\"] is False",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": false,
+      "line": 80,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "def test_phase24_historical_minilm_finding_is_immutable_and_current_path_is_removed():",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 114,
+      "match": "minilm"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert frozen[\"legacy_minilm_audit\"][\"status\"] == \"LEGACY_BACKEND_VIOLATION\"",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 116,
+      "match": "minilm"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert frozen[\"legacy_minilm_audit\"][\"live_backend_depends_on_embedding_model\"]",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 117,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert frozen[\"legacy_minilm_audit\"][\"live_backend_depends_on_embedding_model\"]",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 117,
+      "match": "minilm"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert audit[\"live_backend_depends_on_embedding_model\"] is False",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 127,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert audit[\"new_six_component_subsystem_depends_on_embedding_model\"] is False",
+      "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "legacy_embedding_reference": true,
+      "line": 128,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "def test_live_backend_path_has_no_model_loader_or_remote_identifier():",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": false,
+      "line": 34,
+      "match": "remote_identifier"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "forbidden_imports = {\"sentence_transformers\", \"transformers\", \"huggingface_hub\"}",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": false,
+      "line": 40,
+      "match": "huggingface"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "forbidden_imports = {\"sentence_transformers\", \"transformers\", \"huggingface_hub\"}",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": true,
+      "line": 40,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"SentenceTransformer\",",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": true,
+      "line": 42,
+      "match": "SentenceTransformer"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"from_pretrained\",",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": false,
+      "line": 43,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"hf_hub_download\",",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": false,
+      "line": 44,
+      "match": "hf_hub_download"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "\"snapshot_download\",",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "snapshot_download"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "assert \"all-MiniLM\" not in source",
+      "file": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "legacy_embedding_reference": true,
+      "line": 50,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "pretrained_model_used=False,",
+      "file": "backend/app/ml/training/anomaly_synthetic_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 834,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"no_pretrained_models\": not artifact.pretrained_models,",
+      "file": "backend/app/ml/training/anomaly_synthetic_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 975,
+      "match": "pretrained_models\": not artifact.pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/anomaly_synthetic_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1248,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/anomaly_synthetic_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1297,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "for key in (\"pretrained_models\", \"open_weight_models\", \"external_apis\"):",
+      "file": "backend/app/ml/training/credibility_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 249,
+      "match": "pretrained_models\", \"open_weight_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/credibility_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1680,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_absent\": artifact.policy[\"pretrained_models\"] == [],",
+      "file": "backend/app/ml/training/credibility_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1931,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models_absent\": artifact.policy[\"pretrained_models\"] == [],",
+      "file": "backend/app/ml/training/credibility_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1931,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/credibility_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 2261,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "self.policy.get(\"pretrained_models\"),",
+      "file": "backend/app/ml/training/duplicate_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 177,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained\": manifest.get(\"pretrained_models\") == [],",
+      "file": "backend/app/ml/training/duplicate_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 408,
+      "match": "pretrained\": manifest.get(\"pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/duplicate_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1836,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"minilm_modified\": False,",
+      "file": "backend/app/ml/training/duplicate_validation.py",
+      "legacy_embedding_reference": true,
+      "line": 1845,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"minilm_modified\": False,",
+      "file": "backend/app/ml/training/duplicate_validation.py",
+      "legacy_embedding_reference": true,
+      "line": 2223,
+      "match": "minilm"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/duplicate_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 2224,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "for key in (\"pretrained_models\", \"open_weight_models\", \"external_apis\"):",
+      "file": "backend/app/ml/training/event_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 201,
+      "match": "pretrained_models\", \"open_weight_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/event_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1330,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/event_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1565,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/event_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1862,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "for key in (\"pretrained_models\", \"open_weight_models\", \"external_apis\"):",
+      "file": "backend/app/ml/training/image_synthetic_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 255,
+      "match": "pretrained_models\", \"open_weight_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/image_synthetic_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1563,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/image_synthetic_validation.py",
+      "legacy_embedding_reference": false,
+      "line": 1817,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": dataset_manifest.get(\"pretrained_models\") == [],",
+      "file": "backend/app/ml/training/nlp_synthetic_v3.py",
+      "legacy_embedding_reference": false,
+      "line": 483,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": dataset_manifest.get(\"pretrained_models\") == [],",
+      "file": "backend/app/ml/training/nlp_synthetic_v3.py",
+      "legacy_embedding_reference": false,
+      "line": 483,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/nlp_synthetic_v3.py",
+      "legacy_embedding_reference": false,
+      "line": 2159,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "backend/app/ml/training/nlp_synthetic_v3.py",
+      "legacy_embedding_reference": false,
+      "line": 2815,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "def _get_embedding_model() -> None:",
+      "file": "backend/app/services/dedup.py",
+      "legacy_embedding_reference": true,
+      "line": 55,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "from app.services.dedup import DedupService, _get_embedding_model",
+      "file": "backend/tests/conftest.py",
+      "legacy_embedding_reference": true,
+      "line": 33,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "True when sentence-transformers loaded successfully.",
+      "file": "backend/tests/conftest.py",
+      "legacy_embedding_reference": true,
+      "line": 137,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "return _get_embedding_model() is not None",
+      "file": "backend/tests/conftest.py",
+      "legacy_embedding_reference": true,
+      "line": 143,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "reason=\"sentence-transformers model unavailable â€” dedup is on the Levenshtein fallback\",",
+      "file": "backend/tests/conftest.py",
+      "legacy_embedding_reference": true,
+      "line": 148,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "sentence-transformers loaded, Levenshtein â‰¥ 0.75 on the fallback â€” so the one",
+      "file": "backend/tests/test_dedup.py",
+      "legacy_embedding_reference": true,
+      "line": 9,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "from app.services.dedup import _cosine_similarity, _get_embedding_model",
+      "file": "backend/tests/test_dedup.py",
+      "legacy_embedding_reference": true,
+      "line": 113,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "model = _get_embedding_model()",
+      "file": "backend/tests/test_dedup.py",
+      "legacy_embedding_reference": true,
+      "line": 115,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "model.encode(a, convert_to_numpy=True),",
+      "file": "backend/tests/test_dedup.py",
+      "legacy_embedding_reference": true,
+      "line": 119,
+      "match": "model.encode"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "model.encode(b, convert_to_numpy=True),",
+      "file": "backend/tests/test_dedup.py",
+      "legacy_embedding_reference": true,
+      "line": 120,
+      "match": "model.encode"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "Unit level (no database). Tests that embed text need MiniLM and are skipped",
+      "file": "backend/tests/test_event_classifier.py",
+      "legacy_embedding_reference": true,
+      "line": 5,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "Unit level (no database). The leakage check needs the MiniLM model and is",
+      "file": "backend/tests/test_labelled_dataset.py",
+      "legacy_embedding_reference": true,
+      "line": 4,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "from app.services.dedup import _get_embedding_model",
+      "file": "backend/tests/test_labelled_dataset.py",
+      "legacy_embedding_reference": true,
+      "line": 91,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "model = _get_embedding_model()",
+      "file": "backend/tests/test_labelled_dataset.py",
+      "legacy_embedding_reference": true,
+      "line": 93,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "a = model.encode(train, normalize_embeddings=True, convert_to_numpy=True)",
+      "file": "backend/tests/test_labelled_dataset.py",
+      "legacy_embedding_reference": true,
+      "line": 96,
+      "match": "model.encode"
+    },
+    {
+      "classification": "TEST_ONLY",
+      "excerpt": "b = model.encode(test, normalize_embeddings=True, convert_to_numpy=True)",
+      "file": "backend/tests/test_labelled_dataset.py",
+      "legacy_embedding_reference": true,
+      "line": 97,
+      "match": "model.encode"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "whitespace-collapsed) across train and test, and no train/test pair with MiniLM cosine â‰¥ 0.95.",
+      "file": "data/labelled/DATASHEET.md",
+      "legacy_embedding_reference": true,
+      "line": 52,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "- **Hindi in Devanagari is poorly represented by the features.** `all-MiniLM-L6-v2` is an",
+      "file": "data/labelled/DATASHEET.md",
+      "legacy_embedding_reference": true,
+      "line": 56,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "{\"annotation_sha256\":\"206114139d5a253858be0a1b6a7ff1eb9946634c519c9a7bacf73cf1648b6151\",\"classification\":\"DEVELOPMENT_ONLY\",\"creation_timestamp\":\"2026-09-24T09:00:00Z\",\"data_origin\":\"PROJECT_AUTHORED_SYNTHETIC\",\"dataset_id\":\"indra-synthetic",
+      "file": "data/labelled/anomaly/synthetic_v1/manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 1,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": []",
+      "file": "data/labelled/credibility/synthetic_v1/synthetic_credibility_dataset_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 97,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "data/labelled/duplicates/synthetic_v1/synthetic_duplicate_dataset_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 23,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "data/labelled/events/synthetic_v1/synthetic_event_dataset_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 41,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "data/labelled/image/synthetic_v1/manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "data/labelled/nlp/synthetic_v1/synthetic_nlp_dataset_manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 20,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "| 3 | Data Processing | âœ… **5 of 6** | Deduplication is real and wired (`services/dedup.py`: MiniLM cosine â‰¥ 0.88 **AND** â‰¤ 1 km **AND** â‰¤ 15 min, Levenshtein â‰¥ 0.75 fallback, thresholds now in `config.py`). A suppressed report is",
+      "file": "docs/ARCHITECTURE.md",
+      "legacy_embedding_reference": true,
+      "line": 85,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "| 4 | AI / ML | â¬› **out of scope since 20 Sep** | `all-MiniLM-L6-v2` runs for duplicate matching and for nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macro-F1 0.787; NOT_RELEVANT reca",
+      "file": "docs/ARCHITECTURE.md",
+      "legacy_embedding_reference": true,
+      "line": 86,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "AI1[Sentence Transformers: dedup embeddings]",
+      "file": "docs/ARCHITECTURE.md",
+      "legacy_embedding_reference": true,
+      "line": 223,
+      "match": "Transformers: dedup embedding"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "â”œâ”€ 1. dedup            MiniLM cosine â‰¥ 0.88 AND â‰¤ 1 km AND â‰¤ 15 min",
+      "file": "docs/backend-architecture.md",
+      "legacy_embedding_reference": true,
+      "line": 29,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "â”‚   â”œâ”€â”€ dedup.py         the three-gate AND. MiniLM encode runs in a thread.",
+      "file": "docs/backend-architecture.md",
+      "legacy_embedding_reference": true,
+      "line": 80,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "### BUG-006 â€” First event takes 12.7 s (cold MiniLM load) â€” **re-rated S1: it freezes the whole API**",
+      "file": "docs/bug-register.md",
+      "legacy_embedding_reference": true,
+      "line": 246,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "method, and `model.encode(...)` inside it (`dedup.py`) is blocking, CPU-bound work. It is called",
+      "file": "docs/bug-register.md",
+      "legacy_embedding_reference": true,
+      "line": 259,
+      "match": "model.encode"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "directly from the async `process_report`, so loading MiniLM and encoding on the first report **blocks",
+      "file": "docs/bug-register.md",
+      "legacy_embedding_reference": true,
+      "line": 260,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "Fix: T9 â€” warm the model in a lifespan task.",
+      "file": "docs/bug-register.md",
+      "legacy_embedding_reference": false,
+      "line": 287,
+      "match": "warm the model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "(model pre-warmed, so these are steady-state numbers, not a cold MiniLM load)",
+      "file": "docs/bug-register.md",
+      "legacy_embedding_reference": true,
+      "line": 697,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "**Deduplication runs on MiniLM sentence embeddings.** That is the model in the data path, and it",
+      "file": "docs/nodal-officer-qa.md",
+      "legacy_embedding_reference": true,
+      "line": 67,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "First start loads the MiniLM embedding model (~13 s). It is warmed on a background thread, so the",
+      "file": "docs/setup.md",
+      "legacy_embedding_reference": true,
+      "line": 103,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "scripts/generate_synthetic_anomaly_dataset.py",
+      "legacy_embedding_reference": false,
+      "line": 60,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "scripts/generate_synthetic_image_dataset.py",
+      "legacy_embedding_reference": false,
+      "line": 69,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "INVENTORY_PATH = ARTIFACT_ROOT / \"phase25_minilm_inventory.json\"",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 40,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "MIGRATION_PATH = ARTIFACT_ROOT / \"phase25_minilm_migration_manifest.json\"",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 42,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"MiniLM\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 44,
+      "match": "MiniLM"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"SentenceTransformer\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 45,
+      "match": "SentenceTransformer"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"transformer.{0,35}embedding|embedding.{0,35}transformer\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 47,
+      "match": "transformer.{0,35}embedding|embedding"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"from_pretrained|AutoTokenizer|AutoModel|hf_hub_download|snapshot_download\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 48,
+      "match": "AutoModel"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"from_pretrained|AutoTokenizer|AutoModel|hf_hub_download|snapshot_download\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 48,
+      "match": "AutoTokenizer"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"from_pretrained|AutoTokenizer|AutoModel|hf_hub_download|snapshot_download\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 48,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"from_pretrained|AutoTokenizer|AutoModel|hf_hub_download|snapshot_download\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 48,
+      "match": "hf_hub_download"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"from_pretrained|AutoTokenizer|AutoModel|hf_hub_download|snapshot_download\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 48,
+      "match": "snapshot_download"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"load_state_dict_from_url|torch\\.hub\\.load\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 49,
+      "match": "load_state_dict_from_url"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"_get_embedding_model|embedding_model|model\\.encode\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 50,
+      "match": "_get_embedding_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"_get_embedding_model|embedding_model|model\\.encode\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 50,
+      "match": "embedding_model"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"warm.{0,25}(embedding|model|duplicate)\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 51,
+      "match": "warm.{0,25}(embedding|model|duplicate"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"huggingface|HF_HOME|TRANSFORMERS_CACHE|HUGGINGFACE_HUB_CACHE\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 52,
+      "match": "HF_HOME"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"huggingface|HF_HOME|TRANSFORMERS_CACHE|HUGGINGFACE_HUB_CACHE\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 52,
+      "match": "HUGGINGFACE"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"huggingface|HF_HOME|TRANSFORMERS_CACHE|HUGGINGFACE_HUB_CACHE\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 52,
+      "match": "TRANSFORMERS_CACHE"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"huggingface|HF_HOME|TRANSFORMERS_CACHE|HUGGINGFACE_HUB_CACHE\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 52,
+      "match": "huggingface"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"pretrained.{0,35}(embedding|model|checkpoint)\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 53,
+      "match": "pretrained.{0,35}(embedding|model|checkpoint"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"hf_hub_download|snapshot_download|from_pretrained|load_state_dict_from_url\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 60,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"hf_hub_download|snapshot_download|from_pretrained|load_state_dict_from_url\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 60,
+      "match": "hf_hub_download"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"hf_hub_download|snapshot_download|from_pretrained|load_state_dict_from_url\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 60,
+      "match": "load_state_dict_from_url"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"hf_hub_download|snapshot_download|from_pretrained|load_state_dict_from_url\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 60,
+      "match": "snapshot_download"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"huggingface|model[-_ ]?(download|serving)|embedding[-_ ]?(api|service|client)\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 61,
+      "match": "huggingface"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"!**/phase25_minilm_inventory.json\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 73,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"!**/phase25_minilm_migration_manifest.json\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 74,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"minilm|sentence[-_]?transformer|_get_embedding_model|embedding_model|\"",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 153,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"minilm|sentence[-_]?transformer|_get_embedding_model|embedding_model|\"",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 153,
+      "match": "transformer|_get_embedding_model|embedding"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "r\"model\\.encode|transformer.{0,35}embedding|embedding.{0,35}transformer\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 154,
+      "match": "transformer.{0,35}embedding|embedding"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"huggingface_hub\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 343,
+      "match": "huggingface"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"sentence_transformers\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 344,
+      "match": "sentence_transformers"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"from_pretrained\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 348,
+      "match": "from_pretrained"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"hf_hub_download\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 349,
+      "match": "hf_hub_download"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"snapshot_download\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 350,
+      "match": "snapshot_download"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"load_state_dict_from_url\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 351,
+      "match": "load_state_dict_from_url"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"phase\": \"25 â€” LEGACY MINILM REPLACEMENT + FREEZE-BLOCKER REMEDIATION\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 507,
+      "match": "MINILM"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"minilm_inventory\": {",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 514,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"live_minilm_paths_found_in_phase24\": [",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 524,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"backend/app/services/dedup.py lazy SentenceTransformer loader and similarity\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 527,
+      "match": "SentenceTransformer"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"live_minilm_paths_removed_or_replaced\": [",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 530,
+      "match": "minilm"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"Runtime sentence-transformers requirement removed; inert compatibility symbol cannot load weights.\",",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": true,
+      "line": 534,
+      "match": "sentence-transformers"
+    },
+    {
+      "classification": "MIGRATION_TARGET",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "scripts/phase25_audit.py",
+      "legacy_embedding_reference": false,
+      "line": 592,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "tmp/phase22-pilot/manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "tmp/phase22-pilot2/manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "tmp/phase22-pilot3/manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "pretrained_model"
+    },
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "excerpt": "\"pretrained_models\": [],",
+      "file": "tmp/phase22-preview/manifest.json",
+      "legacy_embedding_reference": false,
+      "line": 45,
+      "match": "pretrained_model"
+    }
+  ],
+  "phase": 25,
+  "scope": "ENTIRE_REPOSITORY_TEXT_EXCLUDING_VCS_DEPENDENCY_BUILD_AND_TEST_CACHES",
+  "search_method": "ripgrep --json --hidden --no-ignore -i",
+  "search_patterns": [
+    "MiniLM",
+    "SentenceTransformer",
+    "sentence[-_]transformers?",
+    "transformer.{0,35}embedding|embedding.{0,35}transformer",
+    "from_pretrained|AutoTokenizer|AutoModel|hf_hub_download|snapshot_download",
+    "load_state_dict_from_url|torch\\.hub\\.load",
+    "_get_embedding_model|embedding_model|model\\.encode",
+    "warm.{0,25}(embedding|model|duplicate)",
+    "huggingface|HF_HOME|TRANSFORMERS_CACHE|HUGGINGFACE_HUB_CACHE",
+    "pretrained.{0,35}(embedding|model|checkpoint)",
+    "(remote|model)[-_ ]?(checkpoint|cache|identifier)",
+    "embedding[-_ ]?(service|client|wrapper)"
+  ]
+}

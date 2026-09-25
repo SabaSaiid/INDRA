@@ -1,0 +1,270 @@
+{
+  "baseline_name": "RULE_BASED_CREDIBILITY_BASELINE",
+  "calibrated": false,
+  "hard_negative_results": {
+    "duplicate_not_equated_with_misleading": true,
+    "extreme_not_equated_with_misleading": true,
+    "scenarios": {
+      "AUTHENTIC_EXTREME_BUT_PLAUSIBLE": {
+        "actual_label": "AUTHENTIC",
+        "correct_rate": 1.0,
+        "false_misleading_rate": 0.0,
+        "predicted_distribution": {
+          "AUTHENTIC": 1080
+        },
+        "row_count": 1080
+      },
+      "AUTHENTIC_WITH_INCOMPLETE_METADATA": {
+        "actual_label": "AUTHENTIC",
+        "correct_rate": 1.0,
+        "false_misleading_rate": 0.0,
+        "predicted_distribution": {
+          "AUTHENTIC": 1080
+        },
+        "row_count": 1080
+      },
+      "LEGITIMATE_DUPLICATE": {
+        "actual_label": "AUTHENTIC",
+        "correct_rate": 1.0,
+        "false_misleading_rate": 0.0,
+        "predicted_distribution": {
+          "AUTHENTIC": 1080
+        },
+        "row_count": 1080
+      },
+      "LEGITIMATE_EVENT_CONFLICT": {
+        "actual_label": "AUTHENTIC",
+        "correct_rate": 0.6666666667,
+        "false_misleading_rate": 0.0,
+        "predicted_distribution": {
+          "AUTHENTIC": 720,
+          "UNCERTAIN": 360
+        },
+        "row_count": 1080
+      },
+      "MISLEADING_CONTEXT": {
+        "actual_label": "MISLEADING",
+        "correct_rate": 0.0,
+        "misleading_recall": 0.0,
+        "predicted_distribution": {
+          "UNCERTAIN": 1080
+        },
+        "row_count": 1080
+      },
+      "MISLEADING_OMISSION": {
+        "actual_label": "MISLEADING",
+        "correct_rate": 0.0,
+        "misleading_recall": 0.0,
+        "predicted_distribution": {
+          "AUTHENTIC": 1080
+        },
+        "row_count": 1080
+      },
+      "SOURCE_BEHAVIOR_ANOMALY": {
+        "actual_label": "MISLEADING",
+        "correct_rate": 0.0,
+        "misleading_recall": 0.0,
+        "predicted_distribution": {
+          "AUTHENTIC": 64,
+          "UNCERTAIN": 1016
+        },
+        "row_count": 1080
+      }
+    },
+    "scope": "validation"
+  },
+  "metrics": {
+    "accuracy": 0.4523809524,
+    "confusion_matrix": {
+      "AUTHENTIC": {
+        "AUTHENTIC": 5040,
+        "MISLEADING": 0,
+        "UNCERTAIN": 360
+      },
+      "MISLEADING": {
+        "AUTHENTIC": 1144,
+        "MISLEADING": 1440,
+        "UNCERTAIN": 6056
+      },
+      "UNCERTAIN": {
+        "AUTHENTIC": 720,
+        "MISLEADING": 0,
+        "UNCERTAIN": 360
+      }
+    },
+    "false_negative_rate": 0.8333333333,
+    "false_positive_rate": 0.0,
+    "macro_f1": 0.398869918,
+    "misleading_precision": 1.0,
+    "misleading_recall": 0.1666666667,
+    "per_label": {
+      "AUTHENTIC": {
+        "f1": 0.8192457737,
+        "precision": 0.7300115875,
+        "recall": 0.9333333333,
+        "support": 5400
+      },
+      "MISLEADING": {
+        "f1": 0.2857142857,
+        "precision": 1.0,
+        "recall": 0.1666666667,
+        "support": 8640
+      },
+      "UNCERTAIN": {
+        "f1": 0.0916496945,
+        "precision": 0.0531286895,
+        "recall": 0.3333333333,
+        "support": 1080
+      }
+    },
+    "row_count": 15120
+  },
+  "multilingual_results": {
+    "languages": {
+      "English": {
+        "accuracy": 0.4642857143,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 1800,
+            "MISLEADING": 0,
+            "UNCERTAIN": 0
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 380,
+            "MISLEADING": 360,
+            "UNCERTAIN": 2140
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 180,
+            "MISLEADING": 0,
+            "UNCERTAIN": 180
+          }
+        },
+        "false_negative_rate": 0.875,
+        "false_positive_rate": 0.0,
+        "macro_f1": 0.4073117319,
+        "misleading_precision": 1.0,
+        "misleading_recall": 0.125,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.8653846154,
+            "precision": 0.7627118644,
+            "recall": 1.0,
+            "support": 1800
+          },
+          "MISLEADING": {
+            "f1": 0.2222222222,
+            "precision": 1.0,
+            "recall": 0.125,
+            "support": 2880
+          },
+          "UNCERTAIN": {
+            "f1": 0.1343283582,
+            "precision": 0.0775862069,
+            "recall": 0.5,
+            "support": 360
+          }
+        },
+        "row_count": 5040
+      },
+      "Hindi": {
+        "accuracy": 0.4285714286,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 1440,
+            "MISLEADING": 0,
+            "UNCERTAIN": 360
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 384,
+            "MISLEADING": 720,
+            "UNCERTAIN": 1776
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 360,
+            "MISLEADING": 0,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.75,
+        "false_positive_rate": 0.0,
+        "macro_f1": 0.3742971888,
+        "misleading_precision": 1.0,
+        "misleading_recall": 0.25,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.7228915663,
+            "precision": 0.6593406593,
+            "recall": 0.8,
+            "support": 1800
+          },
+          "MISLEADING": {
+            "f1": 0.4,
+            "precision": 1.0,
+            "recall": 0.25,
+            "support": 2880
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 360
+          }
+        },
+        "row_count": 5040
+      },
+      "Hinglish": {
+        "accuracy": 0.4642857143,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 1800,
+            "MISLEADING": 0,
+            "UNCERTAIN": 0
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 380,
+            "MISLEADING": 360,
+            "UNCERTAIN": 2140
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 180,
+            "MISLEADING": 0,
+            "UNCERTAIN": 180
+          }
+        },
+        "false_negative_rate": 0.875,
+        "false_positive_rate": 0.0,
+        "macro_f1": 0.4073117319,
+        "misleading_precision": 1.0,
+        "misleading_recall": 0.125,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.8653846154,
+            "precision": 0.7627118644,
+            "recall": 1.0,
+            "support": 1800
+          },
+          "MISLEADING": {
+            "f1": 0.2222222222,
+            "precision": 1.0,
+            "recall": 0.125,
+            "support": 2880
+          },
+          "UNCERTAIN": {
+            "f1": 0.1343283582,
+            "precision": 0.0775862069,
+            "recall": 0.5,
+            "support": 360
+          }
+        },
+        "row_count": 5040
+      }
+    },
+    "macro_f1_range": 0.0330145431,
+    "scope": "validation",
+    "weakest_language": "Hindi"
+  },
+  "score_semantics": "DETERMINISTIC_RISK_SCORE_NOT_PROBABILITY",
+  "split": "validation",
+  "truth_probability": false
+}

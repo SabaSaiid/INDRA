@@ -1,0 +1,188 @@
+{
+  "schema_version": "1.0",
+  "selection_split": "validation",
+  "test_rows_accessed": false,
+  "ablations": [
+    {
+      "ablation": "TEXT ONLY",
+      "selected_threshold": 0.67,
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.6752722872125857,
+        "recall": 0.992,
+        "f1": 0.8035521420856833,
+        "false_positive_rate": 0.47703703703703704,
+        "false_negative_rate": 0.008,
+        "confusion_matrix": {
+          "true_duplicate": 6696,
+          "false_duplicate": 3220,
+          "true_non_duplicate": 3530,
+          "missed_duplicate": 54
+        },
+        "pr_auc_average_precision": 0.622997471443299
+      },
+      "selection_split": "validation"
+    },
+    {
+      "ablation": "GEO ONLY",
+      "selected_threshold": 0.81,
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.6363122171945701,
+        "recall": 1.0,
+        "f1": 0.7777393708952643,
+        "false_positive_rate": 0.5715555555555556,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "true_duplicate": 6750,
+          "false_duplicate": 3858,
+          "true_non_duplicate": 2892,
+          "missed_duplicate": 0
+        },
+        "pr_auc_average_precision": 0.5562831035556434
+      },
+      "selection_split": "validation"
+    },
+    {
+      "ablation": "TIME ONLY",
+      "selected_threshold": 0.53,
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.7777393708952645,
+        "recall": 1.0,
+        "f1": 0.8749756951195801,
+        "false_positive_rate": 0.2857777777777778,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "true_duplicate": 6750,
+          "false_duplicate": 1929,
+          "true_non_duplicate": 4821,
+          "missed_duplicate": 0
+        },
+        "pr_auc_average_precision": 0.7749782019644078
+      },
+      "selection_split": "validation"
+    },
+    {
+      "ablation": "TEXT + GEO",
+      "selected_threshold": 0.68,
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.6985606295951123,
+        "recall": 0.9994074074074074,
+        "f1": 0.8223319314926556,
+        "false_positive_rate": 0.4312592592592593,
+        "false_negative_rate": 0.0005925925925925926,
+        "confusion_matrix": {
+          "true_duplicate": 6746,
+          "false_duplicate": 2911,
+          "true_non_duplicate": 3839,
+          "missed_duplicate": 4
+        },
+        "pr_auc_average_precision": 0.7334356929947279
+      },
+      "selection_split": "validation"
+    },
+    {
+      "ablation": "TEXT + TIME",
+      "selected_threshold": 0.68,
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.8010363943118823,
+        "recall": 0.9847407407407407,
+        "f1": 0.8834396597554491,
+        "false_positive_rate": 0.24459259259259258,
+        "false_negative_rate": 0.015259259259259259,
+        "confusion_matrix": {
+          "true_duplicate": 6647,
+          "false_duplicate": 1651,
+          "true_non_duplicate": 5099,
+          "missed_duplicate": 103
+        },
+        "pr_auc_average_precision": 0.8408102728139373
+      },
+      "selection_split": "validation"
+    },
+    {
+      "ablation": "TEXT + GEO + TIME",
+      "selected_threshold": 0.71,
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.8048780487804879,
+        "recall": 0.968,
+        "f1": 0.8789346246973366,
+        "false_positive_rate": 0.23466666666666666,
+        "false_negative_rate": 0.032,
+        "confusion_matrix": {
+          "true_duplicate": 6534,
+          "false_duplicate": 1584,
+          "true_non_duplicate": 5166,
+          "missed_duplicate": 216
+        },
+        "pr_auc_average_precision": 0.9202219812650444
+      },
+      "selection_split": "validation"
+    },
+    {
+      "ablation": "EDIT + TEXT",
+      "selected_threshold": 0.64,
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.6629135802469136,
+        "recall": 0.9943703703703703,
+        "f1": 0.7954962962962963,
+        "false_positive_rate": 0.5056296296296297,
+        "false_negative_rate": 0.005629629629629629,
+        "confusion_matrix": {
+          "true_duplicate": 6712,
+          "false_duplicate": 3413,
+          "true_non_duplicate": 3337,
+          "missed_duplicate": 38
+        },
+        "pr_auc_average_precision": 0.5772296688457524
+      },
+      "selection_split": "validation"
+    },
+    {
+      "ablation": "FULL MODEL",
+      "selected_threshold": {
+        "text": 0.6,
+        "combined": 0.65
+      },
+      "metrics": {
+        "evaluated_rows": 13500,
+        "duplicate_prevalence": 0.5,
+        "precision": 0.9882869692532943,
+        "recall": 1.0,
+        "f1": 0.9941089837997055,
+        "false_positive_rate": 0.011851851851851851,
+        "false_negative_rate": 0.0,
+        "confusion_matrix": {
+          "true_duplicate": 6750,
+          "false_duplicate": 80,
+          "true_non_duplicate": 6670,
+          "missed_duplicate": 0
+        },
+        "pr_auc_average_precision": 0.9999926684969908,
+        "uncertain_rows_excluded": 1500,
+        "configuration": {
+          "text_threshold": 0.6,
+          "combined_threshold": 0.65,
+          "geographic_gate_km": 5.0,
+          "temporal_gate_minutes": 30.0
+        },
+        "score_interpretation": "SIMILARITY_EVIDENCE_NOT_PROBABILITY"
+      },
+      "selection_split": "validation"
+    }
+  ],
+  "scientific_scope": "SYNTHETIC_DEVELOPMENT_ONLY",
+  "production_validation": "NOT_VALIDATED"
+}

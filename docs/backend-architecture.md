@@ -5,10 +5,13 @@ the exact path a citizen report takes from an HTTP request to a pin on the dashb
 [`ARCHITECTURE.md`](ARCHITECTURE.md), which covers the whole nine-layer system; this file is only
 `backend/`.
 
-**Last verified against the code and a running stack: 21 Sep 2026.**
+**Historical backend-sprint snapshot, last verified against a running stack on 21 Sep 2026.**
+Its MiniLM and permanently-offline image/anomaly statements are superseded. For the current
+AI/ML implementation and verification status, see [ML architecture](ML_ARCHITECTURE.md) and
+[ML validation](ML_VALIDATION_REPORT.md). Only the frozen Phase 19 duplicate matcher is currently
+connected to the backend; the other five frozen components await Phase 26 integration.
 
-Scope note, once: layers **4 (AI/ML)** and **8b (the alert engine)** left this backend's scope on
-20 Sep and are **cancelled, not deferred**. Nothing below is waiting on them.
+The 20 Sep AI/ML scope decision below is historical; the alert-engine status is separate.
 
 ---
 
@@ -26,7 +29,7 @@ indra.raw.reports  (Redpanda)
    │  broadcast NEW_REPORT once per report id (Redis-backed, survives restart)
    ▼  services/pipeline.py :: process_report
    │
-   ├─ 1. dedup            MiniLM cosine ≥ 0.88 AND ≤ 1 km AND ≤ 15 min
+   ├─ 1. dedup            frozen local Phase 19 matcher AND ≤ 1 km AND ≤ 15 min
    │                      a duplicate is marked duplicate_of and stops here
    ├─ 2. cluster          PostGIS ST_ClusterDBSCAN, eps 5 km, min 2 samples
    ├─ 3. stats            centroid, radius, max pairwise distance, in metres
@@ -39,8 +42,8 @@ indra.raw.reports  (Redpanda)
    └──► indra.verified.events
 ```
 
-Everything on that line is live and covered by the test suite. Everything off it — classification,
-vision, anomaly detection, alerting — is not, and is not coming.
+This is the backend path; the other five frozen AI/ML components are not yet wired to it. Full
+database-backed verification is blocked by the unavailable test stack.
 
 ---
 
@@ -51,7 +54,7 @@ backend/app/
 ├── main.py              FastAPI entrypoint. Explicit CORS origin list (not "*").
 │                        Lifespan starts, and cleanly stops, three background tasks:
 │                          · the Kafka report consumer
-│                          · the embedding-model warm-up (off the event loop)
+│                          · frozen local duplicate matcher warm-up (off the event loop)
 │                          · the Open-Meteo station poller
 │                        Serves GET /, /api/info, /healthz, WS /ws/events.
 ├── core/
@@ -77,7 +80,7 @@ backend/app/
 │   ├── pipeline.py      the orchestrator above. Fails soft: one bad report cannot
 │   │                    kill the consumer loop.
 │   ├── fusion_engine.py compute_receipt / assign_quadrant / determine_review_status.
-│   ├── dedup.py         the three-gate AND. MiniLM encode runs in a thread.
+│   ├── dedup.py         frozen Phase 19 matcher with backend geo/time eligibility gates.
 │   ├── geo_clustering.py DBSCAN, H3 assignment, cluster stats, report→event linking.
 │   ├── geocoding.py     coordinate sanitising against India's bounds, 56-city gazetteer.
 │   ├── credibility.py   source prior × text quality, per report.
@@ -91,8 +94,8 @@ backend/app/
 ├── workers/
 │   ├── report_consumer.py  aiokafka consumer driving the pipeline.
 │   └── station_poller.py   the scheduled Open-Meteo feed into station_readings.
-└── ml/                  FROZEN. event_classifier.py is trained, measured below its
-                         acceptance gate, and returns None. Out of scope since 20 Sep.
+└── ml/                  Six frozen local synthetic-development components; the older
+                         event_classifier.py remains quarantined legacy code.
 ```
 
 ---
@@ -106,9 +109,9 @@ Six factors, fixed weights:
 | Weather Station Corroboration | 0.25 | online |
 | Report Density Analysis | 0.20 | online |
 | Spatial Coherence Score | 0.20 | online |
-| Computer Vision Analysis | 0.15 | **permanently offline** |
+| Computer Vision Analysis | 0.15 | unavailable in this historical backend receipt; frozen model not yet integrated |
 | Source Reliability Index | 0.15 | online |
-| Anomaly Detection Signal | 0.05 | **permanently offline** |
+| Anomaly Detection Signal | 0.05 | unavailable in this historical backend receipt; frozen model not yet integrated |
 
 ```
 online          = { f : score(f) is not None }
@@ -118,7 +121,7 @@ confidence      = total_weighted / factor_coverage
 ```
 
 An offline factor **lowers the stated coverage** rather than silently scoring zero. Before this
-change two permanently-offline factors held 20% of the scale hostage and `AUTO_PUBLISHED` (≥ 0.90)
+change two unavailable factors held 20% of the scale hostage and `AUTO_PUBLISHED` (≥ 0.90)
 was mathematically unreachable — a broken scale, not honesty. The receipt publishes
 `factor_coverage` beside the score so the number is both usable and truthful. **Never quote one
 without the other.**
@@ -179,7 +182,7 @@ decisions rather than traffic. A reviewer writes `HUMAN_APPROVE` / `HUMAN_REJECT
 | Task | Started | Failure behaviour |
 |---|---|---|
 | Kafka report consumer | lifespan | Retries with backoff; logs the broker being offline once, not per attempt |
-| Embedding warm-up | lifespan, in a thread | Non-fatal. Without it the first report blocked the **entire** event loop for ~13 s — the API stopped answering, not just that report |
+| Frozen duplicate matcher warm-up | lifespan, in a thread | Local artifact load is non-fatal at startup; duplicate inference fails closed if unavailable |
 | Station poller | lifespan, if `STATION_POLLER_ENABLED` | Every tick wrapped; a failure logs one WARNING and the next tick retries |
 
 All three are cancelled and **awaited** at shutdown, which is what keeps

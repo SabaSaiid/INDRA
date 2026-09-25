@@ -1,0 +1,40 @@
+{
+  "report_version": "nlp-annotation-quality-v1",
+  "generated_at": "2026-09-23T12:00:00Z",
+  "valid": true,
+  "report_count": 0,
+  "annotation_count": 0,
+  "annotator_count": 0,
+  "annotator_counts": {},
+  "label_counts": {
+    "CLOUDBURST": 0,
+    "CYCLONE_INUNDATION": 0,
+    "NOT_RELEVANT": 0,
+    "RIVER_BREACH": 0,
+    "URBAN_FLOOD": 0
+  },
+  "language_counts": {
+    "en": 0,
+    "hi": 0,
+    "hinglish": 0,
+    "other": 0,
+    "unknown": 0
+  },
+  "uncertain_count": 0,
+  "agreement_status": "DATA_UNAVAILABLE",
+  "agreement_rate": null,
+  "repeated_report_count": 0,
+  "minimum_repeated_reports": 2,
+  "disagreement_count": 0,
+  "disagreement_report_ids": [],
+  "adjudication_count": 0,
+  "unresolved_disagreement_count": 0,
+  "duplicate_annotation_ids": [],
+  "duplicate_report_annotators": [],
+  "duplicate_source_report_ids": [],
+  "errors": [],
+  "warnings": [
+    "Repeated annotations are insufficient for agreement calculation.",
+    "No locally supplied real reports have been annotated or released in Phase 15."
+  ]
+}

@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "phase": "19 — DUPLICATE VALIDATION",
+  "status": "CONFIGURATION_FROZEN_TEST_NOT_ACCESSED",
+  "frozen_at": "2026-09-23T18:00:00+00:00",
+  "dataset_decision": {
+    "approved_human_adjudicated_duplicate_datasets": [],
+    "USE_IT": false,
+    "GENERATE_SYNTHETIC_DUPLICATE_DATASET": true,
+    "selected_source": "PROJECT_AUTHORED_SYNTHETIC",
+    "silent_switching_permitted": false
+  },
+  "dataset": {
+    "dataset_id": "indra-duplicate-project-synthetic-v1",
+    "dataset_version": "synthetic-duplicate-100k-v1",
+    "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+    "source": "PROJECT_AUTHORED_SYNTHETIC",
+    "classification": "DEVELOPMENT_ONLY",
+    "production_validation": "NOT_VALIDATED",
+    "manifest_sha256": "63cce0ce56919a735e4d0e594f1e1a2bd4f7f406e98720ac5dc0652c83169400",
+    "quality_report_sha256": "ae81eb09ae5e7e1322588b8224dbdd0e0d699a4b918455633753690e6c39f60d",
+    "registered_validation_sha256": "18f4f0d1798a361242c14c88b8655202449ba319e335f10d4e1fe58d08b9560f"
+  },
+  "split_descriptors": {
+    "train": {
+      "split": "train",
+      "row_count": 70000,
+      "split_sha256": "3d8e68ef51751095ee1d06abc56f96a124161995766c1df402b95ae409b7e72c",
+      "pair_ids_sha256": "930bc43b41d10bee780fda9e32c73ee90cb614267726e7cbeed43116bbbbbd7d"
+    },
+    "validation": {
+      "split": "validation",
+      "row_count": 15000,
+      "split_sha256": "c6e503eb19b4b4dd6bbbf2480195abcaf343fd94464d6f3b5320a5792d6c3c1c",
+      "pair_ids_sha256": "4765b7e583930230cc8963c098a80866cccdf8342b4ded70bddd4057cd415c09"
+    },
+    "test": {
+      "split": "test",
+      "row_count": 15000,
+      "split_sha256": "29a391c08c15d149c8e1a76fd31f8b4a6bb7f2ba92ec1feedbe21700d44c49ef",
+      "pair_ids_sha256": "a9991413a38a7540a4c41c359083c0b02a58a17f46df450795d6ea0ac75a7a76"
+    }
+  },
+  "feature_fit": {
+    "split": "train",
+    "report_text_count": 140000,
+    "training_corpus_sha256": "fcabdcf1c0bddc7fb9c1189a4897e1cc49f7ff5423b61a36b4510ab92e5e7b61",
+    "validation_or_test_fit_calls": 0,
+    "original_feature_state_overwritten": false
+  },
+  "threshold_selection": {
+    "split": "validation",
+    "selected_configuration": {
+      "text_threshold": 0.6,
+      "combined_threshold": 0.65,
+      "geographic_gate_km": 5.0,
+      "temporal_gate_minutes": 30.0
+    },
+    "threshold_version": "duplicate-thresholds-v1-synthetic-validation",
+    "test_rows_accessed": false
+  },
+  "calibration": {
+    "calibration_version": "duplicate-score-platt-v1",
+    "method": "PLATT_LOGISTIC_SCALAR",
+    "selected_for_artifact": true,
+    "status": "SELECTED_VALIDATION_ONLY_SYNTHETIC_DEVELOPMENT",
+    "coefficient": 20.95146730334151,
+    "intercept": -12.255209620360109,
+    "production_calibration": "NOT_VALIDATED",
+    "changes_duplicate_decision": false
+  },
+  "production_training_gate": {
+    "allowed": false,
+    "dataset_id": "indra-duplicate-project-synthetic-v1",
+    "dataset_version": "synthetic-duplicate-100k-v1",
+    "expected_component": "DUPLICATE",
+    "resolved_path": "D:\\INDRA\\data\\labelled\\duplicates\\synthetic_v1\\synthetic_duplicate_pairs.jsonl",
+    "reason_codes": [
+      "DATASET_CLASSIFICATION_BLOCKED",
+      "APPROVAL_MISSING:TRAINING",
+      "APPROVAL_MISSING:VALIDATION",
+      "APPROVAL_MISSING:TEST"
+    ],
+    "details": [
+      "dataset classification=DEVELOPMENT_ONLY",
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "MODEL_GENERATED_LABELS_PROHIBITED"
+    ]
+  },
+  "outputs": {
+    "feature_state": {
+      "file": "duplicate_feature_state_v2.json",
+      "sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731"
+    },
+    "matcher": {
+      "file": "duplicate_matcher_v1.json",
+      "sha256": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b"
+    },
+    "threshold_search": {
+      "file": "duplicate_v1.threshold_search.json",
+      "sha256": "7e96d96af20cd526cbf49e0597286d12c0116c132fa6ff24fd50d068e4db433e"
+    },
+    "ablation": {
+      "file": "duplicate_v1.ablation.json",
+      "sha256": "e50f00028b0dc3b464f265138dd88365de38c25b65df78cd6b96ed1f257a6f84"
+    },
+    "calibration": {
+      "file": "duplicate_v1.calibration.json",
+      "sha256": "507d1a7af6c8e80ea7c83882c891b8cce46664d8bcc6ebf3a828bded9a0698ae"
+    },
+    "validation_metrics": {
+      "file": "duplicate_v1.validation_metrics.json",
+      "sha256": "cbb4c1fd706fa352fa27aa84882e8248c77182fda7622b6ee1c8ad543d534a02"
+    },
+    "validation_errors": {
+      "file": "duplicate_v1.validation_errors.json",
+      "sha256": "1662b4efb58c57868605b4ce9aeef3c99c6af06c8bbf9f79fbca8efad6a23427"
+    },
+    "stability": {
+      "file": "duplicate_v1.threshold_stability.json",
+      "sha256": "464e0afbcfd0d1dc3e7eb3dc46ccd3021d5256c361b911bc70b55641baf4255a"
+    },
+    "performance": {
+      "file": "duplicate_v1.performance.json",
+      "sha256": "2492b60cd1a57b254c714a2fe4a51a9cb1d4170c0ef3e088977868fcec202330"
+    },
+    "golden": {
+      "file": "duplicate_v1.golden.json",
+      "sha256": "5ccececebf7bb4d85d8f169bffd6f9a1478144a39056171a9bd2579fe2e1139a"
+    }
+  },
+  "artifact_manifest": {
+    "path": "D:\\INDRA\\backend\\app\\ml\\artifacts\\manifest.json",
+    "sha256": "9116f46fcd87fb24df7bbd1c2fa350233a102fb088c77d1715113d8476b81c04"
+  },
+  "protected_final_test": {
+    "split": "test",
+    "row_count": 15000,
+    "split_sha256": "29a391c08c15d149c8e1a76fd31f8b4a6bb7f2ba92ec1feedbe21700d44c49ef",
+    "pair_ids_sha256": "a9991413a38a7540a4c41c359083c0b02a58a17f46df450795d6ea0ac75a7a76",
+    "evaluation_invocation_limit": 1,
+    "evaluation_invocation_count": 0,
+    "configuration_changes_permitted_after_freeze": false
+  },
+  "protected_artifacts": {
+    "original_duplicate_feature_state_sha256": "6d8aad9701700686f42deefa72ed8074ede836a4e9f0d2457db2c054636c2cdc",
+    "nlp_v3_hashes": {
+      "nlp_classifier_v3.calibration.json": "03ecb7bf36e33f585f9a6fb42b7f26ff28467ddb4b6f5548c7bafc29c124062b",
+      "nlp_classifier_v3.development_manifest.json": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+      "nlp_classifier_v3.error_report.json": "a3d8d7c76deffcf7d273414edb2898fb35c855f6514bd3f248e9996f54896121",
+      "nlp_classifier_v3.final_test_receipt.json": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+      "nlp_classifier_v3.golden.json": "511c3ccf155bd46c57059b8efd5dbf11c360295c2dc2061948dd488f059ac333",
+      "nlp_classifier_v3.json": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+      "nlp_classifier_v3.metrics.json": "033db50927e45a583f7bcdd9fc6e5ec6577093fc955a2d79d6c65dd7923c3394",
+      "nlp_classifier_v3.search.json": "2a64be2fd6045c0db28c7bc0afb4f60aa933a3313a92032d1c0e030ab3579109"
+    }
+  },
+  "policy": {
+    "pretrained_models": [],
+    "open_weight_models": [],
+    "embeddings": [],
+    "sentence_transformers": [],
+    "external_apis": [],
+    "network_access": false,
+    "live_backend_modified": false,
+    "minilm_modified": false,
+    "default_duplicate_configuration_modified": false,
+    "nlp_v3_modified": false
+  },
+  "production_validation": "NOT_VALIDATED"
+}

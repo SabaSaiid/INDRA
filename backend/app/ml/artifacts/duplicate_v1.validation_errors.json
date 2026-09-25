@@ -1,0 +1,370 @@
+{
+  "schema_version": "1.0",
+  "split": "validation",
+  "configuration": {
+    "text_threshold": 0.6,
+    "combined_threshold": 0.65,
+    "geographic_gate_km": 5.0,
+    "temporal_gate_minutes": 30.0
+  },
+  "errors": {
+    "FALSE_DUPLICATE": {
+      "count": 80,
+      "by_wording_similarity": {
+        "MEDIUM_0_40_TO_0_70": 80
+      },
+      "by_distance": {
+        "LE_0_25_KM": 80
+      },
+      "by_time_difference": {
+        "LE_5_MIN": 80
+      },
+      "by_language": {
+        "hi": 80
+      },
+      "by_hard_negative_or_scenario_type": {
+        "SAME_WEATHER_DIFFERENT_EVENT": 80
+      },
+      "deterministic_examples": [
+        {
+          "pair_id": "pair-06240b12-0b7d-5233-8149-c1a0ba37fbdd",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6140845859875402,
+          "combined_score": 0.6759029959390971,
+          "evidence_score": 0.6140845859875402,
+          "distance_km": 0.22311686809701617,
+          "time_difference_minutes": 3.2707006466984385,
+          "text_a": "Bhopal sector-19-v में 93 सेमी पानी के साथ नदी तटबंध टूटने से तेज बहाव; संदर्भ VA-06-004480-A",
+          "text_b": "Bhopal sector-19-v में 94 सेमी पानी के साथ बादल फटने से अचानक पानी का बहाव; संदर्भ VA-06-004480-B"
+        },
+        {
+          "pair_id": "pair-0c2ab3a5-de72-5bc4-94f0-69c710fc18a4",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6170755953347309,
+          "combined_score": 0.6863701120766028,
+          "evidence_score": 0.6170755953347309,
+          "distance_km": 0.06321756979120959,
+          "time_difference_minutes": 1.8078038386073132,
+          "text_a": "Bhopal sector-74-v के पास नदी तटबंध टूटने से तेज बहाव की सूचना; पानी 72 सेमी; संदर्भ VA-06-000364-A",
+          "text_b": "Bhopal sector-74-v के पास बादल फटने से अचानक पानी का बहाव की सूचना; पानी 73 सेमी; संदर्भ VA-06-000364-B"
+        },
+        {
+          "pair_id": "pair-0c6607c6-6ab8-5f7a-a73b-18f956b5ced6",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6126674164410708,
+          "combined_score": 0.6786430239523762,
+          "evidence_score": 0.6126674164410708,
+          "distance_km": 0.15531879139867613,
+          "time_difference_minutes": 2.515360011752114,
+          "text_a": "Bhopal sector-32-v में 81 सेमी पानी के साथ नदी तटबंध टूटने से तेज बहाव; संदर्भ VA-06-004396-A",
+          "text_b": "Bhopal sector-32-v में 82 सेमी पानी के साथ बादल फटने से अचानक पानी का बहाव; संदर्भ VA-06-004396-B"
+        },
+        {
+          "pair_id": "pair-1bbb8775-197e-5ce6-a205-0cf389119aec",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6187620801548738,
+          "combined_score": 0.6866226520918433,
+          "evidence_score": 0.6187620801548738,
+          "distance_km": 0.09826947459655577,
+          "time_difference_minutes": 1.9264867620374,
+          "text_a": "स्थानीय सूचना VA-06-002380-A: Bhopal sector-53-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 36 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-002380-B: Bhopal sector-53-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 37 सेमी"
+        },
+        {
+          "pair_id": "pair-1d666310-07cc-5ee6-888b-f4d55fe17024",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6188430665215251,
+          "combined_score": 0.680487942577272,
+          "evidence_score": 0.6188430665215251,
+          "distance_km": 0.0768382712827718,
+          "time_difference_minutes": 3.9149235642878053,
+          "text_a": "स्थानीय सूचना VA-06-002548-A: Bhopal sector-27-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 60 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-002548-B: Bhopal sector-27-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 61 सेमी"
+        },
+        {
+          "pair_id": "pair-2321ddad-20f2-5e07-952a-ba97f90edfa5",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6084874916068885,
+          "combined_score": 0.6743688576313621,
+          "evidence_score": 0.6084874916068885,
+          "distance_km": 0.16257681179075684,
+          "time_difference_minutes": 2.750879825500102,
+          "text_a": "Surat sector-22-v के पास नदी तटबंध टूटने से तेज बहाव की सूचना; पानी 39 सेमी; संदर्भ VA-06-000700-A",
+          "text_b": "Surat sector-22-v के पास बादल फटने से अचानक पानी का बहाव की सूचना; पानी 40 सेमी; संदर्भ VA-06-000700-B"
+        },
+        {
+          "pair_id": "pair-245d622c-925d-5194-9dd4-330810be1f43",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6143574229360438,
+          "combined_score": 0.6802484149257852,
+          "evidence_score": 0.6143574229360438,
+          "distance_km": 0.06530674860889947,
+          "time_difference_minutes": 2.9794165352615107,
+          "text_a": "Ranchi sector-3-v के पास नदी तटबंध टूटने से तेज बहाव की सूचना; पानी 48 सेमी; संदर्भ VA-06-000196-A",
+          "text_b": "Ranchi sector-3-v के पास बादल फटने से अचानक पानी का बहाव की सूचना; पानी 49 सेमी; संदर्भ VA-06-000196-B"
+        },
+        {
+          "pair_id": "pair-29450781-0806-57a6-a563-9d1000977359",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6276887347271393,
+          "combined_score": 0.6950242442753991,
+          "evidence_score": 0.6276887347271393,
+          "distance_km": 0.18924947298468142,
+          "time_difference_minutes": 1.0025262139855906,
+          "text_a": "स्थानीय सूचना VA-06-005992-A: Surat sector-76-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 66 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-005992-B: Surat sector-76-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 67 सेमी"
+        },
+        {
+          "pair_id": "pair-2b9d7d35-9599-5761-8c2f-63bea818f285",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6141227993494237,
+          "combined_score": 0.6707709788830523,
+          "evidence_score": 0.6141227993494237,
+          "distance_km": 0.2286864933597675,
+          "time_difference_minutes": 4.786059218787444,
+          "text_a": "Surat sector-64-v में 60 सेमी पानी के साथ नदी तटबंध टूटने से तेज बहाव; संदर्भ VA-06-004816-A",
+          "text_b": "Surat sector-64-v में 61 सेमी पानी के साथ बादल फटने से अचानक पानी का बहाव; संदर्भ VA-06-004816-B"
+        },
+        {
+          "pair_id": "pair-314491f1-4604-5afc-85cb-a0116db388a9",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6186909724944142,
+          "combined_score": 0.6878973539117264,
+          "evidence_score": 0.6186909724944142,
+          "distance_km": 0.14200361714891296,
+          "time_difference_minutes": 1.2646055222480266,
+          "text_a": "Ranchi sector-16-v के पास नदी तटबंध टूटने से तेज बहाव की सूचना; पानी 36 सेमी; संदर्भ VA-06-000112-A",
+          "text_b": "Ranchi sector-16-v के पास बादल फटने से अचानक पानी का बहाव की सूचना; पानी 37 सेमी; संदर्भ VA-06-000112-B"
+        },
+        {
+          "pair_id": "pair-31fd6cad-1612-52e8-bb04-f5d59d5040ca",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6323711649033166,
+          "combined_score": 0.6938551442985077,
+          "evidence_score": 0.6323711649033166,
+          "distance_km": 0.09258620964428857,
+          "time_difference_minutes": 3.0570190293779422,
+          "text_a": "Bhopal sector-65-v के पास नदी तटबंध टूटने से तेज बहाव की सूचना; पानी 42 सेमी; संदर्भ VA-06-003556-A",
+          "text_b": "Bhopal sector-65-v के पास बादल फटने से अचानक पानी का बहाव की सूचना; पानी 43 सेमी; संदर्भ VA-06-003556-B"
+        },
+        {
+          "pair_id": "pair-35f88931-bab2-5318-a6f1-89035cdb0636",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6122120637115332,
+          "combined_score": 0.6831640934780493,
+          "evidence_score": 0.6122120637115332,
+          "distance_km": 0.06796511602358635,
+          "time_difference_minutes": 1.5738765512117014,
+          "text_a": "स्थानीय सूचना VA-06-002212-A: Ranchi sector-79-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 93 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-002212-B: Ranchi sector-79-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 94 सेमी"
+        },
+        {
+          "pair_id": "pair-365b662c-8943-5d85-aa18-92c2f4345274",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6247302538967071,
+          "combined_score": 0.6898112741693057,
+          "evidence_score": 0.6247302538967071,
+          "distance_km": 0.15717913188552368,
+          "time_difference_minutes": 2.048803893104885,
+          "text_a": "स्थानीय सूचना VA-06-005404-A: Bhopal sector-70-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 63 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-005404-B: Bhopal sector-70-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 64 सेमी"
+        },
+        {
+          "pair_id": "pair-3834ebc7-fba3-5b00-b8b2-1b511db0033c",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6150803092165226,
+          "combined_score": 0.679768327833352,
+          "evidence_score": 0.6150803092165226,
+          "distance_km": 0.07654454383986531,
+          "time_difference_minutes": 3.2295085989206664,
+          "text_a": "Surat sector-38-v में 84 सेमी पानी के साथ नदी तटबंध टूटने से तेज बहाव; संदर्भ VA-06-004984-A",
+          "text_b": "Surat sector-38-v में 85 सेमी पानी के साथ बादल फटने से अचानक पानी का बहाव; संदर्भ VA-06-004984-B"
+        },
+        {
+          "pair_id": "pair-3c8f81ec-1fec-5862-a193-2d746bb741cb",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6081900594724962,
+          "combined_score": 0.6690246380220054,
+          "evidence_score": 0.6081900594724962,
+          "distance_km": 0.16660076739336052,
+          "time_difference_minutes": 4.258618262437314,
+          "text_a": "स्थानीय सूचना VA-06-005656-A: Bhopal sector-31-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 99 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-005656-B: Bhopal sector-31-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 100 सेमी"
+        },
+        {
+          "pair_id": "pair-49ff1c3b-55f5-5801-a5c4-ad45dea90e32",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6198794656268866,
+          "combined_score": 0.682362457197769,
+          "evidence_score": 0.6198794656268866,
+          "distance_km": 0.17614017829797826,
+          "time_difference_minutes": 3.005493521334218,
+          "text_a": "स्थानीय सूचना VA-06-005320-A: Ranchi sector-83-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 51 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-005320-B: Ranchi sector-83-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 52 सेमी"
+        },
+        {
+          "pair_id": "pair-4bf09a1d-0bb1-532c-94c4-bb78cfdc03ff",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6247858185242641,
+          "combined_score": 0.6860622345248573,
+          "evidence_score": 0.6247858185242641,
+          "distance_km": 0.2017171162094002,
+          "time_difference_minutes": 2.919623391109833,
+          "text_a": "स्थानीय सूचना VA-06-005572-A: Bhopal sector-44-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 87 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-005572-B: Bhopal sector-44-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 88 सेमी"
+        },
+        {
+          "pair_id": "pair-4e0be004-b026-5856-8086-37279106d210",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6140260940953021,
+          "combined_score": 0.6807375071758046,
+          "evidence_score": 0.6140260940953021,
+          "distance_km": 0.06330019648015649,
+          "time_difference_minutes": 2.7652092512502064,
+          "text_a": "स्थानीय सूचना VA-06-005152-A: Ranchi sector-12-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 27 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-005152-B: Ranchi sector-12-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 28 सेमी"
+        },
+        {
+          "pair_id": "pair-5107e361-fdcd-5203-99d2-22b13b473759",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6117149795238195,
+          "combined_score": 0.6688295266952726,
+          "evidence_score": 0.6117149795238195,
+          "distance_km": 0.2167174544514808,
+          "time_difference_minutes": 4.862432350426028,
+          "text_a": "Bhopal sector-90-v में 36 सेमी पानी के साथ नदी तटबंध टूटने से तेज बहाव; संदर्भ VA-06-004648-A",
+          "text_b": "Bhopal sector-90-v में 37 सेमी पानी के साथ बादल फटने से अचानक पानी का बहाव; संदर्भ VA-06-004648-B"
+        },
+        {
+          "pair_id": "pair-510acadb-25e9-51a2-adfa-c876848e31ee",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6074617997300674,
+          "combined_score": 0.6693017002230314,
+          "evidence_score": 0.6074617997300674,
+          "distance_km": 0.1777302419911905,
+          "time_difference_minutes": 3.933940416359647,
+          "text_a": "Surat sector-47-v में 33 सेमी पानी के साथ नदी तटबंध टूटने से तेज बहाव; संदर्भ VA-06-001792-A",
+          "text_b": "Surat sector-47-v में 34 सेमी पानी के साथ बादल फटने से अचानक पानी का बहाव; संदर्भ VA-06-001792-B"
+        },
+        {
+          "pair_id": "pair-5157322c-c440-53a9-82b5-2afd1d237d2b",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6254370939774264,
+          "combined_score": 0.6833251403970664,
+          "evidence_score": 0.6254370939774264,
+          "distance_km": 0.13558606855607616,
+          "time_difference_minutes": 4.293844024125991,
+          "text_a": "स्थानीय सूचना VA-06-005824-A: Surat sector-5-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 42 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-005824-B: Surat sector-5-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 43 सेमी"
+        },
+        {
+          "pair_id": "pair-52112ded-0b13-534d-bfa5-5e4ab2a4bd9b",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6118896966901525,
+          "combined_score": 0.6780199001956628,
+          "evidence_score": 0.6118896966901525,
+          "distance_km": 0.22834687671977963,
+          "time_difference_minutes": 2.077475886619108,
+          "text_a": "स्थानीय सूचना VA-06-002968-A: Surat sector-59-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 39 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-002968-B: Surat sector-59-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 40 सेमी"
+        },
+        {
+          "pair_id": "pair-5c0851ee-2f39-546e-8542-2569c9039226",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6018941707489353,
+          "combined_score": 0.6671124893489717,
+          "evidence_score": 0.6018941707489353,
+          "distance_km": 0.18970210705267662,
+          "time_difference_minutes": 3.1826415327369193,
+          "text_a": "Ranchi sector-45-v में 69 सेमी पानी के साथ नदी तटबंध टूटने से तेज बहाव; संदर्भ VA-06-004312-A",
+          "text_b": "Ranchi sector-45-v में 70 सेमी पानी के साथ बादल फटने से अचानक पानी का बहाव; संदर्भ VA-06-004312-B"
+        },
+        {
+          "pair_id": "pair-5d153f12-3200-538d-8241-8275375b9a1b",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6172214000575349,
+          "combined_score": 0.6817423354921016,
+          "evidence_score": 0.6172214000575349,
+          "distance_km": 0.1270967410350681,
+          "time_difference_minutes": 2.8478549199675043,
+          "text_a": "Ranchi sector-87-v के पास नदी तटबंध टूटने से तेज बहाव की सूचना; पानी 60 सेमी; संदर्भ VA-06-000280-A",
+          "text_b": "Ranchi sector-87-v के पास बादल फटने से अचानक पानी का बहाव की सूचना; पानी 61 सेमी; संदर्भ VA-06-000280-B"
+        },
+        {
+          "pair_id": "pair-5dd8966e-4e5b-5aaa-a5d1-c0772cf748bf",
+          "scenario_type": "SAME_WEATHER_DIFFERENT_EVENT",
+          "language": "hi",
+          "wording_similarity_bucket": "MEDIUM_0_40_TO_0_70",
+          "text_similarity": 0.6137853313105708,
+          "combined_score": 0.6815893954659343,
+          "evidence_score": 0.6137853313105708,
+          "distance_km": 0.20924926562472723,
+          "time_difference_minutes": 1.5761652810083246,
+          "text_a": "स्थानीय सूचना VA-06-002632-A: Bhopal sector-14-v के आसपास नदी तटबंध टूटने से तेज बहाव, पानी 72 सेमी",
+          "text_b": "स्थानीय सूचना VA-06-002632-B: Bhopal sector-14-v के आसपास बादल फटने से अचानक पानी का बहाव, पानी 73 सेमी"
+        }
+      ],
+      "example_limit": 25
+    },
+    "MISSED_DUPLICATE": {
+      "count": 0,
+      "by_wording_similarity": {},
+      "by_distance": {},
+      "by_time_difference": {},
+      "by_language": {},
+      "by_hard_negative_or_scenario_type": {},
+      "deterministic_examples": [],
+      "example_limit": 25
+    }
+  },
+  "uncertain_rows_excluded": 1500,
+  "production_validation": "NOT_VALIDATED"
+}

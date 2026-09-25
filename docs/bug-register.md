@@ -1,5 +1,9 @@
 # INDRA — Bug Register
 
+> Historical 16–21 Sep backend-sprint defect record. MiniLM and "vision/anomaly missing" findings
+> below describe the state at discovery, not the current frozen AI/ML subsystem. See
+> [ML validation](ML_VALIDATION_REPORT.md) for current verification and remaining blockers.
+
 **What this is:** every defect found in the backend (layers 1, 2, 3, 5, 6, 7, 8a) during the
 16–21 Sep 2026 sprint, what was done about it, and — for the ones still open — the honest sentence
 to say if someone asks. Nothing has been removed: rows change status, they do not disappear.

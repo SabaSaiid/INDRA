@@ -74,14 +74,9 @@ class Settings(BaseSettings):
     AUTO_PUBLISH_THRESHOLD: float = 0.90
     HUMAN_REVIEW_THRESHOLD: float = 0.60
     # ── Dedup gates ────────────────────────────────────────────────────────
-    # Moved out of services/dedup.py on 20 Sep with their values unchanged, so
-    # they can be tuned with evidence later instead of being edited in code.
-    #
-    # DEDUP_COSINE_THRESHOLD is deliberately strict. Splitting one incident into
-    # two is recoverable -- corroboration merges them and an operator sees both.
-    # Merging two real incidents hides one of them. Over-reporting to a human is
-    # the safer failure, so this stays high until there is labelled data to move
-    # it with.
+    # Phase 25 preserves the backend's 1 km / 15 minute candidate envelope.
+    # The historical cosine and edit settings remain readable for compatibility
+    # but are inactive: the frozen Phase 19 matcher owns similarity thresholds.
     DEDUP_COSINE_THRESHOLD: float = 0.88
     DEDUP_GPS_DELTA_KM: float = 1.0
     DEDUP_TIME_DELTA_MINUTES: int = 15

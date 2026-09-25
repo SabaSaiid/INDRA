@@ -7,7 +7,10 @@ about this backend. Each one has a number, a file or a test behind it.
 faking it.* Every answer below follows from that, including the uncomfortable ones. If you are
 ever unsure what to say, say what is true and say where it is written down.
 
-**Verified 21 Sep 2026.**
+**Historical 21 Sep 2026 Q&A.** Several AI/ML answers below predate the frozen six-component
+development subsystem. For current claims use [ML architecture](ML_ARCHITECTURE.md),
+[model card](ML_MODEL_CARD.md), and [validation](ML_VALIDATION_REPORT.md). Do not quote old
+MiniLM/no-image/no-anomaly answers as current facts.
 
 ---
 
@@ -64,31 +67,31 @@ a rescue. They are numbers you are invited to argue with, which is the point of 
 
 ### Where is the AI?
 
-**Deduplication runs on MiniLM sentence embeddings.** That is the model in the data path, and it
-does real work: it is why five reports of one flood become one event instead of five.
+**Deduplication now runs through the frozen local Phase 19 matcher.** MiniLM is not a live
+runtime dependency. The frozen development subsystem has six components, but only duplicate
+matching is currently connected to this backend path.
 
-Classification, anomaly detection and image analysis are designed and specified, and they are
-**out of my layer** — I own data sources, ingestion, processing, geo-analytics, fusion, the data
-platform and the real-time API. **Nothing in this demo pretends to be a model that isn't one.**
+NLP classification, credibility, deterministic event grouping, image analysis, and anomaly
+detection have local frozen development implementations, but their full backend integration is
+pending. No synthetic validation is claimed as field accuracy.
 
 ### Why are `vision_analysis` and `anomaly_detection` offline?
 
-Because they are not built, and saying so is the design. The AI/ML layer left this project's scope
-on 20 Sep. Rather than filling those factors with a plausible number, the receipt marks them
-`offline` with a reason on every single event and lowers the stated coverage to 0.80.
+The frozen image and anomaly models now exist but are not yet wired into this backend receipt.
+Missing inference must be explicit, never filled with a plausible number or treated as zero.
 
 Earlier in this project those two factors were filled with **random numbers**. Removing that is
 what dropped the demo event's confidence from 0.76 to 0.43. We kept the lower, true number.
 
-### You trained a classifier. Why isn't it running?
+### Why is the older event classifier not running?
 
 It was trained and **measured**, and it missed its acceptance gate: test macro-F1 0.787, but
 NOT_RELEVANT recall 0.667 and 5 of 72 floods dismissed. Metrics are in
 `backend/app/ml/artifacts/event_classifier_v1.metrics.json`.
 
-A model that throws away one flood in fourteen does not go in front of a disaster response system.
-`classify()` returns `None` and the code stays frozen in the repository so the measurement can be
-audited.
+That historical classifier is quarantined: `classify()` returns `None`, and its measurement remains
+auditable. It is distinct from the later frozen five-class Phase 18 NLP development artifact,
+which is not yet integrated into the live backend.
 
 ---
 
@@ -152,8 +155,8 @@ scoring — the cache and the dedup set fall back to process memory. Block Open-
 weather factor goes `offline` with a reason, coverage drops from 0.80 to 0.55, and the event is
 still created and still scored.
 
-The embedding model loads from a local cache, so with the network fully off the stack still boots
-and still deduplicates.
+The frozen local duplicate matcher needs no network access for inference. Backend services such
+as weather APIs, Postgres, and Redpanda have separate networking requirements.
 
 The one thing that is genuinely fatal is losing Postgres or Redpanda, and `/healthz` returns 503
 within five seconds when either goes — because at that point a citizen's report would be lost, and
@@ -226,7 +229,6 @@ a surprise.
 
 ### What is the single weakest part?
 
-The perception layer, and it is weak because it was cut rather than because it failed. There is no
-classification of what a report describes, no verification of an image, no anomaly detection
-against history. The platform compensates with corroboration, geometry, rainfall and a human —
-and tells you, on every event, that it is doing so.
+The current weakness is field evidence and integration: the six frozen AI/ML components have
+synthetic-development validation only, and five are not yet connected to the backend. The
+platform must continue to show unavailable signals explicitly and require human review.

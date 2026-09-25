@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "artifact_version": "duplicate-matcher-v1-synthetic-development",
+  "development_status": "DEVELOPMENT_ONLY_SYNTHETIC",
+  "production_validation": "NOT_VALIDATED",
+  "dataset_id": "indra-duplicate-project-synthetic-v1",
+  "dataset_version": "synthetic-duplicate-100k-v1",
+  "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+  "training_split_sha256": "3d8e68ef51751095ee1d06abc56f96a124161995766c1df402b95ae409b7e72c",
+  "validation_split_sha256": "c6e503eb19b4b4dd6bbbf2480195abcaf343fd94464d6f3b5320a5792d6c3c1c",
+  "final_test_split_sha256": "29a391c08c15d149c8e1a76fd31f8b4a6bb7f2ba92ec1feedbe21700d44c49ef",
+  "training_corpus_sha256": "fcabdcf1c0bddc7fb9c1189a4897e1cc49f7ff5423b61a36b4510ab92e5e7b61",
+  "feature_state_file": "duplicate_feature_state_v2.json",
+  "feature_state_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+  "feature_state_version": "duplicate-feature-state-v2",
+  "feature_version": "duplicate-features-v2-synthetic-development",
+  "preprocessing_version": "duplicate-text-normalization-v1",
+  "threshold_version": "duplicate-thresholds-v1-synthetic-validation",
+  "weights": {
+    "character": 0.35,
+    "word": 0.3,
+    "edit": 0.15,
+    "geographic": 0.1,
+    "temporal": 0.1
+  },
+  "ngram_ranges": {
+    "character": [
+      3,
+      5
+    ],
+    "word": [
+      1,
+      2
+    ]
+  },
+  "text_similarity_threshold": 0.6,
+  "combined_threshold": 0.65,
+  "geographic_gate_km": 5.0,
+  "temporal_gate_minutes": 30.0,
+  "threshold_status": "VALIDATION_SELECTED_SYNTHETIC_DEVELOPMENT",
+  "decision_logic": "distance<=geographic_gate AND time<=temporal_gate AND text_similarity>=text_threshold AND combined_score>=combined_threshold",
+  "score_interpretation": "SIMILARITY_EVIDENCE_NOT_PROBABILITY",
+  "calibration": {
+    "calibration_version": "duplicate-score-platt-v1",
+    "method": "PLATT_LOGISTIC_SCALAR",
+    "selected_for_artifact": true,
+    "status": "SELECTED_VALIDATION_ONLY_SYNTHETIC_DEVELOPMENT",
+    "coefficient": 20.95146730334151,
+    "intercept": -12.255209620360109,
+    "production_calibration": "NOT_VALIDATED",
+    "changes_duplicate_decision": false
+  },
+  "frozen_at": "2026-09-23T18:00:00Z",
+  "random_seed": 190019,
+  "library_versions": {
+    "python": "3.14.3",
+    "numpy": "2.4.3",
+    "scikit_learn": "1.8.0"
+  },
+  "policy": {
+    "pretrained_models": [],
+    "open_weight_models": [],
+    "embeddings": [],
+    "sentence_transformers": [],
+    "external_apis": [],
+    "network_access": false,
+    "live_backend_modified": false,
+    "minilm_modified": false,
+    "default_duplicate_configuration_modified": false,
+    "nlp_v3_modified": false
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "complete_freeze_workflow_seconds": 9.0716898,
+  "operational_latency_claimed": false,
+  "production_validation": "NOT_VALIDATED",
+  "rows_per_second_complete_workflow": 9444.7673905251,
+  "schema_version": "1.0",
+  "scope": "LOCAL_SYNTHETIC_ENGINEERING_OBSERVATION",
+  "selected_model_fit_seconds": 0.152871,
+  "train_feature_extraction_seconds": 5.8413763,
+  "train_rows": 70560,
+  "validation_feature_extraction_seconds": 1.2810627,
+  "validation_rows": 15120
+}

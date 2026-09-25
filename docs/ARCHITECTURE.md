@@ -7,30 +7,28 @@
 
 > **How to read this document.** This is the **target architecture** — the system INDRA is
 > designed to be. Sections 1–8 describe that design and do not change as implementation
-> progresses. **Section 0 below is the honest ledger of what is actually built**, and it is
-> the section to trust when asking "does this run today?". Keep them separate: the design is
-> the pitch, the ledger is the truth, and conflating the two is how a demo falls apart under
-> a judge's follow-up question.
+> progresses. **Section 0 below is the historical 21 Sep backend ledger**, not the current ML
+> state. For current frozen models, backend wiring, and verification, use
+> [ML architecture](ML_ARCHITECTURE.md) and [ML validation](ML_VALIDATION_REPORT.md).
 >
-> Ledger last verified against code **and a live stack**: **21 Sep 2026**, the last day of the
-> backend sprint. Everything marked ✅ below was exercised by a named test or reproduced in a run
-> recorded that day.
+> That ledger was verified against code **and a live stack** on **21 Sep 2026**. Later MiniLM,
+> no-image-model, and no-anomaly-model statements in this snapshot are superseded by the frozen
+> six-component synthetic-development subsystem. Only duplicate matching is live in the backend.
 >
-> **Scope, stated once.** Layers **4 (AI/ML)** and **8b (the alert engine)** left the backend's
-> scope on 20 Sep. They are **cancelled, not deferred**: the ML code already committed stays
-> frozen, and no alerting will be built. Where this document's design sections describe them, they
-> describe the target architecture, not a plan with a date on it.
+> **Scope update.** The 20 Sep AI/ML cancellation statement below is historical. Local
+> development models were subsequently built and frozen. The alert-engine status is separate;
+> design sections remain target architecture, not evidence of deployed features.
 
 ---
 
-## 0. Implementation Status Ledger
+## 0. Historical Implementation Status Ledger (21 Sep snapshot)
 
 Legend: ✅ built and exercised · 🟡 partial — real but incomplete · ⬜ designed, not built
 
 This ledger is organised by the **canonical 9-layer stack** from the team's official
 SIH26069 system-architecture diagram. Every other diagram in this repo — including §3's
-four-tier engineering view — is a projection of this stack; where they disagree, **this is
-the reference.**
+four-tier engineering view — is a projection of this original stack; where they disagree about
+the 21 Sep snapshot, **this is the historical reference**, not the current ML release record.
 
 Legend: ✅ built · 🟡 partial · ⬜ designed, not built
 

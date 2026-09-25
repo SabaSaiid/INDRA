@@ -1,0 +1,43 @@
+{
+  "hardware": {
+    "device": "CPU",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.3",
+    "torch": "2.11.0+cpu",
+    "torch_threads": 12
+  },
+  "inference": {
+    "includes_local_file_decode": true,
+    "measurements": {
+      "1": {
+        "images_measured": 1,
+        "images_per_second": 549.7526113042,
+        "milliseconds_per_image": 1.8190000001,
+        "total_seconds": 0.001819
+      },
+      "100": {
+        "images_measured": 100,
+        "images_per_second": 2813.2798059917,
+        "milliseconds_per_image": 0.355457,
+        "total_seconds": 0.0355457
+      },
+      "1000": {
+        "images_measured": 1000,
+        "images_per_second": 2667.0201357327,
+        "milliseconds_per_image": 0.3749503,
+        "total_seconds": 0.3749503
+      }
+    },
+    "scope": "LOCAL_ENGINEERING_MEASUREMENT_NOT_PRODUCTION_THROUGHPUT"
+  },
+  "training": {
+    "epochs": 10,
+    "measurement_scope": "LOCAL_ENGINEERING_MEASUREMENT_NOT_PRODUCTION_THROUGHPUT",
+    "peak_python_tracemalloc_mb": 17.1491289139,
+    "samples_per_second": 803.1304305023,
+    "selected_epoch": 9,
+    "total_training_seconds": 871.5894373,
+    "training_samples_processed": 700000,
+    "validation_inference_seconds": 5.6001064
+  }
+}

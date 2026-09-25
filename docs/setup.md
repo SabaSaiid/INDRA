@@ -100,22 +100,32 @@ open http://localhost:8000/docs                 # interactive API docs
 | `degraded` | 200 | Redis or Open-Meteo down — **fine**, neither is load-bearing |
 | `unhealthy` | 503 | Postgres or Kafka down — a report would be lost |
 
-First start loads the MiniLM embedding model (~13 s). It is warmed on a background thread, so the
-API answers immediately; wait for `✓ Embedding model warm` before timing anything.
+First start hash-authorizes and warms the frozen local Phase 19 duplicate matcher in a background
+thread. No MiniLM or remote model download is part of startup; an unavailable artifact makes
+duplicate inference fail closed.
 
 ---
 
 ## 4. Tests
 
-```bash
+The 25 Sep Windows verification used an isolated repository-root `.venv` (exact package versions
+are in `backend/app/ml/artifacts/phase25_runtime_environment.json`). Pillow and PyTorch are needed
+by the frozen scratch-image component; pyarrow enables the optional Parquet test. These are local
+libraries, not pretrained checkpoints or runtime model downloads.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+.\.venv\Scripts\python.exe -m pip install Pillow==12.3.0 torch==2.14.0 pyarrow==25.0.1
 cd backend
-.venv/bin/pytest -q                                        # 568 passed, 2 skipped
-.venv/bin/pytest -q -m "not integration"                   # no Docker needed
-.venv/bin/pytest -q -m "not integration and not network"   # fully offline
+..\.venv\Scripts\python.exe -m pytest -q app/ml/tests
+..\.venv\Scripts\python.exe -m pytest -q -m "not integration and not network"
 ```
 
-The suite runs against its own **`indra_test`** database and cannot touch your development data.
-It creates it if missing.
+Observed on 25 Sep: AI/ML 343 passed; database-free backend 481 passed, 8 pre-existing skips, 197
+deselected. The **full** backend suite needs a disposable PostgreSQL/PostGIS `indra_test` database,
+Redis and other test services; those tests are currently `BLOCKED_BY_TEST_INFRASTRUCTURE`, not
+passed or silently skipped. Do not point test fixtures at a development database.
 
 ---
 

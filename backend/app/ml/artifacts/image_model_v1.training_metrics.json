@@ -1,0 +1,137 @@
+{
+  "architecture": "scratch-cnn-v2-dual-pool",
+  "augmentation_version": "image-local-augmentation-v1",
+  "augmentations": [
+    "deterministic_horizontal_flip",
+    "deterministic_random_resized_crop",
+    "deterministic_brightness",
+    "deterministic_contrast",
+    "deterministic_gaussian_blur",
+    "deterministic_sensor_noise"
+  ],
+  "batch_size": 256,
+  "class_weighting": {
+    "applied": false,
+    "imbalance_ratio": 2.0000571461,
+    "pos_weight": {},
+    "positive_counts": {
+      "FLOODED_SCENE": 23332,
+      "HEAVY_RAIN_VISUAL": 23332,
+      "NORMAL_SCENE": 17502,
+      "STANDING_WATER": 34999,
+      "STORM_DAMAGE": 17499
+    },
+    "rule": "apply when max/min positive-label count > 3.0"
+  },
+  "epoch_history": [
+    {
+      "epoch": 1,
+      "epoch_seconds": 78.7373404,
+      "learning_rate": 0.0015,
+      "train_loss": 0.4053025565,
+      "validation_macro_f1_at_0.5": 0.8406313463,
+      "validation_micro_f1_at_0.5": 0.842107538,
+      "validation_seconds": 6.7626769
+    },
+    {
+      "epoch": 2,
+      "epoch_seconds": 83.9418368,
+      "learning_rate": 0.0014669631,
+      "train_loss": 0.1622570591,
+      "validation_macro_f1_at_0.5": 0.9207184066,
+      "validation_micro_f1_at_0.5": 0.9214970047,
+      "validation_seconds": 7.2972702
+    },
+    {
+      "epoch": 3,
+      "epoch_seconds": 85.9732632,
+      "learning_rate": 0.0013710865,
+      "train_loss": 0.1144969171,
+      "validation_macro_f1_at_0.5": 0.9555556483,
+      "validation_micro_f1_at_0.5": 0.9552998676,
+      "validation_seconds": 7.7472052
+    },
+    {
+      "epoch": 4,
+      "epoch_seconds": 88.8233681,
+      "learning_rate": 0.001221755,
+      "train_loss": 0.0928471684,
+      "validation_macro_f1_at_0.5": 0.9665365194,
+      "validation_micro_f1_at_0.5": 0.9664199423,
+      "validation_seconds": 8.5006752
+    },
+    {
+      "epoch": 5,
+      "epoch_seconds": 89.6761486,
+      "learning_rate": 0.0010335865,
+      "train_loss": 0.0808817125,
+      "validation_macro_f1_at_0.5": 0.9722306449,
+      "validation_micro_f1_at_0.5": 0.9720236057,
+      "validation_seconds": 6.9825068
+    },
+    {
+      "epoch": 6,
+      "epoch_seconds": 88.0533571,
+      "learning_rate": 0.000825,
+      "train_loss": 0.0709060422,
+      "validation_macro_f1_at_0.5": 0.9679819912,
+      "validation_micro_f1_at_0.5": 0.9679246821,
+      "validation_seconds": 6.9877135
+    },
+    {
+      "epoch": 7,
+      "epoch_seconds": 86.4407269,
+      "learning_rate": 0.0006164135,
+      "train_loss": 0.0647056283,
+      "validation_macro_f1_at_0.5": 0.9727102827,
+      "validation_micro_f1_at_0.5": 0.9729150232,
+      "validation_seconds": 7.7980423
+    },
+    {
+      "epoch": 8,
+      "epoch_seconds": 89.5052828,
+      "learning_rate": 0.000428245,
+      "train_loss": 0.059656695,
+      "validation_macro_f1_at_0.5": 0.9742738378,
+      "validation_micro_f1_at_0.5": 0.9741454244,
+      "validation_seconds": 7.7249316
+    },
+    {
+      "epoch": 9,
+      "epoch_seconds": 90.7458462,
+      "learning_rate": 0.0002789135,
+      "train_loss": 0.0573030002,
+      "validation_macro_f1_at_0.5": 0.9771003083,
+      "validation_micro_f1_at_0.5": 0.9765601341,
+      "validation_seconds": 8.3309896
+    },
+    {
+      "epoch": 10,
+      "epoch_seconds": 89.6826661,
+      "learning_rate": 0.0001830369,
+      "train_loss": 0.0562601117,
+      "validation_macro_f1_at_0.5": 0.9758436611,
+      "validation_micro_f1_at_0.5": 0.9754942631,
+      "validation_seconds": 7.6916036
+    }
+  ],
+  "epochs": 10,
+  "initial_state_sha256": "036cc1cac0c48ec6be0677837ad17c95f33ce49f7e2d4b942c8ac17c042eb505",
+  "initialization": "SCRATCH / NO PRETRAINED WEIGHTS",
+  "learning_rate": 0.0015,
+  "loss": "BCEWithLogitsLoss",
+  "optimizer": "Adam",
+  "output_activation_for_scoring": "SIGMOID",
+  "phase": "22 — IMAGE MODEL SYNTHETIC VALIDATION",
+  "production_validation": "NOT_VALIDATED",
+  "scheduler": "CosineAnnealingLR",
+  "seed": 220022,
+  "selected_epoch": 9,
+  "selection_rule": "MAX_VALIDATION_MACRO_F1_THEN_MICRO_F1_THEN_LOWER_TRAIN_LOSS_THEN_EARLIER_EPOCH",
+  "softmax_used": false,
+  "test_images_accessed": false,
+  "trained_state_sha256": "93ffcff6135031bdf7e68e7ece26b0bc8d2d7a876f0b35f800dd0f1c50c00635",
+  "training_dataset_sha256": "bf4ceb5505c68c9c3895bb4a5e7c1c2f1e9959b2c2ab3fa8e12c0dbb1a76d3f9",
+  "validation_dataset_sha256": "670dca2c55ade99cc4524fff59899775735f5afdaddb9699669a3c70d6c51d02",
+  "weight_initialization": "Kaiming uniform convolution / Xavier uniform linear / local RNG only"
+}

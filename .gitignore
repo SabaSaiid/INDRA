@@ -86,6 +86,7 @@ models/checkpoints/
 models/cache/
 *.h5
 *.pt
+!backend/app/ml/artifacts/image_model_v1.pt
 *.onnx
 *.bin
 
@@ -98,3 +99,20 @@ tmp/
 
 # Boundary polygons downloaded by scripts/build_gazetteer.py; only the derived CSV is committed
 .gazetteer-cache/
+# Generated ML datasets - keep provenance/manifests in Git, not raw bulk data
+data/labelled/image/synthetic_v1/*.png
+data/labelled/anomaly/synthetic_v1/
+
+# Local Python/test environments
+.venv/
+__pycache__/
+.pytest_cache/
+data/labelled/image/synthetic_v1/
+
+# Large generated synthetic datasets
+data/labelled/nlp/synthetic_v1/synthetic_nlp_dataset.jsonl
+data/labelled/nlp/synthetic_v1/synthetic_nlp_scenarios.jsonl
+data/labelled/credibility/synthetic_v1/synthetic_credibility_detector_inputs_train.jsonl
+data/labelled/credibility/synthetic_v1/synthetic_credibility_annotations.jsonl
+data/labelled/duplicates/synthetic_v1/synthetic_duplicate_pairs.jsonl
+data/labelled/events/synthetic_v1/synthetic_event_detector_inputs_train.jsonl
