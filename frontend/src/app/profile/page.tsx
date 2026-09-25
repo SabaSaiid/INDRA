@@ -27,21 +27,22 @@ import {
   Building2,
   Sparkles,
   AlertCircle,
+  LogIn,
 } from 'lucide-react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import SignInDialog from '@/components/SignInDialog';
 import {
   type UserProfile,
   type DutyStatus,
   dutyStatusConfig,
   type TeamItem,
-  PLACEHOLDER_OPERATOR,
   ROLE_CAPABILITIES,
-  SESSION_TOKEN_LIFETIME,
   LEDGER_IMMUTABILITY,
 } from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { roleLabel, sessionExpiryLabel } from '@/lib/auth';
 import { fetchTeams } from '@/lib/api';
 import { useSidebar } from '@/lib/useSidebar';
 
@@ -55,18 +56,17 @@ export default function ProfilePage() {
   } = useSidebar();
 
   const {
-    profile: loadedProfile,
-    selectedRole,
-    switchRole,
+    session,
+    profile,
+    profileError,
     updateDuty,
     updateProfile,
     isUpdatingStatus,
     isSavingProfile,
-    availablePersonas,
   } = useOperatorProfile();
-  // Same rule as the sidebar chrome: render the layout, never a plausible
-  // stand-in identity. Every placeholder field is an em-dash.
-  const profile = loadedProfile ?? PLACEHOLDER_OPERATOR;
+  // Signed out there is no profile to show, and none is invented: the page
+  // offers sign-in instead.
+  const [signInOpen, setSignInOpen] = useState(false);
 
   // Edit Modal State
   // The operational-unit picker lists the real roster. It used to list a
@@ -100,6 +100,7 @@ export default function ProfilePage() {
   };
 
   const handleOpenEdit = () => {
+    if (!profile) return;
     setFormData({
       full_name: profile.full_name || '',
       email: profile.email || '',
@@ -135,26 +136,27 @@ export default function ProfilePage() {
     }
   };
 
-  const activeStatusCfg = dutyStatusConfig[profile.duty_status as DutyStatus] || dutyStatusConfig.ON_DUTY;
+  // No dot for a status the profile does not carry: never a default 'On Duty'.
+  const activeStatusCfg = profile ? dutyStatusConfig[profile.duty_status as DutyStatus] ?? null : null;
   // Real ledger actions, real counts, real RBAC.
-  const currentActivities = profile.recent_activities ?? [];
+  const currentActivities = profile?.recent_activities ?? [];
   const currentTelemetry = [
     {
       label: 'Events triaged',
-      value: profile.verified_events_triaged ?? 0,
+      value: profile?.verified_events_triaged ?? 0,
       color: 'blue',
       iconName: 'FileCheck',
       sublabel: 'approvals and rejections in the ledger',
     },
     {
       label: 'Ledger entries authored',
-      value: profile.audits_logged ?? 0,
+      value: profile?.audits_logged ?? 0,
       color: 'purple',
       iconName: 'Shield',
       sublabel: 'hash-chained audit records',
     },
   ];
-  const roleKey = String(profile.role ?? '').toUpperCase();
+  const roleKey = String(profile?.role ?? '').toUpperCase();
   const currentCapabilities = ROLE_CAPABILITIES[roleKey] ?? [];
 
   // Icon mapping for dynamic telemetry
@@ -236,561 +238,529 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            <button
-              onClick={handleOpenEdit}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-all shadow-sm self-start sm:self-auto hover:border-slate-300"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-primary" />
-              Edit Profile
-            </button>
+            {profile && (
+              <button
+                onClick={handleOpenEdit}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-all shadow-sm self-start sm:self-auto hover:border-slate-300"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-primary" />
+                Edit Profile
+              </button>
+            )}
           </div>
 
-          {/* ═══════════════════ RBAC PERSONA QUICK SWITCHER BAR ═══════════════════ */}
-          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Select Active Persona (RBAC Identity Testing)
-                </span>
+          {!session ? (
+            <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                <User className="w-6 h-6" />
               </div>
-              <span className="text-[11px] text-slate-400 font-medium">
-                Unified across Topbar, Sidebar &amp; Platform APIs
-              </span>
+              <h2 className="text-lg font-bold text-text-primary">Sign in to see your operator profile</h2>
+              <p className="text-xs text-text-secondary max-w-md">
+                Your identity, role, duty status and ledger activity come from your operator account in
+                the backend. The dashboards stay open to read without signing in.
+              </p>
+              <button
+                onClick={() => setSignInOpen(true)}
+                className="mt-1 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Sign in
+              </button>
             </div>
+          ) : !profile ? (
+            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm text-sm">
+              {profileError ? (
+                <p role="alert" className="flex items-center gap-2 text-rose-600 font-semibold">
+                  <AlertCircle className="w-4 h-4" />
+                  Your profile could not be loaded:{' '}
+                  {profileError instanceof Error ? profileError.message : 'the backend did not answer'}
+                </p>
+              ) : (
+                <p className="text-slate-400">Loading your profile…</p>
+              )}
+            </div>
+          ) : (
+            <>
+            {/* ═══════════════════ HERO OPERATOR PROFILE CARD ═══════════════════ */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm relative overflow-hidden">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
+                {/* Avatar + Main Identity Details */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                  <div className="relative self-start sm:self-auto">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-lg shadow-primary/20">
+                      {profile.avatar_initials || '—'}
+                    </div>
+                    {activeStatusCfg && (
+                      <span
+                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ring-2 ring-slate-100"
+                        style={{ backgroundColor: activeStatusCfg.dot }}
+                        title={`Duty Status: ${activeStatusCfg.label}`}
+                      />
+                    )}
+                  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {availablePersonas.map((persona) => {
-                const isSelected = selectedRole === persona.id;
-                return (
-                  <button
-                    key={persona.id}
-                    onClick={() => switchRole(persona.id)}
-                    className={`relative p-3 rounded-2xl text-left transition-all border flex items-center gap-3 ${
-                      isSelected
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-md shadow-slate-900/10 ring-2 ring-primary/20'
-                        : 'bg-slate-50/70 hover:bg-slate-100/70 border-slate-200/70 text-slate-700'
-                    }`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 shadow-sm ${
-                        isSelected
-                          ? 'bg-primary text-white'
-                          : 'bg-white text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      {persona.avatar}
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-xl sm:text-2xl font-extrabold text-text-primary">
+                        {profile.full_name}
+                      </h2>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-primary border border-blue-100">
+                        {profile.role}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                        {profile.agency}
+                      </span>
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-slate-800'}`}>
-                          {persona.name}
+                    <p className="text-xs sm:text-sm text-text-secondary font-medium">
+                      {[profile.team_role, profile.team_name].filter(Boolean).join(' • ') || 'No unit assigned'}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
+                      {/* Operator ID chip with copy button */}
+                      <button
+                        onClick={() => copyToClipboard(profile.operator_id, 'id')}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                        title="Click to copy Operator ID"
+                      >
+                        <span>{profile.operator_id}</span>
+                        {copiedField === 'id' ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                      </button>
+
+                      {/* Radio Callsign chip */}
+                      {profile.callsign ? (
+                        <button
+                          onClick={() => copyToClipboard(profile.callsign, 'callsign')}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-xs font-mono font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                          title="Click to copy Radio Callsign"
+                        >
+                          <Radio className="w-3.5 h-3.5" />
+                          <span>{profile.callsign}</span>
+                          {copiedField === 'callsign' ? (
+                            <Check className="w-3 h-3 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-indigo-400" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-400">
+                          <Radio className="w-3.5 h-3.5 text-slate-300" />
+                          No callsign
                         </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span
-                          className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
+                      )}
+
+                      {/* Email quick copy */}
+                      {profile.email && (
+                        <button
+                          onClick={() => copyToClipboard(profile.email, 'email')}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 transition-colors"
+                          title="Click to copy email"
+                        >
+                          <Mail className="w-3 h-3 text-slate-400" />
+                          <span className="truncate max-w-[180px]">{profile.email}</span>
+                          {copiedField === 'email' && <Check className="w-3 h-3 text-emerald-600" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Duty Status Selector Controls */}
+                <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 self-start xl:self-auto space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Operational Duty Status
+                    </span>
+                    {isUpdatingStatus && (
+                      <span className="text-[10px] text-primary animate-pulse font-medium">Syncing...</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
+                      const cfg = dutyStatusConfig[st];
+                      const isSelected = profile.duty_status === st;
+                      return (
+                        <button
+                          key={st}
+                          onClick={() => updateDuty(st)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
                             isSelected
-                              ? 'bg-white/10 text-white'
-                              : 'bg-blue-50 text-blue-700 border border-blue-100'
+                              ? 'bg-slate-900 text-white shadow-sm'
+                              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                           }`}
                         >
-                          {persona.role}
-                        </span>
-                        <span className={`text-[11px] truncate ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
-                          {persona.agency}
-                        </span>
-                      </div>
-                    </div>
-
-                    {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-emerald-400 text-slate-900 flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ═══════════════════ HERO OPERATOR PROFILE CARD ═══════════════════ */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm relative overflow-hidden">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
-              {/* Avatar + Main Identity Details */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                <div className="relative self-start sm:self-auto">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-lg shadow-primary/20">
-                    {profile.avatar_initials || '—'}
-                  </div>
-                  <span
-                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ring-2 ring-slate-100"
-                    style={{ backgroundColor: activeStatusCfg.dot }}
-                    title={`Duty Status: ${activeStatusCfg.label}`}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-text-primary">
-                      {profile.full_name}
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-primary border border-blue-100">
-                      {profile.role}
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                      {profile.agency}
-                    </span>
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-text-secondary font-medium">
-                    {[profile.team_role, profile.team_name].filter(Boolean).join(' • ') || 'No unit assigned'}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
-                    {/* Operator ID chip with copy button */}
-                    <button
-                      onClick={() => copyToClipboard(profile.operator_id, 'id')}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-                      title="Click to copy Operator ID"
-                    >
-                      <span>{profile.operator_id}</span>
-                      {copiedField === 'id' ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                    </button>
-
-                    {/* Radio Callsign chip */}
-                    {profile.callsign ? (
-                      <button
-                        onClick={() => copyToClipboard(profile.callsign, 'callsign')}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-xs font-mono font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
-                        title="Click to copy Radio Callsign"
-                      >
-                        <Radio className="w-3.5 h-3.5" />
-                        <span>{profile.callsign}</span>
-                        {copiedField === 'callsign' ? (
-                          <Check className="w-3 h-3 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3 h-3 text-indigo-400" />
-                        )}
-                      </button>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-400">
-                        <Radio className="w-3.5 h-3.5 text-slate-300" />
-                        No callsign
-                      </span>
-                    )}
-
-                    {/* Email quick copy */}
-                    {profile.email && (
-                      <button
-                        onClick={() => copyToClipboard(profile.email, 'email')}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 hover:bg-slate-100 transition-colors"
-                        title="Click to copy email"
-                      >
-                        <Mail className="w-3 h-3 text-slate-400" />
-                        <span className="truncate max-w-[180px]">{profile.email}</span>
-                        {copiedField === 'email' && <Check className="w-3 h-3 text-emerald-600" />}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Duty Status Selector Controls */}
-              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 self-start xl:self-auto space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Operational Duty Status
-                  </span>
-                  {isUpdatingStatus && (
-                    <span className="text-[10px] text-primary animate-pulse font-medium">Syncing...</span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
-                    const cfg = dutyStatusConfig[st];
-                    const isSelected = profile.duty_status === st;
-                    return (
-                      <button
-                        key={st}
-                        onClick={() => updateDuty(st)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-slate-900 text-white shadow-sm'
-                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                      >
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: isSelected ? '#FFFFFF' : cfg.dot }}
-                        />
-                        {cfg.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ═══════════════════ MAIN DETAILS & TELEMETRY GRID ═══════════════════ */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column (2 Cols): Credentials, Team Hub & Tactical Activity Ledger */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Tactical & Contact Credentials */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" />
-                    Tactical &amp; Contact Credentials
-                  </h3>
-                  <button
-                    onClick={handleOpenEdit}
-                    className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
-                  >
-                    Edit Credentials
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  {/* Email */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-slate-400 block text-[11px]">Email</span>
-                        <span className={`truncate block ${profile.email ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
-                          {profile.email || 'Not on record'}
-                        </span>
-                      </div>
-                    </div>
-                    {profile.email && (
-                      <button
-                        onClick={() => copyToClipboard(profile.email, 'cred-email')}
-                        className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
-                        title="Copy Email"
-                      >
-                        {copiedField === 'cred-email' ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Phone */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-                        <Phone className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-slate-400 block text-[11px]">Phone</span>
-                        <span className={`truncate block ${profile.phone ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
-                          {profile.phone || 'Not on record'}
-                        </span>
-                      </div>
-                    </div>
-                    {profile.phone && (
-                      <button
-                        onClick={() => copyToClipboard(profile.phone, 'cred-phone')}
-                        className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
-                        title="Copy Phone"
-                      >
-                        {copiedField === 'cred-phone' ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Callsign */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
-                        <Radio className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-slate-400 block text-[11px]">Radio Callsign</span>
-                        <span className={`truncate block ${profile.callsign ? 'font-mono font-bold text-slate-800' : 'text-slate-400'}`}>
-                          {profile.callsign || 'No callsign'}
-                        </span>
-                      </div>
-                    </div>
-                    {profile.callsign && (
-                      <button
-                        onClick={() => copyToClipboard(profile.callsign, 'cred-callsign')}
-                        className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
-                        title="Copy Callsign"
-                      >
-                        {copiedField === 'cred-callsign' ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Badge Number */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
-                        <Award className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-slate-400 block text-[11px]">Badge Number</span>
-                        <span className="font-mono font-bold text-slate-800 truncate block">
-                          {profile.badge_number || '—'}
-                        </span>
-                      </div>
-                    </div>
-                    {profile.badge_number && (
-                      <button
-                        onClick={() => copyToClipboard(profile.badge_number, 'cred-badge')}
-                        className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
-                        title="Copy Badge Number"
-                      >
-                        {copiedField === 'cred-badge' ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Bio / Command Assignment Statement */}
-                <div className="pt-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Command Assignment &amp; Mission Scope
-                  </span>
-                  <p
-                    className={`text-xs leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 ${
-                      profile.bio ? 'text-text-secondary' : 'text-slate-400'
-                    }`}
-                  >
-                    {profile.bio || 'No bio on record'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Assigned response unit, only when the profile names one */}
-              {(profile.team_id || profile.team_code) && (
-                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                      Assigned Response Unit
-                    </span>
-                    <h4 className="text-lg font-bold text-text-primary">
-                      {profile.team_name || profile.team_code}
-                    </h4>
-                    <p className="text-xs text-text-secondary">
-                      {profile.team_code && (
-                        <>
-                          Unit Code: <strong className="font-mono text-slate-800">{profile.team_code}</strong>
-                        </>
-                      )}
-                      {profile.team_code && profile.team_role && ' • '}
-                      {profile.team_role && (
-                        <>
-                          Role in unit: <strong className="text-slate-800">{profile.team_role}</strong>
-                        </>
-                      )}
-                    </p>
-                  </div>
-
-                  {profile.team_code && (
-                    <Link
-                      href={`/teams?search=${encodeURIComponent(profile.team_code)}`}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all self-start sm:self-auto shadow-sm shadow-primary/20 shrink-0"
-                    >
-                      <Users className="w-3.5 h-3.5" />
-                      View Team in Roster →
-                    </Link>
-                  )}
-                </div>
-              )}
-
-              {/* Dynamic Role-Specific Tactical Activity Ledger */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-primary" />
-                  Activity Ledger (SHA-256 Hash Chain)
-                </h3>
-
-                <div className="space-y-3 text-xs">
-                  {currentActivities.length === 0 && (
-                    <p className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-slate-400">
-                      No ledger entries by this operator yet.
-                    </p>
-                  )}
-                  {currentActivities.map((act) => {
-                    const isDispatched = act.status === 'DISPATCHED' || act.status === 'COMPLETED';
-                    const isVerified = act.status === 'VERIFIED';
-                    const isQuarantined = act.status === 'QUARANTINED';
-                    return (
-                      <div
-                        key={act.id}
-                        className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between hover:bg-slate-100/60 transition-colors"
-                      >
-                        <div className="space-y-1">
-                          <p className="font-bold text-slate-900 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            {act.action}
-                          </p>
-                          <p className="text-slate-500 font-mono text-[11px] pl-3">{act.target}</p>
-                        </div>
-                        <div className="text-right shrink-0">
                           <span
-                            className={`font-bold block text-[11px] ${
-                              isQuarantined
-                                ? 'text-amber-600'
-                                : isVerified
-                                ? 'text-blue-600'
-                                : isDispatched
-                                ? 'text-emerald-600'
-                                : 'text-slate-700'
-                            }`}
-                          >
-                            {act.status}
-                          </span>
-                          <span className="text-[10px] text-slate-400">{act.time}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100">
-                  <Link href="/admin" className="hover:text-slate-700 hover:underline">
-                    The chain&apos;s verification status is on Admin Command →
-                  </Link>
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: isSelected ? '#FFFFFF' : cfg.dot }}
+                          />
+                          {cfg.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Dynamic Role Telemetry & RBAC Security Matrix */}
-            <div className="space-y-6">
-              {/* Role-Tailored Operational Telemetry */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  Operational Telemetry
-                </h3>
+            {/* ═══════════════════ MAIN DETAILS & TELEMETRY GRID ═══════════════════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column (2 Cols): Credentials, Team Hub & Tactical Activity Ledger */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Tactical & Contact Credentials */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      Tactical &amp; Contact Credentials
+                    </h3>
+                    <button
+                      onClick={handleOpenEdit}
+                      className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
+                    >
+                      Edit Credentials
+                    </button>
+                  </div>
 
-                <div className="space-y-3">
-                  {currentTelemetry.map((metric, idx) => {
-                    const bgClass =
-                      metric.color === 'purple'
-                        ? 'bg-purple-50/70 border-purple-100'
-                        : metric.color === 'emerald'
-                        ? 'bg-emerald-50/70 border-emerald-100'
-                        : metric.color === 'amber'
-                        ? 'bg-amber-50/70 border-amber-100'
-                        : 'bg-blue-50/70 border-blue-100';
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-4 rounded-2xl border flex items-center justify-between ${bgClass}`}
-                      >
-                        <div>
-                          <span className="text-[11px] text-slate-500 block font-medium">
-                            {metric.label}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    {/* Email */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                          <Mail className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-slate-400 block text-[11px]">Email</span>
+                          <span className={`truncate block ${profile.email ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
+                            {profile.email || 'Not on record'}
                           </span>
-                          <strong className="text-xl font-extrabold text-slate-900 tracking-tight">
-                            {metric.value}
-                          </strong>
-                          {metric.sublabel && (
-                            <span className="text-[10px] text-slate-400 block mt-0.5">
-                              {metric.sublabel}
+                        </div>
+                      </div>
+                      {profile.email && (
+                        <button
+                          onClick={() => copyToClipboard(profile.email, 'cred-email')}
+                          className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+                          title="Copy Email"
+                        >
+                          {copiedField === 'cred-email' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Phone */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                          <Phone className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-slate-400 block text-[11px]">Phone</span>
+                          <span className={`truncate block ${profile.phone ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
+                            {profile.phone || 'Not on record'}
+                          </span>
+                        </div>
+                      </div>
+                      {profile.phone && (
+                        <button
+                          onClick={() => copyToClipboard(profile.phone, 'cred-phone')}
+                          className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+                          title="Copy Phone"
+                        >
+                          {copiedField === 'cred-phone' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Callsign */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                          <Radio className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-slate-400 block text-[11px]">Radio Callsign</span>
+                          <span className={`truncate block ${profile.callsign ? 'font-mono font-bold text-slate-800' : 'text-slate-400'}`}>
+                            {profile.callsign || 'No callsign'}
+                          </span>
+                        </div>
+                      </div>
+                      {profile.callsign && (
+                        <button
+                          onClick={() => copyToClipboard(profile.callsign, 'cred-callsign')}
+                          className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+                          title="Copy Callsign"
+                        >
+                          {copiedField === 'cred-callsign' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Badge Number */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                          <Award className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-slate-400 block text-[11px]">Badge Number</span>
+                          <span className="font-mono font-bold text-slate-800 truncate block">
+                            {profile.badge_number || '—'}
+                          </span>
+                        </div>
+                      </div>
+                      {profile.badge_number && (
+                        <button
+                          onClick={() => copyToClipboard(profile.badge_number, 'cred-badge')}
+                          className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+                          title="Copy Badge Number"
+                        >
+                          {copiedField === 'cred-badge' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bio / Command Assignment Statement */}
+                  <div className="pt-2">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                      Command Assignment &amp; Mission Scope
+                    </span>
+                    <p
+                      className={`text-xs leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 ${
+                        profile.bio ? 'text-text-secondary' : 'text-slate-400'
+                      }`}
+                    >
+                      {profile.bio || 'No bio on record'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Assigned response unit, only when the profile names one */}
+                {(profile.team_id || profile.team_code) && (
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                        Assigned Response Unit
+                      </span>
+                      <h4 className="text-lg font-bold text-text-primary">
+                        {profile.team_name || profile.team_code}
+                      </h4>
+                      <p className="text-xs text-text-secondary">
+                        {profile.team_code && (
+                          <>
+                            Unit Code: <strong className="font-mono text-slate-800">{profile.team_code}</strong>
+                          </>
+                        )}
+                        {profile.team_code && profile.team_role && ' • '}
+                        {profile.team_role && (
+                          <>
+                            Role in unit: <strong className="text-slate-800">{profile.team_role}</strong>
+                          </>
+                        )}
+                      </p>
+                    </div>
+
+                    {profile.team_code && (
+                      <Link
+                        href={`/teams?search=${encodeURIComponent(profile.team_code)}`}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all self-start sm:self-auto shadow-sm shadow-primary/20 shrink-0"
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        View Team in Roster →
+                      </Link>
+                    )}
+                  </div>
+                )}
+
+                {/* Dynamic Role-Specific Tactical Activity Ledger */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+                  <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-primary" />
+                    Activity Ledger (SHA-256 Hash Chain)
+                  </h3>
+
+                  <div className="space-y-3 text-xs">
+                    {currentActivities.length === 0 && (
+                      <p className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-slate-400">
+                        No ledger entries by this operator yet.
+                      </p>
+                    )}
+                    {currentActivities.map((act) => {
+                      const isDispatched = act.status === 'DISPATCHED' || act.status === 'COMPLETED';
+                      const isVerified = act.status === 'VERIFIED';
+                      const isQuarantined = act.status === 'QUARANTINED';
+                      return (
+                        <div
+                          key={act.id}
+                          className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between hover:bg-slate-100/60 transition-colors"
+                        >
+                          <div className="space-y-1">
+                            <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                              {act.action}
+                            </p>
+                            <p className="text-slate-500 font-mono text-[11px] pl-3">{act.target}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span
+                              className={`font-bold block text-[11px] ${
+                                isQuarantined
+                                  ? 'text-amber-600'
+                                  : isVerified
+                                  ? 'text-blue-600'
+                                  : isDispatched
+                                  ? 'text-emerald-600'
+                                  : 'text-slate-700'
+                              }`}
+                            >
+                              {act.status}
+                            </span>
+                            <span className="text-[10px] text-slate-400">{act.time}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100">
+                    <Link href="/admin" className="hover:text-slate-700 hover:underline">
+                      The chain&apos;s verification status is on Admin Command →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Dynamic Role Telemetry & RBAC Security Matrix */}
+              <div className="space-y-6">
+                {/* Role-Tailored Operational Telemetry */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+                  <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    Operational Telemetry
+                  </h3>
+
+                  <div className="space-y-3">
+                    {currentTelemetry.map((metric, idx) => {
+                      const bgClass =
+                        metric.color === 'purple'
+                          ? 'bg-purple-50/70 border-purple-100'
+                          : metric.color === 'emerald'
+                          ? 'bg-emerald-50/70 border-emerald-100'
+                          : metric.color === 'amber'
+                          ? 'bg-amber-50/70 border-amber-100'
+                          : 'bg-blue-50/70 border-blue-100';
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-4 rounded-2xl border flex items-center justify-between ${bgClass}`}
+                        >
+                          <div>
+                            <span className="text-[11px] text-slate-500 block font-medium">
+                              {metric.label}
+                            </span>
+                            <strong className="text-xl font-extrabold text-slate-900 tracking-tight">
+                              {metric.value}
+                            </strong>
+                            {metric.sublabel && (
+                              <span className="text-[10px] text-slate-400 block mt-0.5">
+                                {metric.sublabel}
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-white shadow-sm border border-slate-100">
+                            {renderTelemetryIcon(metric.iconName)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Dynamic Security, Clearance & RBAC Matrix */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-primary" />
+                      Security &amp; RBAC Clearance
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                      {profile.operator_id}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+                      <span className="text-slate-500 font-medium">Role</span>
+                      <span className="font-bold text-slate-800">{roleLabel(profile.role)}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+                      <span className="text-slate-500 font-medium">Agency</span>
+                      <span className="font-bold text-slate-800">{profile.agency}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+                      <span className="text-slate-500 font-medium">Session expires</span>
+                      <span className="font-mono text-slate-700">{sessionExpiryLabel(session)}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+                      <span className="text-slate-500 font-medium">Ledger Immutability</span>
+                      <span className="font-semibold text-emerald-700">{LEDGER_IMMUTABILITY}</span>
+                    </div>
+                  </div>
+
+                  {/* RBAC Permissions Capability Matrix */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2.5">
+                      Authorized Capabilities
+                    </span>
+                    <div className="space-y-2">
+                      {currentCapabilities.map((perm) => (
+                        <div
+                          key={perm.label}
+                          className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100 text-xs"
+                        >
+                          <div className="min-w-0 pr-2">
+                            <p className="font-semibold text-slate-800 truncate">{perm.label}</p>
+                          </div>
+                          {perm.granted ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px] shrink-0">
+                              <Check className="w-3 h-3" />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-200 text-slate-600 font-medium text-[10px] shrink-0">
+                              <Lock className="w-3 h-3" />
+                              Restricted
                             </span>
                           )}
                         </div>
-                        <div className="p-2.5 rounded-xl bg-white shadow-sm border border-slate-100">
-                          {renderTelemetryIcon(metric.iconName)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Dynamic Security, Clearance & RBAC Matrix */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-primary" />
-                    Security &amp; RBAC Clearance
-                  </h3>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                    {profile.operator_id}
-                  </span>
-                </div>
-
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
-                    <span className="text-slate-500 font-medium">RBAC Persona</span>
-                    <span className="font-bold text-slate-800">{profile.role}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
-                    <span className="text-slate-500 font-medium">Agency</span>
-                    <span className="font-bold text-slate-800">{profile.agency}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
-                    <span className="text-slate-500 font-medium">Session Token Expiry</span>
-                    <span className="font-mono text-slate-700">{SESSION_TOKEN_LIFETIME}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
-                    <span className="text-slate-500 font-medium">Ledger Immutability</span>
-                    <span className="font-semibold text-emerald-700">{LEDGER_IMMUTABILITY}</span>
-                  </div>
-                </div>
-
-                {/* RBAC Permissions Capability Matrix */}
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2.5">
-                    Authorized Capabilities
-                  </span>
-                  <div className="space-y-2">
-                    {currentCapabilities.map((perm) => (
-                      <div
-                        key={perm.label}
-                        className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100 text-xs"
-                      >
-                        <div className="min-w-0 pr-2">
-                          <p className="font-semibold text-slate-800 truncate">{perm.label}</p>
-                        </div>
-                        {perm.granted ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px] shrink-0">
-                            <Check className="w-3 h-3" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-200 text-slate-600 font-medium text-[10px] shrink-0">
-                            <Lock className="w-3 h-3" />
-                            Restricted
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+            </>
+          )}
         </main>
       </div>
 
@@ -983,6 +953,8 @@ export default function ProfilePage() {
           </div>
         )}
       </AnimatePresence>
+
+      <SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} />
     </div>
   );
 }

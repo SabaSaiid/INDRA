@@ -28,6 +28,7 @@ import {
   type HackathonTeamData,
 } from './ui-config';
 import { API_BASE } from './api-base';
+import { authHeaders, getSession, signOut } from './auth';
 
 export type { FeedItem };
 
@@ -69,96 +70,32 @@ function asArray<T>(value: unknown, path: string): T[] {
   return value as T[];
 }
 
-// ─── Authentication & Token Management ───────────────────────────────────────
-
-/** Demo credentials matching backend security.py DEMO_USERS. */
-const DEMO_CREDENTIALS: Record<string, string> = {
-  commander: 'commander123',
-  analyst: 'analyst123',
-  admin: 'admin123',
-  citizen: 'citizen123',
-};
-
-interface AuthToken {
-  access_token: string;
-  token_type: string;
-  role: string;
-  agency: string;
-  fetchedAt: number;
-}
-
-const tokenCache = new Map<string, AuthToken>();
-const TOKEN_TTL_MS = 7 * 60 * 60 * 1000; // 7 hours (backend issues 8h tokens)
+// ─── Authenticated calls ─────────────────────────────────────────────────────
 
 /**
- * Fetch a JWT token from the backend for the given persona.
- * Tokens are cached in-memory and auto-refreshed when stale.
+ * fetch with the signed-in operator's token. A 401 on a call that carried one
+ * means the backend no longer accepts it (expired, or the account's login was
+ * disabled), so the tab signs out rather than keep offering what will fail.
  */
-export async function getAuthToken(username: string): Promise<string | null> {
-  const cached = tokenCache.get(username);
-  if (cached && Date.now() - cached.fetchedAt < TOKEN_TTL_MS) {
-    return cached.access_token;
-  }
-
-  const password = DEMO_CREDENTIALS[username];
-  if (!password) {
-    console.warn(`[INDRA] No demo credentials for persona: ${username}`);
-    return null;
-  }
-
+async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const auth = authHeaders();
+  let res: Response;
   try {
-    const body = new URLSearchParams();
-    body.set('username', username);
-    body.set('password', password);
-
-    const res = await fetch(`${API_BASE}/api/auth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string> | undefined), ...auth },
     });
-    if (!res.ok) throw new Error(`Auth failed: HTTP ${res.status}`);
-    const data = await res.json();
-    const token: AuthToken = { ...data, fetchedAt: Date.now() };
-    tokenCache.set(username, token);
-    return token.access_token;
-  } catch (err) {
-    console.warn(`[INDRA] getAuthToken(${username}) failed:`, err);
-    return null;
-  }
-}
-
-/** Build Authorization headers for the given persona. Returns empty if auth fails. */
-export async function getAuthHeaders(username: string): Promise<Record<string, string>> {
-  const token = await getAuthToken(username);
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
-
-/** Clear cached token (e.g. on persona switch). */
-export function clearAuthToken(username: string) {
-  tokenCache.delete(username);
-}
-
-/** Where useOperatorProfile keeps the selected persona. */
-export const OPERATOR_STORAGE_KEY = 'indra_current_role';
-
-/**
- * The persona the operator has selected in the switcher, for calls made from
- * pages that do not hold the profile hook. Falls back to 'commander', the
- * switcher's own default, when storage is unavailable.
- */
-export function currentPersona(): string {
-  try {
-    return localStorage.getItem(OPERATOR_STORAGE_KEY) || 'commander';
   } catch {
-    return 'commander';
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
   }
+  if (res.status === 401 && auth.Authorization) signOut();
+  return res;
 }
 
 /** A readable reason for a refused mutation, so the UI can say why. */
 function mutationError(path: string, status: number, action: string): ApiError {
-  if (status === 401) return new ApiError(path, status, `${action} failed: not signed in`);
-  if (status === 403) return new ApiError(path, status, `${action} needs a Commander or Admin persona`);
+  if (status === 401) return new ApiError(path, status, `${action} needs you to sign in`);
+  if (status === 403) return new ApiError(path, status, `${action} needs a Commander or Admin account`);
   if (status === 404) return new ApiError(path, status, `${action} failed: not found`);
   return new ApiError(path, status, `${action} failed (HTTP ${status})`);
 }
@@ -237,16 +174,10 @@ export interface ProvenanceData {
   chain: { valid: boolean; checked: number; error?: string };
 }
 
-export async function fetchEventProvenance(
-  eventId: string,
-  operatorUsername: string = 'commander'
-): Promise<ProvenanceData | null> {
+/** Needs an Analyst, Commander or Admin session; null when refused or unreachable. */
+export async function fetchEventProvenance(eventId: string): Promise<ProvenanceData | null> {
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
-    const res = await fetch(`${API_BASE}/api/events/${eventId}/provenance`, {
-      cache: 'no-store',
-      headers: { ...authHeaders },
-    });
+    const res = await authedFetch(`/api/events/${eventId}/provenance`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -263,23 +194,24 @@ export async function reviewEvent(
   eventId: string,
   action: 'approve' | 'reject' | 'override_severity',
   reason: string,
-  operatorUsername: string = 'commander',
   newSeverity?: string
 ): Promise<{ success: boolean; data?: ReviewResponse; error?: string }> {
+  if (!getSession()) {
+    return { success: false, error: 'Sign in as a Commander or Admin to review' };
+  }
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
-    if (!authHeaders.Authorization) {
-      return { success: false, error: 'Authentication failed — cannot obtain token' };
-    }
     const body: Record<string, any> = { action, reason };
     if (action === 'override_severity' && newSeverity) {
       body.new_severity = newSeverity;
     }
-    const res = await fetch(`${API_BASE}/api/events/${eventId}/review`, {
+    const res = await authedFetch(`/api/events/${eventId}/review`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (res.status === 401) {
+      return { success: false, error: 'Your session has ended. Sign in again to review.' };
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
       return { success: false, error: err.detail || `HTTP ${res.status}` };
@@ -325,23 +257,27 @@ export async function submitCitizenReport(
 /**
  * File a report from a trusted field source (a control room, an SDRF team)
  * through POST /api/reports/official (BUG-025). Needs a Commander or Admin
- * persona; the backend stores it as OFFICIAL_DISPATCH with the operator's name,
+ * session; the backend stores it as OFFICIAL_DISPATCH with the operator's name,
  * which lifts the cluster's source reliability to 1.00. The public route above
  * can never claim a source, by design.
  */
 export async function submitOfficialReport(
-  report: ReportSubmission,
-  operatorUsername: string = currentPersona()
+  report: ReportSubmission
 ): Promise<{ success: boolean; data?: any; error?: string }> {
+  if (!getSession()) {
+    return { success: false, error: 'Sign in as a Commander or Admin to file an official dispatch' };
+  }
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
-    const res = await fetch(`${API_BASE}/api/reports/official`, {
+    const res = await authedFetch('/api/reports/official', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report),
     });
-    if (res.status === 401 || res.status === 403) {
-      return { success: false, error: 'Filing an official dispatch needs a Commander or Admin persona' };
+    if (res.status === 401) {
+      return { success: false, error: 'Your session has ended. Sign in again to file an official dispatch.' };
+    }
+    if (res.status === 403) {
+      return { success: false, error: 'Filing an official dispatch needs a Commander or Admin account' };
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
@@ -897,27 +833,17 @@ export async function fetchTeamById(teamId: string): Promise<TeamItem> {
 /**
  * Dispatch a team to an event (its UUID), or recall it with null.
  *
- * Needs a COMMANDER or ADMIN token since BUG-009, so it is sent as the
- * operator's selected persona; an analyst or citizen persona gets a 403 with a
- * reason the page can show.
+ * Needs a COMMANDER or ADMIN token since BUG-009, sent as the signed-in
+ * operator; an analyst or citizen account gets a 403 with a reason the page
+ * can show.
  */
-export async function assignTeamToEvent(
-  teamId: string,
-  eventId: string | null,
-  operatorUsername: string = currentPersona()
-): Promise<any> {
+export async function assignTeamToEvent(teamId: string, eventId: string | null): Promise<any> {
   const path = `/api/teams/${teamId}/assign`;
-  const authHeaders = await getAuthHeaders(operatorUsername);
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ event_id: eventId }),
-    });
-  } catch {
-    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
-  }
+  const res = await authedFetch(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event_id: eventId }),
+  });
   if (!res.ok) {
     // A mutation that silently "succeeds" locally is worse than one that fails
     // loudly: the operator believes a team was dispatched when none was.
@@ -932,32 +858,32 @@ export async function fetchHackathonTeam(): Promise<HackathonTeamData> {
 
 // ─── User Profile & Identity ──────────────────────────────────────────────────
 
-export async function fetchUserProfile(username?: string): Promise<UserProfile> {
-  const path = username ? `/api/profile/me?user=${username}` : '/api/profile/me';
-  return getJson<UserProfile>(path);
+/** The signed-in operator's profile: GET /api/profile/me with the session's token. */
+export async function fetchUserProfile(): Promise<UserProfile> {
+  const path = '/api/profile/me';
+  if (!getSession()) throw new ApiError(path, 401, 'Not signed in');
+  const res = await authedFetch(path, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new ApiError(path, res.status, `Backend returned HTTP ${res.status}`);
+  }
+  try {
+    return (await res.json()) as UserProfile;
+  } catch {
+    throw new ApiError(path, res.status, 'Backend returned a malformed response');
+  }
 }
 
 /**
- * Save the persona's own profile. The backend edits the token's subject and
- * nothing else (BUG-009), so the persona is who is authenticated, not a query
- * parameter naming whose profile to change.
+ * Save the signed-in operator's own profile. The backend edits the token's
+ * subject and nothing else (BUG-009).
  */
-export async function updateUserProfile(
-  data: Partial<UserProfile>,
-  username: string = currentPersona()
-): Promise<UserProfile> {
+export async function updateUserProfile(data: Partial<UserProfile>): Promise<UserProfile> {
   const path = '/api/profile/me';
-  const authHeaders = await getAuthHeaders(username);
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify(data),
-    });
-  } catch {
-    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
-  }
+  const res = await authedFetch(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
   if (!res.ok) {
     throw mutationError(path, res.status, 'Profile update');
   }
@@ -1028,21 +954,18 @@ export interface AuditLedger {
   rows: AuditRow[];
 }
 
-/** GET /api/audit/recent — ANALYST, COMMANDER or ADMIN persona. */
-export async function fetchAuditLedger(
-  limit: number = 20,
-  operatorUsername: string = currentPersona()
-): Promise<AuditLedger> {
+/** GET /api/audit/recent — needs an Analyst, Commander or Admin session. */
+export async function fetchAuditLedger(limit: number = 20): Promise<AuditLedger> {
   const path = `/api/audit/recent?limit=${limit}`;
-  const authHeaders = await getAuthHeaders(operatorUsername);
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`, { cache: 'no-store', headers: { ...authHeaders } });
-  } catch {
-    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
+  if (!getSession()) {
+    throw new ApiError(path, 401, 'Sign in as an Analyst, Commander or Admin to read the audit ledger');
+  }
+  const res = await authedFetch(path, { cache: 'no-store' });
+  if (res.status === 401) {
+    throw new ApiError(path, 401, 'Your session has ended. Sign in again to read the audit ledger.');
   }
   if (res.status === 403) {
-    throw new ApiError(path, 403, 'Reading the audit ledger needs an Analyst, Commander or Admin persona');
+    throw new ApiError(path, 403, 'Reading the audit ledger needs an Analyst, Commander or Admin account');
   }
   if (!res.ok) {
     throw mutationError(path, res.status, 'Reading the audit ledger');

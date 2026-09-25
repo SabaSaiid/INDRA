@@ -38,7 +38,7 @@ import {
   type ProvenanceReport,
   type AuditEntry,
 } from '@/lib/api';
-import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { useSession, hasRole, roleLabel, COMMAND_ROLES, LEDGER_ROLES } from '@/lib/auth';
 import { eventReviewState } from '@/lib/eventState';
 
 // Issue 3 fix: per-hazard plausible maximum impact radius (km).
@@ -109,7 +109,7 @@ interface Props {
 }
 
 export default function EventVerificationModal({ eventId, onClose, onEventUpdated }: Props) {
-  const { selectedRole, isAuthenticated } = useOperatorProfile();
+  const session = useSession();
   const [detail, setDetail] = useState<EventDetail | null>(null);
   const [provenance, setProvenance] = useState<ProvenanceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,7 +121,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const [reviewResult, setReviewResult] = useState<{ success: boolean; message: string } | null>(null);
   const [reportsExpanded, setReportsExpanded] = useState(false);
 
-  const canReview = ['commander', 'admin'].includes(selectedRole);
+  // The same role rules the backend enforces, read from the signed-in session.
+  const canReview = hasRole(session, COMMAND_ROLES);
+  const canReadProvenance = hasRole(session, LEDGER_ROLES);
 
   const loadData = useCallback(async (eid: string) => {
     setLoading(true);
@@ -129,12 +131,12 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
     setReviewAction(null);
     const [detailResult, provResult] = await Promise.allSettled([
       fetchEventDetail(eid),
-      fetchEventProvenance(eid, selectedRole),
+      canReadProvenance ? fetchEventProvenance(eid) : Promise.resolve(null),
     ]);
     if (detailResult.status === 'fulfilled') setDetail(detailResult.value);
-    if (provResult.status === 'fulfilled') setProvenance(provResult.value);
+    setProvenance(provResult.status === 'fulfilled' ? provResult.value : null);
     setLoading(false);
-  }, [selectedRole]);
+  }, [canReadProvenance]);
 
   useEffect(() => {
     if (eventId) loadData(eventId);
@@ -143,7 +145,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const handleReview = async () => {
     if (!eventId || !reviewAction || reviewReason.length < 5) return;
     setReviewLoading(true);
-    const result = await reviewEvent(eventId, reviewAction, reviewReason, selectedRole, overrideSeverity || undefined);
+    const result = await reviewEvent(eventId, reviewAction, reviewReason, overrideSeverity || undefined);
     if (result.success) {
       setReviewResult({ success: true, message: `Event ${reviewAction === 'approve' ? 'approved' : reviewAction === 'reject' ? 'rejected' : 'severity overridden'} successfully.` });
       setReviewAction(null);
@@ -179,6 +181,12 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const reviewStatus = reviewState.reviewStatus;
   const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.UNKNOWN;
   const sevStyle = SEVERITY_STYLES[severity] || UNRATED_STYLE;
+  // Why the reports and audit tabs are empty when provenance did not load.
+  const provenanceGate = !session
+    ? 'Sign in as an Analyst, Commander or Admin to see this.'
+    : !canReadProvenance
+    ? `An Analyst, Commander or Admin account can see this; you are signed in as ${roleLabel(session.role)}.`
+    : 'Provenance could not be loaded from the backend.';
 
   return (
     <AnimatePresence>
@@ -381,7 +389,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   ) : (
                     <div className="bg-white rounded-lg border border-[#E8E2D4] p-6 text-center text-sm text-[#8C7A6B]">
                       <FileText className="w-5 h-5 mx-auto mb-2 opacity-40" />
-                      {provenance === null ? 'Provenance requires authentication (analyst / commander / admin).' : 'No contributing reports found.'}
+                      {provenance === null ? provenanceGate : 'No contributing reports found.'}
                     </div>
                   )}
                 </div>
@@ -434,7 +442,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   )) : (
                     <div className="bg-white rounded-lg border border-[#E8E2D4] p-6 text-center text-sm text-[#8C7A6B]">
                       <Lock className="w-5 h-5 mx-auto mb-2 opacity-40" />
-                      {provenance === null ? 'Audit trail requires authentication.' : 'No audit entries for this event.'}
+                      {provenance === null ? provenanceGate : 'No audit entries for this event.'}
                     </div>
                   )}
                 </div>
@@ -446,7 +454,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   <div className="flex items-center gap-2 text-xs font-bold text-[#3C2415] uppercase">
                     <Radio className="w-3.5 h-3.5 text-[#B5482E]" />
                     Commander Decision
-                    {isAuthenticated && <span className="text-[9px] font-normal text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">Authenticated</span>}
+                    {session && <span className="text-[9px] font-normal normal-case text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">Signed in as {session.username}</span>}
                   </div>
 
                   {!reviewAction ? (
@@ -509,6 +517,13 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                     </motion.div>
                   )}
                 </div>
+              )}
+              {!canReview && reviewStatus !== 'REJECTED' && (
+                <p className="text-[11px] text-[#8C7A6B] text-center">
+                  {session
+                    ? `Reviewing needs a Commander or Admin account; you are signed in as ${roleLabel(session.role)}.`
+                    : 'Sign in as a Commander or Admin to approve, reject or override this event.'}
+                </p>
               )}
             </div>
           )}

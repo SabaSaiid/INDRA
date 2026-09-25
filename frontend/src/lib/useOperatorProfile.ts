@@ -8,106 +8,50 @@ import {
 import {
   fetchUserProfile,
   updateUserProfile,
-  getAuthToken,
-  clearAuthToken,
-  OPERATOR_STORAGE_KEY,
 } from './api';
+import { useSession } from './auth';
 
-export interface OperatorPersonaOption {
-  id: string;
-  label: string;
-  name: string;
-  agency: string;
-  badge: string;
-  role: string;
-  avatar: string;
-  tagline: string;
+/** Carries a duty or profile edit to every other chrome component in the tab. */
+const OPERATOR_CHANGE_EVENT = 'indra-operator-change';
+
+interface OperatorChange {
+  username: string;
+  profile: UserProfile;
 }
 
-export const AVAILABLE_OPERATOR_PERSONAS: OperatorPersonaOption[] = [
-  {
-    id: 'commander',
-    label: 'Operations Director',
-    name: 'Rajesh K. Verma',
-    agency: 'SEOC Bihar / NDMA',
-    badge: 'SEOC-PAT-091',
-    role: 'COMMANDER',
-    avatar: 'RV',
-    tagline: 'Emergency operations leadership & disaster response coordination',
-  },
-  {
-    id: 'analyst',
-    label: 'Meteorological Analyst',
-    name: 'Dr. Vikram Sethi',
-    agency: 'IMD Nowcasting Cell',
-    badge: 'IMD-MET-552',
-    role: 'ANALYST',
-    avatar: 'VS',
-    tagline: 'Doppler radar calibration & Bayesian prior synthesis',
-  },
-  {
-    id: 'admin',
-    label: 'Platform Administrator',
-    name: 'Saba Saeed',
-    agency: 'NDMA National Grid',
-    badge: 'NDMA-DIR-001',
-    role: 'ADMIN',
-    avatar: 'SS',
-    tagline: 'Root governance, node gateways & national architecture',
-  },
-  {
-    id: 'citizen',
-    label: 'Citizen Volunteer',
-    name: 'Meenal Sinha',
-    agency: 'Community Weather Watch',
-    badge: 'CIT-REP-06',
-    role: 'CITIZEN',
-    avatar: 'MS',
-    tagline: 'Ground-truth waterlogging reports & public crowdsourcing',
-  },
-];
+function broadcast(username: string, profile: UserProfile) {
+  window.dispatchEvent(
+    new CustomEvent<OperatorChange>(OPERATOR_CHANGE_EVENT, { detail: { username, profile } })
+  );
+}
 
+/**
+ * The signed-in operator: the session, their role as the backend issued it, and
+ * their profile from GET /api/profile/me. Signed out, there is no role and no
+ * profile, and nothing is fetched.
+ */
 export function useOperatorProfile() {
-  const [selectedRole, setSelectedRoleState] = useState<string>('commander');
+  const session = useSession();
+  const username = session?.username ?? null;
+  const token = session?.accessToken ?? null;
+
   // null until the backend answers. There is no locally invented operator to
   // fall back to: an identity the server does not know about is not an identity.
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileError, setProfileError] = useState<unknown>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Auto-authenticate for the current persona on mount and role changes
+  // Fetch the profile whenever the session changes, and drop it on sign-out.
   useEffect(() => {
+    setProfile(null);
+    setProfileError(null);
+    if (!token) return;
     let cancelled = false;
-    getAuthToken(selectedRole).then((token) => {
-      if (!cancelled) setIsAuthenticated(!!token);
-    });
-    return () => { cancelled = true; };
-  }, [selectedRole]);
-
-  // Sync stored role from localStorage after initial client hydration to avoid hydration mismatch
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(OPERATOR_STORAGE_KEY);
-      if (stored && stored !== 'commander') {
-        setSelectedRoleState(stored);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  // Fetch profile data on mount or role change
-  useEffect(() => {
-    let cancelled = false;
-    fetchUserProfile(selectedRole)
+    fetchUserProfile()
       .then((data) => {
-        if (!cancelled) {
-          setProfile(data);
-          setProfileError(null);
-        }
+        if (!cancelled) setProfile(data);
       })
       .catch((err) => {
         if (!cancelled) setProfileError(err);
@@ -115,73 +59,34 @@ export function useOperatorProfile() {
     return () => {
       cancelled = true;
     };
-  }, [selectedRole]);
-
-  // Sync profile when role changes
-  const switchRole = useCallback(async (role: string) => {
-    setSelectedRoleState(role);
-    setIsAuthenticated(false);
-    clearAuthToken(role);
-    try {
-      localStorage.setItem(OPERATOR_STORAGE_KEY, role);
-    } catch {
-      // ignore
-    }
-
-    // Pre-warm auth token for the new persona
-    getAuthToken(role).then((token) => setIsAuthenticated(!!token));
-
-    try {
-      const data = await fetchUserProfile(role);
-      setProfile(data);
-      setProfileError(null);
-      window.dispatchEvent(
-        new CustomEvent('indra-operator-change', {
-          detail: { role, profile: data },
-        })
-      );
-    } catch (err) {
-      // The role switch still happens; the identity behind it is simply unknown
-      // until the backend answers.
-      setProfile(null);
-      setProfileError(err);
-    }
-  }, []);
+  }, [token]);
 
   const updateDuty = useCallback(
     async (newStatus: DutyStatus) => {
-      if (!profile || newStatus === profile.duty_status) return;
+      if (!username || !profile || newStatus === profile.duty_status) return;
       setIsUpdatingStatus(true);
       const updated: UserProfile = { ...profile, duty_status: newStatus };
       setProfile(updated);
-      window.dispatchEvent(
-        new CustomEvent('indra-operator-change', {
-          detail: { role: selectedRole, profile: updated },
-        })
-      );
+      broadcast(username, updated);
 
       try {
-        await updateUserProfile({ duty_status: newStatus }, selectedRole);
+        await updateUserProfile({ duty_status: newStatus });
       } catch (err) {
         // A failed write reverts the optimistic edit rather than leaving it on
         // screen: an operator who sees "STANDBY" must be able to trust it.
         console.warn('Failed to persist duty status', err);
         setProfile(profile);
-        window.dispatchEvent(
-          new CustomEvent('indra-operator-change', {
-            detail: { role: selectedRole, profile },
-          })
-        );
+        broadcast(username, profile);
       } finally {
         setIsUpdatingStatus(false);
       }
     },
-    [profile, selectedRole]
+    [profile, username]
   );
 
   const updateProfile = useCallback(
     async (formData: Partial<UserProfile>): Promise<UserProfile> => {
-      if (!profile) throw new Error('No operator profile loaded');
+      if (!username || !profile) throw new Error('No operator profile loaded');
       setIsSavingProfile(true);
       const initials = formData.full_name
         ? formData.full_name
@@ -200,15 +105,10 @@ export function useOperatorProfile() {
       };
 
       setProfile(updated);
-
-      window.dispatchEvent(
-        new CustomEvent('indra-operator-change', {
-          detail: { role: selectedRole, profile: updated },
-        })
-      );
+      broadcast(username, updated);
 
       try {
-        const res = await updateUserProfile(formData, selectedRole);
+        const res = await updateUserProfile(formData);
         const finalProfile = { ...updated, ...res };
         setProfile(finalProfile);
         return finalProfile;
@@ -216,45 +116,41 @@ export function useOperatorProfile() {
         // This used to log "cached locally" and return the edit as if it had
         // been saved. Put the server's version back and let the caller say why.
         setProfile(profile);
-        window.dispatchEvent(
-          new CustomEvent('indra-operator-change', {
-            detail: { role: selectedRole, profile },
-          })
-        );
+        broadcast(username, profile);
         throw err;
       } finally {
         setIsSavingProfile(false);
       }
     },
-    [profile, selectedRole]
+    [profile, username]
   );
 
-  // Listen for custom events from other components
+  // Edits made through another component's copy of this hook.
   useEffect(() => {
     const handleOperatorChange = (e: Event) => {
-      const detail = (e as CustomEvent<{ role: string; profile: UserProfile }>).detail;
-      if (detail && detail.profile) {
-        setSelectedRoleState(detail.role);
+      const detail = (e as CustomEvent<OperatorChange>).detail;
+      if (detail && detail.profile && detail.username === username) {
         setProfile(detail.profile);
       }
     };
 
-    window.addEventListener('indra-operator-change', handleOperatorChange);
+    window.addEventListener(OPERATOR_CHANGE_EVENT, handleOperatorChange);
     return () => {
-      window.removeEventListener('indra-operator-change', handleOperatorChange);
+      window.removeEventListener(OPERATOR_CHANGE_EVENT, handleOperatorChange);
     };
-  }, []);
+  }, [username]);
 
   return {
-    profile,
-    profileError,
-    selectedRole,
-    switchRole,
+    session,
+    /** The session's role as the backend issued it, or null when signed out. */
+    role: session?.role ?? null,
+    // Guarded again here: for the one render between sign-out and the effect
+    // above, the old profile must not show.
+    profile: session ? profile : null,
+    profileError: session ? profileError : null,
     updateDuty,
     updateProfile,
     isUpdatingStatus,
     isSavingProfile,
-    isAuthenticated,
-    availablePersonas: AVAILABLE_OPERATOR_PERSONAS,
   };
 }
