@@ -42,14 +42,14 @@ Standard Weather App:
 INDRA Platform:
 [Citizen report A] ┐
 [Citizen report B] ┼──► [Geo / Fusion Layer] ──► [1 Verified Weather Event]
-[Citizen report C] ┘    • PostGIS + Uber H3 Hex    • Event ID: INDRA-20260920-001
-                        • DBSCAN clustering        • Confidence: 0.4984
-                        • MiniLM dedup             • Coverage:   0.80
-                        • Open-Meteo rainfall      • Status:     QUARANTINED
-                        • Rule-based severity      • Evidence:   5 reports, 1 source type
+[Citizen report C] ┘    • PostGIS + Uber H3 Hex    • Event ID:   INDRA-YYYYMMDD-NNN
+                        • DBSCAN clustering        • Confidence: total_weighted / factor_coverage
+                        • MiniLM dedup             • Coverage:   0.80 (vision, anomaly offline)
+                        • Open-Meteo rainfall      • Status:     set by the published gates
+                        • Rule-based severity      • Evidence:   every report, in provenance
 ```
 
-The values above are from a real run (21 Sep 2026), not an illustration. **Deep learning and anomaly
+The right-hand column is the shape of every event, not one event's numbers. **Deep learning and anomaly
 detection are deliberately absent**: the only model in the data path is MiniLM sentence embeddings for
 deduplication. The AI/ML layer left this project's scope on 20 Sep, and the receipt marks its two
 factors `offline` on every event rather than substituting a number.
@@ -62,15 +62,15 @@ During acute crises (cloudbursts, flash floods, cyclones), emergency dispatchers
 fatigue and report fragmentation**. INDRA consolidates scattered reports into **one verified event**
 carrying an explainable evidence receipt.
 
-The box below is a **real run**, copied from the API on 21 Sep 2026 — not an illustration. Five
-synthetic citizen reports were posted to `POST /api/reports/submit` and every number was read back
-from `GET /api/events/{id}`. Reproduce it with
-`backend/.venv/bin/python scripts/run_patna_demo.py`.
+The box below is a **worked example, not a real event**: the engine's output on 20 Sep 2026 for
+five **scripted test reports** posted to `POST /api/reports/submit`. They described no real flood,
+and the script, the reports and the event have since been deleted. Only the arithmetic is kept,
+because it shows how a score is built.
 
 ```
-   5 SCATTERED CITIZEN REPORTS                      1 VERIFIED EVENT
+   5 SCRIPTED TEST REPORTS                          1 TEST EVENT
 ┌──────────────────────────────────┐      ┌────────────────────────────────────────┐
-│ • 5 citizen app reports          │      │ INDRA-20260920-001  (URBAN_FLOOD)      │
+│ • 5 test reports (CITIZEN_APP)   │      │ test event  (URBAN_FLOOD)              │
 │ • 1 quoting "knee deep water"    │ ═══> │ • Severity:   MODERATE                 │
 │ • live Open-Meteo rainfall       │INDRA │ • Confidence: 0.4984                   │
 │   (0.008 — Patna was dry)        │      │ • Coverage:   0.80                     │
@@ -81,7 +81,7 @@ from `GET /api/events/{id}`. Reproduce it with
    confidence = total_weighted / factor_coverage = 0.3987 / 0.80 = 0.4984
 ```
 
-**`QUARANTINED` is the correct verdict here, not a failure.** Five unverified citizen reports and
+**`QUARANTINED` is the correct verdict here, not a failure.** Five unverified reports and
 near-zero rainfall is not a verified disaster, and the receipt shows exactly which evidence produced
 that number. The score rises with independent corroboration and with real rainfall.
 
@@ -94,9 +94,12 @@ substituting a plausible number. **The score is never quoted without its coverag
 > **What was here before, and why it is gone.** This section previously showed "127 SCATTERED SIGNALS"
 > resolving to event `WX-EV-28231827-A` at "Confidence: 94% [AUTO-PUBLISHED]", built from "48 Social
 > media #IMD posts", "2 CWC River Level Gauges" and "10 Verified media photos". None of that existed.
-> There is no IMD, CWC or social-media feed in this system — Open-Meteo is the only external source,
-> decided 16 Sep for want of API keys — image verification is offline, and the scoring engine
-> **cannot reach 0.94**. It was replaced with a measured run on 21 Sep.
+> On 21 Sep there was no IMD, CWC or social-media feed in this system — Open-Meteo was the only
+> external source, decided 16 Sep for want of API keys — image verification is offline, and the
+> **94% never came from the scoring engine**. It was replaced on 21 Sep with the worked example
+> above. Official IMD, CWC and SDMA warnings (through NDMA's SACHET feed), airport METARs, Mastodon
+> posts and Google News headlines have been added since, and on 25 Sep the scripted reports, the
+> seed script and the demo mode were deleted.
 
 ---
 
@@ -140,14 +143,15 @@ $$\text{Confidence} = 25\% (\text{Weather}) + 20\% (\text{Reports}) + 20\% (\tex
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        THE VERIFICATION RECEIPT                        │
-│                     CONFIDENCE SCORE: 94 / 100                         │
 ├────────────────────────────────────────────────────────────────────────┤
-│  ✓ Weather Agreement (25%)          : Open-Meteo & AWS recorded 92mm   │
-│  ✓ Independent Reports (20%)        : 103 verified independent reports │
-│  ✓ Location & Time Consistency (20%): PostGIS & H3 cluster within 0.8km│
-│  ✓ Image Evidence (15%)             : PyTorch floodwater prob: 0.91    │
-│  ✓ Source Reliability (15%)         : Verified app users & AWS sensors │
-│  ✓ Historical Anomaly (5%)          : 140mm vs 35mm seasonal baseline   │
+│  Weather Station Corroboration (25%): 24 h rainfall vs IMD categories  │
+│  Report Density Analysis       (20%): independent reporters            │
+│  Spatial Coherence Score       (20%): cluster diameter vs 10 km search │
+│  Computer Vision Analysis      (15%): offline — out of scope           │
+│  Source Reliability Index      (15%): best source prior in cluster     │
+│  Anomaly Detection Signal       (5%): offline — out of scope           │
+├────────────────────────────────────────────────────────────────────────┤
+│  confidence = total_weighted / factor_coverage   (coverage 0.80)       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
