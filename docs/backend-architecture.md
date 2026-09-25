@@ -58,7 +58,7 @@ backend/app/
 │                          · the pollers: Open-Meteo stations, SACHET, METAR, Mastodon, Google News
 │                          · the lake archiver
 │                        Serves GET /, /api/info, /healthz, WS /ws/events, and only with
-│                        ENVIRONMENT=e2e, GET /api/e2e/identity.
+│                        ENVIRONMENT=e2e, GET /api/e2e/identity (api/e2e_identity.py).
 ├── core/
 │   ├── config.py        pydantic-settings, reads the REPO-ROOT .env (not backend/.env).
 │   │                    Every threshold lives here: dedup gates, DBSCAN, H3 resolution,
@@ -66,8 +66,10 @@ backend/app/
 │   ├── database.py      async SQLAlchemy engine, get_db() dependency, init_db().
 │   ├── security.py      accounts: bcrypt against user_profiles.password_hash; HS256 JWT
 │   │                    (8 h), get_current_operator, require_roles(). Holds no password.
-│   └── empty.py         empty_or_503() — the one place a read turns no rows into its empty
-│                        result and a database error into 503.
+│   ├── empty.py         empty_or_503() — the one place a read turns no rows into its empty
+│   │                    result and a database error into 503.
+│   └── e2e.py           the E2E backend's isolation guard: refuses to start on a
+│                        non-E2E database, topic, consumer group or with the lake on.
 ├── api/                 one router per domain, each prefixed /api/<domain>
 │   ├── dashboard.py     GET /summary
 │   ├── events.py        GET "" (the PS's date/event/location/status filters, X-Total-Count),
@@ -255,8 +257,9 @@ The full contract is under `/api/auth` in [`api-contract.md`](api-contract.md).
 
 **E2E mode.** `ENVIRONMENT=e2e` is the backend the browser tests use. It refuses to start unless
 the `DATABASE_URL` database name ends in `_e2e`, `KAFKA_REPORTS_TOPIC`, `KAFKA_EVENTS_TOPIC` and
-`KAFKA_DLQ_TOPIC` start with `indra.e2e.`, and `KAFKA_CONSUMER_GROUP` starts with `indra-e2e-`;
-only then does it serve `GET /api/e2e/identity`. `make e2e-backend` (`./start.sh e2e-backend`)
+`KAFKA_DLQ_TOPIC` start with `indra.e2e.`, `KAFKA_CONSUMER_GROUP` starts with `indra-e2e-` and
+`LAKE_ARCHIVE_ENABLED` is false (`core/e2e.py`, checked when `main.py` loads); only then does it
+serve `GET /api/e2e/identity`. `make e2e-backend` (`./start.sh e2e-backend`)
 starts one on `127.0.0.1:8100` against `indra_e2e`, with Redis db 15, the lake off and every poller
 off, after migrating the database and giving every account the password in
 `E2E_OPERATOR_PASSWORD` (its default is in `start.sh` and exists only in `indra_e2e`).
