@@ -17,7 +17,7 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.core.database import async_session
-from tests.conftest import wipe_event_tables
+from tests.conftest import TEST_ACCOUNTS, wipe_event_tables
 from tests.test_review_api import api, make_event, tokens  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.integration
@@ -63,7 +63,6 @@ def test_the_route_walk_finds_the_known_mutations():
     assert ("POST", "/api/teams") in found
     assert ("PATCH", "/api/teams/{team_id}/assign") in found
     assert ("PATCH", "/api/profile/me") in found
-    assert ("PATCH", "/api/profile/preferences") in found
     assert ("POST", "/api/reports/official") in found
 
 
@@ -256,8 +255,28 @@ async def test_duty_status_is_validated_and_case_insensitive(api, tokens, restor
     assert ok.json()["duty_status"] == "STANDBY"
 
 
-async def test_preferences_are_stored_under_the_token_user(api, tokens):  # noqa: F811
-    r = await api.patch("/api/profile/preferences?user=admin", json={"tempUnit": "fahrenheit"}, headers=tokens["citizen"])
+async def test_reading_a_profile_needs_a_token(api):  # noqa: F811
+    """With no token /me used to answer with the commander's profile."""
+    assert (await api.get("/api/profile/me")).status_code == 401
+    assert (await api.get("/api/profile/me?user=commander")).status_code == 401
+    assert (await api.get("/api/profile/me", headers={"Authorization": "Bearer not-a-jwt"})).status_code == 401
 
-    assert r.status_code == 200
-    assert r.json()["username"] == "citizen"
+
+async def test_a_token_reads_its_own_profile(api, tokens):  # noqa: F811
+    r = await api.get("/api/profile/me", headers=tokens["analyst"])
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["username"] == "analyst"
+    assert body["operator_id"] == TEST_ACCOUNTS["analyst"][3]
+
+
+async def test_activity_names_its_user(api):  # noqa: F811
+    assert (await api.get("/api/profile/activity")).status_code == 422
+    assert (await api.get("/api/profile/activity?user=analyst")).status_code == 200
+    assert (await api.get("/api/profile/activity?user=nobody-here")).status_code == 404
+
+
+async def test_there_is_no_server_side_preference_store(api, tokens):  # noqa: F811
+    assert (await api.get("/api/profile/preferences")).status_code == 404
+    assert (await api.patch("/api/profile/preferences", json={}, headers=tokens["citizen"])).status_code == 404

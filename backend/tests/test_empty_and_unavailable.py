@@ -161,6 +161,35 @@ async def test_detail_endpoints_503_on_a_db_error(broken_api, path):
     assert r.status_code == 503
 
 
+# ── The operator profile ──────────────────────────────────────────────────────
+
+def _bearer(username="analyst"):
+    from app.core.security import create_access_token
+
+    token = create_access_token({"sub": username, "role": "ANALYST", "agency": "IMD", "operator_id": "OP-ANL-001"})
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def test_a_profile_is_never_served_without_a_token(empty_api):
+    r = await empty_api.get("/api/profile/me")
+
+    assert r.status_code == 401
+    assert r.headers["www-authenticate"] == "Bearer"
+
+
+async def test_a_token_with_no_profile_row_is_404(empty_api):
+    r = await empty_api.get("/api/profile/me", headers=_bearer())
+
+    assert r.status_code == 404
+
+
+async def test_a_profile_on_a_db_error_is_503(broken_api):
+    r = await broken_api.get("/api/profile/me", headers=_bearer())
+
+    assert r.status_code == 503
+    assert r.json() == {"detail": "Database unavailable"}
+
+
 # ── The demo gate stays deleted ───────────────────────────────────────────────
 
 def test_the_demo_gate_module_is_deleted():
@@ -171,12 +200,6 @@ def test_there_is_no_demo_mode_setting():
     from app.core.config import Settings
 
     assert "DEMO_MODE" not in Settings.model_fields
-
-
-# Hardcoded accounts and an in-memory preference store that are still being
-# moved to the database. Each is removed from this set in the change that
-# deletes it; the set is then empty.
-_PENDING_REMOVAL = {"DEMO_PREFERENCES"}
 
 
 def test_no_module_defines_a_demo_dataset():
@@ -197,4 +220,4 @@ def test_no_module_defines_a_demo_dataset():
                 if isinstance(target, ast.Name) and target.id.startswith("DEMO_"):
                     found.add(f"{path.relative_to(APP_DIR)}:{target.id}")
 
-    assert {name.split(":")[1] for name in found} <= _PENDING_REMOVAL, sorted(found)
+    assert not found, sorted(found)

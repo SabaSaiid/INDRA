@@ -1,7 +1,8 @@
 """
 INDRA Platform — User Profile & Operator Identity API
-GET /api/profile/me — operator profile with duty status and active team
+GET /api/profile/me — the signed-in operator's profile, duty status and active team
 PATCH /api/profile/me — update personal info, callsign, bio, duty status
+GET /api/profile/activity?user= — one operator's audit-ledger actions
 GET /api/profile/operators — personnel roster
 """
 
@@ -15,7 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import TokenData, get_current_operator, oauth2_scheme, verify_token
+from app.core.security import TokenData, get_current_operator
 from app.models.enums import DutyStatus
 
 logger = logging.getLogger("indra.api.profile")
@@ -84,66 +85,64 @@ async def _operator_stats(db: AsyncSession, operator_id: Optional[str]) -> dict:
     }
 
 
-@router.get("/me")
-async def get_current_user_profile(
-    token: Optional[str] = Depends(oauth2_scheme),
-    user: Optional[str] = Query(None, description="Directly query a demo username (e.g. commander, admin, analyst)"),
-    db: AsyncSession = Depends(get_db),
-):
+PROFILE_SQL = text(
     """
-    Get profile of the active operator.
-    Resolves identity from Bearer token if provided, otherwise falls back to query param or 'commander'.
+    SELECT
+        p.id, p.username, p.full_name, p.email, p.phone,
+        p.role, p.agency, p.operator_id, p.badge_number, p.callsign,
+        p.team_id, p.team_role, p.duty_status, p.avatar_url, p.bio,
+        p.last_active_at, p.created_at,
+        t.name AS team_name, t.team_code AS team_code
+    FROM user_profiles p
+    LEFT JOIN teams t ON p.team_id = t.id
+    WHERE p.username = :uname
     """
-    username = user or "commander"
-    if token:
-        try:
-            token_data = verify_token(token)
-            if token_data.sub:
-                username = token_data.sub
-        except Exception:
-            pass
+)
 
-    # Try database first
+
+async def _load_profile(db: AsyncSession, username: str) -> dict:
+    """
+    One operator's profile, team and ledger statistics.
+
+    404 when user_profiles has no row for them: an identity the database does
+    not know about is not an identity. 503 when the database cannot answer.
+    """
     try:
-        res = await db.execute(
-            text("""
-                SELECT
-                    p.id, p.username, p.full_name, p.email, p.phone,
-                    p.role, p.agency, p.operator_id, p.badge_number, p.callsign,
-                    p.team_id, p.team_role, p.duty_status, p.avatar_url, p.bio,
-                    p.last_active_at, p.created_at,
-                    t.name AS team_name, t.team_code AS team_code
-                FROM user_profiles p
-                LEFT JOIN teams t ON p.team_id = t.id
-                WHERE p.username = :uname
-            """),
-            {"uname": username},
-        )
-        row = res.mappings().first()
-        if row:
-            data = dict(row)
-            data["id"] = str(data["id"])
-            if data["team_id"]:
-                data["team_id"] = str(data["team_id"])
-            data["avatar_initials"] = "".join(part[0] for part in data["full_name"].split()[:2]).upper()
-            data.update(await _operator_stats(db, data.get("operator_id")))
-            data["recent_activities"] = await _recent_activity(db, data.get("operator_id"))
-            return data
-    except HTTPException:
-        raise
+        row = (await db.execute(PROFILE_SQL, {"uname": username})).mappings().first()
     except Exception as e:
         logger.warning(f"profile/me lookup failed for {username!r}: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database unavailable",
         )
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No operator profile for {username!r}",
+        )
 
-    # No row. There is no invented operator to return: an identity the database
-    # does not know about is not an identity.
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"No operator profile for {username!r}",
-    )
+    data = dict(row)
+    data["id"] = str(data["id"])
+    if data["team_id"]:
+        data["team_id"] = str(data["team_id"])
+    data["avatar_initials"] = "".join(part[0] for part in data["full_name"].split()[:2]).upper()
+    data.update(await _operator_stats(db, data.get("operator_id")))
+    data["recent_activities"] = await _recent_activity(db, data.get("operator_id"))
+    return data
+
+
+@router.get("/me")
+async def get_current_user_profile(
+    operator: TokenData = Depends(get_current_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    The signed-in operator's profile. Requires a token.
+
+    The profile is the token subject's and nobody else's: no token, or an
+    invalid or expired one, is a 401, never somebody's profile by default.
+    """
+    return await _load_profile(db, operator.sub)
 
 
 @router.patch("/me")
@@ -155,10 +154,8 @@ async def update_profile(
     """
     Update the calling operator's own profile. Requires a token.
 
-    The profile edited is the token's subject and nothing else (BUG-009). This
-    used to take `?user=` and default to "commander" with no token at all, so
-    anyone could rewrite any operator's name, agency, callsign or duty status
-    — and a failed UPDATE was swallowed by `except: pass`, answering 200.
+    The profile edited is the token's subject and nothing else (BUG-009). A
+    failed UPDATE is a 503, never a 200 with the edit shown as saved.
     """
     username = operator.sub
 
@@ -186,10 +183,8 @@ async def update_profile(
                 detail="Database unavailable",
             )
 
-    # No in-memory mirror. The previous version updated a DEMO_PROFILES dict and
-    # returned it, so a failed UPDATE still answered 200 with the edit applied --
-    # the operator saw their change saved when nothing had been written.
-    return await get_current_user_profile(token=None, user=username, db=db)
+    # Read back from the database, so the answer is what was written.
+    return await _load_profile(db, username)
 
 
 ACTIVITY_SQL = text(
@@ -238,11 +233,11 @@ async def _recent_activity(db: AsyncSession, operator_id: Optional[str], limit: 
 
 @router.get("/activity")
 async def get_operator_activity(
-    user: Optional[str] = Query("commander"),
+    user: str = Query(..., description="Username whose actions to list"),
     db: AsyncSession = Depends(get_db),
 ):
     """The operator's audit-ledger actions. Empty until they review something."""
-    username = user or "commander"
+    username = user
     try:
         row = (
             await db.execute(
@@ -282,43 +277,3 @@ async def list_operators(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable"
         )
-
-
-# ── Operator Platform Preferences Store ───────────────────────────────────────
-DEMO_PREFERENCES: dict = {}
-
-@router.get("/preferences")
-async def get_operator_preferences(
-    user: Optional[str] = Query("commander"),
-):
-    """Retrieve saved mission preferences for operator."""
-    username = user or "commander"
-    return DEMO_PREFERENCES.get(username, {
-        "mapProjection": "globe",
-        "defaultBasemap": "satellite",
-        "audioAlertsEnabled": True,
-        "alertVolume": 0.75,
-        "sirenPattern": "warble_fast",
-        "tempUnit": "celsius",
-        "windUnit": "kmh",
-        "rainUnit": "mm",
-        "coordFormat": "dd",
-        "timezone": "ist",
-        "themeMode": "dark",
-        "uiDensity": "standard",
-        "lowBandwidthDataSaver": False,
-    })
-
-
-@router.patch("/preferences")
-async def update_operator_preferences(
-    preferences: dict,
-    operator: TokenData = Depends(get_current_operator),
-):
-    """Update the calling operator's own preferences. Requires a token (BUG-009)."""
-    username = operator.sub
-    existing = DEMO_PREFERENCES.get(username, {})
-    existing.update(preferences)
-    DEMO_PREFERENCES[username] = existing
-    return {"status": "success", "username": username, "preferences": existing}
-
