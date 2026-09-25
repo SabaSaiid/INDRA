@@ -123,8 +123,9 @@ Disaster response demands separating **how dangerous an event is** (Severity) fr
 
 > **Built vs. designed in the table above.** **COLLECT:** the Citizen Mobile PWA endpoint is
 > live, Open-Meteo rainfall is polled every 10 minutes, and official IMD, CWC and SDMA **warnings**
-> are read from NDMA's SACHET CAP feed every 5 minutes; no IMD or CWC sensor data, OpenWeather or
-> social feed is read. **UNDERSTAND:** coordinate validation (out-of-India → 422), district
+> are read from NDMA's SACHET CAP feed every 5 minutes; no IMD or CWC sensor data or OpenWeather is
+> read, and the only social and news feeds are Mastodon `#IMD` posts and Google News headlines, when
+> those pollers are switched on. **UNDERSTAND:** coordinate validation (out-of-India → 422), district
 > geocoding, DBSCAN clustering (great-circle radius) and H3 indexing are real; Sentence-Transformers runs **for
 > duplicate matching only**, and the PyTorch/OpenCV and Isolation Forest components are not
 > implemented. **VERIFY:** the Verification Receipt, multi-source consensus, weather agreement
@@ -195,7 +196,7 @@ Legend: ✅ built · 🟡 partial · ⬛ out of scope
 | # | Architecture Layer | Status | Reality |
 | :-: | :--- | :-: | :--- |
 | 1 | **Data Sources** | 🟡 3/6 | Citizen reports are live; Open-Meteo is **polled on a schedule** — every 10 minutes, 24 h accumulated rainfall for six cities into `station_readings`, attributed `OPEN_METEO`; and official IMD, CWC and SDMA CAP warnings are polled from **NDMA's SACHET feed** every 5 minutes into `agency_alerts`. Trusted field reports can be filed by a commander through an authenticated route. The IMD / OpenWeather / Twitter APIs are unread, decided 16 Sep for want of credentials. |
-| 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and a re-delivered message is not re-broadcast — now across a restart, since that memory moved to Redis. **Batch ingestion is only a synthetic seed script**, which refuses to run without `--synthetic` and marks every receipt synthetic. |
+| 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and a re-delivered message is not re-broadcast — now across a restart, since that memory moved to Redis. **Batch ingestion means the scheduled pollers** (SACHET, Open-Meteo, METAR, Mastodon, Google News), which fetch in batches every 5–15 minutes. There is no bulk import and no seed script: the synthetic seeder was deleted on 25 Sep. |
 | 3 | **Data Processing** | ✅ | Deduplication (a suppressed duplicate is marked and **never counted as corroboration**), out-of-India coordinates → **422, never stored**, forward and reverse geocoding over a 737-district gazetteer, a computed credibility score per report, and **cleaning + metadata extraction stored on every report** (`analysis`, migration `0005`). Depth, language and places are regex and dictionaries — rule-based, and the receipt says so. |
 | 4 | **AI / ML Layer** | ⬛ | **Out of scope since 20 Sep.** Sentence-Transformers (MiniLM) embeddings run for duplicate matching and nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macro-F1 0.787, NOT_RELEVANT recall 0.667), so it is offline and unwired. No vision, no anomaly detection — both **permanently `offline`** in every receipt. |
 | 5 | **Geo-Analytics** | ✅ | DBSCAN clustering with a great-circle 5 km radius (since 22 Sep; it was in degrees), Uber H3 res-8 indexing, a **boundary polygon on every event** that contains all of its reports, and `GET /api/geo/heatmap` aggregating res 6/7/8 with duplicates excluded. Risk zones are not built. |
@@ -216,10 +217,11 @@ browser tests.
 What is **not** built is the perception layer, most external feeds, and the entire alerting tier.
 Where a confidence factor has no real signal behind it the receipt prints `offline` with a reason
 rather than inventing a number — **stating that a signal is absent is treated as strictly better
-than faking it.** The visible cost is that the Patna demo scores around **0.56 at coverage 0.80**
-and lands in `QUARANTINED`, so nothing auto-publishes and events reach the command center through
+than faking it.** The visible cost is that a fresh cluster of two to five citizen reports on a dry
+day scores about **0.4–0.5 at coverage 0.80** and lands in `QUARANTINED` (a High or Critical one
+goes to review instead), so nothing auto-publishes and events reach the command center through
 human review. That is the designed behaviour of honest scoring, and the
-[demo runbook](docs/demo-runbook.md) says exactly what to expect.
+[demo runbook](docs/demo-runbook.md) says what to expect.
 
 ---
 
