@@ -39,7 +39,7 @@ import {
   type AuditEntry,
 } from '@/lib/api';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
-import { safeEventState } from '@/lib/eventState';
+import { eventReviewState } from '@/lib/eventState';
 
 // Issue 3 fix: per-hazard plausible maximum impact radius (km).
 // NOTE TO BACKEND TEAM: impact_radius_km likely has a units bug upstream
@@ -97,6 +97,7 @@ const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }
   QUARANTINED: { label: 'Quarantined', color: '#991B1B', bg: '#FEE2E2' },
   HUMAN_APPROVED: { label: 'Human Approved', color: '#065F46', bg: '#D1FAE5' },
   REJECTED: { label: 'Rejected', color: '#6B7280', bg: '#F3F4F6' },
+  UNKNOWN: { label: 'Status not reported', color: '#6B7280', bg: '#F3F4F6' },
 };
 
 interface Props {
@@ -171,10 +172,10 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const detailEventId = detail?.id ?? provenance?.event?.id ?? eventId ?? '';
   const eventType = detail?.event_type_display ?? detail?.event_type ?? '';
 
-  // The API's review_status and quadrant, derived only when absent (BUG-070).
-  const derivedState = safeEventState(detailEventId, severity, confidenceScore, apiReviewStatus, detail?.quadrant);
-  const reviewStatus = derivedState.reviewStatus;
-  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.PENDING_HUMAN_REVIEW;
+  // The API's review_status and quadrant, never derived (BUG-070).
+  const reviewState = eventReviewState(apiReviewStatus, detail?.quadrant);
+  const reviewStatus = reviewState.reviewStatus;
+  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.UNKNOWN;
   const sevStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.MODERATE;
 
   return (
@@ -253,7 +254,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 {detail?.impact_radius_km && (
                   <div className="text-[11px] text-[#8C7A6B]">
                     {/* Issue 3 fix: clamp impact_radius_km to per-hazard ceiling */}
-                    Impact radius: {clampImpactKm(detailEventId, eventType, detail.impact_radius_km)} &bull; Quadrant: {derivedState.quadrant || '—'}
+                    Impact radius: {clampImpactKm(detailEventId, eventType, detail.impact_radius_km)} &bull; Quadrant: {reviewState.quadrant || '—'}
                   </div>
                 )}
               </div>

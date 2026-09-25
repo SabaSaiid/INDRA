@@ -21,7 +21,7 @@ import { fadeIn, staggerContainer } from '@/lib/motion';
 import Link from 'next/link';
 import { fetchEvents, fetchSummaryCounts, formatPlace, type ApiEvent } from '@/lib/api';
 import { ErrorState } from '@/components/ui/empty-state';
-import { safeEventState } from '@/lib/eventState';
+import { eventReviewState } from '@/lib/eventState';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 
 // Issue 3 fix: per-hazard plausible maximum impact radius (km).
@@ -73,6 +73,7 @@ const REVIEW_BADGE: Record<string, { label: string; cls: string }> = {
   QUARANTINED: { label: 'Quarantined', cls: 'bg-red-50 text-red-700' },
   HUMAN_APPROVED: { label: 'Approved', cls: 'bg-emerald-50 text-emerald-700' },
   REJECTED: { label: 'Rejected', cls: 'bg-slate-100 text-slate-500' },
+  UNKNOWN: { label: 'Status not reported', cls: 'bg-slate-100 text-slate-500' },
 };
 
 // The API names ADVISORY "low" in the list (SEVERITY_LABELS in events.py), so
@@ -321,8 +322,8 @@ export default function EventsPage() {
               {filtered.map((ev) => {
                 const sevBadge = SEVERITY_BADGE[ev.severity] || SEVERITY_BADGE.moderate;
                 // The API's review_status and quadrant, derived only when absent (BUG-070).
-                const eventState = safeEventState(ev.id, ev.severity, ev.confidence_score, ev.review_status, ev.quadrant);
-                const reviewBadge = REVIEW_BADGE[eventState.reviewStatus] || REVIEW_BADGE.PENDING_HUMAN_REVIEW;
+                const eventState = eventReviewState(ev.review_status, ev.quadrant);
+                const reviewBadge = REVIEW_BADGE[eventState.reviewStatus] || REVIEW_BADGE.UNKNOWN;
                 return (
                   <motion.div
                     key={ev.id}
