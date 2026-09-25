@@ -27,9 +27,9 @@ import {
   type UserProfile,
   type HackathonTeamData,
 } from './ui-config';
+import { API_BASE } from './api-base';
 
 export type { FeedItem };
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 /** Thrown when the backend could not be reached or answered with an error. */
 export class ApiError extends Error {

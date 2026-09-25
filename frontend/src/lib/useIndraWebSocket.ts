@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState } from 'react';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+import { API_BASE } from './api-base';
 
 export type WsMessageType = 'NEW_REPORT' | 'VERIFIED_EVENT' | 'EVENT_REVIEWED';
 
