@@ -91,11 +91,10 @@ INCLUDES = {"boundary"}
 
 def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
     event_type_raw = row["event_type"]
-    receipt = row["verification_receipt"] or {}
     item = {
         "id": str(row["id"]),
         "event_code": row["event_code"],
-        "eventType": receipt.get("event_type_display", EVENT_TYPE_LABELS.get(event_type_raw, event_type_raw)),
+        "eventType": EVENT_TYPE_LABELS.get(event_type_raw, event_type_raw),
         # The enum and its family, for a client to key icons and filters on
         # instead of the display label.
         "event_type": event_type_raw,
@@ -297,7 +296,7 @@ async def list_events(
             CAST(severity AS text) AS severity, confidence_score,
             CAST(review_status AS text) AS review_status, quadrant, impact_radius_km,
             ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
-            verification_receipt, verified_at,
+            verified_at,
             district, state, place_precision{boundary_column}
         FROM verified_events
         WHERE {where_clause}
@@ -379,34 +378,18 @@ async def event_distribution(
             "Advisory": "#10B981",
         }
     else:
-        # Grouped by the stored type as well as the display name, and named in
-        # Python. Only scripts/seed_national_data.py writes event_type_display,
-        # so every event the pipeline made fell through to its enum value and
-        # was drawn as a grey "URBAN_FLOOD" slice (BUG-062); it is now named
-        # from the hazard taxonomy, and merged with any seeded slice of the
-        # same name.
+        # Grouped by the stored type and named and coloured from the hazard
+        # taxonomy in Python. It used to group by a receipt key no pipeline code
+        # writes, so every real event fell through to its enum value and was
+        # drawn as a grey "URBAN_FLOOD" slice (BUG-062).
         query = text(f"""
             SELECT
-                verification_receipt->>'event_type_display' as display_type,
                 CAST(event_type AS text) as event_type,
                 COUNT(*) as count
             FROM verified_events
             WHERE review_status != 'REJECTED' {time_clause}
-            GROUP BY 1, 2
+            GROUP BY 1
         """)
-        # The seeder's display names. A taxonomy label not listed here takes
-        # its colour from the taxonomy.
-        color_map = {
-            "Rainfall": "#3B82F6",
-            "Flood": "#F59E0B",
-            "Thunderstorm": "#8B5CF6",
-            "Strong Winds": "#2563EB",
-            "Cyclone": "#2563EB",
-            "Fog": "#64748B",
-            "Landslide": "#E11D48",
-            "Cloudburst": "#0EA5E9",
-            "Others": "#94A3B8",
-        }
 
     db_error = None
     try:
@@ -428,16 +411,11 @@ async def event_distribution(
             return distribution
 
         if rows:
-            counts: Dict[str, int] = {}
-            colors: Dict[str, str] = {}
-            for display_type, event_type, cnt in rows:
-                name = display_type or label_of(event_type)
-                counts[name] = counts.get(name, 0) + int(cnt)
-                colors.setdefault(name, color_map.get(name) or color_of(event_type))
-            return [
-                {"name": name, "count": cnt, "value": cnt, "color": colors[name]}
-                for name, cnt in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+            slices = [
+                {"name": label_of(event_type), "count": int(cnt), "value": int(cnt), "color": color_of(event_type)}
+                for event_type, cnt in rows
             ]
+            return sorted(slices, key=lambda sl: (-sl["count"], sl["name"]))
     except Exception as e:
         logger.warning(f"Database query failed in event_distribution: {e}")
         db_error = e
@@ -605,7 +583,7 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
                 "id": str(row[0]),
                 "event_code": row[1],
                 "event_type": row[2],
-                "event_type_display": receipt.get("event_type_display", row[2]),
+                "event_type_display": label_of(row[2]),
                 "severity": row[3],
                 "severity_display": SEVERITY_LABELS.get(row[3], "moderate"),
                 "confidence_score": row[4],
