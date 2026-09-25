@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     """Central configuration sourced from .env / environment variables."""
 
     # ── General ────────────────────────────────────────────────────────────
+    # "e2e" is the Playwright backend (./start.sh e2e-backend). It will not
+    # start unless its database and Kafka names are E2E ones (core/e2e.py).
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
 
@@ -67,6 +69,10 @@ class Settings(BaseSettings):
     # goes here, with its error, and the stream moves on past it.
     # scripts/replay_dlq.py sends them back once the cause is fixed.
     KAFKA_DLQ_TOPIC: str = "indra.raw.reports.dlq"
+    # The report consumer's group. A second backend on the same broker needs
+    # its own, or the two split the partitions and each skips the reports that
+    # are not in its database.
+    KAFKA_CONSUMER_GROUP: str = "indra-report-processor"
     PIPELINE_MAX_ATTEMPTS: int = 3
     PIPELINE_RETRY_DELAY_SECONDS: float = 2.0
 

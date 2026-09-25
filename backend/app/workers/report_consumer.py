@@ -289,7 +289,7 @@ async def start_report_consumer():
             consumer = AIOKafkaConsumer(
                 settings.KAFKA_REPORTS_TOPIC,
                 bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
-                group_id="indra-report-processor",
+                group_id=settings.KAFKA_CONSUMER_GROUP,
                 # "latest" meant a brand-new consumer group started at the tail
                 # and permanently skipped everything already in the topic — so
                 # on a cold start where the producer ran first, reports were

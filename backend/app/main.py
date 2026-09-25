@@ -21,6 +21,13 @@ settings = get_settings()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("indra.api")
 
+# An E2E backend on the dev database, topics or consumer group does not start
+# at all (core/e2e.py). Checked here, before anything connects.
+if settings.ENVIRONMENT == "e2e":
+    from app.core.e2e import assert_e2e_isolated
+
+    assert_e2e_isolated(settings)
+
 
 # ── Lifespan: DB init + background consumer ───────────────────────────────────
 @asynccontextmanager
@@ -323,6 +330,12 @@ app.include_router(audit_router)
 app.include_router(meta_router)
 app.include_router(stations_router)
 app.include_router(report_search_router)
+# Only on the Playwright backend: the suite checks which database it is about
+# to write to before it runs a spec. Everywhere else the path is a 404.
+if settings.ENVIRONMENT == "e2e":
+    from app.api.e2e_identity import router as e2e_identity_router
+
+    app.include_router(e2e_identity_router)
 logger.info("✓ All API routers mounted successfully")
 
 
