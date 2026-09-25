@@ -325,24 +325,25 @@ To avoid the anti-pattern of managing 15 microservices during a hackathon sprint
 
 ---
 
-## 🎬 The SIH Demonstration Sequence (10 Scenes)
+## 🎬 The SIH Walkthrough — live data only
 
-| Scene | Phase | Description | Live today? |
+| Scene | Phase | What the audience sees | Live today? |
 | :---: | :--- | :--- | :-: |
-| **Scene 1** | **Baseline** | India map normal. Open-Meteo live API stream active. Zero false alerts. | 🟡 map real, **no scheduled feed** |
-| **Scene 3** | **The Spike** | `run_patna_demo.py` posts five reports through the live API; `burst_reports.py --count 100` drives the surge. | ✅ **real since 21 Sep** — the script was a canned replay and now posts to `POST /api/reports/submit` and reads every number back. 100 reports measured at p95 4 ms, 100/100 stored |
-| **Scene 5** | **Fusion** | PostGIS + H3 merge the incoming reports into one event with a real boundary polygon. | ✅ **real** (clustering, merging, and since 20 Sep a 250 m-buffered hull containing every report). **No BERT and no classification** — that is layer 4, which is out of scope |
-| **Scene 7** | **Evidence** | Open-Meteo rainfall is fetched live; report text is read for depth ("knee deep" → 50 cm) and that sets severity. | 🟡 **Rainfall and depth extraction are real. There is no image evidence — vision is permanently offline, so never claim it.** Rainfall is whatever the weather actually is; it scored 0.008 on a dry day |
-| **Scene 8** | **Intelligence** | INDRA computes the confidence and prints the explainable Verification Receipt. | ✅ receipt real, deterministic and self-checking (`total_weighted / factor_coverage = confidence`). **Measured 21 Sep: 0.4984 at coverage 0.80 → `QUARANTINED`.** There is no 94% — the engine cannot reach it, and 4 of 6 factors report |
-| **Scene 8½** | **Human Review** | A commander approves the quarantined event; the decision is hash-chained and survives new reports. | ✅ **real** (Day 3) |
-| **Scene 10** | **Action** | WebSocket pushes the verified event to the Next.js dashboard. | 🟡 WebSocket real. **No alert dispatch exists and none is being built** — the alert engine is out of scope since 20 Sep. Do not promise NDRF dispatch |
+| **1** | **Already watching** | Official IMD, CWC and SDMA warnings from NDMA's SACHET feed on the **Early Warnings** page; Open-Meteo rainfall on **Telemetry Analytics**; Mastodon posts, Google News headlines and warnings in the live feed; each feed's state and row counts, METAR airport observations included, on **Geospatial Feeds** (`GET /api/meta/sources`) | ✅ SACHET and Open-Meteo on by default; METAR, Mastodon and News once switched on in `.env`, at least an hour before |
+| **2** | **A real report** | Someone files what they can actually see, in their own words, from where they are, through the dashboard's **Report Incident** form (or `POST /api/reports/submit`). It is in the live feed within seconds, and a docket comes back | ✅ real. **Never a scripted or staged report** |
+| **3** | **Fusion** | A second, independent person within 5 km files what they see: one event, one boundary polygon. A copy of the first text is suppressed as a duplicate and never counts. One report alone never makes an event | ✅ real (great-circle DBSCAN, minimum two reports; a 250 m-buffered hull containing every report). **No classification model** — that is layer 4, which is out of scope |
+| **4** | **Evidence & receipt** | Rainfall, report density, spatial coherence and source reliability are computed; depth read from the text ("knee deep" → 50 cm) sets severity; vision and anomaly read `"Telemetry factor offline"`; `total_weighted / factor_coverage` is printed | ✅ receipt real and deterministic. **Vision and anomaly are permanently offline, so never claim image evidence.** Rainfall is whatever the weather actually is |
+| **5** | **Human review** | A signed-in commander approves or rejects with a reason; the decision is hash-chained, shown in provenance and survives new reports | ✅ real |
+| **6** | **Action** | The WebSocket pushes the event and the decision to every open dashboard | 🟡 WebSocket real. **No alert dispatch exists and none is being built** — the alert engine is out of scope since 20 Sep. Do not promise NDRF dispatch |
 
-> **The defensible demo.** Submit reports live, watch them collapse into one event, open the
-> Verification Receipt and point at which factors are measured and which read `"Telemetry
-> factor offline"`, explain why the machine quarantined it, then approve it as a commander and
-> show the audit chain in provenance. That story is entirely true and survives follow-up
-> questions. A walkthrough that claims image evidence, a 94% auto-publish, or Scene 10's
-> dispatch does not.
+> **The defensible walkthrough.** Everything on screen was published by someone else, or filed by
+> a person about what they can see where they are. This is the production database: a report
+> written for effect is fabricated data in the audit trail, so nobody files one. If the weather is
+> calm and nobody nearby has anything to report, no event forms — show the live feeds, explain
+> the corroboration rule, and say that this is the right answer. A walkthrough that claims image
+> evidence, a 94% auto-publish or an alert dispatch does not survive follow-up questions. The
+> [demo runbook](docs/demo-runbook.md) has the commands and a recovery line for each thing that
+> can go wrong.
 
 ---
 
