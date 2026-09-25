@@ -240,7 +240,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="INDRA Platform API",
-    description="Intelligent National Disaster & Weather Platform - Event Ingestion, AI Fusion, and Geospatial Verification API.",
+    description="Intelligent National Disaster & Weather Platform - event ingestion, evidence fusion and geospatial verification API.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -348,12 +348,16 @@ async def serve_dashboard():
 
 @app.get("/api/info")
 async def platform_info():
-    """Returns platform metadata and SIH problem statement details."""
+    """
+    Returns platform metadata and SIH problem statement details.
+
+    No "status": it said "operational" whatever Postgres or Kafka were doing.
+    Whether the platform is up is GET /healthz's answer, from real checks.
+    """
     return {
         "platform": "INDRA",
         "tagline": "From fragmented weather reports to verified, actionable weather events.",
         "version": "1.0.0",
-        "status": "operational",
         "sih_ps_id": "SIH26069",
         "team": "Sixth Sense"
     }

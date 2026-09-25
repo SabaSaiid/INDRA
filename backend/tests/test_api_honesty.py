@@ -138,6 +138,21 @@ async def test_the_team_roster_claims_nothing_indra_does_not_do(api):
             assert phrase not in claims, (member["name"], phrase)
 
 
+async def test_platform_info_does_not_claim_to_be_operational(api):
+    """It said "operational" with Postgres down; /healthz is the real answer."""
+    body = (await api.get("/api/info")).json()
+
+    assert body["platform"] == "INDRA"
+    assert "status" not in body
+
+
+def test_the_openapi_description_claims_no_ai_fusion():
+    """Fusion is a rule-weighted receipt, and layer 4 (AI/ML) is out of scope."""
+    from app.main import app
+
+    assert "AI Fusion" not in app.openapi()["info"]["description"]
+
+
 # ── Dedup gates come from settings ────────────────────────────────────────────
 
 def test_dedup_defaults_are_unchanged():
