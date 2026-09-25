@@ -337,7 +337,7 @@ Media evidence: 2
 Status: VERIFIED
 ```
 
-The exact numbers in the demonstration are scenario values; they are not a claim that every real event will achieve those numbers.
+These numbers illustrate the idea; they are not from a real event. A real INDRA receipt prints `factor_coverage` beside the score (0.80 today, because vision and anomaly detection are offline) and names the evidence behind every factor.
 
 ---
 
@@ -403,7 +403,7 @@ Legend: ✅ built · 🟡 partly built · ⬜ designed, not built yet
 | # | Layer | What it does | Built? |
 |---|---|---|---|
 | 1 | **Data Sources** | Where information comes from: IMD/Govt APIs, weather APIs, public datasets, social media, citizen reports, images/videos | 🟡 **Citizen reports, plus rainfall from Open-Meteo** fetched whenever an event is scored. No other outside source is read yet. |
-| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | 🟡 Live reports flow in through the API and the stream, and a report that couldn't be saved is told so (503) instead of being silently lost. Reports with coordinates outside India are refused. Batch loading is only a fake-data seed script, clearly labelled as such. |
+| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | 🟡 Live reports flow in through the API and the stream, and a report that couldn't be saved is told so (503) instead of being silently lost. Reports with coordinates outside India are refused. There is no bulk loader: outside feeds arrive through scheduled pollers, and the fake-data seed script that once stood in for batch loading was deleted on 25 Sep. |
 | 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | ✅ Deduplication (a repeated report is remembered as a copy and never counted as extra evidence), coordinate checking, geocoding and a credibility score per report. **20 Sep: cleaning and metadata extraction now run at ingest** and are stored on the report — how deep the water is, which language it is in, life-safety keywords, place names. Rules and dictionaries, not a model. |
 | 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | ⬜ **Out of this project's scope since 20 Sep**, and not being built. Duplicate matching, which does work, uses sentence embeddings and stays. The trained classifier missed the accuracy gate set before training — it dismissed too many real floods as chatter — so it ships switched off and is not being retrained. **Image analysis and anomaly detection are permanently offline**, and every receipt says so instead of substituting a number. |
 | 5 | **Geo-Analytics** | Everything about *where*: location mapping, spatial clustering, heatmaps, event boundaries, risk zones, time-space trends | ✅ Clustering and mapping are real. **20 Sep: every event now has a real boundary polygon** on the map, and `GET /api/geo/heatmap` serves report density per hexagonal cell at three zoom levels, where coarser zooms are exact sums of finer ones. Risk zones aren't built. |
