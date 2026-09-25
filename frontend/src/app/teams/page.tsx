@@ -43,6 +43,12 @@ import {
 } from '@/lib/api';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
+import { ErrorState } from '@/components/ui/empty-state';
+
+/** "City, State", or 'Not on record' when the row names neither. */
+function basePlace(city?: string | null, state?: string | null): string {
+  return [city, state].filter(Boolean).join(', ') || 'Not on record';
+}
 
 function TeamsContent() {
   const searchParams = useSearchParams();
@@ -71,9 +77,7 @@ function TeamsContent() {
   const [agencyFilter, setAgencyFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isUpdatingDispatch, setIsUpdatingDispatch] = useState(false);
-  // Dispatch targets are real events. The page used to send every team to the
-  // hardcoded code 'WX-EV-28231827-A' — the id of a fabricated demo event —
-  // which the backend only "accepted" through an in-memory demo store.
+  // Dispatch targets are real events from /api/events.
   const [activeEvents, setActiveEvents] = useState<ApiEvent[]>([]);
   const [dispatchEventId, setDispatchEventId] = useState<string>('');
   const [dispatchError, setDispatchError] = useState<string | null>(null);
@@ -136,9 +140,10 @@ function TeamsContent() {
   const stats = useMemo(() => {
     const totalTeams = teams.length;
     const deployedTeams = teams.filter((t) => t.status === 'DEPLOYED').length;
-    const totalResponders = teams.reduce((acc, t) => acc + (t.members_count || 12), 0);
+    const totalResponders = teams.reduce((acc, t) => acc + (t.members_count ?? 0), 0);
+    const unitsWithoutHeadcount = teams.filter((t) => t.members_count == null).length;
     const standbyUnits = teams.filter((t) => t.status === 'STANDBY').length;
-    return { totalTeams, deployedTeams, totalResponders, standbyUnits };
+    return { totalTeams, deployedTeams, totalResponders, unitsWithoutHeadcount, standbyUnits };
   }, [teams]);
 
   const applyTeamUpdate = (teamId: string, patch: Partial<TeamItem>) => {
@@ -295,7 +300,10 @@ function TeamsContent() {
               </div>
               <div>
                 <p className="text-xs text-text-muted font-medium">Total Field Responders</p>
-                <h3 className="text-xl font-bold text-text-primary">~{stats.totalResponders} Personnel</h3>
+                <h3 className="text-xl font-bold text-text-primary">{stats.totalResponders} Personnel</h3>
+                {stats.unitsWithoutHeadcount > 0 && (
+                  <p className="text-[10px] text-text-muted">(some units report no headcount)</p>
+                )}
               </div>
             </div>
           </div>
@@ -369,6 +377,12 @@ function TeamsContent() {
                 </div>
               )}
 
+              {teamsError ? (
+                <div className="bg-white rounded-2xl border border-slate-100">
+                  <ErrorState label="response teams" error={teamsError} />
+                </div>
+              ) : null}
+
               {/* Grid of Team Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredTeams.map((team) => {
@@ -440,7 +454,7 @@ function TeamsContent() {
                               <MapPin className="w-3.5 h-3.5" /> Base Location:
                             </span>
                             <span className="font-medium text-slate-700">
-                              {team.city}, {team.state}
+                              {basePlace(team.city, team.state)}
                             </span>
                           </div>
 
@@ -449,7 +463,7 @@ function TeamsContent() {
                               <Shield className="w-3.5 h-3.5" /> Team Lead:
                             </span>
                             <span className="font-medium text-slate-700 truncate max-w-[170px]">
-                              {team.lead_name}
+                              {team.lead_name || 'Not on record'}
                             </span>
                           </div>
 
@@ -469,7 +483,7 @@ function TeamsContent() {
                               <Users className="w-3.5 h-3.5" /> Unit Personnel:
                             </span>
                             <span className="font-semibold text-slate-800">
-                              {team.members_count} Responders
+                              {team.members_count != null ? `${team.members_count} Responders` : 'Not on record'}
                             </span>
                           </div>
                         </div>
@@ -513,10 +527,24 @@ function TeamsContent() {
                 })}
               </div>
 
-              {filteredTeams.length === 0 && (
+              {!teamsLoaded && (
+                <p className="text-center py-16 text-xs text-slate-400">Loading response units…</p>
+              )}
+
+              {teamsLoaded && !teamsError && teams.length === 0 && (
                 <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 p-8">
                   <Shield className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <h4 className="text-base font-bold text-text-primary">No Response Units Found</h4>
+                  <h4 className="text-base font-bold text-text-primary">No response units in the database</h4>
+                  <p className="text-xs text-text-secondary mt-1">
+                    Units appear here once they are created through the teams API.
+                  </p>
+                </div>
+              )}
+
+              {teams.length > 0 && filteredTeams.length === 0 && (
+                <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 p-8">
+                  <Shield className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <h4 className="text-base font-bold text-text-primary">Nothing matches this filter</h4>
                   <p className="text-xs text-text-secondary mt-1">
                     Try adjusting your search query or removing agency filters.
                   </p>
@@ -535,24 +563,36 @@ function TeamsContent() {
             >
               {/* Mission Statement Showcase Banner */}
               <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl">
+                {/* Every line but the heading comes from /api/teams/hackathon/sixth-sense. */}
                 <div className="relative z-10 max-w-3xl space-y-3">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-amber-300">
-                    <Award className="w-3.5 h-3.5" />
-                    Smart India Hackathon 2026 • Problem Statement: SIH26069
-                  </div>
+                  {hackathonTeam?.problem_statement && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-amber-300">
+                      <Award className="w-3.5 h-3.5" />
+                      {hackathonTeam.problem_statement}
+                    </div>
+                  )}
                   <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                    Team Sixth Sense — Developers of INDRA
+                    Team {hackathonTeam?.team_name || 'Sixth Sense'} — Developers of INDRA
                   </h2>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    &ldquo;We are building an intelligence platform, not a weather app. From fragmented, noisy weather reports across social media and citizen apps to unified, explainable, and verified national weather events.&rdquo;
-                  </p>
-                  <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-400">
-                    <span><strong>Theme:</strong> Disaster Management</span>
-                    <span>•</span>
-                    <span><strong>Institution:</strong> Ministry of Earth Sciences / NDRF</span>
-                    <span>•</span>
-                    <span><strong>Version:</strong> 1.0.0 Production Release</span>
-                  </div>
+                  {hackathonTeam?.tagline && (
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      &ldquo;{hackathonTeam.tagline}&rdquo;
+                    </p>
+                  )}
+                  {(hackathonTeam?.theme || hackathonTeam?.institution) && (
+                    <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-400">
+                      {hackathonTeam.theme && (
+                        <span><strong>Theme:</strong> {hackathonTeam.theme}</span>
+                      )}
+                      {hackathonTeam.theme && hackathonTeam.institution && <span>•</span>}
+                      {hackathonTeam.institution && (
+                        <span><strong>Event:</strong> {hackathonTeam.institution}</span>
+                      )}
+                    </div>
+                  )}
+                  {teamsLoaded && !hackathonTeam && (
+                    <p className="text-slate-400 text-xs">The team&apos;s details could not be loaded from the backend.</p>
+                  )}
                 </div>
 
                 {/* Decorative background glow */}
@@ -660,7 +700,7 @@ function TeamsContent() {
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                     <span className="text-slate-400 block mb-1">Base Jurisdiction</span>
                     <span className="font-bold text-slate-800 text-sm">
-                      {selectedTeam.city}, {selectedTeam.state}
+                      {basePlace(selectedTeam.city, selectedTeam.state)}
                     </span>
                   </div>
                 </div>
@@ -673,14 +713,21 @@ function TeamsContent() {
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
                     <p>
                       <strong>Specialization:</strong>{' '}
-                      {selectedTeam.specialization || 'General Emergency Disaster Operations'}
+                      {selectedTeam.specialization || 'Not on record'}
                     </p>
                     <p>
-                      <strong>Team Lead / In-Charge:</strong> {selectedTeam.lead_name} ({selectedTeam.lead_phone || 'Radio Dispatch'})
+                      <strong>Team Lead / In-Charge:</strong> {selectedTeam.lead_name || 'Not on record'}
                     </p>
                     <p>
-                      <strong>Radio Frequency / Callsign:</strong>{' '}
-                      <span className="font-mono text-primary font-bold">{selectedTeam.radio_callsign || 'INDRA-DISPATCH'}</span>
+                      <strong>Lead Phone:</strong> {selectedTeam.lead_phone || 'Not on record'}
+                    </p>
+                    <p>
+                      <strong>Radio Callsign:</strong>{' '}
+                      {selectedTeam.radio_callsign ? (
+                        <span className="font-mono text-primary font-bold">{selectedTeam.radio_callsign}</span>
+                      ) : (
+                        'Not on record'
+                      )}
                     </p>
                   </div>
                 </div>
@@ -691,9 +738,7 @@ function TeamsContent() {
                     Unit Personnel Roster{roster ? ` (${roster.length} on record)` : ''}
                   </h4>
                   <div className="space-y-2">
-                    {/* The roster is user_profiles rows linked to this team. It used
-                        to fall back to four invented officers whenever the list
-                        carried no members, which was always. */}
+                    {/* The roster is user_profiles rows linked to this team. */}
                     {roster === null && (
                       <p className="text-xs text-slate-400">Loading roster…</p>
                     )}
