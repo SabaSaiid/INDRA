@@ -43,6 +43,7 @@ import {
 } from '@/lib/api';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
+import { useSession, hasRole, COMMAND_ROLES } from '@/lib/auth';
 import { ErrorState } from '@/components/ui/empty-state';
 
 /** "City, State", or 'Not on record' when the row names neither. */
@@ -81,6 +82,12 @@ function TeamsContent() {
   const [activeEvents, setActiveEvents] = useState<ApiEvent[]>([]);
   const [dispatchEventId, setDispatchEventId] = useState<string>('');
   const [dispatchError, setDispatchError] = useState<string | null>(null);
+  // The backend lets only a Commander or Admin dispatch or recall a unit.
+  const session = useSession();
+  const canDispatch = hasRole(session, COMMAND_ROLES);
+  const dispatchGate = session
+    ? 'Dispatching and recalling units needs a Commander or Admin account.'
+    : 'Sign in as a Commander or Admin to dispatch or recall units.';
   // null while the roster is loading; [] when the unit has no personnel rows.
   const [roster, setRoster] = useState<TeamMember[] | null>(null);
 
@@ -512,8 +519,9 @@ function TeamsContent() {
 
                         <button
                           onClick={() => (isDeployed ? handleRecall(team) : openTeamDetail(team))}
-                          disabled={isUpdatingDispatch}
-                          className={`py-2 px-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1 ${
+                          disabled={isUpdatingDispatch || (isDeployed && !canDispatch)}
+                          title={isDeployed && !canDispatch ? dispatchGate : undefined}
+                          className={`py-2 px-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${
                             isDeployed
                               ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                               : 'bg-primary text-white hover:bg-primary-hover shadow-sm shadow-primary/20'
@@ -781,6 +789,9 @@ function TeamsContent() {
                   {dispatchError}
                 </p>
               )}
+              {!canDispatch && (
+                <p className="px-6 pb-2 text-xs text-slate-500">{dispatchGate}</p>
+              )}
 
               {/* Modal Footer */}
               <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
@@ -794,7 +805,7 @@ function TeamsContent() {
                 {selectedTeam.status === 'DEPLOYED' ? (
                   <button
                     onClick={() => handleRecall(selectedTeam)}
-                    disabled={isUpdatingDispatch}
+                    disabled={isUpdatingDispatch || !canDispatch}
                     className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
                   >
                     Recall Unit to Base
@@ -805,7 +816,7 @@ function TeamsContent() {
                       aria-label="Event to deploy to"
                       value={dispatchEventId}
                       onChange={(e) => setDispatchEventId(e.target.value)}
-                      disabled={activeEvents.length === 0 || isUpdatingDispatch}
+                      disabled={activeEvents.length === 0 || isUpdatingDispatch || !canDispatch}
                       className="max-w-[220px] px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-700"
                     >
                       <option value="">
@@ -819,7 +830,7 @@ function TeamsContent() {
                     </select>
                     <button
                       onClick={() => handleDispatch(selectedTeam, dispatchEventId)}
-                      disabled={!dispatchEventId || isUpdatingDispatch}
+                      disabled={!dispatchEventId || isUpdatingDispatch || !canDispatch}
                       className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm bg-primary hover:bg-primary-hover text-white disabled:opacity-50"
                     >
                       Deploy to Event
