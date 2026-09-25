@@ -256,6 +256,7 @@ export default function Sidebar({
                   transition={{ duration: 0.18 }}
                   className="overflow-hidden whitespace-nowrap min-w-0"
                 >
+                  {/* No version chip: 'v1.2' here contradicted package.json, and INDRA has no release numbering. */}
                   <div className="flex items-center gap-2">
                     <h1
                       className="text-white font-bold text-[15px] tracking-wide"
@@ -263,9 +264,6 @@ export default function Sidebar({
                     >
                       INDRA
                     </h1>
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-slate-400 border border-white/12">
-                      v1.2
-                    </span>
                   </div>
                   {/* The socket's real state, not a fixed green. */}
                   <div className="flex items-center gap-1.5 mt-0.5">
