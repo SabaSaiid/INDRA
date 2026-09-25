@@ -274,12 +274,6 @@ class Settings(BaseSettings):
     # Off means the model is treated as offline (receipt says so), never a crash.
     CLASSIFIER_ENABLED: bool = True
 
-    # ── Demo data ──────────────────────────────────────────────────────────
-    # When a read endpoint finds no rows (or the DB is unreachable), serve the
-    # hardcoded demo dataset instead of an empty result. Logged at WARNING
-    # either way, so demo data can never pass silently for real data.
-    DEMO_MODE: bool = False
-
     # ── Frontend ───────────────────────────────────────────────────────────
     FRONTEND_PORT: int = 3000
 

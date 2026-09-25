@@ -4,8 +4,8 @@ must not be readable by any page on the internet.
 
 Four long-standing untruths, each with its own section below:
 
-1. GET /api/dashboard/summary invented KPIs on a DB error regardless of DEMO_MODE
-   (covered in tests/test_demo_mode.py, now that the endpoint is in its list).
+1. GET /api/dashboard/summary invented KPIs on a DB error
+   (covered in tests/test_empty_and_unavailable.py, now that the endpoint is in its list).
 2. The dedup gates were module constants, so they could not be tuned from .env.
 3. CORS was allow_origins=["*"] together with allow_credentials=True.
 4. GET /api/scenario and POST /api/demo/trigger served a fabricated event.

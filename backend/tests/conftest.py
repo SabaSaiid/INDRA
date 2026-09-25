@@ -184,8 +184,8 @@ async def client():
 
     Note this does NOT run the lifespan, so the Kafka consumer task and the
     PostGIS check in init_db() never fire — which is what makes it usable
-    without Docker. Endpoints that hit the DB go through app.core.demo:
-    demo data if DEMO_MODE is true, HTTP 503 if it is false.
+    without Docker. Endpoints that hit an unreachable DB answer 503 through
+    app.core.empty, never invented data; an empty DB answers the empty result.
     """
     import httpx
 

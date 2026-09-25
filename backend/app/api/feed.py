@@ -27,7 +27,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.demo import demo_fallback
+from app.core.empty import empty_or_503
 from app.services.hazards import label_of
 
 logger = logging.getLogger("indra.api.feed")
@@ -52,51 +52,6 @@ SOURCE_MAP = {
 
 # What a collected item is labelled with, by platform (Phase 2 T8).
 PLATFORM_LABELS = {"mastodon": "Mastodon", "google_news": "Google News"}
-
-DEMO_FEED: List[Dict[str, Any]] = [
-    {
-        "id": "feed-1",
-        "source": "imd",
-        "sourceLabel": "IMD Doppler Radar",
-        "message": "Doppler radar Patna detects high reflectivity (>52 dBZ) over Kankarbagh & Rajendra Nagar.",
-        "time": "12:10",
-    },
-    {
-        "id": "feed-2",
-        "source": "imd",
-        "sourceLabel": "CWC Gauge",
-        "message": "Ganga River water level at Digha Ghat: 50.42m (0.90m above Warning Level). Rising @ 3cm/hr.",
-        "time": "11:58",
-    },
-    {
-        "id": "feed-3",
-        "source": "citizen",
-        "sourceLabel": "Citizen report",
-        "message": "Severe waterlogging 3.5ft near Rajendra Nagar Overbridge. Vehicles stranded, power cut.",
-        "time": "11:42",
-    },
-    {
-        "id": "feed-4",
-        "source": "social",
-        "sourceLabel": "Social media",
-        "message": "Verified X/Twitter reports of culvert blockage near Boring Road intersection with geotagged media.",
-        "time": "11:30",
-    },
-    {
-        "id": "feed-5",
-        "source": "news",
-        "sourceLabel": "Official Dispatch",
-        "message": "NDRF 9th Battalion deployed 4 inflatable rescue boats and dewatering pumps to Patna Central.",
-        "time": "11:15",
-    },
-    {
-        "id": "feed-6",
-        "source": "imd",
-        "sourceLabel": "IMD Weather",
-        "message": "Nowcast Warning: Moderate to intense thunderstorm with surface winds up to 45 km/h over Patna, Vaishali.",
-        "time": "10:50",
-    },
-]
 
 
 def _place(district: Optional[str], state: Optional[str]) -> Optional[str]:
@@ -228,4 +183,4 @@ async def get_recent_feed(
         logger.warning(f"Database query failed in get_recent_feed: {e}")
         db_error = e
 
-    return demo_fallback("GET /api/feed/recent", lambda: DEMO_FEED[:limit], list, db_error)
+    return empty_or_503("GET /api/feed/recent", list, db_error)

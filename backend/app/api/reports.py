@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.config import get_settings
-from app.core.demo import demo_fallback
+from app.core.empty import empty_or_503
 from app.core.security import TokenData, require_roles
 from app.models.enums import EventType
 from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
@@ -69,17 +69,6 @@ class ReportSubmission(BaseModel):
         if v < now - OBSERVED_AT_MAX_AGE:
             raise ValueError("observed_at is more than 7 days in the past")
         return v
-
-
-DEMO_TREND = [
-    {"date": "09 Sep", "reports": 85},
-    {"date": "10 Sep", "reports": 112},
-    {"date": "11 Sep", "reports": 145},
-    {"date": "12 Sep", "reports": 198},
-    {"date": "13 Sep", "reports": 264},
-    {"date": "14 Sep", "reports": 310},
-    {"date": "15 Sep", "reports": 134},
-]
 
 
 @router.get("/trend")
@@ -136,7 +125,7 @@ async def reports_trend(
         logger.warning(f"Database query failed in reports_trend: {e}")
         db_error = e
 
-    return demo_fallback("GET /api/reports/trend", lambda: DEMO_TREND, list, db_error)
+    return empty_or_503("GET /api/reports/trend", list, db_error)
 
 
 async def _ingest(
@@ -345,9 +334,9 @@ async def list_recent_reports(
         logger.warning(f"Database query failed in list_recent_reports: {e}")
         db_error = e
 
-    # No demo payload: an empty field-reports layer is an honest map, and a
+    # No fallback payload: an empty field-reports layer is an honest map, and a
     # fabricated citizen report is the one thing this console must never draw.
-    return demo_fallback("GET /api/reports/recent", list, list, db_error)
+    return empty_or_503("GET /api/reports/recent", list, db_error)
 
 
 @router.get("/track/{docket}")

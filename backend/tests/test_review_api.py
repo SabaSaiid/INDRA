@@ -183,7 +183,7 @@ async def test_approve_from_a_non_reviewable_status_is_409(api, db, tokens, broa
 async def test_reject_hides_the_event_from_the_list_but_not_the_detail(api, db, tokens, broadcasts):
     event_id = await make_event(db)
     # A second, live event keeps the list non-empty, so the assertion below is
-    # about real rows and not about DEMO_MODE's fallback for an empty table.
+    # about real rows and not about an empty table.
     other_id = await make_event(db)
 
     r = await review(api, event_id, tokens["commander"], action="reject", reason="Prank reports, confirmed by police")

@@ -19,7 +19,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.demo import demo_fallback
+from app.core.empty import empty_or_503
 from app.core.security import DEMO_USERS, TokenData, require_roles
 from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, SourceType
 from app.services import audit
@@ -54,160 +54,6 @@ REVIEW_STATUS_LABELS = {
     "REJECTED": "rejected",
     "HUMAN_APPROVED": "verified",
 }
-
-# Rich fallback verified events when database is offline
-DEMO_EVENTS: List[Dict[str, Any]] = [
-    {
-        "id": "ev-patna-01",
-        "event_code": "WX-EV-28231827-A",
-        "eventType": "Flood",
-        "event_type": "URBAN_FLOOD",
-        "severity": "critical",
-        "confidence_score": 0.94,
-        "verification": "verified",
-        "review_status": "AUTO_PUBLISHED",
-        "quadrant": "Patna Central Sector",
-        "impact_radius_km": 6.8,
-        "lat": 25.6093,
-        "lng": 85.1376,
-        "city": "Patna",
-        "state": "Bihar",
-        "imageGradient": "linear-gradient(135deg, #2563EB, #1E3A8A)",
-        "verified_at": "2026-09-15T11:45:00Z",
-        "timestamp": "2026-09-15T11:45:00Z",
-    },
-    {
-        "id": "ev-guwahati-02",
-        "event_code": "WX-EV-28231828-B",
-        "eventType": "Rainfall",
-        "event_type": "CLOUDBURST",
-        "severity": "high",
-        "confidence_score": 0.88,
-        "verification": "under-review",
-        "review_status": "PENDING_HUMAN_REVIEW",
-        "quadrant": "Brahmaputra Basin",
-        "impact_radius_km": 12.0,
-        "lat": 26.1445,
-        "lng": 91.7362,
-        "city": "Guwahati",
-        "state": "Assam",
-        "imageGradient": "linear-gradient(135deg, #3B82F6, #6366F1)",
-        "verified_at": "2026-09-15T11:15:00Z",
-        "timestamp": "2026-09-15T11:15:00Z",
-    },
-    {
-        "id": "ev-mumbai-03",
-        "event_code": "WX-EV-28231829-C",
-        "eventType": "Strong Winds",
-        "event_type": "CYCLONE_INUNDATION",
-        "severity": "moderate",
-        "confidence_score": 0.91,
-        "verification": "verified",
-        "review_status": "AUTO_PUBLISHED",
-        "quadrant": "Konkan Coastal Zone",
-        "impact_radius_km": 8.5,
-        "lat": 19.0760,
-        "lng": 72.8777,
-        "city": "Mumbai",
-        "state": "Maharashtra",
-        "imageGradient": "linear-gradient(135deg, #EF4444, #C2410C)",
-        "verified_at": "2026-09-15T10:30:00Z",
-        "timestamp": "2026-09-15T10:30:00Z",
-    },
-    {
-        "id": "ev-delhi-04",
-        "event_code": "WX-EV-28231830-D",
-        "eventType": "Fog",
-        "event_type": "CLOUDBURST",
-        "severity": "low",
-        "confidence_score": 0.82,
-        "verification": "verified",
-        "review_status": "AUTO_PUBLISHED",
-        "quadrant": "NCR Northern Sector",
-        "impact_radius_km": 15.0,
-        "lat": 28.6139,
-        "lng": 77.2090,
-        "city": "New Delhi",
-        "state": "Delhi",
-        "imageGradient": "linear-gradient(135deg, #64748B, #334155)",
-        "verified_at": "2026-09-15T09:00:00Z",
-        "timestamp": "2026-09-15T09:00:00Z",
-    },
-    {
-        "id": "ev-chennai-05",
-        "event_code": "WX-EV-28231831-E",
-        "eventType": "Rainfall",
-        "event_type": "URBAN_FLOOD",
-        "severity": "high",
-        "confidence_score": 0.89,
-        "verification": "under-review",
-        "review_status": "PENDING_HUMAN_REVIEW",
-        "quadrant": "Coromandel Coastal Belt",
-        "impact_radius_km": 9.2,
-        "lat": 13.0827,
-        "lng": 80.2707,
-        "city": "Chennai",
-        "state": "Tamil Nadu",
-        "imageGradient": "linear-gradient(135deg, #2563EB, #1E3A8A)",
-        "verified_at": "2026-09-15T08:45:00Z",
-        "timestamp": "2026-09-15T08:45:00Z",
-    },
-    {
-        "id": "ev-kolkata-06",
-        "event_code": "WX-EV-28231832-F",
-        "eventType": "Thunderstorm",
-        "event_type": "RIVER_BREACH",
-        "severity": "moderate",
-        "confidence_score": 0.85,
-        "verification": "verified",
-        "review_status": "AUTO_PUBLISHED",
-        "quadrant": "Hooghly Riverfront",
-        "impact_radius_km": 7.0,
-        "lat": 22.5726,
-        "lng": 88.3639,
-        "city": "Kolkata",
-        "state": "West Bengal",
-        "imageGradient": "linear-gradient(135deg, #F59E0B, #92400E)",
-        "verified_at": "2026-09-15T07:20:00Z",
-        "timestamp": "2026-09-15T07:20:00Z",
-    },
-    {
-        "id": "ev-bengaluru-07",
-        "event_code": "WX-EV-28231833-G",
-        "eventType": "Flood",
-        "event_type": "URBAN_FLOOD",
-        "severity": "moderate",
-        "confidence_score": 0.87,
-        "verification": "under-review",
-        "review_status": "PENDING_HUMAN_REVIEW",
-        "quadrant": "Bellandur Catchment",
-        "impact_radius_km": 5.5,
-        "lat": 12.9716,
-        "lng": 77.5946,
-        "city": "Bengaluru",
-        "state": "Karnataka",
-        "imageGradient": "linear-gradient(135deg, #2563EB, #1E3A8A)",
-        "verified_at": "2026-09-15T06:10:00Z",
-        "timestamp": "2026-09-15T06:10:00Z",
-    },
-]
-
-DEMO_DISTRIBUTION: List[Dict[str, Any]] = [
-    {"name": "Rainfall", "count": 142, "value": 142, "color": "#3B82F6"},
-    {"name": "Flood", "count": 98, "value": 98, "color": "#F59E0B"},
-    {"name": "Thunderstorm", "count": 64, "value": 64, "color": "#8B5CF6"},
-    {"name": "Strong Winds", "count": 38, "value": 38, "color": "#2563EB"},
-    {"name": "Fog", "count": 19, "value": 19, "color": "#64748B"},
-    {"name": "Landslide", "count": 11, "value": 11, "color": "#E11D48"},
-]
-
-DEMO_SEVERITY_DISTRIBUTION: List[Dict[str, Any]] = [
-    {"name": "Critical", "count": 42, "value": 42, "color": "#EF4444"},
-    {"name": "High", "count": 86, "value": 86, "color": "#F59E0B"},
-    {"name": "Moderate", "count": 154, "value": 154, "color": "#3B82F6"},
-    {"name": "Advisory", "count": 79, "value": 79, "color": "#10B981"},
-]
-
 
 
 # ── GET /api/events: the PS's filters (Phase 1 T5) ─────────────────────────────
@@ -460,9 +306,9 @@ async def list_events(
     """)
     params.update(limit=limit, offset=offset)
 
-    # A filter that matches nothing is an answer, never a cue for demo data.
-    # Only the unfiltered call — what the dashboard has always made — keeps the
-    # demo_fallback behaviour on an empty database.
+    # A filter that matches nothing is an answer, not something to warn about.
+    # Only the unfiltered call — what the dashboard has always made — logs an
+    # empty result.
     filtered = any(
         v is not None
         for v in (date_from, date_to, event_type, family, review_status, state, district,
@@ -486,16 +332,7 @@ async def list_events(
         logger.warning(f"Database query failed in list_events: {e}")
         db_error = e
 
-    def _demo_events():
-        filtered_demo = DEMO_EVENTS
-        if severity:
-            filtered_demo = [
-                e for e in filtered_demo
-                if e["severity"].lower() == severity.lower() or e["review_status"].lower() == severity.lower()
-            ]
-        return filtered_demo
-
-    events = demo_fallback("GET /api/events", _demo_events, list, db_error)
+    events = empty_or_503("GET /api/events", list, db_error)
     response.headers["X-Total-Count"] = str(len(events))
     return events
 
@@ -517,8 +354,8 @@ async def event_distribution(
     if time_range and time_range != "all":
         hours = 24 if time_range == "24h" else (48 if time_range == "48h" else 168)
         # verified_events has no created_at; the column recording when the event
-        # came into being is verified_at. The old name never raised because
-        # DEMO_MODE caught the error and served an invented distribution.
+        # came into being is verified_at. The old name failed on every call, and
+        # the error was hidden behind an invented distribution.
         time_clause = f"AND verified_at >= NOW() - INTERVAL '{hours} hours'"
 
     if group_by_severity:
@@ -605,12 +442,7 @@ async def event_distribution(
         logger.warning(f"Database query failed in event_distribution: {e}")
         db_error = e
 
-    return demo_fallback(
-        "GET /api/events/distribution",
-        lambda: DEMO_SEVERITY_DISTRIBUTION if group_by_severity else DEMO_DISTRIBUTION,
-        list,
-        db_error,
-    )
+    return empty_or_503("GET /api/events/distribution", list, db_error)
 
 
 
@@ -738,8 +570,8 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
     # Accepts either a UUID or an event_code. The two comparisons need separate
     # parameters: with one shared parameter Postgres infers its type as uuid
     # from `id = :event_id` and then fails the varchar comparison with
-    # "operator does not exist: character varying = uuid", which sent every
-    # lookup — valid ones included — down to the demo fallback below.
+    # "operator does not exist: character varying = uuid", which failed every
+    # lookup — valid ones included — and answered it with an invented event.
     query = text("""
         SELECT
             id, event_code, event_type, severity, confidence_score,
@@ -794,66 +626,10 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
         logger.warning(f"Database query failed in get_event_detail: {e}")
         db_error = e
 
-    def _demo_detail():
-        # Fallback to matching demo event
-        for ev in DEMO_EVENTS:
-            if ev["id"] == str(event_id) or ev["event_code"] == str(event_id):
-                return {
-                    "id": ev["id"],
-                    "event_code": ev["event_code"],
-                    "event_type": ev.get("event_type", "URBAN_FLOOD"),
-                    "event_type_display": ev["eventType"],
-                    "severity": ev["severity"].upper(),
-                    "severity_display": ev["severity"],
-                    "confidence_score": ev["confidence_score"],
-                    "review_status": ev["review_status"],
-                    "verification": ev["verification"],
-                    "quadrant": ev["quadrant"],
-                    "impact_radius_km": ev["impact_radius_km"],
-                    "center": {"lat": ev["lat"], "lng": ev["lng"]},
-                    "boundary_geojson": None,
-                    "verification_receipt": {
-                        "city": ev["city"],
-                        "state": ev["state"],
-                        "confidence_total": int(ev["confidence_score"] * 100),
-                        "event_type_display": ev["eventType"],
-                    },
-                    "verified_at": ev["verified_at"],
-                    "city": ev["city"],
-                    "state": ev["state"],
-                }
-
-        # Default fallback: Patna flood scenario event
-        ev = DEMO_EVENTS[0]
-        return {
-            "id": ev["id"],
-            "event_code": ev["event_code"],
-            "event_type": "URBAN_FLOOD",
-            "event_type_display": ev["eventType"],
-            "severity": ev["severity"].upper(),
-            "severity_display": ev["severity"],
-            "confidence_score": ev["confidence_score"],
-            "review_status": ev["review_status"],
-            "verification": ev["verification"],
-            "quadrant": ev["quadrant"],
-            "impact_radius_km": ev["impact_radius_km"],
-            "center": {"lat": ev["lat"], "lng": ev["lng"]},
-            "boundary_geojson": None,
-            "verification_receipt": {
-                "city": ev["city"],
-                "state": ev["state"],
-                "confidence_total": int(ev["confidence_score"] * 100),
-                "event_type_display": ev["eventType"],
-            },
-            "verified_at": ev["verified_at"],
-            "city": ev["city"],
-            "state": ev["state"],
-        }
-
     def _not_found():
         raise HTTPException(status_code=404, detail="Event not found")
 
-    return demo_fallback(f"GET /api/events/{event_id}", _demo_detail, _not_found, db_error)
+    return empty_or_503(f"GET /api/events/{event_id}", _not_found, db_error)
 
 
 # ── Human review ───────────────────────────────────────────────────────────────
