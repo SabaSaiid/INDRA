@@ -38,6 +38,7 @@ The defaults work for local development. The values worth knowing:
 | `DATABASE_URL` | `…@localhost:5433/indra_db` | **Port 5433**, not 5432, so it cannot clash with a local Postgres |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:19092` | Redpanda |
 | `REDIS_URL` | `redis://localhost:6379/0` | |
+| `SECRET_KEY` | a value committed in `.env.example` | Signs every login token. **Replace it on any server someone else can reach** (`openssl rand -hex 32`): with the committed value, anyone who has the repository can mint a valid token without a password |
 | `SACHET_POLLER_ENABLED` | `true` | Polls NDMA's SACHET CAP feed every 5 min into `agency_alerts` |
 | `STATION_POLLER_ENABLED` | `true` | Polls Open-Meteo every 10 min into `station_readings` |
 | `METAR_POLLER_ENABLED`, `MASTODON_POLLER_ENABLED`, `NEWS_POLLER_ENABLED` | `false` | Phase 2's feeds: airport weather, #IMD posts, news headlines. No keys needed; turn them on to collect |
@@ -94,7 +95,7 @@ S3 API listens on `127.0.0.1:8333` only.
 cd backend
 python3 -m venv .venv                     # if it does not exist
 .venv/bin/pip install -r requirements.txt
-.venv/bin/alembic upgrade head            # → 0014_event_filter_indexes (head)
+.venv/bin/alembic upgrade head            # → 0019_operator_password_hash (head)
 ```
 
 **Read the output of `alembic upgrade head`.** A silently failed migration leaves a database with
@@ -125,6 +126,45 @@ open http://localhost:8000/docs                 # interactive API docs
 
 First start loads the MiniLM embedding model (~13 s). It is warmed on a background thread, so the
 API answers immediately; wait for `✓ Embedding model warm` before timing anything.
+
+### Operator accounts
+
+**No password is in this repository.** The four accounts — `admin`, `commander`, `analyst`,
+`citizen` — are rows in `user_profiles`, and each signs in against a bcrypt hash in its
+`password_hash` column. A `NULL` hash means the account cannot sign in, and every fresh database
+starts that way. Set the passwords for this deployment, from the repo root:
+
+```bash
+backend/.venv/bin/python scripts/set_operator_password.py commander         # prompts twice
+backend/.venv/bin/python scripts/set_operator_password.py --all --generate  # a new one each, printed once
+backend/.venv/bin/python scripts/set_operator_password.py --all --from-env INDRA_OPERATOR_PASSWORD
+```
+
+Usage: `set_operator_password.py [USERNAME ...] [--all] [--from-env VAR | --generate]`. It writes
+to `DATABASE_URL` from the environment, else the backend's own settings (`.env`), and prints the
+target host, port and database — never the password — before it changes anything. It refuses a
+username with no row in `user_profiles` (exit status 2; accounts are not created here) and any
+password shorter than 10 characters. With neither `--from-env` nor `--generate` it prompts for each
+password twice without echoing it; `--generate` prints each generated password once, so store them
+then; `--from-env VAR` gives every named account the password held in that environment variable.
+
+**Deploying this version to a server that already has data:** run `alembic upgrade head`, then set
+the passwords. Until you do, every login is a `401` and nobody can sign in; read-only pages still
+work.
+
+Operators sign in from the dashboard's top bar. Behind it is `POST /api/auth/token` (form-encoded
+`username` and `password`); a wrong password, an unknown username and an account with no password
+all get the same `401 {"detail":"Incorrect username or password"}`. To check one account:
+
+```bash
+read -rs PW          # type the commander's password; -s means nothing is shown as you type
+curl -s -X POST localhost:8000/api/auth/token --data-urlencode username=commander \
+     --data-urlencode "password=$PW" | jq -c '{username, role, expires_in}'
+# → {"username":"commander","role":"COMMANDER","expires_in":28800}
+unset PW             # forget it again
+```
+
+`expires_in` is `JWT_EXPIRY_HOURS` (default 8) in seconds.
 
 ---
 
