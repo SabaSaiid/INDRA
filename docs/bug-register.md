@@ -1652,3 +1652,94 @@ credibility, and a news publisher counts once. Commits `2b0131e`, `9a4c91d`, `ee
 The type was hard-coded at insert. It is now the majority of the reports' tagged hazards, ties by
 precedence, UNCLASSIFIED (never auto-published) with no votes; a commander can override it on the
 record. Commits `ddeef6e`, `c8e8025`, `36d231b`.
+
+# Demo-data removal — 25 Sep 2026 (branch `aditya_remove_demo_data`)
+
+Aditya asked for every demo, invented, placeholder and synthetic value to be **removed** from the
+application, not switched off, keeping the real feeds, the real datasets and the honestly labelled
+test fixtures. A read-only audit of every layer, the dashboard included, found the rows below. Each
+is fixed on the branch, one commit per change; the dashboard's share is written up for its owners in
+[`frontend-handover.md`](frontend-handover.md) §19. The tests are named per row; the whole backend
+suite and the browser suite are re-run in the testing pass that follows the code.
+
+### BUG-093 — The dashboard shipped four passwords and signed every visitor in as the commander
+**S1** · Layers 8a, 9 · **`FIXED`** by `891b95a`, `252033b`, `b262ec5`, `7da3156` (backend, scripts),
+`ee34caa`, `f773acb` (dashboard) · Found by: the 25 Sep audit
+
+`lib/api.ts` carried `DEMO_CREDENTIALS`, the four accounts' passwords, in the browser bundle, and
+fetched a token for whichever persona the switcher showed, `commander` by default: anyone who opened
+the dashboard could approve or reject events, dispatch teams and file official dispatches. The same
+passwords were a dict in `core/security.py`, were printed in `api-contract.md`, the handover and the
+smoke test, and `GET /api/profile/me` without a token answered with the commander's profile.
+Fix: accounts are `user_profiles` rows with a bcrypt `password_hash` (migration `0019`, nothing
+seeded), set per environment with `scripts/set_operator_password.py`; the dashboard signs in and keeps
+only the token. `/api/profile/me` is a 401 without one. The old passwords stay in git history, so
+every deployed account needs a new one. Tests: `test_login.py`, `test_set_operator_password.py`,
+`test_mutation_auth.py`.
+
+### BUG-094 — Invented operators stood in for the real accounts
+**S2** · Layers 7, 9 · **`FIXED`** by `9337a65` (migration `0018`), `f773acb`, `217749e`,
+`6b48f84`, `3b838fa` (dashboard)
+
+The topbar, sidebar and Profile page showed four invented officers (the commander was "Rajesh K.
+Verma") with badges, callsigns, `gov.in` e-mails, a phone number, a bio and a unit, whatever the
+account's record said; migration `0008` had seeded invented badge numbers, callsigns and a team role
+into the four profiles, and a team with no headcount counted as 12. Fix: the dashboard renders the
+signed-in account's own `/api/profile/me` and shows an absent field as absent; `0018` nulls the
+seeded placeholders and gives the citizen account agency `PUBLIC`; `POST /api/teams` requires
+`members_count`.
+
+### BUG-095 — A constant "Patna Station #04" block shown as live telemetry
+**S2** · Layer 9 · **`FIXED`** by `e7810cf`
+
+The settings page and drawer showed 32.4 °C, 68 km/h and 85.5 mm at Patna's coordinates as a
+station's output. No such station exists and nothing computed the numbers. Removed; real
+observations are the METAR and rainfall layers, and the settings say they live only in this browser.
+
+### BUG-096 — A coordinate that failed validation was moved instead of refused
+**S2** · Layers 3, 9 · **`FIXED`** by `1ee01b0` (backend), `4692a47` (dashboard) · Test:
+`test_geocoding.py`
+
+With `SNAP_OUT_OF_BOUNDS_COORDINATES=true` the backend moved an out-of-India report to a gazetteer
+match or to (22, 82), and a report with no coordinates and no known place in its text was always
+answered with (22, 82) as "National Command Grid"; two such reports could cluster there into an event.
+The dashboard moved a pin without a usable point to a gazetteer city with jitter, or to (22, 82) as
+"National Grid", and drew every citizen report as a Flood of advisory severity. Fix: the setting, the
+snap and the fixed point are gone, so such a report is a 422, and the map plots only the coordinates
+the API sent, labelling reports as unrated citizen reports.
+
+### BUG-097 — The browser suite wrote "E2E probe" reports into the live `indra_db`
+**S2** · Test infrastructure · **`FIXED`** by `4016a72`, `2cb7dbb` and the E2E-mode commits
+
+`e2e/dashboard-live-data.spec.ts` posted its probe to whatever `E2E_API_URL` named, `:8000` by
+default, so the probes were stored, published and clustered in the development database; four of
+them reached the committed `data/live` snapshot (BUG-099). Fix: `make e2e-backend` runs a backend with
+`ENVIRONMENT=e2e` on `indra_e2e`, its own topics, consumer group and Redis db, which refuses to start
+otherwise, and Playwright refuses any backend whose `/api/e2e/identity` does not name an `_e2e`
+database.
+
+### BUG-098 — AI-generated photographs shown beside real events
+**S3** · Layer 9 · **`FIXED`** by `a4817df`
+
+Recent Events illustrated each event with one of seven photos whose C2PA manifests read "Created by
+Google Generative AI", with alt text saying they showed the event at its place. Replaced by a hazard
+tile (colour and icon) that makes no claim about the place; the photos are deleted.
+
+### BUG-099 — Demo and test rows committed in `data/live/`
+**S3** · Layer 7 · **`FIXED`** by `047c1e3`, `5f3aa85` and the snapshot cleanup
+
+The snapshot held the five Patna reports `run_patna_demo.py` posted on 20 Sep, four Playwright
+probes, the event `INDRA-20260920-001` they formed and its audit row, none marked as test data.
+Fix: those rows are deleted from the CSVs and `indra_live.db`; the exporter no longer claims nothing
+is seeded and never writes password hashes.
+
+### BUG-100 — `DEMO_MODE`, the `DEMO_*` payloads and the demo scripts removed, not switched off
+**S3** · Layers 2, 8a, 9, `scripts/` · **`FIXED`** by `2c20b97`, `a32c995`, `ae45bd5`, `02bec4b`,
+`a0eac46`, `7351243` · Test: `test_empty_and_unavailable.py`
+
+Off by default since 20 Sep (BUG-024), the fallback still sat one `.env` line away (BUG-045). Deleted:
+`DEMO_MODE`, `core/demo.py` and every hardcoded payload behind it (events, distribution, feed, trend,
+KPIs, teams), the dashboard's `DEMO_PULSE` type, `run_hazard_demo.py`, `run_patna_demo.py`,
+`burst_reports.py`, `seed_national_data.py`, `./start.sh demo` and `make demo`. Every read now answers
+no rows with the empty result, an unknown id with 404 and a database error with 503, through
+`core/empty.py::empty_or_503()`; a `DEMO_MODE` line left in an old `.env` is ignored.
