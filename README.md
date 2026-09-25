@@ -356,17 +356,23 @@ INDRA/
 ├── LICENSE                         # MIT License
 ├── README.md                       # Master documentation & blueprint
 ├── docs/
+│   ├── README.md                   # Index: which document to read when
+│   ├── setup.md                    # Fresh clone to running stack, operator passwords, tests
+│   ├── demo-runbook.md             # The SIH walkthrough on live data, with a recovery line per failure
+│   ├── nodal-officer-qa.md         # Hard questions and the honest answer to each
+│   ├── api-contract.md             # Every endpoint, shape and status code
 │   ├── ARCHITECTURE.md             # Engineering & mathematical spec + §0 implementation ledger
 │   ├── backend-architecture.md     # Backend module map, request flow, config surface
-│   └── backend-todo.md             # Backend 5-day sprint plan (16–20 Sep)
+│   ├── frontend-handover.md        # What changed that the dashboard's owners need to know
+│   └── bug-register.md             # Every defect found, with its status and fix
 ├── backend/
 │   ├── app/
-│   │   ├── api/                    # REST routes: dashboard, events (+ review, provenance), reports (+ official), feed, geo, alerts, audit, auth, teams, profile
-│   │   ├── core/                   # config, database (async SQLAlchemy), security (JWT/bcrypt/RBAC), demo (DEMO_MODE gate)
+│   │   ├── api/                    # REST routes: dashboard, events (+ review, provenance), reports (+ official, search), feed, geo, stations, alerts, meta, audit, auth, teams, profile
+│   │   ├── core/                   # config, database (async SQLAlchemy), security (JWT/bcrypt/RBAC), empty (no rows → empty, DB error → 503)
 │   │   ├── models/                 # SQLAlchemy ORM + enums.py (all controlled vocabularies)
 │   │   ├── services/               # ingest (store + outbox), kafka, hazards, pipeline, fusion_engine, dedup, geo_clustering, geocoding, weather, credibility, audit, cache, text_processing, health
-│   │   └── workers/                # report_consumer (Kafka → pipeline), outbox_relay (outbox → Kafka), station_poller (Open-Meteo), sachet_poller (CAP warnings)
-│   ├── alembic/                    # Database migrations, 0001_initial … 0014_event_filter_indexes
+│   │   └── workers/                # report_consumer (Kafka → pipeline), outbox_relay (outbox → Kafka), station_poller (Open-Meteo), sachet_poller (CAP warnings), metar/mastodon/news pollers, lake_archiver
+│   ├── alembic/                    # Database migrations, 0001_initial … 0019_operator_password_hash
 │   ├── tests/                      # pytest suite — unit + integration (`-m integration` needs Docker)
 │   ├── pytest.ini                  # asyncio loop scope pinned to session
 │   └── requirements.txt            # Python dependencies
@@ -380,9 +386,14 @@ INDRA/
 │   └── labelled/
 │       └── reports_v1.csv          # 300 synthetic labelled reports, train/test split
 └── scripts/
-    ├── run_patna_demo.py           # Posts 5 reports to the live API, prints what it reads back
-    ├── burst_reports.py            # Load/leak measurement: --count 100 --spread-km 3
-    ├── seed_national_data.py       # Batch seeder (synthetic; refuses to run without --synthetic)
+    ├── set_operator_password.py    # Sets each operator account's password (bcrypt) in user_profiles
+    ├── export_live_data.py         # Snapshot of the local database's real rows into data/live/
+    ├── replay_dlq.py               # Re-sends dead-lettered report messages
+    ├── backfill_hazards.py         # Re-derives hazard tags on stored reports
+    ├── build_gazetteer.py          # District gazetteer for the reverse geocoder
+    ├── build_metar_stations.py     # India's METAR aerodromes, for the METAR poller
+    ├── make_s3_config.py           # Object-store key file from .env
+    ├── measure_hazard_tagger.py    # Scores the hazard tagger on its fixture
     └── verify-build.sh             # Build verification checks
 ```
 
