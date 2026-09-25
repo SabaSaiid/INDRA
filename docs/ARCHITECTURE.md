@@ -283,31 +283,32 @@ $$C = 0.25 \cdot S_{\text{weather}} + 0.20 \cdot S_{\text{reports}} + 0.20 \cdot
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        THE VERIFICATION RECEIPT                        │
-│                     CONFIDENCE SCORE: 94 / 100                         │
 ├────────────────────────────────────────────────────────────────────────┤
-│  ✓ Weather Agreement (25%)          : Open-Meteo/AWS recorded 92mm     │
-│  ✓ Independent Reports (20%)        : 103 verified independent reports │
-│  ✓ Location & Time Consistency (20%): PostGIS & H3 cluster within 0.8km│
-│  ✓ Image Evidence (15%)             : PyTorch floodwater prob: 0.91    │
-│  ✓ Source Reliability (15%)         : Verified app users & AWS sensors │
-│  ✓ Historical Anomaly (5%)          : 140mm vs 35mm seasonal baseline   │
+│  Weather Station Corroboration (25%): 24 h rainfall vs IMD categories  │
+│  Report Density Analysis       (20%): independent reporters            │
+│  Spatial Coherence Score       (20%): cluster diameter vs 10 km search │
+│  Computer Vision Analysis      (15%): offline — out of scope           │
+│  Source Reliability Index      (15%): best source prior in cluster     │
+│  Anomaly Detection Signal       (5%): offline — out of scope           │
+├────────────────────────────────────────────────────────────────────────┤
+│  confidence = total_weighted / factor_coverage   (coverage 0.80)       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 > **Status (see §0, updated Day 2):** the weighted arithmetic, the quadrant assignment, and
-> the review-status routing are all real and unit-tested. The receipt above is the *designed*
-> output. **Today four of the six factors carry real evidence and none is random:**
+> the review-status routing are all real and unit-tested. The receipt above lists each factor and
+> what it reads today. **Today four of the six factors carry real evidence and none is random:**
 > `weather_station` (live Open-Meteo 24 h rainfall mapped onto IMD rainfall categories),
 > `report_density` (deduplicated report count on a curve saturating at 25),
 > `spatial_coherence` (raised cosine over the DBSCAN cluster span) and `source_reliability`
 > (a documented per-source lookup, max over the cluster). `vision_analysis` and
 > `anomaly_detection` are **explicitly offline**. Each receipt carries a `provenance` field
-> marking every factor `"computed"` or `"offline"` (severity reads
-> `heuristic_from_cluster_size`, or `human_override` after a review), so the distinction
+> marking every factor `"computed"` or `"offline"` (severity reads `rule_based_…`, e.g.
+> `rule_based_depth_and_count`, or `human_override` after a review), so the distinction
 > survives into the API response. An offline factor scores `0.0` with the evidence string
 > `"Telemetry factor offline"` — **stating that a signal is absent is preferred over
-> inventing a number for it.** Consequence: the maximum reachable confidence is **0.80**, so
-> the 94 above is illustrative; the live Patna demo cluster scores ~0.43.
+> inventing a number for it.** Since 20 Sep the score is re-normalised over the factors that
+> reported, and `factor_coverage` (0.80) is printed beside it (BUG-001).
 
 ### Duplicate Merging Engine
 Reports are grouped and merged before fusion using the composite duplicate rule:
@@ -355,16 +356,19 @@ To guarantee accountability, every human intervention is recorded with an immuta
 > half: approve or reject from `QUARANTINED` / `PENDING_HUMAN_REVIEW`, or override severity,
 > with a required reason. An approved event becomes `HUMAN_APPROVED` and **stays approved when
 > later reports merge into it**. `GET /api/events/{id}/provenance` returns the audit rows and a
-> chain check. Because honest scores currently top out at 0.80, the ≥ 90% auto-publish tier is
-> unreachable today, so **in practice every event reaches the command center via a human**.
+> chain check. Since re-normalisation (BUG-001, 20 Sep) 0.90 is reachable in principle, but only
+> with heavy rain, many tight independent reports and a trusted source at once, so **in practice
+> events reach the command center via a human**.
 > Limit: a truncated tail or emptied table still verifies as a valid chain (no external
 > anchor for the head hash).
 
 ```
 +-------------------------------------------------------------------------------+
-| AUDIT LOG OUTPUT:                                                             |
-| Admin A | 15:42 | Verified EVENT-28231827-A | Reason: AWS + citizen evidence |
-| Hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855       |
+| AUDIT ROW (one per decision, append-only):                                    |
+| seq | logged_at | event_id | operator_id | action_taken | reason | details    |
+| prev_hash   = sha256_hash of the row before (genesis: 64 × "0")               |
+| sha256_hash = sha256(canonical JSON of prev_hash, event_id, operator_id,      |
+|               action, reason, details, logged_at)                             |
 +-------------------------------------------------------------------------------+
 ```
 
@@ -383,8 +387,9 @@ Rather than introducing 15 fragile microservices during an active hackathon spri
 > 1. **There is no separate AI worker process.** `workers/report_consumer.py` runs as an
 >    `asyncio` task inside the FastAPI process, started from the app's lifespan hook. The
 >    embedding model and the pipeline therefore share the API's event loop. This is fine at
->    demo scale and is the right call for a hackathon, but it means CPU-heavy scoring can
->    stall request handling, and it is the first thing to split out if load becomes real.
+>    the current single-server scale and is the right call for a hackathon, but it means
+>    CPU-heavy scoring can stall request handling, and it is the first thing to split out if
+>    load becomes real.
 > 2. **`docker compose` brings up three services, not four** — PostGIS, Redis, Redpanda.
 >    MinIO is not in the file. Adding it is an infra decision for the team, not a backend
 >    one.
@@ -395,14 +400,14 @@ Rather than introducing 15 fragile microservices during an active hackathon spri
 
 ---
 
-## 8. The 10-Scene Hackathon Demonstration Sequence
+## 8. The Hackathon Walkthrough — live data only
 
-1. **Scene 1 (Baseline)**: India map displays normal operational telemetry with live Open-Meteo feeds.
-2. **Scene 3 (The Spike)**: `scripts/run_patna_demo.py` simulates a cloudburst surge—127 reports enter via Kafka in seconds.
-3. **Scene 5 (Fusion)**: Duplicate detection collapses 127 reports into 1 major flood event; PostGIS binds coordinates to Central Patna.
-4. **Scene 7 (Evidence)**: OpenCV confirms waist-deep water; Open-Meteo confirms 92mm rainfall anomaly.
-5. **Scene 8 (Intelligence)**: INDRA outputs the 94% Verification Receipt and tags the event as `Critical Verified Event`.
-6. **Scene 10 (Action)**: WebSocket pushes incident polygon to the Next.js dashboard; emergency broadcast alert is triggered.
+1. **Scene 1 (Already watching)**: the dashboard shows what the platform is already reading: official warnings, rainfall, airport observations, public posts and headlines.
+2. **Scene 2 (A real report)**: someone files what they can actually see, where they are, through the dashboard's Report Incident form.
+3. **Scene 3 (Fusion)**: a second, independent report within 5 km joins it; dedup and DBSCAN make one event with one boundary polygon.
+4. **Scene 4 (Evidence & receipt)**: the receipt shows which factors are measured, which are offline, and the division behind the score.
+5. **Scene 5 (Human review)**: a signed-in commander approves or rejects with a reason, and the decision is hash-chained.
+6. **Scene 6 (Action)**: the WebSocket pushes the event and the decision to every open dashboard.
 
 ### What each scene actually does today
 
@@ -411,16 +416,20 @@ judge watches happen. **Know which scenes are live and which are narration.**
 
 | Scene | Today |
 |---|---|
-| 1 — Baseline | ✅ Open-Meteo is polled every 10 min into `station_readings` and SACHET warnings every 5 min; the map draws live events, official warnings and unfused reports. There is no mock data. |
-| 3 — The Spike | ✅ `run_patna_demo.py` posts five synthetic citizen reports through the real `POST /api/reports/submit` → Kafka path and reads every number back; `--official` adds one dispatch through the authenticated route. |
-| 5 — Fusion | ✅ **Real.** Dedup + `ST_ClusterDBSCAN` + event merging genuinely collapse many reports into one event with one `event_code`. This is the strongest scene and the honest centre of the pitch. |
-| 7 — Evidence | 🟡 **Half real.** The rainfall evidence is a live Open-Meteo fetch (modelled precipitation, not a rain gauge — the receipt says so). There is no OpenCV; the vision factor reads `"Telemetry factor offline"`. Do not claim image evidence. |
-| 8 — Intelligence | 🟡 **Real receipt, honest inputs.** The 6-factor breakdown is computed and deterministic: four factors measured, two offline and labelled. The "94%" is illustrative — the live five-report cluster scores about 0.50 (0.4984 on 21 Sep, 0.5146 on 22 Sep; rainfall is live) and is `QUARANTINED`; with one official dispatch it scored 0.6065 and went to `PENDING_HUMAN_REVIEW`. |
-| 8½ — Human review | ✅ **Real (Day 3).** A commander logs in, approves the quarantined event with a reason → `HUMAN_APPROVED`, `EVENT_REVIEWED` over the WebSocket, and a hash-chained audit row visible in provenance. The next corroborating report raises confidence without undoing the approval. |
-| 10 — Action | 🟡 WebSocket push to the dashboard is **real** (`VERIFIED_EVENT`, `EVENT_REVIEWED`). The emergency broadcast / NDRF dispatch is **not implemented** — there is no alert engine. |
+| 1 — Already watching | ✅ SACHET every 5 min into `agency_alerts`, Open-Meteo every 10 min into `station_readings`; METAR, Mastodon and Google News when enabled; each poller's heartbeat in `GET /api/meta/sources`. Nothing is generated. |
+| 2 — A real report | ✅ `POST /api/reports/submit` (the dashboard form) → outbox → Kafka → pipeline, and a docket comes back. Only what the reporter actually sees; never a scripted or staged report. |
+| 3 — Fusion | ✅ **Real.** Dedup + great-circle DBSCAN (minimum two reports) + event merging: one `event_code`, one polygon. This is the strongest scene and the honest centre of the pitch. |
+| 4 — Evidence | 🟡 **Half real.** Rainfall is live (modelled precipitation, not a rain gauge — the receipt says so); depth and hazard are read from the text by rules; vision and anomaly read `"Telemetry factor offline"`. Do not claim image evidence. |
+| 5 — Human review | ✅ **Real.** A signed-in commander approves or rejects with a reason → `HUMAN_APPROVED` / `REJECTED`, `EVENT_REVIEWED` over the WebSocket, and a hash-chained audit row visible in provenance. The next corroborating report raises confidence without undoing the decision. |
+| 6 — Action | 🟡 WebSocket push to the dashboard is **real** (`VERIFIED_EVENT`, `EVENT_REVIEWED`). There is no broadcast and no NDRF dispatch — there is no alert engine. |
 
-The defensible version of this demo is: *submit reports live, watch them collapse into one
-event, open the receipt and point at which factors are measured and which say "Telemetry
-factor offline", explain why the machine quarantined it, then approve it as a commander and
-show the audit chain.* That story is entirely true, and it survives follow-up questions. The
-version that claims image evidence, a 94% auto-publish, or Scene 10's dispatch does not.
+The defensible version of this walkthrough: *everything on screen was published by someone else,
+or filed by a person about what they can see where they are.* This is the production database, so
+a report written for effect is fabricated data in the audit trail, and nobody files one. If the
+weather is calm and nobody nearby has anything to report, no event forms — show the live feeds,
+explain the corroboration rule, and say that this is the right answer. When an event does form,
+open the receipt, point at which factors are measured and which say "Telemetry factor offline",
+explain why the machine quarantined it, then decide it as a commander and show the audit chain.
+That story is entirely true, and it survives follow-up questions. The version that claims image
+evidence, a 94% auto-publish or an alert dispatch does not. The commands are in
+[`demo-runbook.md`](demo-runbook.md).
