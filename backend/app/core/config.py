@@ -139,13 +139,6 @@ class Settings(BaseSettings):
     H3_HEX_RESOLUTION: int = 8
     TIME_WINDOW_MINUTES: int = 120
 
-    # ── Coordinates ────────────────────────────────────────────────────────
-    # False (the default) rejects out-of-India coordinates with a 422. True
-    # restores the old behaviour of snapping them to a gazetteer match or the
-    # (22, 82) national centroid — which lets junk reports cluster into a fake
-    # event there, so only turn it on for a scripted demo that depends on it.
-    SNAP_OUT_OF_BOUNDS_COORDINATES: bool = False
-
     # ── External signals ───────────────────────────────────────────────────
     OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
     WEATHER_TIMEOUT_SECONDS: float = 3.0

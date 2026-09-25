@@ -19,11 +19,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.config import get_settings
 from app.core.empty import empty_or_503
 from app.core.security import TokenData, require_roles
 from app.models.enums import EventType
-from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
+from app.services.geocoding import (
+    LocationUnresolvedError,
+    OutOfIndiaBoundsError,
+    sanitize_coordinates,
+)
 from app.services.ingest import (
     StoreError,
     docket_status,
@@ -34,7 +37,6 @@ from app.services.ingest import (
 
 logger = logging.getLogger("indra.api.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
-settings = get_settings()
 
 
 # How far observed_at may sit from the moment a report arrives. A phone clock a
@@ -154,10 +156,14 @@ async def _ingest(
             report.latitude,
             report.longitude,
             text_hint=report.text,
-            snap_out_of_bounds=settings.SNAP_OUT_OF_BOUNDS_COORDINATES,
         )
     except OutOfIndiaBoundsError as e:
         logger.info(f"Rejected report with out-of-bounds coordinates: {e}")
+        raise HTTPException(status_code=422, detail=str(e))
+    except LocationUnresolvedError as e:
+        # Unreachable while latitude and longitude are required floats; kept
+        # so a location that cannot be placed is a 422, never a 500.
+        logger.info(f"Rejected report with no resolvable location: {e}")
         raise HTTPException(status_code=422, detail=str(e))
 
     try:
