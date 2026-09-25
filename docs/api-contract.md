@@ -824,9 +824,11 @@ the passwords**. No hash is seeded, so until the script has run every sign-in is
 `GET /api/profile/operators`
 
 Reads are open, except `GET /api/profile/me`: it is the signed-in operator's own record, so it
-needs a token (`401` without one or with an invalid one). `GET /api/profile/activity` needs `user`
-(`422` without it). `/api/profile/preferences` was removed on 25 Sep. Writes need a token (matrix
-above):
+needs a token (`401` without one or with an invalid one; `404` if the token's user has no profile
+row). `GET /api/profile/activity` needs `user` (`422` without it, `404` for a username with no
+profile) and lists that operator's audit-ledger actions, `[]` until they have reviewed something.
+`/api/profile/preferences` was removed on 25 Sep: it was a per-process store that nothing read and a
+restart lost; the dashboard keeps its settings in the browser. Writes need a token (matrix above):
 
 | Endpoint | Codes |
 |---|---|
@@ -858,10 +860,11 @@ Commander`). A client shows an absent field as absent.
 
 `{"environment": "e2e", "database": …, "reports_topic": …, "consumer_group": …}`, where `database`
 is `SELECT current_database()`. The browser tests read it before they start and refuse to run
-unless it names a database ending in `_e2e`. A backend with `ENVIRONMENT=e2e` refuses to start
-unless its database name ends in `_e2e`, its report, event and dead-letter topics start with
-`indra.e2e.`, and `KAFKA_CONSUMER_GROUP` starts with `indra-e2e-`. So a browser test can never
-write into `indra_db` or take messages from the dev consumer. `make e2e-backend` starts one on
+unless it names a database ending in `_e2e`, an `indra.e2e.` topic and an `indra-e2e-` consumer
+group. A backend with `ENVIRONMENT=e2e` refuses to start unless its database name ends in `_e2e`,
+its report, event and dead-letter topics start with `indra.e2e.`, `KAFKA_CONSUMER_GROUP` starts
+with `indra-e2e-` and the lake archive is off. So a browser test can never write into `indra_db`,
+take messages from the dev consumer or archive into the real lake. `503` on a database error. `make e2e-backend` starts one on
 `127.0.0.1:8100` against `indra_e2e`.
 
 ### `GET /healthz`
