@@ -48,7 +48,7 @@ services:
 
   # -------------------------------------------------------------
   # Redpanda: Lightweight Kafka-compatible Event Streaming Bus
-  # Ingests high-frequency citizen & sensor spikes (~50x surge absorption)
+  # Carries the report stream (indra.raw.reports, its DLQ) and verified events (indra.verified.events)
   # -------------------------------------------------------------
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v23.3.11
