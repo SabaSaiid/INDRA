@@ -3,8 +3,8 @@ BUG-009 — every endpoint that changes state requires a token.
 
 Until 22 Sep only the review and provenance endpoints were guarded. Anyone
 could create a team, dispatch one to an event, or rewrite any operator's
-profile by naming them in `?user=`. The dashboard already fetches a JWT for
-its selected persona, so the gate costs it a header.
+profile by naming them in `?user=`. The dashboard sends the signed-in
+operator's JWT, so the gate costs it a header.
 
 The first test walks the app's routes rather than listing them, so a mutation
 added later without a guard fails here instead of shipping open.

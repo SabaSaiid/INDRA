@@ -1,7 +1,8 @@
 """
 T5 + T6 (Day 3) — PATCH /api/events/{id}/review and GET /api/events/{id}/provenance.
 
-Tokens come from POST /api/auth/token exactly as a client would get them. The
+Tokens come from POST /api/auth/token exactly as a client would get them, with
+the test-only passwords conftest.TEST_ACCOUNTS writes into indra_test. The
 WebSocket manager's broadcast is replaced with a recorder, so EVENT_REVIEWED is
 asserted on the message that would actually have gone out.
 """
