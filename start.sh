@@ -35,8 +35,6 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
-DATA_DIR="$ROOT_DIR/data"
-SCRIPTS_DIR="$ROOT_DIR/scripts"
 RUN_DIR="$ROOT_DIR/.run"
 LOG_DIR="$ROOT_DIR/logs"
 PID_FILE="$RUN_DIR/indra.pid"
