@@ -170,7 +170,7 @@ export default function NotificationPopover({ className = '' }: { className?: st
                     <CheckCircle className="w-5 h-5 text-emerald-600" />
                   </div>
                   <p className="text-sm font-semibold text-[#1E2A3B]">No official warning in force</p>
-                  <p className="text-xs text-[#7A8599] leading-relaxed max-w-[260px]">INDRA's SACHET feed holds no active bulletin from IMD, CWC or a state SDMA.</p>
+                  <p className="text-xs text-[#7A8599] leading-relaxed max-w-[260px]">INDRA&apos;s SACHET feed holds no active bulletin from IMD, CWC or a state SDMA.</p>
                 </div>
               )}
 
