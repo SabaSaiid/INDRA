@@ -433,20 +433,31 @@ make doctor        # or: ./start.sh doctor
 # 2. Start Docker infrastructure (PostGIS, Redis, Redpanda)
 make infra-up      # or: ./start.sh infra up
 
-# 3. Launch the FastAPI backend (with auto-reload and Swagger docs)
+# 3. Install dependencies, create the schema, and give each operator account a password
+make setup         # or: ./start.sh setup
+(cd backend && .venv/bin/alembic upgrade head)
+backend/.venv/bin/python scripts/set_operator_password.py --all --generate
+
+# 4. Launch the FastAPI backend (with auto-reload and Swagger docs)
 make dev           # or: ./start.sh
 
-# 4. Or launch as background daemon & inspect status
+# 5. Or launch as background daemon & inspect status
 make bg            # or: ./start.sh bg
 make status        # or: ./start.sh status
 make logs          # or: ./start.sh logs
 
-# 5. Run the 10-Scene Patna SIH Verification Simulation
-make demo          # or: ./start.sh demo
+# 6. Check the live feeds
+curl -s localhost:8000/api/meta/sources
 
-# 6. Stop all background services
+# 7. Stop all background services
 make stop          # or: ./start.sh stop
 ```
+
+**No password is in this repository.** The operator accounts (`admin`, `commander`, `analyst`,
+`citizen`) live in `user_profiles`, and an account with no password set cannot sign in. Step 3
+generates one per account and prints each once; [`docs/setup.md`](docs/setup.md) has the other
+ways to set them. **After deploying this version to a server that already has data, run
+`alembic upgrade head` and then set the passwords, or nobody can sign in.**
 
 #### Available Shell Commands:
 | Command | `make` Shortcut | Description |
@@ -456,11 +467,14 @@ make stop          # or: ./start.sh stop
 | `./start.sh stop` | `make stop` | Gracefully stop backend server processes |
 | `./start.sh restart` | `make restart` | Gracefully restart backend server |
 | `./start.sh status` | `make status` | Inspect backend status, port 8000, and Docker containers |
-| `./start.sh infra up` | `make infra-up` | Spin up PostGIS (5432), Redis (6379), and Redpanda (19092) |
+| `./start.sh infra up` | `make infra-up` | Spin up PostGIS (5433), Redis (6379), and Redpanda (19092) |
 | `./start.sh infra down` | `make infra-down` | Stop and tear down Docker infrastructure |
 | `./start.sh doctor` | `make doctor` | Run full environment audit (Python, venv, deps, ports, Docker) |
-| `./start.sh demo` | `make demo` | Run the 10-Scene Patna flood verification demonstration |
-| `./start.sh test` | `make test` | Execute automated API endpoint probes |
+| `./start.sh test` | `make smoke` | Execute automated API endpoint probes against the running backend |
+| — | `make test` / `make test-integration` | Backend pytest suite, on its own `indra_test` database |
+| `./start.sh e2e-backend` | `make e2e-backend` | Disposable backend for the browser tests: port 8100, database `indra_e2e` |
+| — | `make e2e` | Playwright against that backend; it refuses to run against anything but an `_e2e` one |
+| `./start.sh e2e-reset` | `make e2e-reset` | Drop and recreate `indra_e2e` |
 | `./start.sh logs` | `make logs` | Stream live backend server output |
 | `./start.sh clean` | `make clean` | Purge caches (`__pycache__`), logs, and PID files |
 
@@ -488,6 +502,8 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+alembic upgrade head
+python ../scripts/set_operator_password.py --all      # prompts twice per account
 uvicorn app.main:app --reload --port 8000
 ```
 Interactive Swagger API documentation: `http://localhost:8000/docs`
@@ -500,16 +516,15 @@ npm run dev
 ```
 Open `http://localhost:3000` to access the **INDRA Live Command Center**.
 
-#### 5. Run the Patna Demonstration against the live backend
-```bash
-backend/.venv/bin/python scripts/run_patna_demo.py
-```
-Posts five synthetic citizen reports through `POST /api/reports/submit`, waits for the pipeline to
-fuse them, and prints the event, its full verification receipt and the heat map — **every number read
-back from the API**. It exits non-zero if no event is produced, so it doubles as a smoke test.
-
-Requires the backend running (`./start.sh -b`) and `DEMO_MODE=false`, which is now the default. It
-refuses to narrate demo-mode placeholder events as real results.
+#### 5. See it work on real data
+Within minutes of startup the **Early Warnings** page fills from NDMA's SACHET feed and
+**Telemetry Analytics** from Open-Meteo rainfall. Set `METAR_POLLER_ENABLED`,
+`MASTODON_POLLER_ENABLED` and `NEWS_POLLER_ENABLED` to `true` in `.env` for airport observations,
+posts and headlines; `curl -s localhost:8000/api/meta/sources` shows each feed's state. An event
+forms only when real reports agree: two people within 5 km, each filing what they actually see
+through **Report Incident**. Nothing in this repository generates reports, and the test suites
+write only to their own databases (`indra_test`, `indra_e2e`). To approve or reject an event,
+sign in from the dashboard's top bar as `commander` or `admin`.
 
 </details>
 
