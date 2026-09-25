@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
@@ -19,8 +18,19 @@ import {
   type AgencyAlert,
 } from '@/lib/api';
 import { getRelativeTime, formatAgo } from '@/lib/utils';
-import { getWeatherMedia } from '@/lib/weather-media';
-import { ArrowRight } from 'lucide-react';
+import { getHazardTile, type HazardIconName } from '@/lib/hazard-tile';
+import {
+  ArrowRight,
+  CircleAlert,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  Mountain,
+  Thermometer,
+  Waves,
+  Wind,
+  type LucideIcon,
+} from 'lucide-react';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 
 // IMD colour code for a CAP severity, as the Early Warnings page shows it.
@@ -98,6 +108,17 @@ function WarningsInForce() {
     </div>
   );
 }
+
+const HAZARD_ICONS: Record<HazardIconName, LucideIcon> = {
+  flood: Waves,
+  rain: CloudRain,
+  thunderstorm: CloudLightning,
+  cyclone: Wind,
+  fog: CloudFog,
+  heatwave: Thermometer,
+  landslide: Mountain,
+  other: CircleAlert,
+};
 
 // Spine color per severity (Low Pressure palette)
 const spineColor: Record<string, string> = {
@@ -227,7 +248,8 @@ export default function RecentEventsList({
               const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
               const isSelected = selectedEventId === event.id;
               const spine = spineColor[event.severity] ?? '#9CA3AF';
-              const media = getWeatherMedia(event.eventType);
+              const tile = getHazardTile(event.eventType);
+              const HazardIcon = HAZARD_ICONS[tile.iconName];
 
               return (
                 <motion.div
@@ -243,20 +265,16 @@ export default function RecentEventsList({
                     borderLeft: `3px solid ${spine}`,
                   }}
                 >
-                  {/* Weather Condition Photo */}
+                  {/* Hazard tile: the event type as a colour and an icon, not a picture of the event */}
                   <div
-                    className={`relative w-12 h-9 rounded-md overflow-hidden flex-shrink-0 bg-[#E8E2D4] border border-[#E8E2D4] shadow-2xs transition-all ${
+                    role="img"
+                    aria-label={`${event.eventType} icon`}
+                    className={`relative w-12 h-9 rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center border border-[#E8E2D4] shadow-2xs transition-all ${
                       isSelected ? 'ring-1.5 ring-blue-500' : ''
                     }`}
+                    style={{ background: tile.gradient }}
                   >
-                    <Image
-                      src={media.src}
-                      alt={`${media.condition} in ${event.placeLabel ?? formatPlace(event.city, event.state)}`}
-                      width={48}
-                      height={36}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      unoptimized
-                    />
+                    <HazardIcon className="w-4 h-4 text-white/90" aria-hidden="true" />
                   </div>
 
                   {/* Content */}
