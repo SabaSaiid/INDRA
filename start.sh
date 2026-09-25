@@ -820,23 +820,7 @@ cmd_doctor() {
         echo "  ${YELLOW}ℹ Environment File:${RESET}    .env missing (will auto-copy from .env.example)"
     fi
 
-    # 5. Labelled Dataset Verification
-    #
-    # This used to report patna_flood_scenario.json as "127 reports verified".
-    # Nothing in that file was verified or even ingested -- it was a hand-written
-    # narrative served straight to the dashboard, and it was deleted on 20 Sep.
-    # The labelled set below is real data this project measures against, and the
-    # banner says plainly that it is synthetic.
-    local labelled_dataset="$DATA_DIR/labelled/reports_v1.csv"
-    if [[ -f "$labelled_dataset" ]]; then
-        local drows
-        drows=$(( $(wc -l < "$labelled_dataset" | tr -d ' ') - 1 ))
-        echo "  ${GREEN}✓ Labelled Dataset:${RESET}    reports_v1.csv ($drows synthetic rows, train/test split)"
-    else
-        echo "  ${YELLOW}ℹ Labelled Dataset:${RESET}    Missing at $labelled_dataset"
-    fi
-
-    # 6. Docker & Infrastructure Check
+    # 5. Docker & Infrastructure Check
     local DOCKER_CMD
     DOCKER_CMD=$(get_docker_compose_cmd)
     if [[ -n "$DOCKER_CMD" ]]; then
@@ -852,7 +836,7 @@ cmd_doctor() {
         echo "  ${YELLOW}ℹ Docker CLI:${RESET}          Docker / Docker Compose not installed."
     fi
 
-    # 7. Port Occupancy Check
+    # 6. Port Occupancy Check
     local port_pids
     port_pids=$(get_pid_on_port "$PORT")
     if [[ -n "$port_pids" ]]; then
@@ -861,7 +845,7 @@ cmd_doctor() {
         echo "  ${GREEN}✓ Port $PORT:${RESET}             Available"
     fi
 
-    # 8. Frontend Health & Hygiene Check
+    # 7. Frontend Health & Hygiene Check
     if [[ -f "$FRONTEND_DIR/scripts/doctor.sh" ]]; then
         echo ""
         (cd "$FRONTEND_DIR" && bash "$FRONTEND_DIR/scripts/doctor.sh")
@@ -984,17 +968,38 @@ cmd_test() {
     fi
 
     # Test 9: POST /api/auth/token (JWT Auth)
-    echo -n "  Testing POST /api/auth/token (JWT Auth) ... "
-    local auth_resp
-    auth_resp=$(curl -s -m 5 -X POST "$BASE_URL/api/auth/token" \
+    # No password lives in this script: an unknown user must be refused, and a
+    # real login is tried only when INDRA_SMOKE_USER and INDRA_SMOKE_PASSWORD
+    # are both set in the environment.
+    echo -n "  Testing POST /api/auth/token (rejects unknown user) ... "
+    local auth_code
+    auth_code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 -X POST "$BASE_URL/api/auth/token" \
         -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "username=admin&password=admin123" 2>/dev/null)
-    if echo "$auth_resp" | grep -q '"access_token"'; then
-        echo "${GREEN}✓ PASSED${RESET}"
+        -d "username=indra-smoke-probe&password=invalid" 2>/dev/null)
+    if [[ "$auth_code" == "401" ]]; then
+        echo "${GREEN}✓ PASSED (HTTP 401)${RESET}"
         passed=$((passed + 1))
     else
-        echo "${RED}✘ FAILED${RESET}"
+        echo "${RED}✘ FAILED (HTTP $auth_code, expected 401)${RESET}"
         failed=$((failed + 1))
+    fi
+
+    echo -n "  Testing POST /api/auth/token (operator login) ... "
+    if [[ -n "$INDRA_SMOKE_USER" && -n "$INDRA_SMOKE_PASSWORD" ]]; then
+        local auth_resp
+        auth_resp=$(curl -s -m 5 -X POST "$BASE_URL/api/auth/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "username=$INDRA_SMOKE_USER" \
+            --data-urlencode "password=$INDRA_SMOKE_PASSWORD" 2>/dev/null)
+        if echo "$auth_resp" | grep -q '"access_token"'; then
+            echo "${GREEN}✓ PASSED${RESET}"
+            passed=$((passed + 1))
+        else
+            echo "${RED}✘ FAILED${RESET}"
+            failed=$((failed + 1))
+        fi
+    else
+        echo "${DIM}○ skipped (set INDRA_SMOKE_USER and INDRA_SMOKE_PASSWORD to run it)${RESET}"
     fi
 
     echo ""
