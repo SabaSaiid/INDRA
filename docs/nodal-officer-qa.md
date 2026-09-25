@@ -7,7 +7,8 @@ about this backend. Each one has a number, a file or a test behind it.
 faking it.* Every answer below follows from that, including the uncomfortable ones. If you are
 ever unsure what to say, say what is true and say where it is written down.
 
-**Verified 21 Sep 2026; updated 22 Sep after the official-dispatch route and the dashboard audit.**
+**Verified 21 Sep 2026; updated 22 Sep after the official-dispatch route and the dashboard audit.
+Updated 25 Sep after every demo implementation was deleted.**
 
 ---
 
@@ -21,11 +22,13 @@ Six weighted factors. The score is the weighted mean **over the factors that act
 confidence = Σ_online(weight × score) / Σ_online(weight)
 ```
 
-For the demo event on 21 Sep: `0.3987 / 0.80 = 0.4984`. On 22 Sep Patna was wetter, and the same
-five reports gave `0.4117 / 0.80 = 0.5146`; the weather factor is live, so expect the number to
-move between rehearsals. The receipt prints every factor, its weight, its score, its points and
-whether it was `computed` or `offline`, so the arithmetic can be checked on the spot. The
-dashboard's receipt now shows the coverage under the score and the division beneath the factors.
+A worked example, from a 20 Sep test cluster of five scripted reports: `0.3987 / 0.80 = 0.4984`.
+On 22 Sep, with more rain in Patna, the same five gave `0.4117 / 0.80 = 0.5146`. The weather factor
+is live, so the same reports score differently on a different day. The script, the reports and the
+event were deleted on 25 Sep; only the arithmetic is quoted. The receipt prints every factor, its
+weight, its score, its points and whether it was `computed` or `offline`, so the arithmetic can be
+checked on the spot. The dashboard's receipt now shows the coverage under the score and the
+division beneath the factors.
 
 ### What does `factor_coverage` mean?
 
@@ -39,21 +42,22 @@ Re-normalising makes the score usable; publishing the coverage keeps it honest.
 
 **Never quote the score without the coverage.**
 
-### Why is the demo event only 0.4984? Isn't that a failure?
+### Why do new events score only about 0.5? Isn't that a failure?
 
 No — it is the system working.
 
-That event is five unverified citizen reports, from one source type, in a city that got 0.2 mm of
-rain. Nobody has confirmed it, no official channel has reported it, and there is no photograph.
+A fresh event is typically a few unverified citizen reports, from one source type, often on a dry
+day. Nobody has confirmed it, no official channel has reported it, and there is no photograph.
 A platform that called that a verified disaster would be the broken one.
 
-Watch what it does instead: it quarantines the event and puts it in front of a human, and the
-receipt shows exactly which evidence produced the number. **Add more independent reports and the
-density factor rises. Add real rainfall and the weather factor rises. Add a report from a trusted
-source and source reliability rises.** Measured 22 Sep: the five Patna reports scored 0.5146,
-`QUARANTINED`; the same five plus one official dispatch filed by the commander scored **0.6065,
-`PENDING_HUMAN_REVIEW`** — source reliability 0.60 → 1.00, and the event crossed into a human's
-queue. All of it visible, live, in the receipt (`run_patna_demo.py --official`).
+Watch what it does instead: it quarantines the event (or, if the reports describe a High or
+Critical situation, sends it straight to review) and puts it in front of a human, and the receipt
+shows exactly which evidence produced the number. **Add more independent reports and the density
+factor rises. Add real rainfall and the weather factor rises. Add a report from a trusted source
+and source reliability rises.** Measured 22 Sep on a test cluster of five reports: 0.5146,
+`QUARANTINED`; the same five plus one official dispatch through the commander's route scored
+**0.6065, `PENDING_HUMAN_REVIEW`**, with source reliability 0.60 → 1.00. Those were test reports,
+since deleted. On stage, point at the receipt of whatever real event is on screen.
 
 ### Could you not just raise the numbers?
 
@@ -83,7 +87,7 @@ on 20 Sep. Rather than filling those factors with a plausible number, the receip
 `offline` with a reason on every single event and lowers the stated coverage to 0.80.
 
 Earlier in this project those two factors were filled with **random numbers**. Removing that is
-what dropped the demo event's confidence from 0.76 to 0.43. We kept the lower, true number.
+what dropped the test cluster's confidence from 0.76 to 0.43. We kept the lower, true number.
 
 ### You trained a classifier. Why isn't it running?
 
@@ -140,15 +144,15 @@ Four things, in order:
 ### What if a source lies?
 
 Each source type carries a reliability prior — official dispatch 1.00, CWC 0.95, automatic weather
-station 0.90, citizen app 0.60, social 0.50 — and each report is also scored on text quality. One
-source cannot auto-publish an event on its own.
+station 0.90, citizen app 0.60, news 0.55, social 0.50 — and each report is also scored on text
+quality. One source cannot auto-publish an event on its own.
 
 **A citizen cannot claim to be official.** The public endpoint stamps every report `CITIZEN_APP`
 whatever the request says. A trusted report comes through `POST /api/reports/official`, which needs
 a Commander or Admin token and stores who filed it; provenance shows that name beside the report.
-Be precise about the limit: the route is as trusted as the account behind it, and the demo
-accounts' passwords are part of the dashboard's persona switcher. This build shows the mechanism
-(role-gated, attributed), not a secret (BUG-025, closed 22 Sep).
+Be precise about the limit: the route is exactly as trusted as the account behind it. Since 25 Sep
+no password ships with the dashboard or the code; each operator signs in with a password set for
+that deployment and stored only as a bcrypt hash. There is no MFA (BUG-025, closed 22 Sep).
 
 ### How do you know the audit trail wasn't edited?
 
@@ -182,22 +186,44 @@ the platform should say so rather than accept it.
 
 ### What is real and what is synthetic?
 
-| Real | Synthetic |
-|---|---|
-| Open-Meteo rainfall — live, and polled every 10 minutes into `station_readings` | The demo report texts (five sentences about Kankarbagh) |
-| Every confidence, severity, coverage and polygon — computed from the rows in the database | The seed dataset, which is labelled synthetic and whose script **refuses to run without `--synthetic`** |
-| The audit chain, the H3 cells, the cluster geometry | The labelled ML dataset (300 rows, `DATASHEET.md`) |
+**Everything the platform serves is real, and nothing in the repository generates data for show.**
 
-There is **no IMD feed, no CWC feed and no social media feed.** Those integrations need API keys
-this team does not have, decided on 16 Sep. Open-Meteo is the one external source, and it needs no
-key, which is why it is the one that is real.
+| Source | What it is |
+|---|---|
+| NDMA SACHET, every 5 min | Official IMD, CWC and state SDMA CAP warnings, in the issuer's words |
+| Open-Meteo, every 10 min | Modelled 24 h rainfall at six fixed city points, into `station_readings` |
+| METAR, every 10 min (when enabled) | Observed weather at India's aerodromes |
+| Mastodon and Google News (when enabled) | Public #IMD and weather posts, and weather headlines: `SOCIAL_MEDIA` 0.50 and `NEWS_MEDIA` 0.55, second-hand by nature |
+| People | Citizen reports through the dashboard's form or `POST /api/reports/submit`; official dispatches filed by a signed-in commander |
+| Computed | Every confidence, severity, coverage, polygon, H3 cell and audit row, from the rows in the database |
+
+**Hand-written, and never served:** two labelled test sets, `data/labelled/reports_v1.csv` (300
+rows, frozen with the AI/ML layer, `DATASHEET.md`) and `backend/tests/fixtures/hazards_v1.csv`
+(360 rows, `hazards_v1.md`), each documented as written for this project. Tests write only to
+their own databases (`indra_test`, `indra_e2e`).
+
+There is **no IMD sensor feed, no CWC gauge feed and no Twitter/X feed**: they need credentials
+this team does not have, decided on 16 Sep. IMD and CWC appear only through the warnings they
+publish on SACHET.
+
+### Did you seed this dashboard for the presentation?
+
+No, and the repository can no longer do it. On 25 Sep the demo mode and its fallback events, the
+seed script, the scripted report generators and the start command that ran them, the dashboard's
+invented operator profiles and station telemetry, and the AI-generated hazard photos were deleted.
+An empty database shows an empty event list. What is on screen came from SACHET, Open-Meteo, METAR,
+Mastodon, Google News, or a person who filed a report. The browser tests now run against their own
+backend and database, so not even a test report reaches the live one.
 
 ### The README used to show 94% confidence and 127 signals. What happened?
 
 It was removed on 21 Sep because none of it existed. There was no IMD, CWC or social feed behind
 those "48 social media posts" and "2 CWC river gauges", image verification was offline, and the
-scoring engine **cannot reach 0.94**. It was replaced with a measured run, and a note recording
-what was there before, so the change is auditable rather than quiet.
+**94% never came from the scoring engine**. It was replaced with the engine's real output for a set
+of test reports, labelled as a worked example, and a note recording what was there before, so the
+change is auditable rather than quiet. On 25 Sep the rest went too: the demo mode and its fallback
+events, the seed script, the scripted report generators and the dashboard's invented operator
+profiles.
 
 That is worth saying out loud if anyone has seen the old version: we found it, and we took it out.
 
@@ -207,8 +233,8 @@ Two jobs as of 21 Sep: the Open-Meteo cache keyed by H3 cell, and the set of rep
 broadcast to the dashboard, so a Kafka re-delivery does not show the same report twice — now
 across a restart, which process memory could not do.
 
-Both fall back to memory if Redis is gone. `redis-cli dbsize` after a demo run shows it holding
-real keys.
+Both fall back to memory if Redis is gone. `redis-cli dbsize` after a few minutes of live traffic
+shows it holding real keys.
 
 ---
 
@@ -238,14 +264,16 @@ All three are in the [bug register](bug-register.md), with dates.
 
 ### What would you do next, with more time?
 
-In order: a real login instead of demo accounts whose passwords ship with the dashboard; anchor
-the audit chain's head hash externally so a truncated tail is detectable; a reporter identity for
-the citizen channel, so dedup can tell the same person repeating from a second witness; and shared
-pub/sub for the WebSocket fan-out, so more than one backend process can run.
+In order: anchor the audit chain's head hash externally so a truncated tail is detectable; a
+reporter identity for the citizen channel, so dedup can tell the same person repeating from a
+second witness; shared pub/sub for the WebSocket fan-out, so more than one backend process can run;
+and MFA for operator accounts.
 
 Three items from the old version of this list were done on 22 Sep: every write is now token-gated,
 clustering uses a true great-circle radius instead of degrees, and the dedup threshold was
-measured and kept. All of it is in the [bug register](bug-register.md). None of it is a surprise.
+measured and kept. On 25 Sep the demo accounts were retired: operators sign in, and no password
+ships with the dashboard. All of it is in the [bug register](bug-register.md). None of it is a
+surprise.
 
 ### What is the single weakest part?
 
