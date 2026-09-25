@@ -1,6 +1,8 @@
-import { test, expect, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { test, expect } from './fixtures';
+import { API } from './env';
 
 /**
  * The dashboard shows live data, or says it cannot — never invented data.
@@ -54,8 +56,7 @@ async function settle(page: Page) {
 
 test.describe('dashboard renders live data or an honest empty state', () => {
   test('backend is reachable and reports healthy', async ({ request }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-    const res = await request.get(`${api}/healthz`);
+    const res = await request.get(`${API}/healthz`);
     expect(res.ok()).toBeTruthy();
 
     const body = await res.json();
@@ -77,8 +78,7 @@ test.describe('dashboard renders live data or an honest empty state', () => {
   });
 
   test('KPI numbers come from the backend, not the page', async ({ page }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-    const summary = await (await page.request.get(`${api}/api/dashboard/summary`)).json();
+    const summary = await (await page.request.get(`${API}/api/dashboard/summary`)).json();
 
     await page.goto('/');
     await settle(page);
@@ -98,13 +98,13 @@ test.describe('dashboard renders live data or an honest empty state', () => {
   });
 
   test('a submitted report reaches the dashboard', async ({ page }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-
-    const before = await (await page.request.get(`${api}/api/dashboard/summary`)).json();
+    // Only ever against the disposable E2E backend (global-setup.ts). The
+    // 'E2E probe' prefix keeps a stray row recognisable wherever it ends up.
+    const before = await (await page.request.get(`${API}/api/dashboard/summary`)).json();
 
     // A real submission through the real endpoint: validated, credibility-scored,
     // written to Postgres and published to Kafka.
-    const submit = await page.request.post(`${api}/api/reports/submit`, {
+    const submit = await page.request.post(`${API}/api/reports/submit`, {
       data: {
         latitude: 25.5941,
         longitude: 85.1376,
@@ -117,7 +117,7 @@ test.describe('dashboard renders live data or an honest empty state', () => {
     await expect
       .poll(
         async () => {
-          const now = await (await page.request.get(`${api}/api/dashboard/summary`)).json();
+          const now = await (await page.request.get(`${API}/api/dashboard/summary`)).json();
           return now.total_reports;
         },
         { timeout: 30_000, intervals: [1000] }
@@ -130,8 +130,7 @@ test.describe('dashboard renders live data or an honest empty state', () => {
   });
 
   test('agency alerts are real CAP warnings from named agencies', async ({ page }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-    const res = await page.request.get(`${api}/api/alerts/agency?limit=50`);
+    const res = await page.request.get(`${API}/api/alerts/agency?limit=50`);
     expect(res.ok()).toBeTruthy();
 
     const alerts = await res.json();

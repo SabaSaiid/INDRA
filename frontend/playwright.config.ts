@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { API, BASE, PORT } from './e2e/env';
 
 /**
  * End-to-end checks for the dashboard, with screenshots.
@@ -16,12 +17,20 @@ import { defineConfig, devices } from '@playwright/test';
  * live data changes every run, so pixel diffing would fail for the right reason
  * at the wrong time.
  *
- * `webServer` builds nothing — it serves whatever is already built and expects
- * the backend on :8000. Run `npm run build` and start the API first, or use
- * `npm run e2e` which is wired for exactly that.
+ * It runs only against the disposable E2E backend: `make e2e-backend` starts it
+ * on indra_e2e (port 8100), and `make e2e` runs this suite. e2e/env.ts refuses
+ * an unset, non-loopback or :8000 E2E_API_URL, and e2e/global-setup.ts refuses
+ * a backend that cannot prove it is the E2E one. There is no default backend.
+ *
+ * `webServer` builds the dashboard with NEXT_PUBLIC_API_BASE_URL set to that
+ * backend, into .next-e2e so the dev build in .next is left alone, and serves
+ * it on :3100. It never reuses a running server, whose build could point
+ * anywhere. `npx next build` rather than `npm run build`, whose prebuild step
+ * would wipe .next.
  */
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   // Serial: these tests drive one shared backend and one database. Parallel
   // workers would race each other's submitted reports.
   workers: 1,
@@ -33,7 +42,7 @@ export default defineConfig({
     ['html', { outputFolder: 'e2e/report', open: 'never' }],
   ],
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
+    baseURL: BASE,
     // Every test gets a screenshot, passing or failing -- the point is the
     // artefact, not only the diagnosis.
     screenshot: 'on',
@@ -48,9 +57,13 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 120_000,
+    command: `npx next build && npx next start -p ${PORT}`,
+    url: BASE,
+    reuseExistingServer: false,
+    timeout: 300_000,
+    env: {
+      NEXT_PUBLIC_API_BASE_URL: API,
+      NEXT_DIST_DIR: '.next-e2e',
+    },
   },
 });

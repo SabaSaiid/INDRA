@@ -1,6 +1,7 @@
-import { test, expect, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { test, expect } from './fixtures';
 
 /**
  * What a cold load shows, before anybody touches anything.

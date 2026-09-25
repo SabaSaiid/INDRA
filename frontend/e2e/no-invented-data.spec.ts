@@ -1,6 +1,7 @@
-import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { test, expect } from './fixtures';
+import { API } from './env';
 
 /**
  * 22 Sep: every page, checked for the invented values removed that day.
@@ -89,8 +90,8 @@ test('the warnings page labels what is official and what is INDRA', async ({ pag
   await page.goto('/alerts');
   await page.waitForTimeout(4000);
 
-  const alerts = await (await request.get('http://localhost:8000/api/alerts/agency?limit=100')).json();
-  const events = await (await request.get('http://localhost:8000/api/events?time_range=7d')).json();
+  const alerts = await (await request.get(`${API}/api/alerts/agency?limit=100`)).json();
+  const events = await (await request.get(`${API}/api/events?time_range=7d`)).json();
   const severe = events.filter((e: any) => ['CRITICAL', 'HIGH'].includes(String(e.severity).toUpperCase()));
 
   // One card per live SACHET alert and one per severe INDRA event: no more.
@@ -103,7 +104,7 @@ test('the warnings page labels what is official and what is INDRA', async ({ pag
 });
 
 test('the admin console reports the health the backend reports', async ({ page, request }) => {
-  const health = await (await request.get('http://localhost:8000/healthz')).json();
+  const health = await (await request.get(`${API}/healthz`)).json();
   await page.goto('/admin');
   await page.waitForTimeout(4000);
 
