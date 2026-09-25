@@ -779,7 +779,8 @@ detected (BUG-010).
  "operator_id": "OP-CMD-001", "username": "commander", "expires_in": 28800}
 ```
 
-A real HS256 JWT whose claims are `sub` (the username), `role`, `agency`, `operator_id` and `exp`.
+A real HS256 JWT whose claims are `sub` (the username), `role`, `agency`, `operator_id`, `iat` and
+`exp`.
 `expires_in` is in seconds, `JWT_EXPIRY_HOURS` × 3600: 28,800 at the default 8 h.
 
 | Code | When |
