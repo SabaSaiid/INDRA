@@ -1415,23 +1415,24 @@ Then the API crashes.
 
 If our whole demo depends on that API, the system can appear broken.
 
-So we need a **replay/mock data generator**.
+The answer is **not** to fill the gap with replayed or invented data. INDRA does two things instead.
 
-It can replay historical or synthetic scenarios into the exact same ingestion pipeline.
+1. **It says so.** Every poller records a heartbeat, and `GET /api/meta/sources` (the **Geospatial Feeds** page) marks each feed `ok`, `stale`, `failing` or `disabled`; `/healthz` says `degraded` when a non-critical dependency such as Open-Meteo is down.
+2. **It keeps what already arrived and scores with what is left.** If Open-Meteo is down and no recent reading of it is stored, the weather factor goes `offline` with a reason and coverage drops from 0.80 to 0.55; the event is still created and still scored.
 
 ```text
-LIVE MODE
-External source → Kafka → processing
+LIVE
+External source → poller / Kafka → processing
 
-FAILSAFE MODE
-Replay generator → Kafka → same processing
+FEED DOWN
+Feed marked stale or failing → remaining evidence → same processing, lower coverage
 ```
 
 This is important:
 
-**The fallback should still use the real pipeline.**
+**A gap in the data is shown as a gap.**
 
-Do not create a fake shortcut that directly writes the final event into the database.
+A replay generator writing into the same database would put invented rows beside real ones, and nobody downstream could tell them apart. Nor should anything take a shortcut that writes a final event straight into the database.
 
 ---
 
