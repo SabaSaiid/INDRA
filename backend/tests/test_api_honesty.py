@@ -248,9 +248,8 @@ def test_no_html_templates_are_served_from_the_backend():
     would mean a second, hand-written view of the data — which is how the /legacy
     page came to claim IMD and CWC feeds that never existed.
 
-    Deliberately a structural check rather than a grep for the old claim strings:
-    main.py's comments quote several of them verbatim to record why they went, and
-    that explanation is worth keeping.
+    Deliberately a structural check rather than a grep for the old claim strings,
+    which the docstrings in this file still quote to record why they went.
     """
     from pathlib import Path
 

@@ -132,7 +132,7 @@ async def filter_options(db: AsyncSession = Depends(get_db)):
     try:
         payload = await _compute(db)
     except Exception as e:
-        # No demo payload: a dropdown of invented options would send people to
+        # No fallback payload: a dropdown of invented options would send people to
         # filter for events that do not exist.
         logger.warning(f"Database query failed in filter_options: {e}")
         raise HTTPException(status_code=503, detail="Database unavailable")

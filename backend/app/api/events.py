@@ -107,10 +107,10 @@ def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
         "impact_radius_km": row["impact_radius_km"],
         "lat": row["lat"],
         "lng": row["lng"],
-        # Was receipt.get("city", "Unknown") — read from a receipt key only the
-        # synthetic seeder ever wrote, so every real event was served as
-        # "Unknown". These are columns now, and a name we do not have is null
-        # rather than a word that looks like one.
+        # Was receipt.get("city", "Unknown") — read from a receipt key no
+        # pipeline code writes, so every real event was served as "Unknown".
+        # These are columns now, and a name we do not have is null rather than
+        # a word that looks like one.
         "city": row["district"],
         "state": row["state"],
         "place_precision": row["place_precision"],
@@ -869,7 +869,7 @@ async def event_provenance(
     `chain.checked` is therefore the ledger's row count.
 
     Citizens are refused: this exposes other people's raw report text. There is
-    no demo fallback — provenance that isn't real is worse than a 503.
+    no fallback payload — provenance that isn't real is worse than a 503.
     """
     event_uuid = _event_uuid_or_404(event_id)
 

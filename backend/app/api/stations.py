@@ -60,7 +60,7 @@ async def latest_observations(
     try:
         rows = (await db.execute(LATEST_SQL, {"feed": feed, "hours": max_age_hours})).mappings().all()
     except Exception as e:
-        # No demo payload: an invented observation on a real map is the one
+        # No fallback payload: an invented observation on a real map is the one
         # thing this layer must never show.
         logger.warning(f"Database query failed in latest_observations: {e}")
         raise HTTPException(status_code=503, detail="Database unavailable")

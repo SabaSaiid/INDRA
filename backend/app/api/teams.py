@@ -1,6 +1,6 @@
 """
 INDRA Platform — Teams API
-Operational Disaster Response Units (NDRF, SDRF, IMD, CWC) and Team Sixth Sense Showcase
+Operational Disaster Response Units (NDRF, SDRF, IMD, CWC) and the Team Sixth Sense roster
 """
 
 import logging
@@ -349,9 +349,8 @@ async def assign_team(
 
     A dispatch that did not happen must not answer as if it had. This used to
     return 200 for a team that does not exist, and on any database error it
-    edited an in-memory DEMO_TEAMS list instead and answered "Updated in demo
-    store" — whatever DEMO_MODE said. The operator saw a unit dispatched when
-    nothing had been written.
+    edited an in-memory list instead and answered as though it had dispatched.
+    The operator saw a unit dispatched when nothing had been written.
     """
     event_uuid = None
     if payload.event_id:

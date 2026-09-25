@@ -240,9 +240,7 @@ async def submit_official_report(
     1.00, because that factor is the maximum over the cluster's sources; it
     does not bypass corroboration, weather or human review.
 
-    The route is exactly as trusted as the account behind it. The demo accounts
-    are published in the dashboard for its persona switcher, so in this build
-    it shows the mechanism — role-gated and attributed — not a secret.
+    The route is exactly as trusted as the account behind it.
     """
     return await _ingest(
         report, db, source_type="OFFICIAL_DISPATCH", submitted_by=operator.sub,
@@ -284,10 +282,10 @@ async def list_recent_reports(
     counting a duplicate as a separate sighting is the double-count the dedup
     step exists to prevent, and drawing it would undo that on the screen.
 
-    The layer exists because 4 of the 9 reports in the demo database belong to
-    no event — one that could not reach DBSCAN_MIN_SAMPLES alone, and three
-    suppressed against it — and were therefore invisible everywhere except a
-    total in the KPI strip (BUG-035, BUG-037).
+    The layer exists because reports that joined no event — one that could
+    not reach DBSCAN_MIN_SAMPLES alone, and the duplicates suppressed against
+    it — were otherwise invisible everywhere except a total in the KPI strip
+    (BUG-035, BUG-037).
     """
     conditions = ["r.created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
     if not include_feeds:
@@ -380,7 +378,7 @@ async def track_report(docket: str, db: AsyncSession = Depends(get_db)):
             )
         ).fetchone()
     except Exception as e:
-        # No demo payload: an invented status for a real citizen's report is
+        # No fallback payload: an invented status for a real citizen's report is
         # the one answer this route must never give.
         logger.warning(f"Database query failed in track_report: {e}")
         raise HTTPException(status_code=503, detail="Database unavailable")

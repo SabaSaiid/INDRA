@@ -73,9 +73,9 @@ async def get_dashboard_summary(db: AsyncSession = Depends(get_db)):
         ),
         -- "Verified" means the system or a human actually verified it.
         -- This used to be `review_status != 'REJECTED'`, which counted
-        -- QUARANTINED and PENDING_HUMAN_REVIEW as verified: the one event in
-        -- the demo database scored 0.4984, was quarantined, was assigned the
-        -- quadrant "Noise", and was still advertised as a Verified Event
+        -- QUARANTINED and PENDING_HUMAN_REVIEW as verified: an event that
+        -- scored 0.4984, was quarantined, was assigned the quadrant "Noise",
+        -- and was still advertised as a Verified Event
         -- (BUG-034). Everything not rejected is still counted, but under a
         -- name that says what it is.
         events_current AS (
