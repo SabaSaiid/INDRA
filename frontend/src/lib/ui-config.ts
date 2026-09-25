@@ -61,7 +61,6 @@ export const navItems: NavItem[] = [
     icon: Map,
     href: '/live-map',
     section: 'tactical',
-    badge: { text: 'LIVE', variant: 'live' },
     description: 'Events, official warnings and reports on a 3D globe',
   },
   {

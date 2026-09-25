@@ -157,12 +157,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     >
                       Platform Settings
                     </h2>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      SYNC ACTIVE
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-white/10 text-slate-300 border border-white/15">
+                      SAVED IN THIS BROWSER
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    Saved only in this browser • SIH26069
+                    Display preferences • SIH26069
                   </p>
                 </div>
               </div>
@@ -816,7 +816,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             {/* Footer Quick Action */}
             <div className="p-3 border-t border-white/10 bg-black/30 flex items-center justify-between text-xs shrink-0">
               <span className="text-[11px] text-slate-400 font-mono">
-                Saved in this browser only
+                Changes save automatically
               </span>
               <Link
                 href="/settings"

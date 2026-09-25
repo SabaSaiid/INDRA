@@ -18,6 +18,7 @@ import {
   type AgencyAlert,
 } from '@/lib/api';
 import { getRelativeTime, formatAgo } from '@/lib/utils';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { getHazardTile, type HazardIconName } from '@/lib/hazard-tile';
 import {
   ArrowRight,
@@ -141,6 +142,7 @@ export default function RecentEventsList({
   loading?: boolean;
   error?: unknown;
 }) {
+  const { connected } = useIndraWebSocket();
   const [internalEvents, setInternalEvents] = useState<RecentEvent[]>([]);
   const [internalLoading, setInternalLoading] = useState<boolean>(true);
   const [internalError, setInternalError] = useState<unknown>(null);
@@ -317,10 +319,13 @@ export default function RecentEventsList({
           </motion.div>
         )}
 
-        {/* Telemetry Status Footer */}
+        {/* Status footer: the dot is the live socket's real state */}
         <div className="mt-auto pt-1.5 pb-0.5 border-t border-[#F0EBE0] flex items-center justify-between text-[10px] text-[#7A8599] font-mono flex-shrink-0">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-[#B8873A]'}`}
+              title={connected ? 'Live updates connected' : 'Live updates offline — reconnecting'}
+            />
             <span>{events.length} {events.length === 1 ? 'event' : 'events'} · 7 days</span>
           </span>
           <span className="text-[9px] uppercase tracking-wider text-[#A0988A] flex items-center gap-1">
@@ -329,9 +334,10 @@ export default function RecentEventsList({
                 <span>Scroll for more</span>
                 <span className="text-[10px]">↓</span>
               </>
-            ) : (
-              // This read 'IMD • NDRF Synced': INDRA has no link to either.
+            ) : connected ? (
               'Live from the INDRA API'
+            ) : (
+              'From the INDRA API · updates paused'
             )}
           </span>
         </div>

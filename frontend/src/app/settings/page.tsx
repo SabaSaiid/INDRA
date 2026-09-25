@@ -181,9 +181,8 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex items-center gap-2.5 shrink-0">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] border border-white/15 text-xs font-mono text-emerald-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
-                LIVE SYNC ACTIVE
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] border border-white/15 text-xs font-mono text-slate-300">
+                Saved in this browser
               </div>
               <button
                 onClick={handleExportJson}

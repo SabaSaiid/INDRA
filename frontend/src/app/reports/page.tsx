@@ -72,7 +72,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
-  const { subscribe } = useIndraWebSocket();
+  const { connected, subscribe } = useIndraWebSocket();
 
   const loadReports = useCallback(async () => {
     try {
@@ -158,9 +158,15 @@ export default function ReportsPage() {
               >
                 <Send className="w-3.5 h-3.5" /> Submit Report
               </button>
-              <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400">
-                <Radio className="w-3.5 h-3.5 animate-pulse" />
-                <span>LIVE INGESTION</span>
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono ${
+                  connected
+                    ? 'bg-emerald-950/60 border border-emerald-500/30 text-emerald-400'
+                    : 'bg-amber-950/40 border border-amber-500/30 text-amber-400'
+                }`}
+              >
+                <Radio className={`w-3.5 h-3.5 ${connected ? 'animate-pulse' : ''}`} />
+                <span>{connected ? 'Updates live' : 'Updates paused'}</span>
               </div>
               <button
                 onClick={() => {

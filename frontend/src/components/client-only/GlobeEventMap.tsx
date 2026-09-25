@@ -475,7 +475,7 @@ export default function GlobeEventMap({
   // certainly stale. The backend has broadcast VERIFIED_EVENT since Day 1 and
   // nothing in the frontend has ever listened for it (BUG-036). Listens on the
   // shared connection; this component used to open a raw socket of its own.
-  const { subscribe } = useIndraWebSocket();
+  const { connected, subscribe } = useIndraWebSocket();
   useEffect(() => {
     return subscribe(`globe-map-${variant}`, (msg) => {
       if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT' || msg.type === 'EVENT_REVIEWED') {
@@ -1458,7 +1458,10 @@ export default function GlobeEventMap({
         <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-b border-slate-200/80 bg-[#FDFAF5]">
           {/* Left: Live dot + Title + Incident chip */}
           <div className="flex items-center gap-2 min-w-0">
-            <span className="flex-shrink-0 h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span
+              className={`flex-shrink-0 h-2 w-2 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}
+              title={connected ? 'Live updates connected' : 'Live updates offline — reconnecting'}
+            />
             <span className="text-sm font-semibold text-slate-800 truncate">
               {variant === 'preview' ? 'Tactical Geospatial Grid' : '3D Weather Intelligence Grid'}
             </span>
@@ -1582,7 +1585,9 @@ export default function GlobeEventMap({
             {/* Group 2: Jump to Active Event (Dynamically extracted from live alerts) */}
             <div className="flex items-center gap-1.5 shrink-0 pl-2.5 border-l border-slate-200">
               <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                {markersForDisplay.some((m) => m.severity === 'critical' || m.severity === 'high') && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                )}
                 Active Incidents:
               </span>
               {markersForDisplay
@@ -1823,7 +1828,9 @@ export default function GlobeEventMap({
                 className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-900 text-white backdrop-blur-xl px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-xl text-xs transition-all hover:scale-105 active:scale-95 group"
                 title="Open Live Incidents Roster"
               >
-                <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                <span
+                  className={`flex h-2 w-2 rounded-full ${markersForDisplay.length > 0 ? 'bg-rose-500 animate-ping' : 'bg-slate-500'}`}
+                />
                 {/* Issue 8: clarify this is total map pins, not a filtered count */}
                 <span className="font-semibold">{markersForDisplay.length} map pins</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
@@ -1837,8 +1844,8 @@ export default function GlobeEventMap({
               >
                 <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <Radio className="w-3 h-3 text-rose-400 animate-pulse" />
-                    Live Incident Roster
+                    <Radio className={`w-3 h-3 ${connected ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`} />
+                    {connected ? 'Live Incident Roster' : 'Incident Roster'}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">

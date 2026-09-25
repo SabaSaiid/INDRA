@@ -14,6 +14,7 @@ import {
   PLACEHOLDER_OPERATOR,
 } from '@/lib/ui-config';
 import { useOperatorProfile, AVAILABLE_OPERATOR_PERSONAS } from '@/lib/useOperatorProfile';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   CloudLightning,
   ChevronLeft,
@@ -37,6 +38,7 @@ export default function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { connected } = useIndraWebSocket();
   const { profile: loadedProfile, selectedRole } = useOperatorProfile();
   const rawProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const currentPersona = AVAILABLE_OPERATOR_PERSONAS.find((p) => p.id === selectedRole) || AVAILABLE_OPERATOR_PERSONAS[0];
@@ -265,10 +267,18 @@ export default function Sidebar({
                       v1.2
                     </span>
                   </div>
+                  {/* The socket's real state, not a fixed green. */}
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)] animate-pulse inline-block" />
-                    <p className="text-[10px] font-medium text-emerald-400/90">
-                      Telemetry live
+                    <span
+                      className={cn(
+                        'w-1.5 h-1.5 rounded-full inline-block',
+                        connected
+                          ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)] animate-pulse'
+                          : 'bg-amber-400/80'
+                      )}
+                    />
+                    <p className={cn('text-[10px] font-medium', connected ? 'text-emerald-400/90' : 'text-amber-300/90')}>
+                      {connected ? 'Live' : 'Offline — reconnecting'}
                     </p>
                   </div>
                 </motion.div>

@@ -138,7 +138,7 @@ export default function EventsPage() {
   const [loadError, setLoadError] = useState<unknown>(null);
   const [warningsInForce, setWarningsInForce] = useState<number | null>(null);
   const [verificationEventId, setVerificationEventId] = useState<string | null>(null);
-  const { subscribe } = useIndraWebSocket();
+  const { connected, subscribe } = useIndraWebSocket();
 
   const loadEvents = useCallback(async () => {
     try {
@@ -225,8 +225,8 @@ export default function EventsPage() {
 
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
-                <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span className="text-slate-300 font-mono">LIVE API SYNCED</span>
+                <Radio className={`w-3.5 h-3.5 ${connected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+                <span className="text-slate-300 font-mono">{connected ? 'Updates live' : 'Updates paused'}</span>
               </div>
             </div>
           </div>
