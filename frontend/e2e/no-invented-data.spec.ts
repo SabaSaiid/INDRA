@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from './fixtures';
 import { API } from './env';
+import { PERSONA_MARKERS, TELEMETRY_MARKERS, markersIn } from './invented';
 
 /**
- * 22 Sep: every page, checked for the invented values removed that day.
+ * 22 and 25 Sep: every page, checked for the invented values removed those days.
  *
  * The 21 Sep suite covered the dashboard and four routes against the markers of
  * the deleted mock-data.ts. It could not see the other half of the problem:
@@ -20,7 +21,7 @@ import { API } from './env';
 const SHOTS = path.join(__dirname, 'screenshots');
 fs.mkdirSync(SHOTS, { recursive: true });
 
-/** Every one of these was hardcoded somewhere in the dashboard until 22 Sep. */
+/** Every one of these was hardcoded somewhere in the dashboard until 22 or 25 Sep. */
 const INVENTED = [
   // alerts page: four fake official bulletins and a fake broadcast
   'Cyclone "Marut"',
@@ -50,6 +51,27 @@ const INVENTED = [
   'IMD • NDRF Synced',
   'Grid Synced',
   'IoT hydro-sensors',
+  // 25 Sep: the profile page's invented contact, unit and ledger block
+  '+91 94311',
+  'VOL-CIT-01',
+  'TEAM-SEOC-01',
+  'State Emergency Operations Centre — Bihar / NDMA',
+  'National Grid',
+  'Operational Member',
+  'Block #84920',
+  '8f4b...1a9e',
+  // 25 Sep: the teams banner, the always-on sync badges and the map's labels
+  'Ministry of Earth Sciences',
+  'Production Release',
+  'LIVE API SYNCED',
+  'LIVE INGESTION',
+  'Subcontinent Region',
+  'AI-fused',
+  // 25 Sep: rows the backend's demo fallbacks used to return
+  'IMD Doppler Radar',
+  'rising 4.2cm/hr at Digha Ghat',
+  '11111111-1111-1111-1111-1111111111',
+  'Patna Central Sector',
 ];
 
 const ROUTES = [
@@ -66,7 +88,7 @@ const ROUTES = [
   ['settings', '/settings'],
 ] as const;
 
-test.describe('no page shows the values removed on 22 Sep', () => {
+test.describe('no page shows the values removed on 22 and 25 Sep', () => {
   for (const [name, route] of ROUTES) {
     test(`${name} contains none of them`, async ({ page }) => {
       const failures: string[] = [];
@@ -82,6 +104,8 @@ test.describe('no page shows the values removed on 22 Sep', () => {
       for (const marker of INVENTED) {
         expect(body, `${name} still shows "${marker}"`).not.toContain(marker);
       }
+      expect(markersIn(body, PERSONA_MARKERS), `${name} still shows a persona`).toEqual([]);
+      expect(markersIn(body, TELEMETRY_MARKERS), `${name} still shows invented telemetry`).toEqual([]);
     });
   }
 });
