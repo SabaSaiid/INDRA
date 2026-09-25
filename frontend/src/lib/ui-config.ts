@@ -65,7 +65,6 @@ export const navItems: NavItem[] = [
     icon: LayoutDashboard,
     href: '/',
     section: 'tactical',
-    shortcut: '⌘1',
     description: 'National overview & key telemetry metrics',
   },
   {
@@ -75,8 +74,7 @@ export const navItems: NavItem[] = [
     href: '/live-map',
     section: 'tactical',
     badge: { text: 'LIVE', variant: 'live' },
-    shortcut: '⌘2',
-    description: '3D interactive globe & Doppler radar feeds',
+    description: 'Events, official warnings and reports on a 3D globe',
   },
   {
     id: 'events',
@@ -84,7 +82,6 @@ export const navItems: NavItem[] = [
     icon: CalendarClock,
     href: '/events',
     section: 'tactical',
-    shortcut: '⌘3',
     description: 'Active severe weather alerts & emergency timeline',
   },
 
@@ -95,8 +92,7 @@ export const navItems: NavItem[] = [
     icon: Bell,
     href: '/alerts',
     section: 'intelligence',
-    shortcut: '⌘4',
-    description: 'Flash flood, cyclone & IMD hazard bulletins',
+    description: 'Official IMD, CWC and SDMA warnings via SACHET',
   },
   {
     id: 'reports',
@@ -104,7 +100,6 @@ export const navItems: NavItem[] = [
     icon: FileText,
     href: '/reports',
     section: 'intelligence',
-    shortcut: '⌘5',
     description: 'Citizen ground truth & verified field intelligence',
   },
   {
@@ -113,8 +108,7 @@ export const navItems: NavItem[] = [
     icon: BarChart3,
     href: '/analytics',
     section: 'intelligence',
-    shortcut: '⌘6',
-    description: 'BigQuery trend models & multi-source correlations',
+    description: 'Report volume and event distribution',
   },
   {
     id: 'datasets',
@@ -122,8 +116,7 @@ export const navItems: NavItem[] = [
     icon: Database,
     href: '/datasets',
     section: 'intelligence',
-    shortcut: '⌘7',
-    description: 'IMD raster data, satellite imagery & GIS archives',
+    description: 'The feeds INDRA reads, and what is not connected',
   },
 
   // Command & Roster
@@ -133,7 +126,6 @@ export const navItems: NavItem[] = [
     icon: Users,
     href: '/teams',
     section: 'command',
-    shortcut: '⌘8',
     description: 'Disaster response battalions & command units',
   },
   {
@@ -142,8 +134,7 @@ export const navItems: NavItem[] = [
     icon: User,
     href: '/profile',
     section: 'command',
-    shortcut: '⌘9',
-    description: 'Credentials, security clearance & duty roster',
+    description: 'Identity, role and duty status',
   },
   {
     id: 'admin',
@@ -151,8 +142,7 @@ export const navItems: NavItem[] = [
     icon: Shield,
     href: '/admin',
     section: 'command',
-    shortcut: '⌘0',
-    description: 'System governance, RBAC permissions & node telemetry',
+    description: 'Dependency health, accounts and the audit ledger',
   },
   {
     id: 'settings',
@@ -160,7 +150,6 @@ export const navItems: NavItem[] = [
     icon: Settings,
     href: '/settings',
     section: 'command',
-    shortcut: '⌘,',
     description: 'Tactical GIS, alert siren audio, units & HUD preferences',
   },
 ];
@@ -172,13 +161,14 @@ export interface KpiItem {
   id: string;
   label: string;
   value: number;
-  delta: number;
+  /** Change over the last 24 h in percent; null when the figure has no comparison window. */
+  delta: number | null;
   deltaLabel: string;
   color: string;
   bgColor: string;
   icon: 'reports' | 'verified' | 'critical' | 'citizens';
 }
-export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'low';
+export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'advisory' | 'low';
 export type VerificationStatus = 'verified' | 'under-review';
 export type EventType = 'Severe Rainfall' | 'Flood' | 'Thunderstorm' | 'Strong Winds' | 'Fog' | 'Urban Flooding' | 'Heavy Rainfall';
 
@@ -232,16 +222,28 @@ export interface DistributionItem {
 }
 export interface TrendDataPoint {
   date: string;
+  /** The IST day as YYYY-MM-DD; absent from a backend older than 24 Sep. */
+  day?: string;
   reports: number;
 }
-export type FeedSourceType = 'citizen' | 'social' | 'imd' | 'news';
+export type FeedSourceType =
+  | 'citizen' | 'official' | 'social' | 'imd' | 'news' | 'event' | 'review' | 'warning';
 
 export interface FeedItem {
   id: string;
   source: FeedSourceType;
   sourceLabel: string;
   message: string;
+  /** HH:MM in IST. */
   time: string;
+  /** Which stream the item came from (backend since 24 Sep). */
+  kind?: 'report' | 'event' | 'warning';
+  /** ISO 8601 instant, for relative times and dates (backend since 24 Sep). */
+  at?: string | null;
+  place?: string | null;
+  severity?: string | null;
+  status?: string | null;
+  event_id?: string;
   city?: string;
   confidence?: number;
   eventType?: string;
@@ -252,6 +254,10 @@ export const severityConfig: Record<SeverityLevel, { label: string; color: strin
   critical: { label: 'Critical', color: '#8C2F26', bg: '#F5E8E7', textColor: '#6D1F18' },
   high: { label: 'High', color: '#B8873A', bg: '#FBF2E4', textColor: '#8A611E' },
   moderate: { label: 'Moderate', color: '#4A6670', bg: '#E6EFF1', textColor: '#374E57' },
+  // The backend grades most fresh clusters ADVISORY (two to four reports, no
+  // depth quoted). Without this entry the recent-events list fell back to
+  // 'moderate' and showed every advisory event as Moderate.
+  advisory: { label: 'Advisory', color: '#7A8599', bg: '#EEF0F4', textColor: '#4A5568' },
   low: { label: 'Low', color: '#6B7280', bg: '#F3F4F6', textColor: '#4B5563' },
 };
 
@@ -265,6 +271,10 @@ export const feedSourceConfig: Record<FeedSourceType, { color: string; bg: strin
   social: { color: '#4A5568', bg: '#F3F4F6' },
   imd: { color: '#B8873A', bg: '#FBF2E4' },
   news: { color: '#8C2F26', bg: '#F5E8E7' },
+  official: { color: '#1B2432', bg: '#E8E2D4' },
+  event: { color: '#8C2F26', bg: '#FEE2E2' },
+  review: { color: '#065F46', bg: '#D1FAE5' },
+  warning: { color: '#9A3412', bg: '#FFEDD5' },
 };
 
 // ─── Team & Profile Types & Configuration ─────────────────────────────────────
@@ -424,7 +434,8 @@ export const PLACEHOLDER_OPERATOR: UserProfile = {
 
 /**
  * What each role may actually do, transcribed from the backend's enforced auth
- * matrix (`backend/tests/test_auth_enforcement.py`, which pins it).
+ * matrix (`backend/tests/test_auth_enforcement.py` and, since 22 Sep,
+ * `test_mutation_auth.py`, `test_official_ingest.py` and `test_audit_api.py`).
  *
  * This replaces `mockRoleSecurity`, which invented "clearance codes" and
  * "clearance levels" — concepts INDRA has no notion of anywhere in its code.
@@ -445,25 +456,37 @@ export const ROLE_CAPABILITIES: Record<string, RoleCapability[]> = {
   ADMIN: [
     { label: 'Review & approve events', granted: true },
     { label: 'Override event severity', granted: true },
-    { label: 'Read provenance ledger', granted: true },
+    { label: 'Create & dispatch response teams', granted: true },
+    { label: 'File official dispatch reports', granted: true },
+    { label: 'Read provenance & the audit ledger', granted: true },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
   COMMANDER: [
     { label: 'Review & approve events', granted: true },
     { label: 'Override event severity', granted: true },
-    { label: 'Read provenance ledger', granted: true },
+    { label: 'Create & dispatch response teams', granted: true },
+    { label: 'File official dispatch reports', granted: true },
+    { label: 'Read provenance & the audit ledger', granted: true },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
   ANALYST: [
     { label: 'Review & approve events', granted: false },
     { label: 'Override event severity', granted: false },
-    { label: 'Read provenance ledger', granted: true },
+    { label: 'Create & dispatch response teams', granted: false },
+    { label: 'File official dispatch reports', granted: false },
+    { label: 'Read provenance & the audit ledger', granted: true },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
   CITIZEN: [
     { label: 'Review & approve events', granted: false },
     { label: 'Override event severity', granted: false },
-    { label: 'Read provenance ledger', granted: false },
+    { label: 'Create & dispatch response teams', granted: false },
+    { label: 'File official dispatch reports', granted: false },
+    { label: 'Read provenance & the audit ledger', granted: false },
+    { label: 'Edit own profile', granted: true },
     { label: 'Submit citizen reports', granted: true },
   ],
 };

@@ -21,7 +21,6 @@ import {
   Clock,
   Radio,
   Wifi,
-  WifiOff,
   RotateCcw,
   Download,
   Upload,
@@ -299,56 +298,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     </div>
                   </div>
 
-                  {/* Layer Overlays */}
-                  <div>
-                    <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
-                      Default Tactical Overlays
-                    </h3>
-                    <div className="bg-white/[0.04] border border-white/10 rounded-xl divide-y divide-white/10">
-                      {[
-                        {
-                          key: 'showDopplerOverlay' as const,
-                          label: 'Doppler Weather Radar Heatmap',
-                          desc: 'Precipitation reflectivity overlay from IMD radar network',
-                        },
-                        {
-                          key: 'showCycloneVectors' as const,
-                          label: 'Tropical Cyclone Track Vectors',
-                          desc: 'Forecast path, wind radii, and cone of uncertainty',
-                        },
-                        {
-                          key: 'showRiverBasins' as const,
-                          label: 'Flood & River Catchment Basins',
-                          desc: 'Inundation boundary polygons for high-risk flood zones',
-                        },
-                        {
-                          key: 'showNdrfUnits' as const,
-                          label: 'NDRF Disaster Unit Deployments',
-                          desc: 'Live geolocation coordinates of rescue battalions',
-                        },
-                      ].map((item) => (
-                        <div key={item.key} className="p-3 flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-white">{item.label}</p>
-                            <p className="text-[10px] text-slate-400 leading-tight">{item.desc}</p>
-                          </div>
-                          <button
-                            onClick={() => updateSettings({ [item.key]: !settings[item.key] })}
-                            className={cn(
-                              'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
-                              settings[item.key] ? 'bg-[#B5482E]' : 'bg-slate-700'
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out',
-                                settings[item.key] ? 'translate-x-4' : 'translate-x-0'
-                              )}
-                            />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                  {/* The four overlay toggles that sat here (Doppler radar, cyclone
+                      vectors, river basins, NDRF GPS) drew nothing and had no feed. */}
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10">
+                    <p className="text-xs font-semibold text-white">Map layers</p>
+                    <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                      INDRA events, SACHET warnings and unfused citizen reports. Toggle them on the map.
+                    </p>
                   </div>
 
                   {/* Globe Auto-Rotation */}
@@ -825,85 +781,14 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {/* TAB 5: FIELD NETWORK & DATA SAVER */}
               {activeTab === 'network' && (
                 <div className="space-y-4">
-                  {/* Low Bandwidth Satellite Mode */}
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-[#B5482E]/15 to-white/[0.02] border border-[#B5482E]/30">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <WifiOff className="w-4 h-4 text-[#F97316]" />
-                          <h4 className="text-xs font-bold text-white uppercase font-mono">
-                            Field Satellite Data Saver
-                          </h4>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            2G / INMARSAT
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
-                          Compresses GeoTIFF radar tiles, pauses continuous radar loop animators, and throttles background polling to preserve battery and satellite uplink.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => updateSettings({ lowBandwidthDataSaver: !settings.lowBandwidthDataSaver })}
-                        className={cn(
-                          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-1',
-                          settings.lowBandwidthDataSaver ? 'bg-[#B5482E]' : 'bg-slate-700'
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm',
-                            settings.lowBandwidthDataSaver ? 'translate-x-4' : 'translate-x-0'
-                          )}
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Offline Cache Storage */}
-                  <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-white">Local GIS &amp; Tile Cache</span>
-                      <span className="text-xs font-mono text-[#F97316]">~6.4 MB</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-3">
-                      <div className="h-full bg-[#B5482E] rounded-full w-[14%]" />
-                    </div>
-                    <button
-                      onClick={() => showToast('Local offline GIS cache cleared')}
-                      className="w-full py-1.5 px-3 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white text-xs font-medium border border-white/10 transition-colors"
-                    >
-                      Purge Local Tile Cache
-                    </button>
-                  </div>
-
-                  {/* API Data Source Mode */}
-                  <div>
-                    <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
-                      Backend Telemetry Source
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: 'live', label: 'Live FastAPI Cluster', desc: 'Direct REST & WebSocket feed' },
-                        { id: 'mock', label: 'Simulated Fallback', desc: 'Autonomous mock telemetry' },
-                      ].map((src) => {
-                        const isSelected = settings.apiDataSource === src.id;
-                        return (
-                          <button
-                            key={src.id}
-                            onClick={() => updateSettings({ apiDataSource: src.id as any })}
-                            className={cn(
-                              'p-2.5 rounded-xl border text-left transition-all',
-                              isSelected
-                                ? 'bg-[#B5482E]/20 border-[#B5482E] text-white shadow-sm'
-                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
-                            )}
-                          >
-                            <p className="text-xs font-semibold text-white">{src.label}</p>
-                            <p className="text-[10px] text-slate-400">{src.desc}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
+                  {/* A "satellite data saver", a "~6.4 MB" tile-cache meter with a
+                      purge button, and a live-vs-simulated source switch used to sit
+                      here. None of them was read by anything. */}
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10">
+                    <p className="text-xs font-semibold text-white">Data source</p>
+                    <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                      Every panel reads the live INDRA API and WebSocket. There is no simulated mode.
+                    </p>
                   </div>
                 </div>
               )}

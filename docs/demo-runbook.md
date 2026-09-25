@@ -4,7 +4,9 @@
 with the number to expect beside every step and a one-line recovery for each thing that can go
 wrong on the table.
 
-**Last rehearsed from an empty volume: 21 Sep 2026.** Every number below was read off that run.
+**Last rehearsed from an empty volume: 21 Sep 2026; re-run from an empty database on 22 Sep
+2026.** Every number below was read off those runs. Where the two days differ it is the live
+rainfall, and both are shown.
 
 Read [`nodal-officer-qa.md`](nodal-officer-qa.md) before presenting. This file is what to type;
 that one is what to say.
@@ -36,24 +38,25 @@ that one is what to say.
 cd ~/CODING/sih/INDRA
 
 docker compose down -v          # only for a true cold rehearsal — destroys all data
-docker compose up -d
+docker compose up -d --wait     # returns when Postgres and Redis are healthy and Redpanda is running
+                                # (./start.sh infra up does the same)
 ```
-
-Wait for three containers to be healthy:
 
 ```bash
 docker ps --format '{{.Names}}\t{{.Status}}'
 # indra-postgres   Up (healthy)
 # indra-redis      Up (healthy)
-# indra-redpanda   Up
+# indra-redpanda   Up             ← no healthcheck is defined for it; /healthz checks it instead
 ```
 
-> **`pg_isready` goes green before `indra_db` exists** on a fresh volume. Do not take it as the
-> signal to migrate. The correct gate is the next command succeeding.
+> **Healthy now means `indra_db` exists (BUG-028, fixed 22 Sep).** The Postgres healthcheck used a
+> socket `pg_isready`, which went green on the entrypoint's temporary init server before the
+> database was created. It now probes over TCP, which only the real server listens on. The
+> migration below is still the proof — read its output.
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0009_event_location (head)
+# → 0014_event_filter_indexes (head)
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
@@ -73,9 +76,9 @@ curl -s localhost:8000/healthz | jq .status
 
 | `/healthz` says | Meaning | Do |
 |---|---|---|
-| `healthy` | all four checks up | continue |
-| `degraded` (200) | Redis or Open-Meteo down | **continue** — neither is load-bearing, and this is worth showing |
-| `unhealthy` (503) | Postgres or Kafka down | stop and fix; a report would be lost |
+| `healthy` | all five checks up | continue |
+| `degraded` (200) | Redis or Open-Meteo down, or reports have waited over 60 s for Kafka (`outbox_backlog`) | **continue** — none of these loses anything, and this is worth showing |
+| `unhealthy` (503) | Postgres or Kafka down | stop and fix. Postgres down: reports are refused with 503. Kafka down: reports are kept in the outbox and processed when it is back, but nothing new reaches the map until then |
 
 **Cold start to a ready API: under 5 minutes**, nearly all of it Docker pulling and the embedding
 model loading. The model is warmed on a background thread, so `/healthz` answers immediately and
@@ -109,19 +112,31 @@ backend/.venv/bin/python scripts/run_patna_demo.py
 The script posts five synthetic citizen reports to `POST /api/reports/submit`, waits for the
 cluster to settle, then reads **every number back out of the API**.
 
-**Expected, reproduced twice on 21 Sep:**
+**Expected** (21 Sep reproduced twice; 22 Sep once; 23 Sep twice, after each Phase 1 change to the
+schema and the pipeline — all from an empty database):
 
-| | Value |
-|---|---|
-| Reports stored | 5 / 5 |
-| Events created | **1** |
-| Severity | `MODERATE` |
-| Review status | **`QUARANTINED`** |
-| Quadrant | `Noise` |
-| Confidence | **0.4984** |
-| Factor coverage | **0.80** |
-| Boundary | Polygon, **39 vertices** |
-| Heat map | 2 H3 cells at res 8, 5 reports |
+| | 21 Sep | 22 Sep | 23 Sep (Phase 1) |
+|---|---|---|---|
+| Reports stored | 5 / 5 | 5 / 5 | 5 / 5, each with a docket |
+| Events created | **1** | **1** | **1** `URBAN_FLOOD` |
+| Severity | `MODERATE` | `MODERATE` | `MODERATE` |
+| Review status | **`QUARANTINED`** | **`QUARANTINED`** | **`QUARANTINED`** |
+| Quadrant | `Noise` | `Noise` | `Noise` |
+| Confidence | **0.4984** | **0.5146** | **0.5319**, then **0.5295** |
+| Factor coverage | **0.80** | **0.80** | **0.80** |
+| Boundary | Polygon, **39 vertices** | Polygon, **39 vertices** | Polygon, **39 vertices** |
+| Heat map | 2 H3 cells at res 8, 5 reports | the same | the same |
+
+Only the weather factor moved: **0.0080** on 21 Sep, **0.0600** on 22 Sep, **0.1153** and **0.1076**
+on 23 Sep, as Patna's rainfall changed. Every other factor was identical, including after the
+clustering radius became a true great-circle distance on 22 Sep and after Phase 1 added the outbox,
+the dockets and 12 event types on 23 Sep.
+
+> **On a wet day the scene reaches a human.** 24 Sep, after 22.1 mm of rain in Patna: weather
+> factor 0.3965, confidence **0.6198**, **`PENDING_HUMAN_REVIEW`** — every other factor unchanged,
+> and the receipt's `routing.basis` reads `confidence`. That is the receipt's own story: real
+> rainfall is corroboration. Check the Scene 1 reading before presenting, and say which case you
+> are in.
 
 Receipt:
 
@@ -134,7 +149,8 @@ Receipt:
 | Source Reliability Index | 15% | 0.6000 | 0.0900 | computed |
 | Anomaly Detection Signal | 5% | — | 0.0 | **offline** |
 
-`0.3987 / 0.80 = 0.4984`. The arithmetic is printed so anyone can check it.
+`0.3987 / 0.80 = 0.4984` (21 Sep); `0.4117 / 0.80 = 0.5146` (22 Sep). The arithmetic is printed
+so anyone can check it, and the dashboard's receipt shows it too.
 
 Severity: `max(depth_axis, count_axis)` → depth `MODERATE` (50 cm, read from the phrase
 "knee deep"), count `MODERATE` (5 reports).
@@ -146,6 +162,47 @@ Severity: `max(depth_axis, count_axis)` → depth `MODERATE` (50 cm, read from t
 
 The weather factor scoring 0.008 is **Patna being dry today**, not a failure. If you want a wetter
 story, the Kolkata reading above is 17.2 mm.
+
+The script waits until **every report it sent has joined the event** (up to 45 s) before printing.
+On a backend started seconds earlier, the last few reports wait for the embedding model to warm:
+expect a line like `cluster size 2 → 5`. If fewer ever join, it says so instead of printing a
+partial event as final.
+
+---
+
+## Scene 2b — One official dispatch, and the event reaches a human
+
+On an **empty database** (on top of Scene 2 it merges into the same event, which is fine to show
+but gives different numbers):
+
+```bash
+backend/.venv/bin/python scripts/run_patna_demo.py --official
+```
+
+The same five citizen reports, plus one report filed **as the commander** through
+`POST /api/reports/official`: *"District control room confirms waterlogging at Kankarbagh, SDRF
+team en route."* It is stored as `OFFICIAL_DISPATCH` with `submitted_by = commander`. From the
+dashboard, the same thing is the **Report Incident** button with *"File as an official dispatch"*
+ticked, which only a Commander or Admin persona sees.
+
+**Measured 22 Sep, cold start:**
+
+| | Value |
+|---|---|
+| Reports in the event | **6** (5 citizen + 1 official) |
+| Review status | **`PENDING_HUMAN_REVIEW`** |
+| Quadrant | `Confirmed Minor Event` |
+| Confidence | **0.6065** (`0.4852 / 0.80`) |
+| Source Reliability | **1.0000** (0.6000 with citizens only) |
+| Report Density | 0.6159 (6 reports) |
+| Boundary | Polygon, 40 vertices |
+
+**What to say:** a citizen cannot claim to be official — the public route stores `CITIZEN_APP`
+whatever the request says. A trusted report comes through a route that needs a commander's token
+and records who filed it; open the event's **Reports** tab and it says *"filed by commander"*. One
+trusted report did not publish anything: it moved the event across 0.60 into a human's queue.
+
+Try it as the analyst persona: the checkbox is not offered, and the API answers `403`.
 
 ---
 
@@ -214,6 +271,42 @@ curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/healthz   # → 503, in 
 docker start indra-postgres                                        # recovers, no app restart
 ```
 
+### The event bus goes down, and no report is lost
+
+Until 23 Sep this was the one outage that lost data (BUG-060): a report accepted while Redpanda was
+down was stored, answered 202, and never processed. Each report's message is now written to an
+outbox in the same transaction as the report, and a relay publishes whatever is waiting.
+
+```bash
+docker stop indra-redpanda
+curl -s -X POST localhost:8000/api/reports/submit -H 'Content-Type: application/json' \
+  -d '{"latitude":25.5941,"longitude":85.1376,"text":"Water entering ground floor shops near Kankarbagh main road"}'
+# → 202 … "queued": false, "will_retry": true, and a "docket"
+curl -s localhost:8000/healthz | jq '.status, .checks.outbox_backlog'
+# → "unhealthy" (Kafka is critical) and {"status": "up", "count": 1, "oldest_s": …}
+docker start indra-redpanda
+curl -s localhost:8000/healthz | jq '.checks.outbox_backlog.count'   # → 0 within a couple of seconds
+curl -s localhost:8000/api/reports/track/<docket> | jq .status       # → "not_yet_an_event" or "part_of_event"
+```
+
+**Measured 23 Sep** — ten Patna reports sent with Redpanda stopped, on an empty database:
+
+| | |
+|---|---|
+| Submits during the outage | 10 × 202, `queued: false, will_retry: true`. The first waited 2.06 s (the request's publish cap); after it the producer is taken out of service and the other nine answered in 4–66 ms |
+| Waiting in the outbox | 10 rows |
+| `/healthz` during | 503 `unhealthy`: `streaming_bus` down, `outbox_backlog` count 10 |
+| After `docker start indra-redpanda` | all 10 published in **1.0 s**, all 10 processed in **4.8 s** |
+| Result | **one `URBAN_FLOOD` event, 10 of 10 reports linked, 0 lost**; `/healthz` back to `healthy` |
+
+**What to say:** Kafka is the one dependency that takes reports to the pipeline, and it is still
+critical: while it is down nothing new reaches the map. But nothing is dropped either. The report and
+the message that announces it are one database transaction, and a relay retries every two seconds, so
+the backlog clears within seconds of the bus coming back.
+
+`outbox.attempts` counts failed publishes. While the broker does not answer at all the relay only
+probes it, so a clean outage leaves `attempts` at 0.
+
 ---
 
 ## Throughput, if asked
@@ -244,6 +337,8 @@ Measured: 100/100 accepted and stored, 215 reports/s, submit p50 4 ms / p95 5 ms
 | Dashboard shows a `0.94` CRITICAL event | `DEMO_MODE=true` | Set it `false` and restart. This is fabricated data |
 | The same report appears twice in the feed | Two backend processes on one broker | Kill one. One process only |
 | First report seems to hang | Embedding model still loading | It is warmed at startup; wait for `✓ Embedding model warm` in the log |
+| The demo prints `… N of M reports joined` | Reports still in the pipeline, or suppressed as duplicates | Re-run the read with `curl localhost:8000/api/events`; the script waited 45 s and said so rather than guessing |
+| The map's badge counts incidents but no pins show | A late map `load` wiped the pins (BUG-043 race, fixed 22 Sep) | Should not recur; if it does, switch view once and report it |
 | An event has no boundary polygon | Polygon computation failed, non-fatal | The event is still correct; say so |
 | Confidence is lower than last rehearsal | Rainfall changed | Correct behaviour — it is live data |
 

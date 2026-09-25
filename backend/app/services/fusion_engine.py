@@ -43,12 +43,21 @@ FACTORS = {
 #   TWITTER_IMD        0.50  Social posts: frequently second-hand, reshared
 #                            from elsewhere, or geotagged to the poster rather
 #                            than the incident.
+#   SOCIAL_MEDIA       0.50  The same kind of evidence from the platform it
+#                            actually came from (Mastodon, Phase 2), so the same
+#                            prior as TWITTER_IMD, for the same reasons.
+#   NEWS_MEDIA         0.55  Edited and attributed, which a post is not, but
+#                            almost always second-hand: a reporter relaying what
+#                            officials or residents said, often hours later.
+#                            Above a post, below a first-hand geotagged report.
 SOURCE_RELIABILITY: Dict[SourceType, float] = {
     SourceType.OFFICIAL_DISPATCH: 1.00,
     SourceType.CWC_GAUGE: 0.95,
     SourceType.AWS_SENSOR: 0.90,
     SourceType.CITIZEN_APP: 0.60,
+    SourceType.NEWS_MEDIA: 0.55,
     SourceType.TWITTER_IMD: 0.50,
+    SourceType.SOCIAL_MEDIA: 0.50,
 }
 
 
@@ -72,6 +81,14 @@ def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
         except (ValueError, KeyError):
             logger.warning(f"Unknown source_type {raw!r} ignored for source reliability")
     return max(scores) if scores else None
+
+
+def _is_high(severity: Any) -> bool:
+    """True for HIGH or CRITICAL, given a Severity or its value; False for anything else."""
+    try:
+        return Severity(severity) in (Severity.HIGH, Severity.CRITICAL)
+    except ValueError:
+        return False
 
 
 class FusionEngine:
@@ -265,13 +282,23 @@ class FusionEngine:
         confidence: float,
         auto_threshold: Optional[float] = None,
         review_threshold: Optional[float] = None,
+        severity: Optional[Any] = None,
     ) -> ReviewStatus:
         """
-        Route event to the appropriate review status based on confidence.
+        Route event to the appropriate review status.
 
         - C ≥ auto_threshold → AUTO_PUBLISHED
         - C ≥ review_threshold → PENDING_HUMAN_REVIEW
+        - severity HIGH or CRITICAL → PENDING_HUMAN_REVIEW, however low C is
         - else → QUARANTINED
+
+        **A High or Critical claim is never quarantined** (BUG-067, 24 Sep). It
+        still needs 0.90 to publish on its own, but below the review gate it goes
+        to a human rather than out of sight: one uncorroborated report of a dam
+        breach is exactly the event an operator must see. The same asymmetry
+        lowered the review gate on 20 Sep (BUG-018): a quarantined real disaster
+        is invisible, while an escalated weak signal costs an operator ten
+        seconds. ADVISORY and MODERATE events are routed on confidence alone.
 
         Both thresholds default to settings, exactly as assign_quadrant's do, so
         the two methods can never disagree about where a gate is. They used to
@@ -287,6 +314,8 @@ class FusionEngine:
         if confidence >= auto_threshold:
             return ReviewStatus.AUTO_PUBLISHED
         elif confidence >= review_threshold:
+            return ReviewStatus.PENDING_HUMAN_REVIEW
+        elif _is_high(severity):
             return ReviewStatus.PENDING_HUMAN_REVIEW
         else:
             return ReviewStatus.QUARANTINED

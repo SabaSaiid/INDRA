@@ -221,7 +221,8 @@ async def test_status_is_consistent_with_the_persisted_score(db):
     settings = get_settings()
 
     expected_status = fusion.determine_review_status(
-        score, settings.AUTO_PUBLISH_THRESHOLD, settings.HUMAN_REVIEW_THRESHOLD
+        score, settings.AUTO_PUBLISH_THRESHOLD, settings.HUMAN_REVIEW_THRESHOLD,
+        severity=Severity(severity),
     )
     expected_quadrant = fusion.assign_quadrant(Severity(severity), score)
 
@@ -665,3 +666,72 @@ async def test_an_event_records_where_it_is(db):
     # And it must not have leaked into provenance, which test_scoring_
     # determinism pins key-for-key as the record of which factors ran.
     assert "location" not in receipt["provenance"]
+
+
+# ── Phase 1 T4: processed_at — the pipeline records that it is done ────────────
+
+async def processed_at(db, rid):
+    return (
+        await db.execute(
+            text("SELECT processed_at FROM raw_reports WHERE id = CAST(:id AS uuid)"),
+            {"id": str(rid)},
+        )
+    ).scalar()
+
+
+async def test_a_lone_report_is_stamped_processed(db):
+    """The case the column exists for: looked at, found alone, not yet an event."""
+    rid = await insert_report(db, PATNA_LAT, PATNA_LNG, "Water on the road near the station")
+    assert await processed_at(db, rid) is None
+
+    assert await process_report(db, {"id": str(rid)}) is None
+
+    assert await processed_at(db, rid) is not None
+
+
+async def test_a_suppressed_duplicate_is_stamped_processed(db):
+    await insert_report(db, PATNA_LAT, PATNA_LNG, CLUSTER_TEXTS[0][2])
+    dupe = await insert_report(db, PATNA_LAT + 0.0027, PATNA_LNG, CLUSTER_TEXTS[0][2])
+
+    await process_report(db, {"id": str(dupe)})
+
+    assert await processed_at(db, dupe) is not None
+
+
+async def test_every_report_linked_into_an_event_is_stamped_processed(db):
+    """
+    One message forms the event and links all five; the other four messages
+    will find their reports linked and skip them, so the run that linked them
+    is the one that finished with them.
+    """
+    ids = await seed_cluster(db)
+
+    event = await process_report(db, {"id": str(ids[0])})
+
+    assert event is not None
+    stamps = [await processed_at(db, rid) for rid in ids]
+    assert all(stamp is not None for stamp in stamps)
+
+
+async def test_the_first_stamp_stands_when_a_report_is_processed_again(db):
+    rid = await insert_report(db, PATNA_LAT, PATNA_LNG, "Water on the road near the station")
+    await process_report(db, {"id": str(rid)})
+    first = await processed_at(db, rid)
+
+    await process_report(db, {"id": str(rid)})
+
+    assert await processed_at(db, rid) == first
+
+
+async def test_a_pipeline_crash_leaves_the_report_unstamped(db, monkeypatch):
+    """Unset is the truth: a report the pipeline failed on was not processed."""
+    from app.services import pipeline
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("clustering exploded")
+
+    monkeypatch.setattr(pipeline, "_dedup_candidates", _boom)
+    rid = await insert_report(db, PATNA_LAT, PATNA_LNG, "Water on the road near the station")
+
+    assert await process_report(db, {"id": str(rid)}) is None
+    assert await processed_at(db, rid) is None

@@ -229,6 +229,40 @@ async def test_merges_keep_a_severity_override(db):
     assert receipt["severity_basis"]["depth_axis"] == "MODERATE"
 
 
+async def test_an_override_to_high_keeps_a_weak_event_in_front_of_a_human(db, monkeypatch):
+    """
+    BUG-067 on the merge path: routing now depends on severity, so the
+    commander's severity counts, not only the machine's. Without rainfall the
+    score stays under the 0.60 gate, where a MODERATE event is quarantined.
+    """
+    async def _dry(lat, lng):
+        return 0.0, 0.0
+
+    monkeypatch.setattr(pipeline, "weather_score", _dry)
+    event_id = await _event_from_first_two(db)
+    await db.execute(
+        text("""
+            UPDATE verified_events SET
+                severity = 'HIGH',
+                verification_receipt = jsonb_set(
+                    verification_receipt, '{human_review}',
+                    '{"action": "override_severity", "operator_id": "OP-CMD-001",
+                      "reason": "test", "severity_override": "HIGH"}'::jsonb)
+            WHERE id = CAST(:e AS uuid)
+        """),
+        {"e": event_id},
+    )
+    await db.commit()
+
+    await stream(db, CLUSTER_TEXTS[2:3])
+
+    status, severity, _, score, receipt = await event_row(db, event_id)
+    assert score < 0.60
+    assert severity == "HIGH"
+    assert status == "PENDING_HUMAN_REVIEW"
+    assert receipt["routing"]["basis"] == "severity"
+
+
 async def test_without_a_human_decision_status_is_recomputed(db):
     """
     With no human decision on record, status follows the score on every merge.

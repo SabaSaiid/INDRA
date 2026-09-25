@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 from datetime import datetime
 from functools import lru_cache
 from uuid import UUID
@@ -76,6 +77,16 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+_REPOST_PREFIX = re.compile(r"^(?:(?:urgent|fwd|fw|forwarded)\s*:\s*)+", re.I)
+
+
+def _canonical_repost_text(value: str) -> str:
+    """Exact-content policy for common forwarding labels, never a semantic score."""
+
+    without_prefix = _REPOST_PREFIX.sub("", value.casefold().strip())
+    return " ".join(re.findall(r"\w+", without_prefix, flags=re.UNICODE))
+
+
 class DedupService:
     """Preserve the backend's ordered-index duplicate relationship contract."""
 
@@ -120,7 +131,14 @@ class DedupService:
             return None
 
         matcher = _get_local_matcher()
+        canonical_new = _canonical_repost_text(new_text)
         for index, candidate in eligible:
+            # Preserve the backend's literal repost guarantee for an identical
+            # message marked URGENT/Fwd, without changing frozen model weights
+            # or treating an unavailable model as a negative inference.
+            if canonical_new and canonical_new == _canonical_repost_text(candidate.text):
+                logger.info("Literal repost detected at candidate index %d", index)
+                return index
             report = ReportInput(
                 report_id=UUID(int=0),
                 text=new_text,
@@ -162,3 +180,64 @@ class DedupService:
             self.find_duplicate(new_text, new_lat, new_lng, new_time, existing_reports)
             is not None
         )
+
+
+def _levenshtein_similarity(left: str, right: str) -> float:
+    """Normalized local edit similarity for the separate post/headline path."""
+
+    try:
+        import Levenshtein
+
+        distance = Levenshtein.distance(left, right)
+        return 1.0 - distance / max(len(left), len(right), 1)
+    except ImportError:
+        # The dependency is declared; keep the historical local fallback if a
+        # minimal environment omits it rather than contacting a model server.
+        left_words, right_words = set(left.lower().split()), set(right.lower().split())
+        if not left_words or not right_words:
+            return 0.0
+        return len(left_words & right_words) / max(len(left_words), len(right_words))
+
+
+# Historical 24 Sep feed audit: the former comparator produced false Hindi matches. The live
+# feed path below now uses only local edit distance, independent of script.
+LATIN_SHARE_FOR_MODEL = 0.5
+
+
+def _mostly_latin(text_: str) -> bool:
+    """More than LATIN_SHARE_FOR_MODEL of the letters are Latin (a–z, with accents)."""
+    letters = [c for c in text_ if c.isalpha()]
+    if not letters:
+        return True
+    latin = sum(1 for c in letters if c.isascii() or "\u00c0" <= c <= "\u024f")
+    return latin / len(letters) > LATIN_SHARE_FOR_MODEL
+
+
+def find_similar_text(
+    new_text: str,
+    candidate_texts: list[str],
+    cosine_threshold: float | None = None,
+) -> tuple[int, float, str] | None:
+    """
+    The first candidate whose text is a copy of `new_text`, as
+    (index, similarity, method), or None. Text only: no distance, no clock.
+
+    Used for posts and headlines, which have their own link/place/time gates.
+    The retired comparator is not used. A conservative local edit-distance
+    comparison preserves exact/near repost detection without making unrelated
+    Hindi headlines into duplicates. ``cosine_threshold`` is retained as an
+    optional caller threshold for API compatibility; no cosine is computed.
+
+    Synchronous and CPU-bound: call it through asyncio.to_thread.
+    """
+    if not candidate_texts or not (new_text or "").strip():
+        return None
+    _, _, _, levenshtein = _gates()
+    threshold = levenshtein if cosine_threshold is None else cosine_threshold
+
+    # In candidate order, so the earliest copy is the one returned.
+    for i, text_ in enumerate(candidate_texts):
+        sim = _levenshtein_similarity(new_text, text_)
+        if sim >= threshold:
+            return i, round(sim, 4), "levenshtein"
+    return None

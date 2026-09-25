@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Card, CardHeader } from '@/components/ui/card';
 import { type TrendDataPoint } from '@/lib/ui-config';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { fetchReportsTrend } from '@/lib/api';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   AreaChart,
   Area,
@@ -29,7 +30,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       <div className="bg-white rounded-lg shadow-lg border border-slate-100 px-3 py-2">
         <p className="text-xs font-medium text-text-primary">{label}</p>
         <p className="text-sm font-bold text-primary tabular-nums">
-          {payload[0].value} reports
+          {payload[0].value} {payload[0].value === 1 ? 'report' : 'reports'}
         </p>
       </div>
     );
@@ -53,10 +54,29 @@ export default function ReportsTrendChart({
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [error, setError] = useState<unknown>(null);
   const [loaded, setLoaded] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const { subscribe } = useIndraWebSocket();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // A new report changes today's count. The chart used to load once and never
+  // again, so a report filed during the demo never showed on it.
+  useEffect(() => {
+    return subscribe(`reports-trend-${variant}`, (msg) => {
+      if (msg.type === 'NEW_REPORT') setRefreshTick((t) => t + 1);
+    });
+  }, [subscribe, variant]);
+
+  // The day rolls over at IST midnight whether or not anything arrives.
+  useEffect(() => {
+    const id = setInterval(() => setRefreshTick((t) => t + 1), 300_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const total = useMemo(() => trendData.reduce((n, d) => n + (Number(d.reports) || 0), 0), [trendData]);
+  const days = dateRange.replace('d', '');
 
   // Fetch live trend data and re-fetch when range changes
   useEffect(() => {
@@ -78,12 +98,19 @@ export default function ReportsTrendChart({
       }
     })();
     return () => { cancelled = true; };
-  }, [dateRange]);
+  }, [dateRange, refreshTick]);
 
   const chartContent = (
     <div className={className}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-text-secondary font-medium">Incident & Sensor Volume</span>
+        <span className="text-[10px] text-text-secondary font-medium">
+          Reports per day
+          {loaded && !error && (
+            <span className="ml-1.5 font-mono text-[#7A8599]">
+              · {total} in {days} days
+            </span>
+          )}
+        </span>
         <select
           value={dateRange}
           onChange={(e) => setDateRange(e.target.value)}
@@ -101,16 +128,16 @@ export default function ReportsTrendChart({
           <div className="h-full flex items-center justify-center">
             <ErrorState label="the reports trend" error={error} compact />
           </div>
-        ) : loaded && trendData.length === 0 ? (
+        ) : loaded && (trendData.length === 0 || total === 0) ? (
           <div className="h-full flex items-center justify-center">
             <EmptyState
-              title="No reports in this range"
+              title={`No reports in the last ${days} days`}
               hint="The trend fills in as reports are submitted."
               compact
             />
           </div>
         ) : mounted && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={250} minHeight={145}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={145}>
             <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="reportGradient" x1="0" y1="0" x2="0" y2="1">
@@ -129,21 +156,44 @@ export default function ReportsTrendChart({
                 tickLine={false}
                 tick={{ fontSize: 11, fill: '#94A3B8' }}
                 dy={8}
+                interval="preserveStartEnd"
+                minTickGap={12}
               />
+              {/* Counts: whole numbers only. The axis printed a "0.5" tick. */}
               <YAxis
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 11, fill: '#94A3B8' }}
                 dx={-8}
+                allowDecimals={false}
+                domain={[0, (max: number) => Math.max(1, max)]}
+                width={28}
               />
               <Tooltip content={<CustomTooltip />} />
+              {/* Linear, with a dot on every day that had reports. The
+                  monotone spline drew a single report as a smooth bell
+                  spreading over the days either side of it. */}
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="reports"
                 stroke="#2563EB"
-                strokeWidth={2.5}
+                strokeWidth={2}
                 fill="url(#reportGradient)"
-                dot={false}
+                dot={(props: any) =>
+                  props?.payload?.reports > 0 ? (
+                    <circle
+                      key={`dot-${props.index}`}
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={3}
+                      fill="#2563EB"
+                      stroke="white"
+                      strokeWidth={1.5}
+                    />
+                  ) : (
+                    <g key={`dot-${props.index}`} />
+                  )
+                }
                 activeDot={{
                   r: 5,
                   strokeWidth: 2,

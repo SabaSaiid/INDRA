@@ -8,6 +8,10 @@ from app.api.auth import router as auth_router
 from app.api.teams import router as teams_router
 from app.api.profile import router as profile_router
 from app.api.alerts import router as alerts_router
+from app.api.audit import router as audit_router
+from app.api.meta import router as meta_router
+from app.api.stations import router as stations_router
+from app.api.report_search import router as report_search_router
 
 __all__ = [
     "dashboard_router",
@@ -19,5 +23,9 @@ __all__ = [
     "teams_router",
     "profile_router",
     "alerts_router",
+    "audit_router",
+    "meta_router",
+    "stations_router",
+    "report_search_router",
 ]
 

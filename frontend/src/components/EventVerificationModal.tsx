@@ -31,6 +31,7 @@ import {
 import {
   fetchEventDetail,
   fetchEventProvenance,
+  formatPlace,
   reviewEvent,
   type EventDetail,
   type ProvenanceData,
@@ -38,6 +39,36 @@ import {
   type AuditEntry,
 } from '@/lib/api';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { safeEventState } from '@/lib/eventState';
+
+// Issue 3 fix: per-hazard plausible maximum impact radius (km).
+// NOTE TO BACKEND TEAM: impact_radius_km likely has a units bug upstream
+// (degrees/meters shown as km, or a squared value). This is a display-only clamp.
+const IMPACT_RADIUS_MAX_KM_MODAL: Record<string, number> = {
+  'Severe Rainfall':  100,
+  'Heavy Rainfall':   100,
+  'Thunderstorm':     100,
+  'Fog':              100,
+  'Strong Winds':     150,
+  'Dust Storm':       100,
+  'Flood':            300,
+  'Urban Flooding':   100,
+};
+const IMPACT_MODAL_DEFAULT_MAX = 150;
+
+function clampImpactKm(eventId: string, eventType: string | null | undefined, rawKm: number | null | undefined): string {
+  if (rawKm == null || rawKm <= 0) return '—';
+  const ceiling = IMPACT_RADIUS_MAX_KM_MODAL[eventType ?? ''] ?? IMPACT_MODAL_DEFAULT_MAX;
+  if (rawKm > ceiling) {
+    console.warn(
+      `[INDRA] Event ${eventId}: impact_radius_km=${rawKm.toFixed(1)} exceeds ` +
+      `the ${ceiling} km ceiling for "${eventType}". Showing "unavailable" in modal. ` +
+      `Likely a units bug upstream — check event-generation code.`
+    );
+    return 'unavailable';
+  }
+  return `${rawKm.toFixed(1)} km`;
+}
 
 // ── Factor icons & colors ────────────────────────────────────────────────────
 const FACTOR_CONFIG: Record<string, { icon: React.ReactNode; color: string; bgColor: string }> = {
@@ -127,11 +158,23 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
 
   const receipt = detail?.verification_receipt || provenance?.event?.verification_receipt || {};
   const factors = receipt.factors || [];
+  // The share of the designed model that actually reported (0.80 while vision
+  // and anomaly are offline), and the points it scored. The score means
+  // nothing without its coverage, so the two are shown together.
+  const coverage: number | null = typeof receipt.factor_coverage === 'number' ? receipt.factor_coverage : null;
+  const totalWeighted: number | null = typeof receipt.total_weighted === 'number' ? receipt.total_weighted : null;
   const confidenceScore = detail?.confidence_score ?? provenance?.event?.confidence_score ?? 0;
   const confidencePct = Math.round(confidenceScore * 100);
-  const reviewStatus = detail?.review_status ?? provenance?.event?.review_status ?? 'QUARANTINED';
+  const apiReviewStatus = detail?.review_status ?? provenance?.event?.review_status;
   const severity = detail?.severity ?? provenance?.event?.severity ?? 'MODERATE';
-  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.QUARANTINED;
+  // Use detailEventId (not eventId) to avoid shadowing the eventId prop parameter.
+  const detailEventId = detail?.id ?? provenance?.event?.id ?? eventId ?? '';
+  const eventType = detail?.event_type_display ?? detail?.event_type ?? '';
+
+  // The API's review_status and quadrant, derived only when absent (BUG-070).
+  const derivedState = safeEventState(detailEventId, severity, confidenceScore, apiReviewStatus, detail?.quadrant);
+  const reviewStatus = derivedState.reviewStatus;
+  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.PENDING_HUMAN_REVIEW;
   const sevStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.MODERATE;
 
   return (
@@ -194,16 +237,24 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   <div className="text-right">
                     <div className="text-2xl font-black text-[#3C2415] font-mono">{confidencePct}%</div>
                     <div className="text-[10px] text-[#8C7A6B]">Confidence</div>
+                    {coverage !== null && (
+                      <div data-testid="factor-coverage" className="text-[10px] font-semibold text-[#6B5E53]">
+                        coverage {Math.round(coverage * 100)}% of the model
+                      </div>
+                    )}
                   </div>
                 </div>
                 {detail && (
                   <div className="flex items-center gap-4 text-xs text-[#6B5E53]">
-                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {detail.city}{detail.state ? `, ${detail.state}` : ''}</span>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {formatPlace(detail.city, detail.state, detail.place_precision)}</span>
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {detail.verified_at ? new Date(detail.verified_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</span>
                   </div>
                 )}
                 {detail?.impact_radius_km && (
-                  <div className="text-[11px] text-[#8C7A6B]">Impact radius: {detail.impact_radius_km.toFixed(1)} km • Quadrant: {detail.quadrant || '—'}</div>
+                  <div className="text-[11px] text-[#8C7A6B]">
+                    {/* Issue 3 fix: clamp impact_radius_km to per-hazard ceiling */}
+                    Impact radius: {clampImpactKm(detailEventId, eventType, detail.impact_radius_km)} &bull; Quadrant: {derivedState.quadrant || '—'}
+                  </div>
                 )}
               </div>
 
@@ -237,7 +288,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 <div className="space-y-2">
                   {factors.length > 0 ? factors.map((f: any, i: number) => {
                     const cfg = FACTOR_CONFIG[f.factor] || { icon: <Eye className="w-4 h-4" />, color: '#64748B', bgColor: '#F1F5F9' };
-                    const isOffline = f.evidence === 'Telemetry factor offline';
+                    // The receipt says so directly since Day 5; the evidence text is
+                    // the fallback for receipts stored before then.
+                    const isOffline = f.state === 'offline' || f.evidence === 'Telemetry factor offline';
                     const pct = Math.round(f.score * 100);
                     return (
                       <div key={i} className={`bg-white rounded-lg border border-[#E8E2D4] p-3 ${isOffline ? 'opacity-60' : ''}`}>
@@ -273,6 +326,14 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                       <span className="text-[10px]">Receipt data is generated when the backend pipeline processes reports into events.</span>
                     </div>
                   )}
+                  {factors.length > 0 && coverage !== null && totalWeighted !== null && coverage > 0 && (
+                    <div data-testid="receipt-arithmetic" className="rounded-lg bg-[#EDE8DD] px-3 py-2 text-[11px] font-mono text-[#3C2415]">
+                      {totalWeighted.toFixed(4)} points ÷ {coverage.toFixed(2)} coverage = {(totalWeighted / coverage).toFixed(4)}
+                      <span className="block text-[10px] text-[#8C7A6B] font-sans">
+                        Offline factors carry no weight; the score is the mean over the factors that reported.
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -287,6 +348,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                             <div className="flex-1">
                               <div className="flex items-center gap-1.5 mb-1">
                                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F0EBE0] text-[#6B5E53]">{r.source_type}</span>
+                                {r.submitted_by && (
+                                  <span className="text-[10px] text-[#6B5E53]">filed by {r.submitted_by}</span>
+                                )}
                                 <span className="text-[10px] text-[#8C7A6B]">#{i + 1}</span>
                               </div>
                               <p className="text-xs text-[#3C2415] leading-relaxed line-clamp-2">{r.raw_text}</p>

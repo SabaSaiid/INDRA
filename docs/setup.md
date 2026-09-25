@@ -1,7 +1,8 @@
 # INDRA — Setup
 
-**What this is:** how to get the stack running from a fresh clone. Verified end to end on
-21 Sep 2026.
+**What this is:** how to get the stack running from a fresh clone. The original setup was verified
+21–22 Sep 2026. The merged branch includes newer migrations and the frozen local AI/ML adapter;
+re-run its test suite rather than relying on pre-merge counts.
 
 If you only want to *run the demo*, this page plus [`demo-runbook.md`](demo-runbook.md) is
 everything.
@@ -40,7 +41,22 @@ The defaults work for local development. The values worth knowing:
 | `REDIS_URL` | `redis://localhost:6379/0` | |
 | `DEMO_MODE` | **`false`** | Leave it false. See the warning below |
 | `STATION_POLLER_ENABLED` | `true` | Polls Open-Meteo every 10 min into `station_readings` |
+| `METAR_POLLER_ENABLED`, `MASTODON_POLLER_ENABLED`, `NEWS_POLLER_ENABLED` | `false` | Phase 2's feeds: airport weather, #IMD posts, news headlines. No keys needed; turn them on to collect |
+| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | placeholders | The object store's keys (Phase 2). Generate real ones — see below. Placeholders mean "not configured": the lake is off and `/healthz` says `degraded`, nothing else changes |
 | `OPENWEATHER_API_KEY`, `IMD_API_KEY`, `TWITTER_BEARER_TOKEN` | empty | **Nothing reads them.** Those feeds do not exist; leave them blank |
+
+**The object store's keys, before the first `docker compose up`.** SeaweedFS reads its keys from
+`infra/seaweedfs/s3.json`, which is gitignored and generated from `.env`:
+
+```bash
+openssl rand -hex 12     # paste as S3_ACCESS_KEY in .env
+openssl rand -hex 32     # paste as S3_SECRET_KEY in .env
+python3 scripts/make_s3_config.py
+```
+
+`openssl rand -hex N` prints N random bytes as hexadecimal, a safe secret. If you start the
+containers before running the script, Docker creates an empty *directory* at `infra/seaweedfs/s3.json`
+and the object store will not start; stop it, `rmdir infra/seaweedfs/s3.json`, and run the script.
 
 > **`DEMO_MODE=true` makes the API serve data nothing computed.** An empty database answers
 > `GET /api/events` with a fabricated `0.94 / AUTO_PUBLISHED / CRITICAL` event — a score the real
@@ -54,14 +70,19 @@ The backend reads the **repo-root `.env`**. A `backend/.env`, if one exists, sil
 ## 2. Infrastructure
 
 ```bash
-docker compose up -d
+docker compose up -d --wait        # or: ./start.sh infra up — both wait for "healthy"
 docker ps --format '{{.Names}}\t{{.Status}}'
 ```
 
-Expect `indra-postgres`, `indra-redis` and `indra-redpanda`.
+Expect `indra-postgres` and `indra-redis` `(healthy)`, and `indra-redpanda` and `indra-objectstore`
+`Up` (they have no healthcheck; `/healthz` checks both once the API is running). The object store's
+S3 API listens on `127.0.0.1:8333` only.
 
-> **`pg_isready` reports ready before `indra_db` exists** on a brand-new volume. Do not use it as
-> the signal that the database is usable — the migration succeeding is the real gate.
+> **Why `--wait` is enough now (BUG-028).** On a brand-new volume the Postgres entrypoint runs a
+> temporary server on the Unix socket, creates `indra_db`, then restarts. A socket `pg_isready`
+> went green on that temporary server, before the database existed. The healthcheck now probes
+> over TCP, which only the real server listens on, so `healthy` means `indra_db` is there. Still
+> read the migration output below.
 
 ---
 
@@ -71,7 +92,7 @@ Expect `indra-postgres`, `indra-redis` and `indra-redpanda`.
 cd backend
 python3 -m venv .venv                     # if it does not exist
 .venv/bin/pip install -r requirements.txt
-.venv/bin/alembic upgrade head            # → 0009_event_location (head)
+.venv/bin/alembic upgrade head            # → 0016_station_observations (current head)
 ```
 
 **Read the output of `alembic upgrade head`.** A silently failed migration leaves a database with
@@ -96,36 +117,29 @@ open http://localhost:8000/docs                 # interactive API docs
 
 | `/healthz` | HTTP | Meaning |
 |---|---|---|
-| `healthy` | 200 | all four dependencies up |
-| `degraded` | 200 | Redis or Open-Meteo down — **fine**, neither is load-bearing |
-| `unhealthy` | 503 | Postgres or Kafka down — a report would be lost |
+| `healthy` | 200 | critical services and optional checks up |
+| `degraded` | 200 | Redis, Open-Meteo, object store, or delayed outbox — reports remain stored |
+| `unhealthy` | 503 | Postgres or Kafka down; Kafka-bound reports wait in the transactional outbox |
 
-First start hash-authorizes and warms the frozen local Phase 19 duplicate matcher in a background
-thread. No MiniLM or remote model download is part of startup; an unavailable artifact makes
-duplicate inference fail closed.
+First start authorizes the frozen local duplicate artifact on a background thread. No MiniLM,
+remote checkpoint, or network-based ML warm-up is performed. Kafka's process producer and outbox
+relay also start during lifespan; a broker outage does not discard a stored report.
 
 ---
 
 ## 4. Tests
 
-The 25 Sep Windows verification used an isolated repository-root `.venv` (exact package versions
-are in `backend/app/ml/artifacts/phase25_runtime_environment.json`). Pillow and PyTorch are needed
-by the frozen scratch-image component; pyarrow enables the optional Parquet test. These are local
-libraries, not pretrained checkpoints or runtime model downloads.
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-.\.venv\Scripts\python.exe -m pip install Pillow==12.3.0 torch==2.14.0 pyarrow==25.0.1
+```bash
 cd backend
-..\.venv\Scripts\python.exe -m pytest -q app/ml/tests
-..\.venv\Scripts\python.exe -m pytest -q -m "not integration and not network"
+.venv/bin/pytest -q                                        # verify current merged-branch result
+.venv/bin/pytest -q -m "not integration"                   # no Docker needed
+.venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```
 
-Observed on 25 Sep: AI/ML 343 passed; database-free backend 481 passed, 8 pre-existing skips, 197
-deselected. The **full** backend suite needs a disposable PostgreSQL/PostGIS `indra_test` database,
-Redis and other test services; those tests are currently `BLOCKED_BY_TEST_INFRASTRUCTURE`, not
-passed or silently skipped. Do not point test fixtures at a development database.
+The suite runs against a dedicated **`indra_test`** database, not development or production data.
+On Windows, a disposable native PostgreSQL/PostGIS and Redis-compatible test stack can satisfy
+the same configuration without Docker. Set a test-only `TEST_DATABASE_URL` to the isolated
+database, apply Alembic migrations there, and never point tests at a production database.
 
 ---
 
@@ -136,7 +150,9 @@ backend/.venv/bin/python scripts/run_patna_demo.py
 ```
 
 Five synthetic citizen reports → one verified event, with every number read back out of the API.
-Expected output and the full walkthrough: [`demo-runbook.md`](demo-runbook.md).
+Add `--official` to file one more report as the commander through the authenticated route and
+watch source reliability go to 1.00. Expected output and the full walkthrough:
+[`demo-runbook.md`](demo-runbook.md).
 
 Load test, if you want one:
 
@@ -151,10 +167,15 @@ backend/.venv/bin/python scripts/burst_reports.py --count 100 --spread-km 3 --ci
 
 ## 6. Frontend
 
-Owned by the rest of the team; the backend does not modify it.
+Owned by the rest of the team. (On 22 Sep, on request, the backend side fixed a list of defects
+in it; they are written up in [`frontend-handover.md`](frontend-handover.md).)
 
 ```bash
 cd frontend && npm install && npm run dev      # http://localhost:3000
+
+# production build and the browser tests (backend on :8000 first)
+npm run build                                  # type check + lint + build
+npx playwright test                            # 26 tests, serves the build on :3000
 ```
 
 The backend's CORS list defaults to `http://localhost:3000` and `http://127.0.0.1:3000`. If you

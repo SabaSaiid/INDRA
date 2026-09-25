@@ -21,6 +21,8 @@ passlib[bcrypt]>=1.7.4
 alembic>=1.13.1
 greenlet>=3.0.3
 python-Levenshtein>=0.25.1
+# S3 client for the object store (SeaweedFS in compose; any S3 API works).
+boto3>=1.34
 
 # ── Test toolchain ─────────────────────────────────────────────────────────────
 pytest>=8.0.0

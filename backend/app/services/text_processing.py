@@ -8,6 +8,9 @@ severity, spam rules).
     clean_text(s)          normalised text for models and rules
     detect_language(s)     "en" | "hi" | "hinglish", by script and vocabulary
     extract_metadata(s)    {depth_cm, depth_basis, keywords, places, url_count, phone_count}
+    html_to_text(s)        a Mastodon post's HTML as plain text (Phase 2 T4)
+    canonical_url(u)       one article's many URLs as one (Phase 2 T7)
+    core_text(s)           a post without its links and trailing hashtags (T7)
 
 Depth extraction
 ----------------
@@ -320,3 +323,157 @@ def depth_bucket(depth_cm: Optional[float]) -> Optional[str]:
     if depth_cm < 140:
         return "80-139"
     return ">=140"
+
+
+# ── Posts: HTML to text (Phase 2 T4) ──────────────────────────────────────────
+
+from html.parser import HTMLParser  # noqa: E402  (kept beside its only user)
+
+# Tags that end a line of text. Everything else is inline.
+_BLOCK_TAGS = {"p", "br", "div", "li", "ul", "ol", "blockquote", "h1", "h2", "h3", "h4", "pre"}
+
+
+class _PostText(HTMLParser):
+    """
+    Collects a post's visible text. A link to a page becomes its URL, written
+    once; a hashtag or mention link keeps its text ("#imd", "@user"), because
+    that is what the author wrote.
+
+    Mastodon renders a link as three spans — "https://" and the tail hidden,
+    the middle shown — so reading the visible text would give a truncated,
+    unusable URL, and reading all of it the URL plus fragments. The href is
+    the one complete copy.
+    """
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts: List[str] = []
+        self._link_depth = 0      # inside an <a> whose text is replaced by its href
+        self._tag_link_depth = 0  # inside a hashtag or mention <a>
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+        if tag != "a":
+            return
+        attrs = dict(attrs)
+        classes = (attrs.get("class") or "").split()
+        if {"mention", "hashtag"} & set(classes) or (attrs.get("rel") or "") == "tag":
+            self._tag_link_depth += 1
+            return
+        href = (attrs.get("href") or "").strip()
+        if href:
+            self.parts.append(f" {href} ")
+        self._link_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            if self._link_depth:
+                self._link_depth -= 1
+            elif self._tag_link_depth:
+                self._tag_link_depth -= 1
+        if tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self._link_depth:
+            self.parts.append(data)
+
+
+def html_to_text(html: Optional[str]) -> str:
+    """
+    A post's HTML as plain text: tags gone, entities decoded, each link's URL
+    once, paragraphs and line breaks kept as single newlines.
+
+    Never raises: text that will not parse is returned with its tags removed
+    by a regex, which is worse but still text.
+    """
+    if not html:
+        return ""
+    try:
+        parser = _PostText()
+        parser.feed(html)
+        parser.close()
+        text = "".join(parser.parts)
+    except Exception:
+        import html as html_lib
+
+        text = html_lib.unescape(re.sub(r"<[^>]+>", " ", html))
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    return "\n".join(line for line in lines if line)
+
+
+# ── Shared links (Phase 2 T7) ──────────────────────────────────────────────────
+
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit  # noqa: E402
+
+# Query parameters that say who shared a link or how, never which page it is.
+_TRACKING_PARAMS = {
+    "fbclid", "gclid", "dclid", "igshid", "mc_cid", "mc_eid", "ref", "ref_src",
+    "ref_url", "cmpid", "s", "si", "feature", "share", "amp", "outputtype",
+}
+_HOST_PREFIXES = ("www.", "m.", "amp.", "mobile.")
+_TRAILING_PUNCTUATION = ".,;:!?)]}'\"»”’"
+
+
+def canonical_url(url: Optional[str]) -> Optional[str]:
+    """
+    The same article's URL, however it was shared, or None if it is not a URL.
+
+        https://www.x.com/a/?utm_source=m#top    →  https://x.com/a
+        https://m.x.com/a/amp                     →  https://x.com/a
+        http://X.com/a?id=7&utm_medium=social     →  https://x.com/a?id=7
+
+    Lowercases the host, drops `www.`/`m.`/`amp.`, the fragment, tracking
+    parameters (`utm_*`, `fbclid`, …), a trailing slash and an AMP path
+    segment, and treats http and https alike. Parameters that choose the page
+    (`?id=7`) stay, sorted. Punctuation a sentence left on the end of the link
+    is removed first.
+    """
+    if not url:
+        return None
+    url = url.strip().rstrip(_TRAILING_PUNCTUATION)
+    if url.lower().startswith("www."):
+        url = "https://" + url
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return None
+    if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
+        return None
+
+    host = parts.hostname.lower()
+    for prefix in _HOST_PREFIXES:
+        if host.startswith(prefix):
+            host = host[len(prefix):]
+
+    segments = [seg for seg in parts.path.split("/") if seg]
+    if segments and segments[-1].lower() == "amp":
+        segments = segments[:-1]
+    if segments and segments[0].lower() == "amp":
+        segments = segments[1:]
+    path = "/" + "/".join(segments) if segments else ""
+
+    query = [
+        (k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if not k.lower().startswith("utm_") and k.lower() not in _TRACKING_PARAMS
+    ]
+    return urlunsplit(("https", host, path, urlencode(sorted(query)), ""))
+
+
+_HASHTAG_TAIL_RE = re.compile(r"(?:\s*#\w+)+\s*$")
+
+
+def core_text(s: Optional[str]) -> str:
+    """
+    What a post says, without the links and the run of hashtags it ends with.
+
+    A news outlet's post is the headline, the link and a tail of tags; the
+    same outlet's RSS item is the headline alone. Compared whole they differ
+    by the link and the tags; compared by their core they are the same text,
+    which is what a copy is.
+    """
+    text = URL_RE.sub(" ", s or "")
+    text = _HASHTAG_TAIL_RE.sub("", text)
+    return " ".join(text.split())
+

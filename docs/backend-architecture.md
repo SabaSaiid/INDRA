@@ -5,13 +5,11 @@ the exact path a citizen report takes from an HTTP request to a pin on the dashb
 [`ARCHITECTURE.md`](ARCHITECTURE.md), which covers the whole nine-layer system; this file is only
 `backend/`.
 
-**Historical backend-sprint snapshot, last verified against a running stack on 21 Sep 2026.**
-Its MiniLM and permanently-offline image/anomaly statements are superseded. For the current
-AI/ML implementation and verification status, see [ML architecture](ML_ARCHITECTURE.md) and
-[ML validation](ML_VALIDATION_REPORT.md). Only the frozen Phase 19 duplicate matcher is currently
-connected to the backend; the other five frozen components await Phase 26 integration.
-
-The 20 Sep AI/ML scope decision below is historical; the alert-engine status is separate.
+**The main-branch backend snapshot was verified on 22 Sep 2026.** This merged code retains its
+newer Kafka producer, outbox relay, feeds, API routes, and migrations. Its AI/ML sidecar now uses
+six frozen local synthetic-development components as advisory evidence; MiniLM is no longer a
+live dependency. The alert-sending engine remains out of scope. See [ML architecture](ML_ARCHITECTURE.md)
+and [validation](ML_VALIDATION_REPORT.md); pre-merge test counts below are historical.
 
 ---
 
@@ -21,9 +19,9 @@ The 20 Sep AI/ML scope decision below is historical; the alert-engine status is 
 POST /api/reports/submit
    │  validate (India bounds, 5–2000 chars)  ─── outside → 422, nothing stored
    │  geocode, H3 res-8 cell, credibility score, rule-based analysis
-   │  INSERT raw_reports  ─── failed → 503, nothing published
+   │  INSERT raw_reports + outbox message in one transaction ─── failed → 503
    ▼
-indra.raw.reports  (Redpanda)
+outbox relay / process Kafka producer ──► indra.raw.reports (Redpanda)
    │
    ▼  workers/report_consumer.py
    │  broadcast NEW_REPORT once per report id (Redis-backed, survives restart)
@@ -31,7 +29,8 @@ indra.raw.reports  (Redpanda)
    │
    ├─ 1. dedup            frozen local Phase 19 matcher AND ≤ 1 km AND ≤ 15 min
    │                      a duplicate is marked duplicate_of and stops here
-   ├─ 2. cluster          PostGIS ST_ClusterDBSCAN, eps 5 km, min 2 samples
+   ├─ advisory ML         typed UnifiedMLResult at raw_reports.analysis.ml
+   ├─ 2. cluster          DBSCAN, great-circle eps 5 km, min 2 samples (off the event loop)
    ├─ 3. stats            centroid, radius, max pairwise distance, in metres
    ├─ 4. weather          station_readings within 3 h and 25 km  ─── miss → live Open-Meteo
    ├─ 5. score            6-factor receipt, re-normalised over the factors that reported
@@ -42,8 +41,9 @@ indra.raw.reports  (Redpanda)
    └──► indra.verified.events
 ```
 
-This is the backend path; the other five frozen AI/ML components are not yet wired to it. Full
-database-backed verification is blocked by the unavailable test stack.
+NLP, credibility, deterministic event grouping, image and anomaly inference run locally as
+advisory evidence when inputs exist; unavailable inputs remain `NOT_RUN`. Their synthetic scores
+do not alter the legacy fusion decision. Alert dispatch is still not built.
 
 ---
 
@@ -52,9 +52,10 @@ database-backed verification is blocked by the unavailable test stack.
 ```
 backend/app/
 ├── main.py              FastAPI entrypoint. Explicit CORS origin list (not "*").
-│                        Lifespan starts, and cleanly stops, three background tasks:
+│                        Lifespan starts and cleanly stops the consumer, producer,
+│                        outbox relay, local matcher warm-up, and enabled pollers:
 │                          · the Kafka report consumer
-│                          · frozen local duplicate matcher warm-up (off the event loop)
+│                          · the frozen local matcher warm-up (off the event loop)
 │                          · the Open-Meteo station poller
 │                        Serves GET /, /api/info, /healthz, WS /ws/events.
 ├── core/
@@ -66,23 +67,39 @@ backend/app/
 │   └── demo.py          demo_fallback() — the single gate every demo response goes through.
 ├── api/                 one router per domain, each prefixed /api/<domain>
 │   ├── dashboard.py     GET /summary
-│   ├── events.py        GET "", /distribution, /{id}, PATCH /{id}/review, GET /{id}/provenance
-│   ├── reports.py       GET /trend, POST /submit
+│   ├── events.py        GET "" (the PS's date/event/location/status filters, X-Total-Count),
+│   │                    /distribution, /{id}, PATCH /{id}/review, GET /{id}/provenance
+│   ├── reports.py       GET /trend, GET /recent, POST /submit (anonymous, always
+│   │                    CITIZEN_APP), POST /official (COMMANDER/ADMIN → OFFICIAL_DISPATCH),
+│   │                    GET /track/{docket} (open; status only, never text or place)
+│   ├── meta.py          GET /filters — the filter bar's options with counts, cached 60 s
 │   ├── feed.py          GET /recent
 │   ├── geo.py           GET /heatmap
 │   ├── auth.py          POST /token
-│   ├── teams.py         team records
-│   └── profile.py       operator records
+│   ├── teams.py         team records; create and dispatch need COMMANDER/ADMIN
+│   ├── profile.py       operator records; a token edits only its own profile
+│   ├── alerts.py        GET /agency, /agency/{id}/polygon — official SACHET warnings
+│   └── audit.py         GET /recent — newest ledger rows, whole chain verified
 ├── models/              SQLAlchemy ORM, one file per table, plus enums.py for every
 │                        controlled vocabulary (SourceType, Severity, ReviewStatus,
 │                        Quadrant, Agency, AuditAction, OperatorRole, …)
 ├── services/            where the intelligence lives
+│   ├── ingest.py        store_report(): the report and its outbox message in one
+│   │                    transaction, then an immediate publish if the producer is up.
+│   │                    Dockets, and the HMAC reporter pseudonym.
+│   ├── kafka.py         the process's one Kafka producer. Requests never connect;
+│   │                    the outbox relay (re)starts it.
+│   ├── hazards.py       the hazard taxonomy: 16 event types, 4 families, precedence,
+│   │                    labels and gradients, in one table.
 │   ├── pipeline.py      the orchestrator above. Fails soft: one bad report cannot
-│   │                    kill the consumer loop.
+│   │                    kill the consumer loop. Stamps processed_at on every report
+│   │                    it finishes with.
 │   ├── fusion_engine.py compute_receipt / assign_quadrant / determine_review_status.
-│   ├── dedup.py         frozen Phase 19 matcher with backend geo/time eligibility gates.
-│   ├── geo_clustering.py DBSCAN, H3 assignment, cluster stats, report→event linking.
-│   ├── geocoding.py     coordinate sanitising against India's bounds, 56-city gazetteer.
+│   ├── dedup.py         frozen local Phase 19 matcher with backend spatial/time gates.
+│   ├── ml_adapter.py    PostGIS history reads and typed advisory ML persistence.
+│   ├── geo_clustering.py DBSCAN (haversine), H3 assignment, cluster stats, report→event linking.
+│   ├── geocoding.py     India bounds check; forward and reverse geocoding over the
+│   │                    737-district gazetteer (data/geo/india_districts.csv).
 │   ├── credibility.py   source prior × text quality, per report.
 │   ├── text_processing.py cleaning, language detection, depth and place extraction.
 │   │                    Regex and dictionaries. No model.
@@ -90,11 +107,14 @@ backend/app/
 │   ├── cache.py         Redis, with an in-memory fallback. Never load-bearing.
 │   ├── audit.py         the SHA-256 hash chain.
 │   ├── event_publisher.py verified events → indra.verified.events
-│   └── health.py        the four real dependency checks behind /healthz.
+│   └── health.py        the five real checks behind /healthz, including the outbox backlog.
 ├── workers/
 │   ├── report_consumer.py  aiokafka consumer driving the pipeline.
-│   └── station_poller.py   the scheduled Open-Meteo feed into station_readings.
-└── ml/                  Six frozen local synthetic-development components; the older
+│   ├── outbox_relay.py     publishes every outbox row the request could not, every 2 s,
+│   │                       FOR UPDATE SKIP LOCKED, so no report is lost to a Kafka outage.
+│   ├── station_poller.py   the scheduled Open-Meteo feed into station_readings.
+│   └── sachet_poller.py    NDMA SACHET CAP warnings into agency_alerts, every 5 min.
+└── ml/                  Six frozen local development components; the older below-gate
                          event_classifier.py remains quarantined legacy code.
 ```
 
@@ -109,9 +129,9 @@ Six factors, fixed weights:
 | Weather Station Corroboration | 0.25 | online |
 | Report Density Analysis | 0.20 | online |
 | Spatial Coherence Score | 0.20 | online |
-| Computer Vision Analysis | 0.15 | unavailable in this historical backend receipt; frozen model not yet integrated |
+| Computer Vision Analysis | 0.15 | excluded from this legacy fusion score; separate advisory model output |
 | Source Reliability Index | 0.15 | online |
-| Anomaly Detection Signal | 0.05 | unavailable in this historical backend receipt; frozen model not yet integrated |
+| Anomaly Detection Signal | 0.05 | excluded from this legacy fusion score; separate advisory model output |
 
 ```
 online          = { f : score(f) is not None }
@@ -153,13 +173,19 @@ the point. The receipt names the winning axis and the phrase it read.
 
 | Store | What it holds | What happens without it |
 |---|---|---|
-| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `audit_logs`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
-| **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit returns 202 `queued: false`, `/healthz` 503. **Critical** |
-| **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s) and the broadcast-dedup set (`bcast:{id}`, TTL 24 h) | both fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
+| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, `outbox`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
+| **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit still returns 202 (`queued: false, will_retry: true`) and the report waits in the outbox; the relay publishes it within seconds of Redpanda returning. `/healthz` 503. **Critical**, but no longer lossy (BUG-060) |
+| **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s), the broadcast-dedup set (`bcast:{id}`, TTL 24 h) and the filter options (`meta:filters`, 60 s) | all fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
 | **Object storage** | nothing — configured in `.env`, not deployed | n/a |
 
-Six migrations, `0001` … `0006`. `audit_logs` carries a row-level trigger rejecting `UPDATE` and
-`DELETE`.
+Sixteen migrations, `0001` … `0016`. Phase 1 added four: `0011` the hazard and source enum values,
+`0012` the report intake columns (`observed_at`, `reporter_hash`, `docket`, `platform`,
+`external_id`, `source_meta`, `citizen_hazard`, `processed_at`), `0013` the outbox, `0014` the event
+filter indexes and the long-missing index on `raw_reports.event_id`; `0015` added placeless feed
+status and `0016` added station observation support. Alembic runs every pending
+migration in one transaction, so a migration never uses an enum value added in the same run. `audit_logs` carries a row-level trigger rejecting `UPDATE` and `DELETE`. On a fresh
+volume, Postgres is reported healthy only once it listens on TCP, which is after `indra_db` exists
+(BUG-028); `./start.sh infra up` waits for that.
 
 ### The audit chain
 
@@ -182,10 +208,11 @@ decisions rather than traffic. A reviewer writes `HUMAN_APPROVE` / `HUMAN_REJECT
 | Task | Started | Failure behaviour |
 |---|---|---|
 | Kafka report consumer | lifespan | Retries with backoff; logs the broker being offline once, not per attempt |
-| Frozen duplicate matcher warm-up | lifespan, in a thread | Local artifact load is non-fatal at startup; duplicate inference fails closed if unavailable |
+| Frozen local matcher warm-up | lifespan, in a thread | Local artifact load is non-fatal at startup; no MiniLM or remote checkpoint is loaded |
 | Station poller | lifespan, if `STATION_POLLER_ENABLED` | Every tick wrapped; a failure logs one WARNING and the next tick retries |
+| SACHET poller | lifespan, if `SACHET_POLLER_ENABLED` | Same: every tick wrapped, at most `SACHET_MAX_FETCHES_PER_TICK` CAP documents a tick |
 
-All three are cancelled and **awaited** at shutdown, which is what keeps
+All started tasks are cancelled and **awaited** at shutdown, which is what keeps
 `Task was destroyed but it is pending!` out of the logs.
 
 > **One backend process.** WebSocket fan-out is an in-process list, the poller has no leader
@@ -212,7 +239,7 @@ The settings worth knowing: `DEMO_MODE` (default **false**, and it must stay fal
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                   # 568 passed, 2 skipped
+.venv/bin/pytest -q                                   # rerun on the merged branch; pre-merge counts are historical
 .venv/bin/pytest -q -m "not integration"              # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```

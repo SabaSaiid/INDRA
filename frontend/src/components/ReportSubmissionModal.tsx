@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -13,7 +13,12 @@ import {
   Image as ImageIcon,
   Navigation,
 } from 'lucide-react';
-import { submitCitizenReport, type ReportSubmission } from '@/lib/api';
+import {
+  currentPersona,
+  submitCitizenReport,
+  submitOfficialReport,
+  type ReportSubmission,
+} from '@/lib/api';
 
 interface Props {
   open: boolean;
@@ -29,12 +34,22 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
+  // Only a Commander or Admin persona may file for a trusted source; the
+  // backend enforces it (POST /api/reports/official), this only hides an
+  // option that would be refused.
+  const [persona, setPersona] = useState('commander');
+  const [asOfficial, setAsOfficial] = useState(false);
+  useEffect(() => {
+    if (open) setPersona(currentPersona());
+  }, [open]);
+  const canFileOfficial = persona === 'commander' || persona === 'admin';
 
   const resetForm = useCallback(() => {
     setLat('');
     setLng('');
     setText('');
     setMediaUrl('');
+    setAsOfficial(false);
     setResult(null);
   }, []);
 
@@ -66,9 +81,15 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
     const report: ReportSubmission = { latitude, longitude, text };
     if (mediaUrl.trim()) report.media_url = mediaUrl.trim();
 
-    const res = await submitCitizenReport(report);
+    const official = asOfficial && canFileOfficial;
+    const res = official ? await submitOfficialReport(report, persona) : await submitCitizenReport(report);
     if (res.success) {
-      setResult({ success: true, message: 'Report submitted successfully! Our system is processing your report through the verification pipeline.' });
+      setResult({
+        success: true,
+        message: official
+          ? `Official dispatch filed as ${persona}. It is stored with your name and scored like any report.`
+          : 'Report submitted successfully! Our system is processing your report through the verification pipeline.',
+      });
       onSubmitted?.();
     } else {
       setResult({ success: false, message: res.error || 'Submission failed. Please try again.' });
@@ -187,6 +208,24 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                   />
                 </div>
 
+                {canFileOfficial && (
+                  <label className="flex items-start gap-2 p-3 rounded-lg border border-[#E8E2D4] bg-white text-xs text-[#3C2415] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={asOfficial}
+                      onChange={(e) => setAsOfficial(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-semibold">File as an official dispatch</span>
+                      <span className="block text-[10px] text-[#8C7A6B]">
+                        For a report from a control room or field team. Stored as OFFICIAL_DISPATCH
+                        with your name ({persona}); it lifts the event&apos;s source reliability to 1.00.
+                      </span>
+                    </span>
+                  </label>
+                )}
+
                 {/* Submit */}
                 <button
                   onClick={handleSubmit}
@@ -194,7 +233,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                   className="w-full py-2.5 rounded-lg bg-[#B5482E] text-white text-xs font-semibold hover:bg-[#8C3420] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {submitting ? 'Submitting report…' : 'Submit Report'}
+                  {submitting ? 'Submitting report…' : asOfficial && canFileOfficial ? 'File Official Dispatch' : 'Submit Report'}
                 </button>
               </>
             )}

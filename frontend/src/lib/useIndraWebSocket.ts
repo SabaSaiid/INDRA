@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -13,83 +13,105 @@ export interface WsMessage {
 
 export type WsListener = (message: WsMessage) => void;
 
-/**
- * Centralized WebSocket hook for the INDRA `/ws/events` endpoint.
+/*
+ * One connection to `/ws/events` for the whole tab.
  *
- * Manages auto-reconnect and dispatches typed messages to registered listeners.
- * Multiple components can subscribe without opening duplicate connections.
+ * Each call of the hook used to open its own socket, and two components opened
+ * raw ones beside it, so the dashboard held five or six connections to the same
+ * endpoint, each reconnecting on its own schedule. The socket, its listeners and
+ * its connected flag now live at module level; the hook only registers. The
+ * socket opens with the first subscriber and closes a few seconds after the
+ * last one leaves, so a page change does not drop and redial it.
  */
-export function useIndraWebSocket() {
-  const wsRef = useRef<WebSocket | null>(null);
-  const listenersRef = useRef<Map<string, WsListener>>(new Map());
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [connected, setConnected] = useState(false);
 
-  const connect = useCallback(() => {
-    // Don't open duplicate connections
-    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
+const listeners = new Map<string, WsListener>();
+const connectedSetters = new Set<(v: boolean) => void>();
+let socket: WebSocket | null = null;
+let isConnected = false;
+let users = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const wsUrl = API_BASE
-      .replace('http://', 'ws://')
-      .replace('https://', 'wss://');
+function setConnected(v: boolean) {
+  isConnected = v;
+  connectedSetters.forEach((set) => set(v));
+}
 
-    try {
-      const ws = new WebSocket(`${wsUrl}/ws/events`);
-
-      ws.onopen = () => {
-        setConnected(true);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const msg: WsMessage = JSON.parse(event.data);
-          if (msg.type) {
-            listenersRef.current.forEach((listener) => {
-              try { listener(msg); } catch { /* ignore listener errors */ }
-            });
-          }
-        } catch {
-          // ignore malformed messages
+function connect() {
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+  const wsUrl = API_BASE.replace(/^http/, 'ws');
+  try {
+    const ws = new WebSocket(`${wsUrl}/ws/events`);
+    ws.onopen = () => setConnected(true);
+    ws.onmessage = (event) => {
+      try {
+        const msg: WsMessage = JSON.parse(event.data);
+        if (msg.type) {
+          listeners.forEach((listener) => {
+            try { listener(msg); } catch { /* one listener's error is not the others' */ }
+          });
         }
-      };
-
-      ws.onclose = () => {
-        setConnected(false);
-        wsRef.current = null;
-        // Auto-reconnect after 3 seconds
-        reconnectTimerRef.current = setTimeout(connect, 3000);
-      };
-
-      ws.onerror = () => {
-        // onclose will fire after onerror
-      };
-
-      wsRef.current = ws;
-    } catch {
-      console.warn('[INDRA] WebSocket connection failed (non-fatal)');
-      reconnectTimerRef.current = setTimeout(connect, 5000);
-    }
-  }, []);
-
-  // Connect on mount, disconnect on unmount
-  useEffect(() => {
-    connect();
-    return () => {
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      if (wsRef.current) {
-        wsRef.current.onclose = null; // prevent reconnect on intentional close
-        wsRef.current.close();
+      } catch {
+        // A malformed frame is not a reason to tear the socket down.
       }
     };
-  }, [connect]);
+    ws.onclose = () => {
+      setConnected(false);
+      socket = null;
+      if (users > 0) reconnectTimer = setTimeout(connect, 3000);
+    };
+    socket = ws;
+  } catch {
+    console.warn('[INDRA] WebSocket connection failed (non-fatal)');
+    if (users > 0) reconnectTimer = setTimeout(connect, 5000);
+  }
+}
 
-  /** Subscribe a listener. Returns an unsubscribe function. */
-  const subscribe = useCallback((id: string, listener: WsListener): (() => void) => {
-    listenersRef.current.set(id, listener);
+function acquire() {
+  users += 1;
+  if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+  connect();
+}
+
+function release() {
+  users = Math.max(0, users - 1);
+  if (users > 0) return;
+  idleTimer = setTimeout(() => {
+    if (users > 0) return;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (socket) {
+      socket.onclose = null;
+      socket.close();
+      socket = null;
+    }
+    setConnected(false);
+  }, 5000);
+}
+
+/**
+ * The shared `/ws/events` connection: whether it is up, and a way to listen.
+ * Any number of components may call this; there is still one socket.
+ */
+export function useIndraWebSocket() {
+  const [connected, setConnectedState] = useState(isConnected);
+
+  useEffect(() => {
+    connectedSetters.add(setConnectedState);
+    setConnectedState(isConnected);
+    acquire();
     return () => {
-      listenersRef.current.delete(id);
+      connectedSetters.delete(setConnectedState);
+      release();
+    };
+  }, []);
+
+  /** Subscribe a listener under a unique id. Returns an unsubscribe function. */
+  const subscribe = useCallback((id: string, listener: WsListener): (() => void) => {
+    listeners.set(id, listener);
+    return () => {
+      if (listeners.get(id) === listener) listeners.delete(id);
     };
   }, []);
 

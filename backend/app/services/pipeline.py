@@ -28,6 +28,7 @@ import asyncio
 import json
 import logging
 import math
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence
 from uuid import UUID, uuid4
@@ -38,12 +39,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.models.enums import AuditAction, EventType, ReviewStatus, Severity
 from app.services import audit
-from app.services.dedup import DedupService
+from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
 from app.services.geocoding import reverse_geocode
 from app.services.ml_adapter import analyze_stored_event_group, analyze_stored_report
-from app.services.text_processing import extract_metadata
+from app.services.text_processing import core_text, extract_metadata
 from app.services.weather import rainfall_to_score, weather_score
 
 logger = logging.getLogger("indra.services.pipeline")
@@ -85,6 +86,18 @@ SEVERITY_ORDER = (
     Severity.CRITICAL,
 )
 
+# Positions the spatial pipeline may use (raw_reports.place_precision, 0015):
+# a device's GPS fix, or a post's single named district. A state centroid and
+# "no place" are never clustered.
+CLUSTERABLE_PRECISIONS = {"gps", "district"}
+
+# Source types a poller collects (Phase 2): Mastodon posts, news headlines.
+# They take their own dedup path, _feed_duplicate, never the citizen one.
+FEED_SOURCE_TYPES = {"SOCIAL_MEDIA", "NEWS_MEDIA"}
+# The most recent posts compared by text for one new post: bounds the model's
+# work on a busy day.
+FEED_TEXT_CANDIDATES = 200
+
 # Dedup candidate window, mirroring DedupService's own gates.
 DEDUP_WINDOW_MINUTES = 15
 DEDUP_RADIUS_METRES = 1000
@@ -96,6 +109,24 @@ DEDUP_RADIUS_METRES = 1000
 # So a new cluster that lands on top of a recent event joins it and raises its
 # corroboration instead of competing with it.
 MERGE_WINDOW_MINUTES = 120
+
+# Why the last process_report() in this task failed, or None (Phase 2 T8).
+#
+# process_report never raises — a pipeline crash must not kill the consumer
+# loop, and every caller relies on that. But "returned None" covers both "no
+# event, correctly" and "crashed", and only the second should count towards
+# the dead-letter topic. The consumer calls take_failure() straight after, in
+# the same task, to tell them apart. A ContextVar, so concurrent tasks never
+# see each other's failures.
+_last_failure: ContextVar[Optional[str]] = ContextVar("pipeline_last_failure", default=None)
+
+
+def take_failure() -> Optional[str]:
+    """The last failure in this task, cleared as it is read; None if it succeeded."""
+    failure = _last_failure.get()
+    _last_failure.set(None)
+    return failure
+
 
 # The pipeline's audit action for each status it can decide on its own.
 # HUMAN_APPROVED and REJECTED are never machine decisions.
@@ -332,6 +363,7 @@ def score_cluster(
         confidence,
         settings.AUTO_PUBLISH_THRESHOLD,
         settings.HUMAN_REVIEW_THRESHOLD,
+        severity=severity,
     )
 
     def _state(value: Optional[float]) -> str:
@@ -355,6 +387,7 @@ def score_cluster(
     # and what phrase it came from. A new top-level block rather than more keys
     # under provenance, whose key set is asserted exactly by the determinism test.
     receipt["severity_basis"] = decided["basis"]
+    receipt["routing"] = _routing(severity, confidence, review_status)
     receipt["cluster"] = {
         "size": stats["count"],
         "centroid_lat": stats["centroid_lat"],
@@ -379,13 +412,41 @@ def score_cluster(
     }
 
 
+def _routing(severity: Severity, confidence: float, review_status: ReviewStatus) -> Dict[str, Any]:
+    """
+    Why the event is where it is, for the receipt. "severity" means a HIGH or
+    CRITICAL event below the review gate that went to a human instead of into
+    quarantine (BUG-067); an operator seeing a 0.45 event in the queue should
+    be able to read why.
+    """
+    by_severity = (
+        confidence < settings.HUMAN_REVIEW_THRESHOLD
+        and review_status is ReviewStatus.PENDING_HUMAN_REVIEW
+    )
+    return {
+        "review_status": review_status.value,
+        "basis": "severity" if by_severity else "confidence",
+        "auto_publish_threshold": settings.AUTO_PUBLISH_THRESHOLD,
+        "human_review_threshold": settings.HUMAN_REVIEW_THRESHOLD,
+    }
+
+
 async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, Any]]:
-    """Re-read the stored row — the authority on this report's coordinates."""
+    """
+    Re-read the stored row — the authority on this report's coordinates.
+
+    Since Phase 2 a report may have no coordinates (a post that names no
+    place) or coordinates without a geometry (a state centroid): `latitude`
+    and `longitude` are then None, `has_geom` False, and the pipeline measures
+    no distance from it.
+    """
     row = (
         await db.execute(
             text("""
                 SELECT id, raw_text, latitude, longitude, created_at, event_id,
-                       duplicate_of, source_type
+                       duplicate_of, CAST(source_type AS text) AS source_type, place_precision,
+                       platform, source_meta, observed_at,
+                       geom_point IS NOT NULL AS has_geom, district, state
                 FROM raw_reports
                 WHERE id = CAST(:id AS uuid)
             """),
@@ -399,12 +460,19 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
     return {
         "id": row[0],
         "raw_text": row[1],
-        "latitude": float(row[2]),
-        "longitude": float(row[3]),
+        "latitude": float(row[2]) if row[2] is not None else None,
+        "longitude": float(row[3]) if row[3] is not None else None,
         "created_at": row[4],
         "event_id": row[5],
         "duplicate_of": row[6],
         "source_type": row[7],
+        "place_precision": row[8] or "gps",
+        "platform": row[9],
+        "source_meta": row[10] or {},
+        "observed_at": row[11],
+        "has_geom": bool(row[12]),
+        "district": row[13],
+        "state": row[14],
     }
 
 
@@ -432,6 +500,11 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
                                    - make_interval(mins => CAST(:window AS int))
                   AND created_at <= CAST(:created_at AS timestamptz)
                   AND geom_point IS NOT NULL
+                  -- Reports people filed only. A post placed at a district
+                  -- centroid is not "within 1 km" of anyone: it has its own
+                  -- dedup path (_feed_duplicate), and citizen dedup stays
+                  -- exactly as measured (BUG-013).
+                  AND COALESCE(place_precision, 'gps') = 'gps'
                   AND ST_DWithin(
                         geom_point::geography,
                         ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
@@ -453,6 +526,98 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
     original_ids = [r[0] for r in rows]
     candidates = [(r[1], float(r[2]), float(r[3]), r[4]) for r in rows]
     return original_ids, candidates
+
+
+async def _feed_duplicate(db: AsyncSession, report: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    The earlier post or headline this one repeats, as {"original", "basis"}, or
+    None. Phase 2 T7: re-sharing is not witnessing — "crowd volume is not
+    independent confirmation" — so one story shared twenty times counts once.
+
+    Two rules, checked in order, against earlier SOCIAL_MEDIA and NEWS_MEDIA
+    reports only:
+
+    1. **The same article.** Both link to the same page once URLs are
+       canonicalised (tracking parameters, `www.`, AMP paths and trailing
+       slashes removed at collection), within FEED_DEDUP_LINK_WINDOW_HOURS.
+    2. **The same text about the same place.** Same district (or the same
+       state for a state-level post, or both placed nowhere), observed within
+       FEED_DEDUP_TEXT_WINDOW_HOURS of each other, and the same words: an
+       identical headline key, or local edit similarity on the text without
+       its links and hashtag tail. This is how a news
+       outlet's Mastodon post and its own RSS item become one.
+
+    Citizen dedup keeps its separate 1 km / 15 min gates and frozen matcher.
+    """
+    params = {"id": str(report["id"]), "created_at": report["created_at"]}
+
+    links = [l for l in (report["source_meta"].get("links") or []) if isinstance(l, str)]
+    if links:
+        row = (await db.execute(
+            text("""
+                SELECT COALESCE(duplicate_of, id)
+                FROM raw_reports
+                WHERE id <> CAST(:id AS uuid)
+                  AND CAST(source_type AS text) IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+                  AND created_at <= CAST(:created_at AS timestamptz)
+                  AND created_at > CAST(:created_at AS timestamptz)
+                                   - make_interval(hours => CAST(:hours AS int))
+                  AND jsonb_typeof(source_meta->'links') = 'array'
+                  AND jsonb_exists_any(source_meta->'links', CAST(:links AS text[]))
+                ORDER BY created_at, id
+                LIMIT 1
+            """),
+            {**params, "hours": settings.FEED_DEDUP_LINK_WINDOW_HOURS, "links": links},
+        )).first()
+        if row is not None:
+            return {"original": row[0], "basis": {"rule": "shared_link"}}
+
+    observed = report["observed_at"] or report["created_at"]
+    rows = (await db.execute(
+        text("""
+            SELECT COALESCE(duplicate_of, id), raw_text, source_meta->>'headline_key'
+            FROM raw_reports
+            WHERE id <> CAST(:id AS uuid)
+              AND CAST(source_type AS text) IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+              AND created_at <= CAST(:created_at AS timestamptz)
+              AND COALESCE(observed_at, created_at)
+                    BETWEEN CAST(:observed AS timestamptz) - make_interval(hours => CAST(:hours AS int))
+                        AND CAST(:observed AS timestamptz) + make_interval(hours => CAST(:hours AS int))
+              AND district IS NOT DISTINCT FROM CAST(:district AS varchar)
+              AND state IS NOT DISTINCT FROM CAST(:state AS varchar)
+            ORDER BY created_at DESC, id DESC
+            LIMIT :limit
+        """),
+        {
+            **params,
+            "observed": observed,
+            "hours": settings.FEED_DEDUP_TEXT_WINDOW_HOURS,
+            "district": report["district"],
+            "state": report["state"],
+            "limit": FEED_TEXT_CANDIDATES,
+        },
+    )).fetchall()
+    if not rows:
+        return None
+    # Oldest first, so the earliest copy is the one matched.
+    rows = list(reversed(rows))
+
+    key = report["source_meta"].get("headline_key")
+    if key:
+        for original, _text, candidate_key in rows:
+            if candidate_key == key:
+                return {"original": original, "basis": {"rule": "same_headline"}}
+
+    mine = core_text(report["raw_text"])
+    theirs = [core_text(r[1]) for r in rows]
+    match = await asyncio.to_thread(find_similar_text, mine, theirs)
+    if match is None:
+        return None
+    index, similarity, method = match
+    return {
+        "original": rows[index][0],
+        "basis": {"rule": "same_text_same_place", "similarity": similarity, "method": method},
+    }
 
 
 async def _find_mergeable_event(
@@ -696,13 +861,39 @@ async def _next_event_code(db: AsyncSession) -> str:
     return f"INDRA-{today}-{count + 1:03d}"
 
 
+async def _mark_processed(db: AsyncSession, *report_ids: UUID) -> None:
+    """
+    Record that the pipeline has finished with these reports, whatever it decided.
+
+    Without it a report the pipeline looked at and found alone was
+    indistinguishable from one it never saw, and the citizen's docket could not
+    say which (migration 0012). Runs in the caller's transaction, so the stamp
+    commits with the outcome or not at all; the first stamp stands. A pipeline
+    crash leaves it unset, which is the truth: that report was not processed.
+
+    When a run links a whole cluster into an event, every report it linked is
+    finished with, not only the one whose message started the run: the others'
+    own messages will find them linked and skip them.
+    """
+    await db.execute(
+        text("""
+            UPDATE raw_reports
+            SET processed_at = COALESCE(processed_at, NOW())
+            WHERE id = ANY(CAST(:ids AS uuid[]))
+        """),
+        {"ids": [str(r) for r in report_ids]},
+    )
+
+
 async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
     """
     Run one report through the verification pipeline.
 
     Returns the created event as a dict, or None when no event should be created
-    (duplicate, uncorroborated, or a handled error).
+    (duplicate, uncorroborated, or a handled error). A handled error is also
+    recorded for take_failure(), so the consumer can retry and dead-letter it.
     """
+    _last_failure.set(None)
     try:
         raw_id = report.get("id")
         if not raw_id:
@@ -729,11 +920,75 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             logger.info(f"Pipeline: report {report_id} already suppressed as a duplicate — skipping")
             return None
 
+        # ── 1b. Posts and headlines: their own dedup, then held ─────────────
+        # Phase 2 T7, T8. A post repeating an earlier post or headline is
+        # suppressed exactly as a citizen duplicate is: duplicate_of, and never
+        # counted again. What is left is held out of clustering until Phase 3
+        # can say what hazard it is about (SOCIAL_CLUSTERING_ENABLED), and a
+        # headline that was already old when collected is never clustered.
+        if stored["source_type"] in FEED_SOURCE_TYPES:
+            duplicate = await _feed_duplicate(db, stored)
+            if duplicate is not None:
+                await db.execute(
+                    text("""
+                        UPDATE raw_reports
+                        SET duplicate_of = CAST(:original AS uuid),
+                            source_meta = COALESCE(source_meta, '{}'::jsonb)
+                                          || jsonb_build_object('duplicate_basis', CAST(:basis AS jsonb))
+                        WHERE id = CAST(:id AS uuid)
+                    """),
+                    {
+                        "original": str(duplicate["original"]),
+                        "basis": json.dumps(duplicate["basis"]),
+                        "id": str(report_id),
+                    },
+                )
+                await _mark_processed(db, report_id)
+                await db.commit()
+                logger.info(
+                    f"Pipeline: {stored['source_type']} {report_id} suppressed as a copy of "
+                    f"{duplicate['original']} ({duplicate['basis']['rule']})"
+                )
+                return None
+
+            stale = bool(stored["source_meta"].get("stale"))
+            if stale or not settings.SOCIAL_CLUSTERING_ENABLED:
+                logger.info(
+                    f"Pipeline: {stored['source_type']} {report_id} stored and held "
+                    f"({'stale' if stale else 'social clustering off until Phase 3'})"
+                )
+                await _mark_processed(db, report_id)
+                await db.commit()
+                return None
+
+        # ── 1a. No point, no spatial pipeline ───────────────────────────────
+        # A post that names no place, or only a state, has nothing to measure a
+        # distance from: it is stored and shown, never deduplicated on distance
+        # and never clustered (Phase 2 T4, T6).
+        # Coordinates, not geom_point: a row stored without a geometry gets one
+        # backfilled at step 3, as it always has.
+        if (
+            stored["latitude"] is None
+            or stored["longitude"] is None
+            or stored["place_precision"] not in CLUSTERABLE_PRECISIONS
+        ):
+            logger.info(
+                f"Pipeline: report {report_id} has no clusterable position "
+                f"({stored['place_precision']}) — stored, not clustered"
+            )
+            await _mark_processed(db, report_id)
+            await db.commit()
+            return None
+
         # ── 2. Deduplication ────────────────────────────────────────────────
         # A suppressed report is marked, not just skipped: duplicate_of keeps it
         # out of every later clustering run, so it is never counted as
         # corroboration by the reports that arrive after it.
-        original_ids, candidates = await _dedup_candidates(db, stored)
+        # Posts reaching here (clustering on, Phase 3) already had their own.
+        if stored["source_type"] in FEED_SOURCE_TYPES:
+            original_ids, candidates = [], []
+        else:
+            original_ids, candidates = await _dedup_candidates(db, stored)
         # Inference is advisory. Persist its six typed component outcomes even
         # for a lone report or a duplicate that will not create an event.
         # The adapter owns PostGIS history reads and JSONB writes; ML owns none.
@@ -763,6 +1018,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     """),
                     {"original": str(original_id), "id": str(report_id)},
                 )
+                await _mark_processed(db, report_id)
                 await db.commit()
                 logger.info(
                     f"Pipeline: report {report_id} suppressed as duplicate of {original_id} "
@@ -801,6 +1057,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     f"Pipeline: report {report_id} is in no cluster and near no "
                     "known event — a single uncorroborated report is not yet an event"
                 )
+                await _mark_processed(db, report_id)
+                await db.commit()
                 return None
 
             logger.info(
@@ -812,6 +1070,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         stats = await geo.get_cluster_stats(cluster["report_ids"])
         if not stats["count"] or stats["centroid_lat"] is None:
             logger.warning(f"Pipeline: cluster for {report_id} has no usable geometry")
+            await _mark_processed(db, report_id)
+            await db.commit()
             return None
 
         # ── 5a. Merge into a recent overlapping event, if there is one ──────
@@ -893,6 +1153,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     f"Pipeline: {event_code} was rejected while report {report_id} "
                     "was being processed — not merging"
                 )
+                await _mark_processed(db, report_id)
+                await db.commit()
                 return None
 
             # The machine keeps re-scoring as evidence accumulates, but it never
@@ -907,6 +1169,12 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 quadrant = FusionEngine.human_approved_quadrant(severity)
             else:
                 quadrant = FusionEngine().assign_quadrant(severity, confidence)
+                # Routing depends on severity too (BUG-067), so a commander's
+                # override to HIGH keeps the event in front of a human.
+                review_status = FusionEngine().determine_review_status(
+                    confidence, severity=severity
+                )
+            receipt["routing"] = _routing(severity, confidence, review_status)
             if human_review:
                 receipt["human_review"] = human_review
 
@@ -1026,6 +1294,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 },
             )
 
+        await _mark_processed(db, report_id, *cluster["report_ids"])
         await db.commit()
 
         logger.info(
@@ -1053,6 +1322,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
     except Exception as e:
         # Fail soft: a pipeline crash must never kill the consumer loop.
         logger.error(f"Pipeline failed for report {report.get('id', 'unknown')}: {e}", exc_info=True)
+        _last_failure.set(f"{type(e).__name__}: {e}"[:1000])
         try:
             await db.rollback()
         except Exception:

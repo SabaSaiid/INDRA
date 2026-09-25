@@ -21,7 +21,7 @@ was HIGH.
 
 import pytest
 
-from app.models.enums import Severity
+from app.models.enums import ReviewStatus, Severity
 from app.services.pipeline import (
     SEVERITY_ORDER,
     _count_severity,
@@ -263,3 +263,33 @@ def test_report_texts_is_required():
     """
     with pytest.raises(TypeError):
         score_cluster(dict(STATS), ["CITIZEN_APP"], 0.35, 15.6)
+
+
+# ── BUG-067: severity-aware routing, recorded in the receipt ───────────────────
+
+def _score_dry(texts):
+    """No rainfall, so confidence falls below the 0.60 review gate."""
+    return score_cluster(dict(STATS), ["CITIZEN_APP"] * 5, 0.0, 0.0, report_texts=list(texts))
+
+
+def test_a_high_severity_event_below_the_gate_goes_to_a_human():
+    scored = _score_dry(_texts("Waist deep water in the lane", 5))
+
+    assert scored["severity"] is Severity.HIGH
+    assert scored["confidence"] < 0.60
+    assert scored["review_status"] is ReviewStatus.PENDING_HUMAN_REVIEW
+    assert scored["receipt"]["routing"]["basis"] == "severity"
+
+
+def test_a_moderate_event_below_the_gate_is_still_quarantined():
+    scored = _score_dry(_texts("Knee deep water outside my house", 5))
+
+    assert scored["severity"] is Severity.MODERATE
+    assert scored["confidence"] < 0.60
+    assert scored["review_status"] is ReviewStatus.QUARANTINED
+    assert scored["receipt"]["routing"] == {
+        "review_status": "QUARANTINED",
+        "basis": "confidence",
+        "auto_publish_threshold": 0.90,
+        "human_review_threshold": 0.60,
+    }

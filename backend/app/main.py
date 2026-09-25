@@ -44,6 +44,26 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Report consumer startup skipped (non-fatal): {e}")
 
+    # One Kafka producer for the whole process, instead of one per report.
+    # If the broker is down this returns False at once (a TCP probe, not a
+    # 40 s client timeout) and the platform starts anyway: reports wait in the
+    # outbox until the producer can be started.
+    try:
+        from app.services.kafka import get_publisher
+        await get_publisher().ensure_started()
+    except Exception as e:
+        logger.warning(f"Kafka producer startup skipped (non-fatal): {e}")
+
+    # Publishes every report the request could not (BUG-060): stored while
+    # Kafka was down, or whose immediate publish failed. It also restarts the
+    # producer after an outage.
+    relay_task = None
+    try:
+        from app.workers.outbox_relay import start_outbox_relay
+        relay_task = asyncio.create_task(start_outbox_relay())
+    except Exception as e:
+        logger.warning(f"Outbox relay startup skipped (non-fatal): {e}")
+
     # Authorize and load the frozen local duplicate artifact off the event loop.
     # Startup remains responsive; a load error is logged and duplicate inference
     # itself fails closed if a report later needs the unavailable artifact.
@@ -57,6 +77,27 @@ async def lifespan(app: FastAPI):
             logger.error("Frozen local duplicate matcher unavailable: %s", e)
 
     warmup_task = asyncio.create_task(_warm_local_duplicate_matcher())
+
+    # The object store's two buckets, created if missing (Phase 2 T1). On a task
+    # nobody awaits and wrapped, because the store is non-critical: an absent or
+    # unconfigured store logs one line and the platform starts anyway. Writers
+    # create a missing bucket themselves, so a store that comes up later is fine.
+    async def _ensure_buckets():
+        try:
+            from app.services import objectstore
+
+            if not objectstore.configured():
+                logger.info("Object store not configured (S3_ACCESS_KEY/S3_SECRET_KEY) — lake off")
+                return
+            created = await objectstore.ensure_buckets()
+            logger.info(
+                f"✓ Object store ready — buckets {', '.join(objectstore.buckets())}"
+                + (f" (created {', '.join(created)})" if created else "")
+            )
+        except Exception as e:
+            logger.warning(f"Object store bucket check skipped (non-fatal): {e}")
+
+    buckets_task = asyncio.create_task(_ensure_buckets())
 
     # Layer 1's one scheduled external feed: Open-Meteo current precipitation
     # into station_readings, which was empty for the whole project until Day 6.
@@ -77,9 +118,49 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"SACHET poller startup skipped (non-fatal): {e}")
 
+    # Phase 2 T3: observations from India's aerodromes (METAR) into
+    # station_readings. Off unless METAR_POLLER_ENABLED.
+    metar_task = None
+    try:
+        from app.workers.metar_poller import start_metar_poller
+        metar_task = asyncio.create_task(start_metar_poller())
+    except Exception as e:
+        logger.warning(f"METAR poller startup skipped (non-fatal): {e}")
+
+    # Phase 2 T4: posts tagged #IMD and other weather hashtags, from Mastodon.
+    mastodon_task = None
+    try:
+        from app.workers.mastodon_poller import start_mastodon_poller
+        mastodon_task = asyncio.create_task(start_mastodon_poller())
+    except Exception as e:
+        logger.warning(f"Mastodon poller startup skipped (non-fatal): {e}")
+
+    # Phase 2 T5: weather headlines from Google News, English and Hindi.
+    news_task = None
+    try:
+        from app.workers.news_poller import start_news_poller
+        news_task = asyncio.create_task(start_news_poller())
+    except Exception as e:
+        logger.warning(f"Google News poller startup skipped (non-fatal): {e}")
+
+    # Phase 2 T9: every message on the report stream, archived raw to the lake
+    # by a second consumer group. Off unless the object store is configured.
+    archiver_task = None
+    try:
+        from app.workers.lake_archiver import start_lake_archiver
+        archiver_task = asyncio.create_task(start_lake_archiver())
+    except Exception as e:
+        logger.warning(f"Lake archiver startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
+    if not buckets_task.done():
+        buckets_task.cancel()
+        try:
+            await buckets_task
+        except (asyncio.CancelledError, Exception):
+            pass
     if warmup_task and not warmup_task.done():
         warmup_task.cancel()
         try:
@@ -109,6 +190,28 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
+    for task in (metar_task, mastodon_task, news_task, archiver_task):
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    # The relay first, then the producer it publishes through.
+    if relay_task:
+        relay_task.cancel()
+        try:
+            await relay_task
+        except asyncio.CancelledError:
+            pass
+
+    try:
+        from app.services.kafka import get_publisher
+        await get_publisher().stop()
+    except Exception as e:
+        logger.warning(f"Kafka producer shutdown skipped (non-fatal): {e}")
+
     try:
         from app.services import cache
         await cache.close()
@@ -137,6 +240,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # A browser hides every non-standard response header from the page unless
+    # the server names it here. GET /api/events puts its total in X-Total-Count
+    # so the body can stay the list the dashboard already parses; the exports
+    # (Phase 2 T10) name their file in Content-Disposition.
+    expose_headers=["X-Total-Count", "Content-Disposition"],
 )
 
 class ConnectionManager:
@@ -164,30 +272,40 @@ ws_manager = ConnectionManager()
 
 
 # ── Mount API Routers ──────────────────────────────────────────────────────────
-try:
-    from app.api import (
-        dashboard_router,
-        events_router,
-        reports_router,
-        feed_router,
-        geo_router,
-        auth_router,
-        teams_router,
-        profile_router,
-        alerts_router,
-    )
-    app.include_router(dashboard_router)
-    app.include_router(events_router)
-    app.include_router(reports_router)
-    app.include_router(feed_router)
-    app.include_router(geo_router)
-    app.include_router(auth_router)
-    app.include_router(teams_router)
-    app.include_router(profile_router)
-    app.include_router(alerts_router)
-    logger.info("✓ All API routers mounted successfully")
-except Exception as e:
-    logger.warning(f"⚠ Could not mount API routers (non-fatal): {e}")
+# Deliberately not wrapped in try/except (BUG-063). It used to be, and a router
+# that failed to import then unmounted every route while the process ran on:
+# /healthz, defined in this file, still answered "healthy" and systemd saw a
+# running service, but every dashboard call was a 404. An import error must
+# stop the app where the traceback can be read.
+from app.api import (
+    dashboard_router,
+    events_router,
+    reports_router,
+    feed_router,
+    geo_router,
+    auth_router,
+    teams_router,
+    profile_router,
+    alerts_router,
+    audit_router,
+    meta_router,
+    stations_router,
+    report_search_router,
+)
+app.include_router(dashboard_router)
+app.include_router(events_router)
+app.include_router(reports_router)
+app.include_router(feed_router)
+app.include_router(geo_router)
+app.include_router(auth_router)
+app.include_router(teams_router)
+app.include_router(profile_router)
+app.include_router(alerts_router)
+app.include_router(audit_router)
+app.include_router(meta_router)
+app.include_router(stations_router)
+app.include_router(report_search_router)
+logger.info("✓ All API routers mounted successfully")
 
 
 

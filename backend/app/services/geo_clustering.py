@@ -1,12 +1,15 @@
 """
 INDRA Platform — GeoClusteringService
-Uses PostGIS ST_ClusterDBSCAN to cluster unassigned raw_reports and assigns H3 cell indexes.
+DBSCAN over unassigned raw_reports with a great-circle radius, plus H3 cell indexes.
 """
 
+import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from uuid import UUID
 
+import numpy as np
+from sklearn.cluster import DBSCAN
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +17,39 @@ from app.core.config import get_settings
 
 logger = logging.getLogger("indra.services.geo_clustering")
 settings = get_settings()
+
+# Mean Earth radius, the sphere the haversine metric measures on. The same
+# figure scikit-learn's own haversine examples use.
+EARTH_RADIUS_KM = 6371.0088
+
+
+def dbscan_labels(
+    points: Sequence[Tuple[float, float]], eps_km: float, min_samples: int
+) -> List[int]:
+    """
+    DBSCAN labels for (lat, lng) points, with eps as a true ground distance.
+
+    Returns one label per point, in input order: 0, 1, … for clusters and -1
+    for noise. A point is a core point when at least `min_samples` points,
+    itself included, lie within `eps_km` of it, and a border point when it is
+    within `eps_km` of a core point — the same definition PostGIS's
+    ST_ClusterDBSCAN uses, so only the distance changed.
+
+    Distances are great-circle (haversine), so the neighbourhood is a circle on
+    the ground at every latitude. The degree-based eps this replaces
+    (BUG-012) reached 5.0 km north-south but only 4.5 km east-west at Patna,
+    because a degree of longitude shrinks with cos(latitude).
+    """
+    if not points:
+        return []
+    coords = np.radians(np.asarray(points, dtype=float))
+    model = DBSCAN(
+        eps=eps_km / EARTH_RADIUS_KM,
+        min_samples=min_samples,
+        metric="haversine",
+        algorithm="ball_tree",
+    )
+    return [int(label) for label in model.fit_predict(coords)]
 
 
 class GeoClusteringService:
@@ -27,9 +63,9 @@ class GeoClusteringService:
 
     async def cluster_unassigned_reports(self) -> List[Dict[str, Any]]:
         """
-        Run ST_ClusterDBSCAN over raw_reports WHERE event_id IS NULL AND
-        duplicate_of IS NULL. A suppressed duplicate is never clustered, so it
-        can never be counted as corroboration.
+        DBSCAN over raw_reports WHERE event_id IS NULL AND duplicate_of IS NULL.
+        A suppressed duplicate is never clustered, so it can never be counted
+        as corroboration.
 
         Returns the cluster → report mapping so the caller can act on it:
             [{"cluster_id": int, "report_ids": [UUID, ...], "size": int}, ...]
@@ -43,46 +79,55 @@ class GeoClusteringService:
         event, those reports drop out of the candidate set and are never
         re-clustered or re-scored.
 
-        NOTE (accuracy): eps is converted to degrees with a flat 0.009 deg/km
-        factor, which is the value at the equator. At Patna's latitude (~25.6N)
-        a degree of longitude is about 10% shorter, so the effective search
-        radius is slightly wider east-west than north-south. Day 2 should switch
-        this query to ST_ClusterDBSCAN over geography, or project to a metric
-        SRID, rather than clustering in degrees.
+        The radius is DBSCAN_EPS_KM on the ground (see dbscan_labels). This
+        used to be ST_ClusterDBSCAN with eps converted at a flat 0.009 deg/km,
+        which is only right north-south: PostGIS has no geography DBSCAN, so
+        the distance now comes from a haversine DBSCAN over the same
+        candidates. It runs in a worker thread, because blocking the event loop
+        freezes every request the API is serving (BUG-006).
         """
-        eps_degrees = self.eps_km * 0.009  # rough conversion — see NOTE above
-
-        query = text("""
-            WITH clusters AS (
-                SELECT
-                    id,
-                    ST_ClusterDBSCAN(geom_point, eps := :eps, minpoints := :min_samples)
-                        OVER () AS cluster_id
-                FROM raw_reports
-                WHERE event_id IS NULL
-                  AND duplicate_of IS NULL
-                  AND geom_point IS NOT NULL
+        rows = (
+            await self.db.execute(
+                text("""
+                    SELECT id, ST_Y(geom_point) AS lat, ST_X(geom_point) AS lng
+                    FROM raw_reports
+                    WHERE event_id IS NULL
+                      AND duplicate_of IS NULL
+                      AND geom_point IS NOT NULL
+                      -- A state centroid has no geometry anyway; this also
+                      -- keeps a hand-edited row from sneaking one in.
+                      AND COALESCE(place_precision, 'gps') IN ('gps', 'district')
+                      -- Posts and headlines are held out until Phase 3 tags
+                      -- hazards (SOCIAL_CLUSTERING_ENABLED), and a headline
+                      -- already old when collected is never clustered (T8).
+                      AND (
+                          CAST(source_type AS text) NOT IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+                          OR (:social AND NOT COALESCE((source_meta->>'stale')::boolean, false))
+                      )
+                    ORDER BY created_at, id
+                """),
+                {"social": bool(get_settings().SOCIAL_CLUSTERING_ENABLED)},
             )
-            SELECT cluster_id, array_agg(id) as report_ids
-            FROM clusters
-            WHERE cluster_id IS NOT NULL
-            GROUP BY cluster_id
-            ORDER BY cluster_id
-        """)
+        ).fetchall()
 
-        result = await self.db.execute(
-            query, {"eps": eps_degrees, "min_samples": self.min_samples}
+        ids = [row[0] for row in rows]
+        points = [(float(row[1]), float(row[2])) for row in rows]
+        labels = await asyncio.to_thread(
+            dbscan_labels, points, self.eps_km, self.min_samples
         )
-        rows = result.fetchall()
+
+        members: Dict[int, List[UUID]] = {}
+        for report_id, label in zip(ids, labels):
+            if label >= 0:
+                members.setdefault(label, []).append(report_id)
 
         clusters: List[Dict[str, Any]] = []
         total_assigned = 0
-
-        for cluster_id, report_ids in rows:
-            report_ids = list(report_ids or [])
+        for cluster_id in sorted(members):
+            report_ids = members[cluster_id]
             total_assigned += len(report_ids)
             clusters.append({
-                "cluster_id": int(cluster_id),
+                "cluster_id": cluster_id,
                 "report_ids": report_ids,
                 "size": len(report_ids),
             })
@@ -197,12 +242,15 @@ class GeoClusteringService:
         try:
             import h3
 
+            # GPS fixes only: a centroid's cell would claim a 0.46 km hexagon
+            # for a post that named a whole district (see ingest._h3_cell).
             query = text("""
                 SELECT id, latitude, longitude
                 FROM raw_reports
                 WHERE h3_res8 IS NULL
                   AND latitude IS NOT NULL
                   AND longitude IS NOT NULL
+                  AND COALESCE(place_precision, 'gps') = 'gps'
             """)
             result = await self.db.execute(query)
             rows = result.fetchall()
@@ -233,6 +281,8 @@ class GeoClusteringService:
             WHERE geom_point IS NULL
               AND latitude IS NOT NULL
               AND longitude IS NOT NULL
+              -- Never backfill a state centroid into a point (migration 0015).
+              AND COALESCE(place_precision, 'gps') IN ('gps', 'district')
         """))
         await self.db.commit()
         count = result.rowcount or 0

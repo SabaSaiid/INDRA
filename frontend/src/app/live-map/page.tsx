@@ -3,22 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import {
-  Map,
-  Compass,
-  Radio,
-  Satellite,
-  Shield,
-  AlertTriangle,
-  Waves,
-  Wind,
-  Layers,
-} from 'lucide-react';
+import { Compass, Radio, Shield, MapPin, FileText } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { MapCardSkeleton } from '@/components/ui/skeleton';
 import { fadeIn } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
+import { fetchEvents, fetchSummaryCounts, fetchTeams, fetchFieldReports } from '@/lib/api';
 
 const GlobeEventMap = dynamic(() => import('@/components/client-only/GlobeEventMap'), {
   ssr: false,
@@ -34,6 +25,41 @@ export default function LiveMapPage() {
     closeMobile,
   } = useSidebar();
 
+  // The header counts what the map below actually draws. It used to read
+  // "Tracking: Cyclone DANA", "Sensors: 4 Active Feeds" and "NDRF Units:
+  // 8 Deployed" whatever the data, under an "INSAT-3DR / MOSDAC / IMD
+  // Telemetry" tagline for feeds INDRA does not read.
+  const [eventCount, setEventCount] = useState<number | null>(null);
+  const [warningCount, setWarningCount] = useState<number | null>(null);
+  const [deployedCount, setDeployedCount] = useState<number | null>(null);
+  const [reportCount, setReportCount] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    // Refreshed on the map's own 2-minute cadence, so the counts above the
+    // map agree with the pins on it.
+    const load = () => {
+      fetchEvents({ time_range: '7d' })
+        .then((rows) => { if (!cancelled) setEventCount(rows.length); })
+        .catch(() => { if (!cancelled) setEventCount(null); });
+      fetchSummaryCounts()
+        .then((s) => { if (!cancelled) setWarningCount(s.active_alerts); })
+        .catch(() => { if (!cancelled) setWarningCount(null); });
+      fetchFieldReports(200, 168)
+        .then((rows) => { if (!cancelled) setReportCount(rows.length); })
+        .catch(() => { if (!cancelled) setReportCount(null); });
+      fetchTeams()
+        .then((rows) => {
+          if (!cancelled) setDeployedCount(rows.filter((t) => t.status === 'DEPLOYED').length);
+        })
+        .catch(() => { if (!cancelled) setDeployedCount(null); });
+    };
+    load();
+    const id = setInterval(load, 120_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  const show = (n: number | null) => (n === null ? '—' : String(n));
+
   return (
     <div className="min-h-screen bg-surface">
       {/* Sidebar */}
@@ -47,7 +73,7 @@ export default function LiveMapPage() {
       {/* Main Content Area */}
       <div
         className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-          sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-[280px]'
+          sidebarCollapsed ? 'md:ml-[68px]' : 'md:ml-[272px]'
         }`}
       >
         <Topbar onMobileMenuOpen={openMobile} />
@@ -62,45 +88,55 @@ export default function LiveMapPage() {
           >
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
                 <span className="text-xs font-mono font-semibold uppercase tracking-wider text-blue-300">
-                  National Geospatial Observation Console
+                  Live map
                 </span>
                 <span className="text-slate-600">•</span>
-                <span className="text-xs text-slate-400 font-mono">INSAT-3DR / MOSDAC / IMD Telemetry</span>
+                <span className="text-xs text-slate-400 font-mono">
+                  INDRA events · SACHET warnings · citizen reports
+                </span>
               </div>
               <h1 className="text-xl lg:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                 <Compass className="w-6 h-6 text-blue-400" />
-                3D Geospatial Intelligence & Severe Event Radar
+                Events, warnings and reports on one map
               </h1>
               <p className="text-xs lg:text-sm text-slate-300 mt-0.5">
-                Seamless 3D spherical Earth globe with adaptive subcontinental zoom, real-time alert markers, and cyclone tracks.
+                Fused events, official warnings that resolve to a district, and citizen reports not
+                yet part of an event, each drawn as its own layer.
               </p>
             </div>
 
-            {/* Quick Stats Badges */}
+            {/* Counts of what the map draws */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
-                <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-slate-300">Tracking:</span>
-                <span className="font-semibold text-white">Cyclone DANA</span>
+                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-slate-300">Events (7 days):</span>
+                <span className="font-semibold text-white">{show(eventCount)}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
-                <Satellite className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-slate-300">Sensors:</span>
-                <span className="font-semibold text-white">4 Active Feeds</span>
+                <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-slate-300">Official warnings:</span>
+                <span className="font-semibold text-white">{show(warningCount)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
+                <FileText className="w-3.5 h-3.5 text-amber-300" />
+                <span className="text-slate-300">Reports not yet in an event:</span>
+                <span className="font-semibold text-white">{show(reportCount)}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
                 <Shield className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-slate-300">NDRF Units:</span>
-                <span className="font-semibold text-white">8 Deployed</span>
+                <span className="text-slate-300">Teams deployed:</span>
+                <span className="font-semibold text-white">{show(deployedCount)}</span>
               </div>
             </div>
           </motion.div>
 
-          {/* 3D Globe Event Map */}
+          {/* 3D Globe Event Map. The canvas takes the height the viewport
+              leaves under the banner and the map's two control rows, so the
+              frame ends at the bottom of the screen: at a fixed 560 px it
+              stopped short on a large monitor and cut labels off on a laptop. */}
           <div className="w-full">
-            <GlobeEventMap />
+            <GlobeEventMap canvasClassName="h-[clamp(420px,calc(100dvh-352px),1100px)]" />
           </div>
         </main>
       </div>

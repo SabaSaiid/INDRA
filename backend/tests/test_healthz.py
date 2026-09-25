@@ -40,7 +40,7 @@ def _hangs():
 
 @pytest.fixture
 def checks(monkeypatch):
-    """All four checks up; tests override one at a time."""
+    """All six checks up; tests override one at a time."""
     patched = {name: (_up(), critical) for name, (_, critical) in health.CHECKS.items()}
     monkeypatch.setattr(health, "CHECKS", patched)
 
@@ -56,7 +56,9 @@ async def test_all_up_is_200_healthy(client, checks):
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "healthy"
-    assert set(body["checks"]) == {"database", "streaming_bus", "redis", "weather_api"}
+    assert set(body["checks"]) == {
+        "database", "streaming_bus", "redis", "weather_api", "outbox_backlog", "object_store",
+    }
     assert all(c["status"] == "up" for c in body["checks"].values())
     assert all(c["latency_ms"] >= 0 for c in body["checks"].values())
     assert "database" not in body and "streaming_bus" not in body
@@ -98,6 +100,16 @@ async def test_weather_down_is_200_degraded(client, checks):
 
     assert r.status_code == 200
     assert r.json()["status"] == "degraded"
+
+
+async def test_object_store_down_is_200_degraded(client, checks):
+    """Phase 2 T1: the platform can lose its object store without breaking."""
+    checks("object_store", _raises())
+    r = await client.get("/healthz")
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "degraded"
+    assert r.json()["checks"]["object_store"]["status"] == "down"
 
 
 async def test_kafka_false_is_503(client, checks):
@@ -191,3 +203,85 @@ async def test_a_migrated_database_is_healthy(monkeypatch):
     monkeypatch.setattr(database_module, "engine", _Engine())
 
     assert await health.check_database() is True
+
+
+# ── Phase 1 T3: the outbox backlog ─────────────────────────────────────────────
+
+def _backlog(ok, **details):
+    async def check():
+        return ok, details
+    return check
+
+
+async def test_a_check_can_report_details_beside_its_status(client, checks):
+    checks("outbox_backlog", _backlog(True, count=2, oldest_s=1.5))
+    r = await client.get("/healthz")
+
+    assert r.status_code == 200
+    backlog = r.json()["checks"]["outbox_backlog"]
+    assert (backlog["status"], backlog["count"], backlog["oldest_s"]) == ("up", 2, 1.5)
+    assert backlog["critical"] is False
+
+
+async def test_a_stale_backlog_is_200_degraded_never_503(client, checks):
+    """Nothing is lost while reports wait; the operator is told, the platform stays up."""
+    checks("outbox_backlog", _backlog(False, count=1, oldest_s=90.0, error="waiting 90 s"))
+    r = await client.get("/healthz")
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "degraded"
+    backlog = r.json()["checks"]["outbox_backlog"]
+    assert (backlog["status"], backlog["error"]) == ("down", "waiting 90 s")
+
+
+@pytest.mark.integration
+async def test_a_report_waiting_90_seconds_makes_healthz_degraded(client, checks):
+    from sqlalchemy import text
+
+    from tests.conftest import wipe_event_tables
+
+    from app.core.database import async_session
+
+    checks("outbox_backlog", health.check_outbox_backlog)
+    async with async_session() as db:
+        await wipe_event_tables(db)
+        await db.execute(text("""
+            INSERT INTO outbox (topic, key, payload, created_at)
+            VALUES ('indra.raw.reports', 'r1', '{}', NOW() - INTERVAL '90 seconds')
+        """))
+        await db.commit()
+        try:
+            r = await client.get("/healthz")
+        finally:
+            await wipe_event_tables(db)
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "degraded"
+    backlog = r.json()["checks"]["outbox_backlog"]
+    assert backlog["status"] == "down"
+    assert backlog["count"] == 1
+    assert backlog["oldest_s"] >= 90
+
+
+@pytest.mark.integration
+async def test_an_empty_backlog_is_up():
+    from sqlalchemy import text
+
+    from tests.conftest import wipe_event_tables
+
+    from app.core.database import async_session
+
+    async with async_session() as db:
+        await wipe_event_tables(db)
+        await db.execute(text("""
+            INSERT INTO outbox (topic, key, payload, created_at, published_at)
+            VALUES ('indra.raw.reports', 'done', '{}', NOW() - INTERVAL '1 hour', NOW())
+        """))
+        await db.commit()
+        try:
+            ok, details = await health.check_outbox_backlog()
+        finally:
+            await wipe_event_tables(db)
+
+    assert ok is True
+    assert details == {"count": 0, "oldest_s": 0.0}

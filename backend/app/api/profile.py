@@ -10,12 +10,13 @@ import uuid
 from typing import Optional, List
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import oauth2_scheme, verify_token
+from app.core.security import TokenData, get_current_operator, oauth2_scheme, verify_token
+from app.models.enums import DutyStatus
 
 logger = logging.getLogger("indra.api.profile")
 
@@ -31,11 +32,18 @@ class ProfileUpdate(BaseModel):
     agency: Optional[str] = None
     badge_number: Optional[str] = None
     bio: Optional[str] = None
-    duty_status: Optional[str] = None  # ON_DUTY, STANDBY, DEPLOYED, OFF_DUTY
+    duty_status: Optional[DutyStatus] = None  # ON_DUTY, STANDBY, DEPLOYED, OFF_DUTY
     team_id: Optional[str] = None
     team_name: Optional[str] = None
     team_code: Optional[str] = None
     team_role: Optional[str] = None
+
+    # Accept any case, as the old str field did; an unknown status is a 422
+    # instead of an enum error inside the UPDATE.
+    @field_validator("duty_status", mode="before")
+    @classmethod
+    def _upper(cls, value):
+        return value.upper() if isinstance(value, str) else value
 
 
 # ── Operator statistics, computed ────────────────────────────────────────────
@@ -149,63 +157,47 @@ async def get_current_user_profile(
 @router.patch("/me")
 async def update_profile(
     update_data: ProfileUpdate,
-    token: Optional[str] = Depends(oauth2_scheme),
-    user: Optional[str] = Query("commander"),
+    operator: TokenData = Depends(get_current_operator),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update active operator profile."""
-    username = user or "commander"
-    if token:
+    """
+    Update the calling operator's own profile. Requires a token.
+
+    The profile edited is the token's subject and nothing else (BUG-009). This
+    used to take `?user=` and default to "commander" with no token at all, so
+    anyone could rewrite any operator's name, agency, callsign or duty status
+    — and a failed UPDATE was swallowed by `except: pass`, answering 200.
+    """
+    username = operator.sub
+
+    set_clauses = []
+    params = {"uname": username}
+    for field in ("full_name", "email", "phone", "callsign", "agency", "badge_number", "bio", "team_role"):
+        value = getattr(update_data, field)
+        if value is not None:
+            set_clauses.append(f"{field} = :{field}")
+            params[field] = value
+    if update_data.duty_status is not None:
+        set_clauses.append("duty_status = :duty_status")
+        params["duty_status"] = update_data.duty_status.value
+
+    if set_clauses:
         try:
-            token_data = verify_token(token)
-            if token_data.sub:
-                username = token_data.sub
-        except Exception:
-            pass
-
-    # Update database if available
-    try:
-        set_clauses = []
-        params = {"uname": username}
-        if update_data.full_name is not None:
-            set_clauses.append("full_name = :full_name")
-            params["full_name"] = update_data.full_name
-        if update_data.email is not None:
-            set_clauses.append("email = :email")
-            params["email"] = update_data.email
-        if update_data.phone is not None:
-            set_clauses.append("phone = :phone")
-            params["phone"] = update_data.phone
-        if update_data.callsign is not None:
-            set_clauses.append("callsign = :callsign")
-            params["callsign"] = update_data.callsign
-        if update_data.agency is not None:
-            set_clauses.append("agency = :agency")
-            params["agency"] = update_data.agency
-        if update_data.badge_number is not None:
-            set_clauses.append("badge_number = :badge_number")
-            params["badge_number"] = update_data.badge_number
-        if update_data.bio is not None:
-            set_clauses.append("bio = :bio")
-            params["bio"] = update_data.bio
-        if update_data.team_role is not None:
-            set_clauses.append("team_role = :team_role")
-            params["team_role"] = update_data.team_role
-        if update_data.duty_status is not None:
-            set_clauses.append("duty_status = :duty_status")
-            params["duty_status"] = update_data.duty_status.upper()
-
-        if set_clauses:
             sql = f"UPDATE user_profiles SET {', '.join(set_clauses)}, last_active_at = NOW() WHERE username = :uname"
             await db.execute(text(sql), params)
             await db.commit()
-    except Exception:
-        pass
+        except Exception as e:
+            logger.error(f"profile update failed for {username!r}: {type(e).__name__}: {e}")
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database unavailable",
+            )
 
     # No in-memory mirror. The previous version updated a DEMO_PROFILES dict and
     # returned it, so a failed UPDATE still answered 200 with the edit applied --
     # the operator saw their change saved when nothing had been written.
-    return await get_current_user_profile(token=token, user=username, db=db)
+    return await get_current_user_profile(token=None, user=username, db=db)
 
 
 ACTIVITY_SQL = text(
@@ -329,10 +321,10 @@ async def get_operator_preferences(
 @router.patch("/preferences")
 async def update_operator_preferences(
     preferences: dict,
-    user: Optional[str] = Query("commander"),
+    operator: TokenData = Depends(get_current_operator),
 ):
-    """Update mission preferences for operator."""
-    username = user or "commander"
+    """Update the calling operator's own preferences. Requires a token (BUG-009)."""
+    username = operator.sub
     existing = DEMO_PREFERENCES.get(username, {})
     existing.update(preferences)
     DEMO_PREFERENCES[username] = existing

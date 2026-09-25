@@ -77,13 +77,14 @@ export default function WelcomeHeader({ viewMode = 'mission-control', onViewMode
           <span className="status-dot w-1.5 h-1.5" />
         </span>
         <span
-          className="text-base font-semibold text-ink leading-none"
+          className="text-base font-semibold text-ink leading-none tracking-tight"
           style={{ fontFamily: 'Fraunces, Georgia, serif' }}
         >
-          Situation Overview
+          National Situation Room
         </span>
-        <span className="hidden sm:inline text-[10px] font-medium text-[#4C7A5B] bg-[#E7F2EC] border border-[#C5DECE] px-1.5 py-0.5 rounded-full">
-          Grid live
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium text-[#4C7A5B] bg-[#E7F2EC] border border-[#C5DECE] px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(76,122,91,0.12)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#4C7A5B] animate-pulse" />
+          Telemetry Live
         </span>
       </div>
 

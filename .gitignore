@@ -116,3 +116,6 @@ data/labelled/credibility/synthetic_v1/synthetic_credibility_detector_inputs_tra
 data/labelled/credibility/synthetic_v1/synthetic_credibility_annotations.jsonl
 data/labelled/duplicates/synthetic_v1/synthetic_duplicate_pairs.jsonl
 data/labelled/events/synthetic_v1/synthetic_event_detector_inputs_train.jsonl
+
+# Generated object-store identity contains local S3 credentials.
+infra/seaweedfs/s3.json

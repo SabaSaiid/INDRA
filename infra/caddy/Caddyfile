@@ -1,0 +1,37 @@
+# INDRA's front door on the team server (Phase 1 T7): one HTTPS address for the
+# dashboard, the API and the WebSocket.
+#
+# Caddy obtains and renews the certificate from Let's Encrypt by itself. That
+# needs ports 80 and 443 open in the security group, and the name below
+# resolving to the server's Elastic IP, 15.252.50.176. Request it before the
+# name resolves and the check fails, and Let's Encrypt rate-limits repeated
+# failures, so check first: `dig +short indra-sixthsense.duckdns.org`.
+#
+# Install:        sudo cp /opt/indra/infra/caddy/Caddyfile /etc/caddy/Caddyfile
+#                 sudo systemctl enable --now caddy
+# After a change: sudo systemctl reload caddy
+# Logs:           journalctl -u caddy -n 50 --no-pager
+#
+# Then add https://indra-sixthsense.duckdns.org to CORS_ORIGINS in
+# /opt/indra/.env and rebuild the dashboard with
+# NEXT_PUBLIC_API_BASE_URL=https://indra-sixthsense.duckdns.org (see
+# aditya/server.md, "Redeploying after a merge"). The dashboard derives wss://
+# from that base by itself.
+#
+# Uvicorn trusts X-Forwarded-* headers from 127.0.0.1 by default, so the API
+# sees the real scheme and client address through this proxy.
+
+indra-sixthsense.duckdns.org {
+	encode gzip
+
+	# FastAPI: the API, its WebSocket, its health check and its docs.
+	@backend path /api/* /ws/* /healthz /docs* /redoc* /openapi.json
+	handle @backend {
+		reverse_proxy localhost:8000
+	}
+
+	# Everything else is the dashboard (Next.js).
+	handle {
+		reverse_proxy localhost:3000
+	}
+}

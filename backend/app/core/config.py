@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "indra_super_secret_jwt_key_sih2026"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 8
+    # HMAC key for X-Reporter-Id; empty disables reporter_hash rather than
+    # shipping a guessable key in source.
+    REPORTER_SALT: str = ""
 
     # ── PostgreSQL + PostGIS ───────────────────────────────────────────────
     POSTGRES_USER: str = "indra_user"
@@ -58,6 +61,21 @@ class Settings(BaseSettings):
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:19092"
     KAFKA_REPORTS_TOPIC: str = "indra.raw.reports"
     KAFKA_EVENTS_TOPIC: str = "indra.verified.events"
+    KAFKA_DLQ_TOPIC: str = "indra.raw.reports.dlq"
+    PIPELINE_MAX_ATTEMPTS: int = 3
+    PIPELINE_RETRY_DELAY_SECONDS: float = 2.0
+
+    # Optional local S3-compatible object store and report-stream archive.
+    S3_ENDPOINT_URL: str = "http://localhost:8333"
+    S3_REGION: str = "us-east-1"
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_LAKE_BUCKET: str = "indra-lake"
+    S3_MEDIA_BUCKET: str = "indra-media"
+    S3_TIMEOUT_SECONDS: float = 5.0
+    LAKE_ARCHIVE_ENABLED: bool = True
+    LAKE_FLUSH_SECONDS: int = 60
+    LAKE_FLUSH_BYTES: int = 5 * 1024 * 1024
 
     # ── AI & Verification Thresholds ───────────────────────────────────────
     # AUTO_PUBLISH_THRESHOLD is deliberately high: publishing a disaster without
@@ -75,12 +93,20 @@ class Settings(BaseSettings):
     HUMAN_REVIEW_THRESHOLD: float = 0.60
     # ── Dedup gates ────────────────────────────────────────────────────────
     # Phase 25 preserves the backend's 1 km / 15 minute candidate envelope.
-    # The historical cosine and edit settings remain readable for compatibility
-    # but are inactive: the frozen Phase 19 matcher owns similarity thresholds.
+    # The historical cosine setting is retained for compatibility but does not
+    # control the frozen citizen matcher. The edit threshold remains active for
+    # the separate local post/headline dedup path.
     DEDUP_COSINE_THRESHOLD: float = 0.88
     DEDUP_GPS_DELTA_KM: float = 1.0
     DEDUP_TIME_DELTA_MINUTES: int = 15
     DEDUP_LEVENSHTEIN_THRESHOLD: float = 0.75
+
+    # Origin/main's post/headline intake keeps its own link/text windows.
+    FEED_DEDUP_LINK_WINDOW_HOURS: int = 72
+    FEED_DEDUP_TEXT_WINDOW_HOURS: int = 24
+    # Until feed hazard tagging is validated, social/news items are held out
+    # of event clustering even though they are stored and deduplicated.
+    SOCIAL_CLUSTERING_ENABLED: bool = False
 
     DBSCAN_EPS_KM: float = 5.0
     DBSCAN_MIN_SAMPLES: int = 2
@@ -131,6 +157,57 @@ class Settings(BaseSettings):
     # One live Gujarat district ring measured 235 KB. Past this the ring is
     # decimated and the row records that it was.
     SACHET_MAX_POLYGON_POINTS: int = 2000
+
+    # Optional METAR, Mastodon and Google News pollers from origin/main.
+    METAR_POLLER_ENABLED: bool = False
+    METAR_POLL_INTERVAL_SECONDS: int = 600
+    METAR_CACHE_URL: str = "https://aviationweather.gov/data/cache/metars.cache.csv.gz"
+    METAR_TIMEOUT_SECONDS: float = 30.0
+
+    MASTODON_POLLER_ENABLED: bool = False
+    MASTODON_INSTANCES: str = "mastodon.social"
+    SOCIAL_HASHTAGS: str = (
+        "IMD,IMDWeather,IMDAlert,RainAlert,heatwave,monsoon,MumbaiRains,DelhiRains,"
+        "KeralaRains,ChennaiRains,BengaluruRains,fog,cyclone,flood,duststorm,thunderstorm"
+    )
+    MASTODON_POLL_INTERVAL_SECONDS: int = 300
+    MASTODON_REQUEST_DELAY_SECONDS: float = 1.0
+    MASTODON_TIMEOUT_SECONDS: float = 10.0
+    MASTODON_MIN_RATELIMIT_REMAINING: int = 20
+
+    @property
+    def mastodon_instances(self) -> list[str]:
+        return [i.strip().lower() for i in self.MASTODON_INSTANCES.split(",") if i.strip()]
+
+    @property
+    def social_hashtags(self) -> list[str]:
+        seen, out = set(), []
+        for tag in self.SOCIAL_HASHTAGS.split(","):
+            tag = tag.strip().lstrip("#")
+            if tag and tag.lower() not in seen:
+                seen.add(tag.lower())
+                out.append(tag)
+        return out
+
+    NEWS_POLLER_ENABLED: bool = False
+    NEWS_RSS_URL: str = "https://news.google.com/rss/search"
+    NEWS_QUERIES_EN: str = (
+        "IMD warning,IMD heavy rain,heatwave India,dense fog India,dust storm India,"
+        "thunderstorm lightning India,cloudburst,cyclone IMD,flood India,cold wave India"
+    )
+    NEWS_QUERIES_HI: str = "भारी बारिश,लू,कोहरा,आंधी"
+    NEWS_POLL_INTERVAL_SECONDS: int = 900
+    NEWS_REQUEST_DELAY_SECONDS: float = 2.0
+    NEWS_TIMEOUT_SECONDS: float = 15.0
+    NEWS_STALE_AFTER_HOURS: int = 48
+
+    @property
+    def news_queries(self) -> list[tuple[str, str]]:
+        out = []
+        for lang, raw in (("en", self.NEWS_QUERIES_EN), ("hi", self.NEWS_QUERIES_HI)):
+            out.extend((lang, q.strip()) for q in raw.split(",") if q.strip())
+        return out
+
     # How fresh and how near a stored reading must be for the weather factor to
     # prefer it over a live fetch.
     #

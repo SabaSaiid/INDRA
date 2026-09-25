@@ -177,3 +177,14 @@ async def test_event_detail_demo_fallback_still_works_when_demo_mode_on(empty_ap
 
     assert r.status_code == 200
     assert r.json()["event_code"]
+
+
+def test_the_demo_kpis_are_at_least_possible():
+    """
+    BUG-069: citizen_reports was 8,421 against total_reports 1,248. Demo data
+    is served only with DEMO_MODE on, but it must never be impossible.
+    """
+    from app.api.dashboard import DEMO_KPIS
+
+    assert DEMO_KPIS["citizen_reports"] <= DEMO_KPIS["total_reports"]
+    assert DEMO_KPIS["critical_events"] <= DEMO_KPIS["verified_events"]

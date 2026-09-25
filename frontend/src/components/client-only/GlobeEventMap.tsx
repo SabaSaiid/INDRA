@@ -19,6 +19,7 @@ import {
 import type { MapLayer } from '@/lib/ui-config';
 import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import {
   Globe,
   Map as MapIcon,
@@ -26,8 +27,6 @@ import {
   Minimize2,
   Compass,
   Layers,
-  CloudRain,
-  Waves,
   Zap,
   Wind,
   CloudFog,
@@ -50,11 +49,34 @@ import {
   Pause,
   MapPin,
   FileSpreadsheet,
+  Info,
+  Terminal,
+  RotateCcw,
+  Check,
+  Filter,
 } from 'lucide-react';
 
 export type BasemapMode = 'satellite' | 'topo' | 'dark' | 'street';
 
 // Basemap Styles with Globe Projection, Glyphs & Atmospheric Sky
+/**
+ * The camera that frames all of India in the canvas it is given. The fixed
+ * zoom 5.0 it replaces was tuned for one canvas size: on the dashboard's
+ * shorter map it cut off the south of the peninsula and the pins on it, and a
+ * taller canvas left sea at the edges. The pitch is applied on top, which only
+ * widens what the top of the view shows.
+ */
+const INDIA_BOUNDS: [[number, number], [number, number]] = [[68.0, 6.5], [97.5, 35.5]];
+function indiaCamera(map: maplibregl.Map): { center: [number, number]; zoom: number } {
+  const cam = map.cameraForBounds(INDIA_BOUNDS, { padding: 24 });
+  // The flat fit is computed without the 30° pitch, which shows more ground at
+  // the top of the view, so it can sit about half a level closer; the centre
+  // moves south by the same token to keep the peninsula's tip in frame.
+  const zoom = Math.min(5.0, Math.max(3.6, (cam?.zoom ?? 4.4) + 0.6));
+  const c = cam?.center ? maplibregl.LngLat.convert(cam.center) : null;
+  return { center: c ? [c.lng, c.lat - 1.2] : [82.0, 21.0], zoom };
+}
+
 const BASEMAP_STYLES: Record<BasemapMode, any> = {
   satellite: {
     version: 8,
@@ -198,6 +220,7 @@ const severityColors: Record<string, string> = {
   critical: '#EF4444',
   high: '#F59E0B',
   moderate: '#3B82F6',
+  advisory: '#94A3B8',
   low: '#64748B',
 };
 
@@ -206,6 +229,7 @@ const severityRank: Record<string, number> = {
   critical: 4,
   high: 3,
   moderate: 2,
+  advisory: 1,
   low: 1,
 };
 
@@ -220,40 +244,21 @@ const eventTypeEmojis: Record<string, string> = {
   'Fog': '🌫️',
 };
 
-// Bay of Bengal Cyclone Track Coordinates
-const cycloneTrackGeoJSON: GeoJSON.FeatureCollection = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      properties: { name: 'Cyclone DANA — Forecast Track' },
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [92.5, 11.2],
-          [90.4, 13.8],
-          [88.6, 16.2],
-          [87.1, 18.5],
-          [86.2, 20.4],
-          [85.8, 21.8],
-        ],
-      },
-    },
-  ],
-};
+/** What a marker's status honestly is, by layer. It used to read "AI Verified" for all of them. */
+function markerStatusLabel(marker: MapMarker): string {
+  const layer = marker.layer ?? 'event';
+  if (layer === 'alert') return 'Official warning';
+  if (layer === 'report') return 'Unverified citizen report';
+  // Rejected events are dropped by the API, so an event here is one of these two.
+  return marker.verification === 'verified' ? 'Verified event' : 'Event under review';
+}
 
-// NDRF Operational Bases across India
-const ndrfBasesGeoJSON: GeoJSON.FeatureCollection = {
-  type: 'FeatureCollection',
-  features: [
-    { type: 'Feature', properties: { name: '10th Bn NDRF (Patna)', city: 'Patna' }, geometry: { type: 'Point', coordinates: [85.05, 25.65] } },
-    { type: 'Feature', properties: { name: '1st Bn NDRF (Guwahati)', city: 'Guwahati' }, geometry: { type: 'Point', coordinates: [91.68, 26.12] } },
-    { type: 'Feature', properties: { name: '5th Bn NDRF (Pune)', city: 'Pune' }, geometry: { type: 'Point', coordinates: [73.85, 18.52] } },
-    { type: 'Feature', properties: { name: '8th Bn NDRF (Ghaziabad)', city: 'Ghaziabad' }, geometry: { type: 'Point', coordinates: [77.45, 28.67] } },
-    { type: 'Feature', properties: { name: '4th Bn NDRF (Arakkonam)', city: 'Chennai Region' }, geometry: { type: 'Point', coordinates: [79.67, 13.08] } },
-    { type: 'Feature', properties: { name: '2nd Bn NDRF (Kolkata)', city: 'Kolkata' }, geometry: { type: 'Point', coordinates: [88.42, 22.58] } },
-  ],
-};
+function markerSourceLabel(marker: MapMarker): string {
+  const layer = marker.layer ?? 'event';
+  if (layer === 'alert') return marker.title ? `${marker.title} via SACHET` : 'SACHET (CAP)';
+  if (layer === 'report') return 'Citizen report';
+  return 'INDRA fusion';
+}
 
 /**
  * The three kinds of live data this map draws, and how each is marked.
@@ -296,10 +301,17 @@ export default function GlobeEventMap({
   selectedEventId,
   onEventSelect,
   variant = 'full',
+  canvasClassName,
 }: {
   selectedEventId?: string;
   onEventSelect?: (marker: MapMarker | null) => void;
   variant?: 'full' | 'preview';
+  /**
+   * Height classes for the map canvas, replacing the fixed default. Pages pass
+   * a viewport-relative height so the map fills the screen instead of leaving
+   * a band of empty page under it.
+   */
+  canvasClassName?: string;
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -327,12 +339,30 @@ export default function GlobeEventMap({
     alert: true,
     report: true,
   });
+  const [visibleSeverities, setVisibleSeverities] = useState<Record<string, boolean>>({
+    critical: true,
+    high: true,
+    moderate: true,
+    advisory: true,
+    low: true,
+  });
+  const [hiddenHazards, setHiddenHazards] = useState<Set<string>>(new Set());
   const [refreshTick, setRefreshTick] = useState(0);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoOrbiting, setIsAutoOrbiting] = useState(false);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const [smartDeclutter, setSmartDeclutter] = useState(true);
+  // Issue 5: Debug HUD is opt-in, not shown by default.
+  const [showTechReadout, setShowTechReadout] = useState(false);
+  // Issue 2: Collapsible map legend.
+  const [legendOpen, setLegendOpen] = useState(false);
+  // Issue 3: Cluster popover state — which cluster is expanded and where to place it.
+  const [clusterPopover, setClusterPopover] = useState<{
+    items: MapMarker[];
+    position: { x: number; y: number };
+    maxSeverity: string;
+  } | null>(null);
 
   // True once the map's style has finished loading and layers may be touched.
   //
@@ -348,12 +378,10 @@ export default function GlobeEventMap({
 
   // Layer toggles
   const [showEventsLayer, setShowEventsLayer] = useState(true);
-  const [showCycloneLayer, setShowCycloneLayer] = useState(true);
-  const [showNdrfLayer, setShowNdrfLayer] = useState(true);
 
   // Live telemetry state
   const [telemetry, setTelemetry] = useState({
-    zoom: 4.6,
+    zoom: 5.0,
     lat: 22.0,
     lng: 82.0,
     pitch: 30,
@@ -384,6 +412,20 @@ export default function GlobeEventMap({
     }
   }, []);
 
+  // Dismiss overlays (legend, cluster popover) on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLegendOpen(false);
+        setClusterPopover(null);
+        // The roster opens over the same corner and stayed open on Escape.
+        setIsRosterOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Fetch all three live layers.
   //
   // allSettled, not all: a failure in any one layer must not blank the other
@@ -396,7 +438,9 @@ export default function GlobeEventMap({
       const [events, alerts, reports] = await Promise.allSettled([
         fetchEvents({ time_range: timeRange }),
         fetchAgencyAlerts(200),
-        fetchFieldReports(200, 72),
+        // Seven days, the same window as the events layer. At 72 h a report
+        // that never joined an event vanished from the map on its third day.
+        fetchFieldReports(200, 168),
       ]);
 
       if (cancelled) return;
@@ -425,42 +469,104 @@ export default function GlobeEventMap({
 
   // A verified event finishing the pipeline is the one moment this map is
   // certainly stale. The backend has broadcast VERIFIED_EVENT since Day 1 and
-  // nothing in the frontend has ever listened for it (BUG-036).
+  // nothing in the frontend has ever listened for it (BUG-036). Listens on the
+  // shared connection; this component used to open a raw socket of its own.
+  const { subscribe } = useIndraWebSocket();
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-    const wsUrl = base.replace(/^http/, 'ws');
-    let socket: WebSocket | null = null;
+    return subscribe(`globe-map-${variant}`, (msg) => {
+      if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT' || msg.type === 'EVENT_REVIEWED') {
+        setRefreshTick((t) => t + 1);
+      }
+    });
+  }, [subscribe, variant]);
 
-    try {
-      socket = new WebSocket(`${wsUrl}/ws/events`);
-      socket.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT') {
-            setRefreshTick((t) => t + 1);
-          }
-        } catch {
-          // A malformed frame is not a reason to tear down the socket.
-        }
-      };
-    } catch {
-      // No live socket simply means the map refreshes on its own controls.
-    }
-
-    return () => {
-      socket?.close();
-    };
+  // Official warnings arrive from the SACHET poller, which broadcasts nothing,
+  // and expire on their own clock. Without this the warning layer stayed as it
+  // was when the page opened: expired warnings kept their pins and new ones
+  // never appeared until a reload.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        setRefreshTick((t) => t + 1);
+      }
+    }, 120_000);
+    return () => clearInterval(id);
   }, []);
 
-  const markersForDisplay = React.useMemo(
-    () => markers.filter((m) => visibleLayers[m.layer ?? 'event']),
-    [markers, visibleLayers]
-  );
+  // Dynamically extract unique hazard types from loaded markers
+  const availableHazards = React.useMemo(() => {
+    const set = new Set<string>();
+    markers.forEach((m) => {
+      if (m.eventType) set.add(m.eventType);
+    });
+    return Array.from(set).sort();
+  }, [markers]);
+
+  const isAnyFilterActive =
+    !visibleLayers.event ||
+    !visibleLayers.alert ||
+    !visibleLayers.report ||
+    !visibleSeverities.critical ||
+    !visibleSeverities.high ||
+    !visibleSeverities.moderate ||
+    !visibleSeverities.advisory ||
+    !visibleSeverities.low ||
+    hiddenHazards.size > 0;
+
+  const resetAllFilters = useCallback(() => {
+    setVisibleLayers({ event: true, alert: true, report: true });
+    setVisibleSeverities({
+      critical: true,
+      high: true,
+      moderate: true,
+      advisory: true,
+      low: true,
+    });
+    setHiddenHazards(new Set());
+  }, []);
+
+  const markersForDisplay = React.useMemo(() => {
+    if (!showEventsLayer) return [];
+    return markers.filter((m) => {
+      if (!visibleLayers[m.layer ?? 'event']) return false;
+      if (visibleSeverities[m.severity] === false) return false;
+      if (hiddenHazards.has(m.eventType)) return false;
+      return true;
+    });
+  }, [markers, visibleLayers, visibleSeverities, hiddenHazards, showEventsLayer]);
+
+  // Compute item counts by layer, severity, and hazard for the interactive filter panel
+  const filterCounts = React.useMemo(() => {
+    const layers: Record<string, number> = { event: 0, alert: 0, report: 0 };
+    const severities: Record<string, number> = {
+      critical: 0,
+      high: 0,
+      moderate: 0,
+      advisory: 0,
+      low: 0,
+    };
+    const hazards: Record<string, number> = {};
+
+    markers.forEach((m) => {
+      const layer = m.layer ?? 'event';
+      if (layers[layer] !== undefined) layers[layer]++;
+      if (m.severity && severities[m.severity] !== undefined) {
+        severities[m.severity]++;
+      }
+      if (m.eventType) {
+        hazards[m.eventType] = (hazards[m.eventType] || 0) + 1;
+      }
+    });
+
+    return { layers, severities, hazards };
+  }, [markers]);
 
   // Select an incident
   const handleSelectIncident = useCallback(
     (marker: MapMarker) => {
       setSelectedMarker(marker);
+      setLegendOpen(false);
+      setClusterPopover(null);
       if (onEventSelect) onEventSelect(marker);
 
       const sanitized = sanitizeIncidentCoordinate({
@@ -478,7 +584,10 @@ export default function GlobeEventMap({
           pitch: 45,
           bearing: 15,
           essential: true,
-          duration: 2000,
+          duration: 1800,
+          // Offset target 90px to the right so it stays in the clear map area
+          // without colliding with the 320px left-side inspector drawer.
+          offset: [90, 0],
         });
       }
     },
@@ -494,59 +603,6 @@ export default function GlobeEventMap({
       }
     }
   }, [selectedEventId, markers, handleSelectIncident]);
-
-  // Sync Vector Layers (Cyclone DANA & NDRF Bases)
-  const syncVectorLayers = useCallback((map: maplibregl.Map) => {
-    // Cyclone DANA Trajectory
-    if (!map.getSource('cyclone-track-source')) {
-      map.addSource('cyclone-track-source', {
-        type: 'geojson',
-        data: cycloneTrackGeoJSON,
-      });
-
-      map.addLayer({
-        id: 'cyclone-outer-glow',
-        type: 'line',
-        source: 'cyclone-track-source',
-        paint: {
-          'line-color': '#f59e0b',
-          'line-width': 8,
-          'line-opacity': 0.35,
-        },
-      });
-
-      map.addLayer({
-        id: 'cyclone-inner-track',
-        type: 'line',
-        source: 'cyclone-track-source',
-        paint: {
-          'line-color': '#ef4444',
-          'line-width': 3,
-          'line-dasharray': [2, 2],
-        },
-      });
-    }
-
-    // NDRF Bases Layer
-    if (!map.getSource('ndrf-bases-source')) {
-      map.addSource('ndrf-bases-source', {
-        type: 'geojson',
-        data: ndrfBasesGeoJSON,
-      });
-
-      map.addLayer({
-        id: 'ndrf-bases-layer',
-        type: 'circle',
-        source: 'ndrf-bases-source',
-        paint: {
-          'circle-radius': 6,
-          'circle-color': '#0ea5e9',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-    }
-  }, []);
 
   // Update Horizon Occlusion for Markers on 3D Globe
   const updateMarkerOcclusion = useCallback(
@@ -646,9 +702,11 @@ export default function GlobeEventMap({
         maxSeverity: sm.marker.severity,
         hideLabel: true,
       }));
-    } else if (isCompactZoom && smartDeclutter) {
-      // Tier 2: Subcontinental Overview (2.4 <= zoom < 4.2) with Smart Declutter
-      // Project to screen space
+    } else {
+      // Tier 2+ (zoom >= 2.4): Screen-space clustering and collision avoidance.
+      // Issue 4: clustering now runs at ALL zoom tiers above space-orbit, not
+      // just Tier 2. The radius shrinks as the user zooms in so badges that are
+      // genuinely far apart on screen stop merging.
       const projected = sanitizedMarkers.map((sm) => {
         const pt = map.project([sm.coords.lng, sm.coords.lat]);
         return {
@@ -659,7 +717,8 @@ export default function GlobeEventMap({
         };
       });
 
-      const CLUSTER_RADIUS = 44; // pixels
+      // Shrink cluster radius as zoom increases — tight at detail level.
+      const CLUSTER_RADIUS = isCompactZoom ? 44 : isDetailZoom ? 28 : 36;
 
       for (let i = 0; i < projected.length; i++) {
         if (projected[i].assigned) continue;
@@ -731,7 +790,7 @@ export default function GlobeEventMap({
         }
       }
 
-      // Label collision suppression for unclustered pins in Tier 2
+      // Label collision suppression for unclustered pins
       const singlePins = itemsToRender.filter((c) => !c.isCluster);
       singlePins.sort((a, b) => {
         if (a.items[0].marker.id === selectedMarker?.id) return -1;
@@ -760,16 +819,72 @@ export default function GlobeEventMap({
           }
         }
       }
-    } else {
-      // Tier 3 & 4: Regional / Detail (zoom >= 4.2) or Raw density mode
-      itemsToRender = sanitizedMarkers.map((sm) => ({
-        isCluster: false,
-        items: [sm],
-        center: sm.coords,
-        maxSeverity: sm.marker.severity,
-        hideLabel: false,
-      }));
+
+      // Suppress single pin labels that collide with cluster badges
+      const clusters = itemsToRender.filter((c) => c.isCluster);
+      singlePins.forEach((pin) => {
+        if (pin.hideLabel || !pin.screenPos) return;
+        for (const cl of clusters) {
+          if (!cl.screenPos) continue;
+          const dx = Math.abs(pin.screenPos.x - cl.screenPos.x);
+          const dy = Math.abs(pin.screenPos.y - cl.screenPos.y);
+          if (dx < 55 && dy < 38) {
+            pin.hideLabel = true;
+            break;
+          }
+        }
+      });
     }
+
+    // Issue 1: Sort so higher-severity clusters render last (on top in DOM).
+    itemsToRender.sort((a, b) => (severityRank[a.maxSeverity] || 1) - (severityRank[b.maxSeverity] || 1));
+
+    // Dynamic edge-aware tooltip positioning to prevent clipping at map container boundaries
+    const positionTooltip = (tooltip: HTMLElement, anchorEl: HTMLElement) => {
+      const mapContainer = mapContainerRef.current;
+      if (!mapContainer) return;
+      const mapRect = mapContainer.getBoundingClientRect();
+      const anchorRect = anchorEl.getBoundingClientRect();
+
+      const tooltipWidth = 220;
+      const tooltipHeight = tooltip.offsetHeight || 65;
+
+      const spaceAbove = anchorRect.top - mapRect.top;
+      const spaceBelow = mapRect.bottom - anchorRect.bottom;
+      // Flip below if not enough room above
+      const placeBelow = spaceAbove < (tooltipHeight + 16) && spaceBelow >= (tooltipHeight + 10);
+
+      if (placeBelow) {
+        tooltip.style.bottom = 'auto';
+        tooltip.style.top = '100%';
+        tooltip.style.marginTop = '6px';
+        tooltip.style.marginBottom = '0';
+      } else {
+        tooltip.style.top = 'auto';
+        tooltip.style.bottom = '100%';
+        tooltip.style.marginTop = '0';
+        tooltip.style.marginBottom = '6px';
+      }
+
+      // Horizontal edge protection
+      const anchorCenterFromLeft = (anchorRect.left + anchorRect.width / 2) - mapRect.left;
+      const anchorCenterFromRight = mapRect.right - (anchorRect.left + anchorRect.width / 2);
+      const halfW = tooltipWidth / 2;
+
+      if (anchorCenterFromLeft < halfW + 12) {
+        tooltip.style.left = '0';
+        tooltip.style.right = 'auto';
+        tooltip.style.transform = placeBelow ? 'translateY(2px)' : 'translateY(-2px)';
+      } else if (anchorCenterFromRight < halfW + 12) {
+        tooltip.style.left = 'auto';
+        tooltip.style.right = '0';
+        tooltip.style.transform = placeBelow ? 'translateY(2px)' : 'translateY(-2px)';
+      } else {
+        tooltip.style.left = '50%';
+        tooltip.style.right = 'auto';
+        tooltip.style.transform = placeBelow ? 'translateX(-50%) translateY(2px)' : 'translateX(-50%) translateY(-2px)';
+      }
+    };
 
     // 3. Render DOM Elements for each item
     itemsToRender.forEach((item) => {
@@ -778,7 +893,9 @@ export default function GlobeEventMap({
         const clusterEl = document.createElement('div');
         clusterEl.className = 'indra-tactical-marker select-none';
         clusterEl.style.cursor = 'pointer';
-        clusterEl.style.zIndex = '12';
+        // Issue 1: z-index by severity so urgent clusters always render on top.
+        const sevRank = severityRank[item.maxSeverity] || 1;
+        clusterEl.style.zIndex = String(10 + sevRank * 2); // critical=18, high=16, moderate=14, low=12
 
         const innerEl = document.createElement('div');
         innerEl.className = 'indra-marker-inner';
@@ -787,62 +904,104 @@ export default function GlobeEventMap({
         const color = severityColors[item.maxSeverity] || '#EF4444';
         const dominantEmoji = eventTypeEmojis[item.items[0].marker.eventType] || '⚠️';
 
+        // Issue 1: Badge size and background scale with severity.
+        const isCritical = item.maxSeverity === 'critical';
+        const isHigh = item.maxSeverity === 'high';
+        const badgePadding = isCritical ? '5px 12px 5px 8px' : isHigh ? '4px 10px 4px 7px' : '3px 8px 3px 6px';
+        const badgeBg = isCritical ? '#DC2626' : isHigh ? '#D97706' : 'rgba(30, 42, 59, 0.96)';
+        const badgeFontSize = isCritical ? '13px' : isHigh ? '12px' : '11px';
+
         const clusterBadge = document.createElement('div');
         clusterBadge.className = 'indra-marker-cluster';
         clusterBadge.style.borderColor = color;
+        clusterBadge.style.backgroundColor = badgeBg;
+        clusterBadge.style.padding = badgePadding;
         clusterBadge.style.boxShadow = `0 4px 14px rgba(0,0,0,0.6), 0 0 12px ${color}80`;
         clusterBadge.innerHTML = `
-          <span class="indra-marker-cluster-pulse" style="background-color: ${color};"></span>
-          <span style="font-size: 11px;">${dominantEmoji}</span>
-          <span style="font-size: 11px; font-weight: 800; color: #ffffff; margin-left: 2px;">${item.items.length}</span>
+          <span class="indra-marker-cluster-pulse" style="background-color: ${isCritical || isHigh ? '#fff' : color};"></span>
+          <span style="font-size: ${badgeFontSize};">${dominantEmoji}</span>
+          <span style="font-size: ${badgeFontSize}; font-weight: 800; color: #ffffff; margin-left: 2px;">${item.items.length}</span>
         `;
         innerEl.appendChild(clusterBadge);
 
-        // Cluster Tooltip
+        // Primary location and hazards for compact hover preview
+        const cityCounts: Record<string, number> = {};
+        const hazardIcons = new Set<string>();
+        item.items.forEach(m => {
+          const c = m.marker.city || m.marker.state;
+          if (c) cityCounts[c] = (cityCounts[c] || 0) + 1;
+          const em = eventTypeEmojis[m.marker.eventType];
+          if (em) hazardIcons.add(em);
+        });
+        const primaryLocation = Object.entries(cityCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || 'Subcontinent Region';
+        const hazardList = Array.from(hazardIcons).slice(0, 3).join(' ');
+
+        // Severity breakdown string
+        const sevBreakdown: Record<string, number> = {};
+        item.items.forEach(m => {
+          const s = m.marker.severity || 'low';
+          sevBreakdown[s] = (sevBreakdown[s] || 0) + 1;
+        });
+        const sevSummary = Object.entries(sevBreakdown)
+          .sort(([, a], [, b]) => b - a)
+          .map(([s, n]) => `${n} ${s}`)
+          .join(', ');
+
         const tooltip = document.createElement('div');
         tooltip.className = 'indra-hud-popup';
         tooltip.style.position = 'absolute';
         tooltip.style.bottom = '100%';
         tooltip.style.left = '50%';
-        tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+        tooltip.style.transform = 'translateX(-50%) translateY(-6px)';
         tooltip.style.opacity = '0';
         tooltip.style.pointerEvents = 'none';
-        tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-        tooltip.style.zIndex = '25';
+        tooltip.style.zIndex = '50';
         tooltip.style.width = '220px';
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${item.maxSeverity}">${item.maxSeverity} CLUSTER</span>
-            <span class="hud-time">${item.items.length} Incidents</span>
+            <span class="hud-time font-bold text-white">${item.items.length} incidents</span>
           </div>
-          <div class="hud-title" style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
-            ${item.items.map(m => `<div>${eventTypeEmojis[m.marker.eventType] || '⚠️'} <strong>${m.marker.city}</strong>: ${m.marker.eventType}</div>`).join('')}
+          <div class="hud-location mt-1">📍 ${primaryLocation}</div>
+          <div class="hud-sub">
+            <span>${hazardList}</span>
+            <span class="hud-sev-breakdown">${sevSummary}</span>
           </div>
-          <div class="hud-action" style="margin-top: 6px;">⚡ Click to expand cluster</div>
+          <div class="hud-action">
+            <span>Click to inspect breakdown</span>
+            <span style="font-size: 11px;">→</span>
+          </div>
         `;
         innerEl.appendChild(tooltip);
 
         clusterEl.addEventListener('mouseenter', () => {
+          positionTooltip(tooltip, clusterEl);
           innerEl.style.transform = 'scale(1.15) translateY(-2px)';
           tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
-          clusterEl.style.zIndex = '18';
+          clusterEl.style.zIndex = '50';
         });
 
         clusterEl.addEventListener('mouseleave', () => {
           innerEl.style.transform = 'scale(1) translateY(0)';
           tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
-          clusterEl.style.zIndex = '12';
+          clusterEl.style.zIndex = String(10 + sevRank * 2);
         });
 
+        // Issue 3: Click opens a popover with deduplicated detail instead of
+        // just zooming. The popover is rendered in React via clusterPopover state.
         clusterEl.addEventListener('click', (e) => {
           e.stopPropagation();
-          map.flyTo({
-            center: [item.center.lng, item.center.lat],
-            zoom: Math.min(map.getZoom() + 1.8, 6.8),
-            duration: 1500,
-            essential: true,
+          setSelectedMarker(null);
+          setLegendOpen(false);
+          const rect = mapContainerRef.current?.getBoundingClientRect();
+          const markerPos = item.screenPos || { x: 0, y: 0 };
+          // Smart positioning: if the popover would go off the right/bottom edge, flip.
+          const popX = rect ? Math.min(markerPos.x, rect.width - 300) : markerPos.x;
+          const popY = rect ? Math.min(markerPos.y, rect.height - 260) : markerPos.y;
+          setClusterPopover({
+            items: item.items.map(m => m.marker),
+            position: { x: Math.max(8, popX), y: Math.max(8, popY) },
+            maxSeverity: item.maxSeverity,
           });
         });
 
@@ -858,17 +1017,20 @@ export default function GlobeEventMap({
           lat: item.center.lat,
         });
       } else {
-        // --- RENDER SINGLE PIN ---
+        // --- RENDER SINGLE PIN (Issue 2: unified pill-badge system) ---
         const { marker, coords } = item.items[0];
         const color = severityColors[marker.severity] || '#64748B';
         const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
         const isSelected = selectedMarker?.id === marker.id;
         const isPulsing = marker.severity === 'critical' || marker.severity === 'high' || isSelected;
+        const layer = marker.layer ?? 'event';
+        // Issue 1: z-index by severity rank, matching cluster approach.
+        const pinSevRank = severityRank[marker.severity] || 1;
 
         const markerEl = document.createElement('div');
         markerEl.className = 'indra-tactical-marker select-none';
         markerEl.style.cursor = 'pointer';
-        markerEl.style.zIndex = isSelected ? '15' : marker.severity === 'critical' ? '10' : marker.severity === 'high' ? '8' : '5';
+        markerEl.style.zIndex = isSelected ? '22' : String(8 + pinSevRank * 2);
 
         const innerEl = document.createElement('div');
         innerEl.className = 'indra-marker-inner';
@@ -904,64 +1066,60 @@ export default function GlobeEventMap({
             innerEl.appendChild(microPulse);
           }
         } else {
-          // --- Tier 2, 3, 4: Tactical Pin Head with Emoji ---
-          const headSize = isCompactZoom ? 20 : isDetailZoom ? 30 : 24;
-          const fontSize = isCompactZoom ? 10 : isDetailZoom ? 14 : 12;
+          // --- Tier 2, 3, 4: Unified Pill Badge (Issue 2) ---
+          // All markers use the same pill shape. Layer is indicated by a prefix
+          // glyph (● event, ◆ alert, ○ report) and border style:
+          //   - Events: solid border, filled background
+          //   - Alerts: solid border, filled background, diamond prefix
+          //   - Reports: dashed border, transparent background (unverified)
+          const isReport = layer === 'report';
+          const isAlert = layer === 'alert';
+          const layerGlyph = isAlert ? '◆' : isReport ? '○' : '●';
+          const badgeBg = isReport ? 'rgba(30,42,59,0.92)' : color;
+          const badgeBorder = isSelected
+            ? '1.5px solid #38bdf8'
+            : isReport
+              ? `1.5px dashed ${color}`
+              : '1.5px solid rgba(255,255,255,0.5)';
 
           if (isPulsing) {
             const pulse = document.createElement('div');
             pulse.className = `pulse-ring pulse-ring-${marker.severity}`;
-            pulse.style.width = `${headSize + 10}px`;
-            pulse.style.height = `${headSize + 10}px`;
-            pulse.style.top = '-5px';
+            pulse.style.width = '34px';
+            pulse.style.height = '22px';
+            pulse.style.top = '-4px';
             pulse.style.left = '50%';
             pulse.style.transform = 'translateX(-50%)';
             pulse.style.pointerEvents = 'none';
+            pulse.style.borderRadius = '9999px';
             innerEl.appendChild(pulse);
           }
 
-          // Shape carries the layer, not just colour: colour already encodes
-          // severity here, and an operator must be able to tell a scored event
-          // from an unreviewed citizen report at a glance, in greyscale, on a
-          // projector. A filled circle is a fused event, a diamond an official
-          // agency warning, a hollow circle a raw report.
-          const layer = marker.layer ?? 'event';
-          const pinHead = document.createElement('div');
-          pinHead.style.width = `${headSize}px`;
-          pinHead.style.height = `${headSize}px`;
-          pinHead.style.borderRadius = layer === 'report' ? '50%' : layer === 'alert' ? '14%' : '50%';
-          if (layer === 'alert') {
-            pinHead.style.transform = 'rotate(45deg)';
-          }
-          // A raw report is drawn hollow. It has not been corroborated or
-          // scored, and a solid pin would read as a finding.
-          pinHead.style.backgroundColor = layer === 'report' ? 'transparent' : color;
-          pinHead.style.border =
-            isSelected
-              ? '2.5px solid #38bdf8'
-              : layer === 'report'
-                ? `2px dashed ${color}`
-                : '2px solid #ffffff';
-          pinHead.style.boxShadow = isSelected
+          const pillBadge = document.createElement('div');
+          pillBadge.className = 'indra-marker-cluster';
+          pillBadge.style.backgroundColor = badgeBg;
+          pillBadge.style.border = badgeBorder;
+          pillBadge.style.boxShadow = isSelected
             ? '0 0 16px #38bdf8, 0 4px 12px rgba(0,0,0,0.6)'
-            : `0 3px 10px rgba(0,0,0,0.5), 0 0 10px ${color}90`;
-          pinHead.style.display = 'flex';
-          pinHead.style.alignItems = 'center';
-          pinHead.style.justifyContent = 'center';
-          pinHead.style.fontSize = `${fontSize}px`;
-          pinHead.style.position = 'relative';
-          pinHead.style.zIndex = '2';
-          pinHead.innerHTML =
-            layer === 'alert'
-              ? `<span style="transform:rotate(-45deg) translateY(-0.5px);">${emoji}</span>`
-              : `<span style="transform:translateY(-0.5px);">${emoji}</span>`;
-          innerEl.appendChild(pinHead);
+            : `0 3px 10px rgba(0,0,0,0.5), 0 0 8px ${color}60`;
+          pillBadge.style.padding = isCompactZoom ? '2px 6px' : '3px 8px 3px 6px';
+          pillBadge.style.fontSize = isCompactZoom ? '10px' : '11px';
+          pillBadge.innerHTML = `
+            <span style="font-size: 8px; opacity: 0.7; margin-right: 1px;">${layerGlyph}</span>
+            <span>${emoji}</span>
+          `;
+          innerEl.appendChild(pillBadge);
 
           // City Pill (with smart collision suppression)
+          // Issue 4: use word-wrap instead of truncating mid-word.
           const cityPill = document.createElement('div');
           cityPill.className = item.hideLabel ? 'indra-city-pill indra-city-pill-hidden' : 'indra-city-pill';
           cityPill.style.color = isSelected ? '#38bdf8' : '#f8fafc';
           cityPill.style.border = isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.25)';
+          cityPill.style.maxWidth = '130px';
+          cityPill.style.overflow = 'hidden';
+          cityPill.style.textOverflow = 'ellipsis';
+          cityPill.style.wordBreak = 'break-word';
           cityPill.innerText = marker.placeLabel || marker.city || 'Location unresolved';
           innerEl.appendChild(cityPill);
         }
@@ -972,35 +1130,34 @@ export default function GlobeEventMap({
         tooltip.style.position = 'absolute';
         tooltip.style.bottom = '100%';
         tooltip.style.left = '50%';
-        tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+        tooltip.style.transform = 'translateX(-50%) translateY(-6px)';
         tooltip.style.opacity = '0';
         tooltip.style.pointerEvents = 'none';
-        tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-        tooltip.style.zIndex = '25';
-        tooltip.style.width = '210px';
+        tooltip.style.zIndex = '50';
+        tooltip.style.width = '220px';
+        const layerLabel = layer === 'alert' ? '◆ Agency' : layer === 'report' ? '○ Report' : '● Event';
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
-            <span class="hud-time">${marker.timeAgo || 'Active'}</span>
+            <span class="hud-time font-mono">${marker.timeAgo || layerLabel}</span>
           </div>
           <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
           <div class="hud-location">📍 ${marker.placeLabel || [marker.city, marker.state].filter(Boolean).join(', ') || 'Location unresolved'}</div>
-          ${marker.action ? `<div class="hud-action">⚡ ${marker.action}</div>` : ''}
+          ${marker.action ? `<div class="hud-action"><span>⚡ Action</span><span>${marker.action}</span></div>` : ''}
         `;
         innerEl.appendChild(tooltip);
 
         markerEl.addEventListener('mouseenter', () => {
-          innerEl.style.transform = 'scale(1.22) translateY(-4px)';
+          positionTooltip(tooltip, markerEl);
+          innerEl.style.transform = 'scale(1.22) translateY(-3px)';
           tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateX(-50%) translateY(-10px)';
-          markerEl.style.zIndex = '18';
+          markerEl.style.zIndex = '50';
         });
 
         markerEl.addEventListener('mouseleave', () => {
           innerEl.style.transform = isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1) translateY(0)';
           tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
-          markerEl.style.zIndex = isSelected ? '15' : marker.severity === 'critical' ? '10' : marker.severity === 'high' ? '8' : '5';
+          markerEl.style.zIndex = isSelected ? '25' : String(8 + pinSevRank * 2);
         });
 
         markerEl.addEventListener('click', (e) => {
@@ -1038,8 +1195,12 @@ export default function GlobeEventMap({
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style,
+      // Issue 5 fix: default to India-focused view (zoom 5.0 at the Indian subcontinent
+      // centroid with pitch 30). This matches the view the "India" focus button produces,
+      // so users no longer need to click it on every load. Zoom 5.0 keeps India centred
+      // without spilling into adjacent countries the way zoom 4.6 did.
       center: [82.0, 22.0],
-      zoom: 4.6,
+      zoom: 5.0,
       pitch: 30,
       bearing: 0,
       maxPitch: 85,
@@ -1047,12 +1208,25 @@ export default function GlobeEventMap({
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    map.jumpTo({ ...indiaCamera(map), pitch: 30 });
 
+    // The canvas follows its container, not only the window: collapsing the
+    // sidebar or a viewport-relative height change resizes the container
+    // without a window resize, and MapLibre then drew a stretched frame.
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => map.resize()) : null;
+    resizeObserver?.observe(mapContainerRef.current);
+
+    // Through the ref, never the closure. This handler is registered once, at
+    // mount, and fires twice (style.load, then load). Calling the
+    // renderProminentPins captured here used the empty marker list it saw at
+    // mount: measured on 22 Sep, the pins effect drew 20 markers at t=1720 ms
+    // and the late `load` at t=1874 ms cleared all 20 and drew none, leaving
+    // the badge counting pins the map did not show (BUG-043 again).
     const onStyleReady = () => {
       try {
         map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
-        syncVectorLayers(map);
-        renderProminentPins();
+        renderProminentPinsRef.current();
       } catch (err) {
         console.error('[INDRA] onStyleReady error:', err);
       }
@@ -1115,6 +1289,7 @@ export default function GlobeEventMap({
     }
 
     return () => {
+      resizeObserver?.disconnect();
       if (zoomAnimFrame) {
         cancelAnimationFrame(zoomAnimFrame);
       }
@@ -1160,18 +1335,8 @@ export default function GlobeEventMap({
     const map = mapRef.current;
     if (!map || !styleReady) return;
 
-    if (map.getLayer('cyclone-outer-glow')) {
-      map.setLayoutProperty('cyclone-outer-glow', 'visibility', showCycloneLayer ? 'visible' : 'none');
-    }
-    if (map.getLayer('cyclone-inner-track')) {
-      map.setLayoutProperty('cyclone-inner-track', 'visibility', showCycloneLayer ? 'visible' : 'none');
-    }
-    if (map.getLayer('ndrf-bases-layer')) {
-      map.setLayoutProperty('ndrf-bases-layer', 'visibility', showNdrfLayer ? 'visible' : 'none');
-    }
-
     updateMarkerOcclusion(map, isGlobeRef.current);
-  }, [showCycloneLayer, showNdrfLayer, showEventsLayer, updateMarkerOcclusion, styleReady]);
+  }, [showEventsLayer, updateMarkerOcclusion, styleReady]);
 
   // Switch basemap style
   const handleBasemapChange = (newBasemap: BasemapMode) => {
@@ -1182,8 +1347,7 @@ export default function GlobeEventMap({
     map.setStyle(BASEMAP_STYLES[newBasemap]);
     map.once('style.load', () => {
       map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
-      syncVectorLayers(map);
-      renderProminentPins();
+      renderProminentPinsRef.current();
     });
   };
 
@@ -1248,7 +1412,8 @@ export default function GlobeEventMap({
     zoom: number,
     pitch = 35,
     bearing = 0,
-    duration = 2400
+    duration = 2400,
+    offset?: [number, number]
   ) => {
     if (!mapRef.current) return;
     mapRef.current.flyTo({
@@ -1258,7 +1423,14 @@ export default function GlobeEventMap({
       bearing,
       essential: true,
       duration,
+      ...(offset ? { offset } : {}),
     });
+  };
+
+  const focusIndia = () => {
+    if (!mapRef.current) return;
+    const { center, zoom } = indiaCamera(mapRef.current);
+    flyToHotspot(center, zoom, 30, 0);
   };
 
   // Toggle Fullscreen
@@ -1301,11 +1473,11 @@ export default function GlobeEventMap({
             <span className="text-sm font-semibold text-slate-800 truncate">
               {variant === 'preview' ? 'Tactical Geospatial Grid' : '3D Weather Intelligence Grid'}
             </span>
-            {/* Active incident count pill */}
+            {/* Issue 8: clarify this is a severity filter, not a total count */}
             {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length > 0 && (
               <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
-                {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length} Active
+                {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length} urgent
               </span>
             )}
           </div>
@@ -1328,7 +1500,7 @@ export default function GlobeEventMap({
 
             {/* Quick jump: India Focus */}
             <button
-              onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
+              onClick={focusIndia}
               className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
               title="Focus on Indian Subcontinent"
             >
@@ -1336,10 +1508,11 @@ export default function GlobeEventMap({
               <span>India</span>
             </button>
 
-            {/* Quick jump: Global View */}
+            {/* Quick jump: Global View. On the dashboard's narrower card it
+                gives way below 2xl so the map's title is not truncated. */}
             <button
               onClick={() => flyToHotspot([80.0, 15.0], 1.6, 0, 0, 3000)}
-              className="hidden lg:flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all"
+              className={`hidden ${variant === 'preview' ? '2xl:flex' : 'lg:flex'} items-center gap-1 text-[11px] px-2 py-1 rounded-md border bg-white border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all`}
               title="Zoom out to Global View"
             >
               <Globe className="w-3 h-3 text-indigo-500" />
@@ -1402,7 +1575,7 @@ export default function GlobeEventMap({
                 <Compass className="w-3 h-3 text-primary" /> View:
               </span>
               <button
-                onClick={() => flyToHotspot([82.0, 22.0], 4.6, 30, 0)}
+                onClick={focusIndia}
                 className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-primary/50 hover:bg-primary/5 text-slate-700 font-medium shrink-0 transition-all flex items-center gap-1 text-[11px]"
                 title="Focus view on Indian subcontinent"
               >
@@ -1461,10 +1634,11 @@ export default function GlobeEventMap({
                   ? 'bg-rose-50 text-rose-700 border-rose-200 font-semibold'
                   : 'bg-white text-slate-400 border-slate-200'
               }`}
-              title="Toggle Severe Alerts layer"
+              title="Toggle all map pins on/off"
             >
               <AlertTriangle className="w-3 h-3" />
-              <span>Alerts ({markersForDisplay.length})</span>
+              {/* Issue 8: label matches what this actually controls */}
+              <span>All pins ({markersForDisplay.length})</span>
             </button>
 
             {/*
@@ -1498,31 +1672,6 @@ export default function GlobeEventMap({
                 </button>
               );
             })}
-            <button
-              onClick={() => setShowCycloneLayer(!showCycloneLayer)}
-              className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-all flex items-center gap-1 ${
-                showCycloneLayer
-                  ? 'bg-amber-50 text-amber-700 border-amber-200 font-semibold'
-                  : 'bg-white text-slate-400 border-slate-200'
-              }`}
-              title="Toggle Cyclone Track layer"
-            >
-              <span>🌀</span>
-              <span>Cyclone</span>
-            </button>
-            <button
-              onClick={() => setShowNdrfLayer(!showNdrfLayer)}
-              className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-all flex items-center gap-1 ${
-                showNdrfLayer
-                  ? 'bg-sky-50 text-sky-700 border-sky-200 font-semibold'
-                  : 'bg-white text-slate-400 border-slate-200'
-              }`}
-              title="Toggle NDRF Taskforce bases"
-            >
-              <Shield className="w-3 h-3" />
-              <span>NDRF Bases</span>
-            </button>
-
             {/* Smart Declutter & Collision Avoidance Toggle */}
             <button
               onClick={() => setSmartDeclutter(!smartDeclutter)}
@@ -1569,8 +1718,10 @@ export default function GlobeEventMap({
             'relative w-full overflow-hidden globe-space-bg',
             isFullscreen
               ? 'flex-1 min-h-[520px]'
+              : canvasClassName
+              ? canvasClassName
               : variant === 'preview'
-              ? 'h-[275px]'
+              ? 'h-[360px]'
               : 'h-[500px] lg:h-[560px]'
           )}
         >
@@ -1584,13 +1735,13 @@ export default function GlobeEventMap({
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -20, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute top-3 left-3 z-35 w-80 max-w-[calc(100%-24px)] bg-slate-900/95 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4"
+                className="absolute top-3 left-3 z-40 w-80 max-w-[calc(100%-24px)] max-h-[calc(100%-54px)] overflow-y-auto custom-scrollbar bg-slate-900/98 text-white backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 p-3.5 space-y-2.5"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <span
-                      className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                      className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0"
                       style={{
                         backgroundColor: severityConfig[selectedMarker.severity]?.bg || '#f1f5f9',
                         color: severityConfig[selectedMarker.severity]?.textColor || '#334155',
@@ -1598,8 +1749,9 @@ export default function GlobeEventMap({
                     >
                       {severityConfig[selectedMarker.severity]?.label || selectedMarker.severity}
                     </span>
-                    <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> AI Verified
+                    <span className="text-[10px] text-slate-300 font-mono flex items-center gap-1 truncate">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span className="truncate">{markerStatusLabel(selectedMarker)}</span>
                     </span>
                   </div>
                   <button
@@ -1607,53 +1759,41 @@ export default function GlobeEventMap({
                       setSelectedMarker(null);
                       if (onEventSelect) onEventSelect(null);
                     }}
-                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+                    title="Close incident inspector"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 {/* City & Event Title */}
-                <h4 className="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
-                  <span>{eventTypeEmojis[selectedMarker.eventType] || '⚠️'}</span>
-                  <span>{selectedMarker.city}, {selectedMarker.state}</span>
-                </h4>
-                <p className="text-xs font-semibold text-blue-400 mt-0.5 flex items-center gap-1">
-                  <Target className="w-3.5 h-3.5" />
-                  {selectedMarker.eventType}
-                </p>
-                <p className="text-xs text-slate-300 mt-2 line-clamp-2 leading-relaxed">
+                <div>
+                  <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-1.5 leading-snug">
+                    <span>{eventTypeEmojis[selectedMarker.eventType] || '⚠️'}</span>
+                    <span className="truncate">{selectedMarker.placeLabel || selectedMarker.city || 'Location unresolved'}</span>
+                  </h4>
+                  <p className="text-[11px] font-semibold text-blue-400 mt-0.5 flex items-center gap-1">
+                    <Target className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{selectedMarker.eventType}</span>
+                  </p>
+                </div>
+
+                <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
                   {selectedMarker.description}
                 </p>
 
-                {/* Real-time Telemetry Grid */}
-                <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-800 text-[11px]">
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
-                      <CloudRain className="w-3 h-3 text-blue-400" /> Rainfall
+                {/* Source & Coordinates */}
+                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800 text-[10px]">
+                  <div className="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700/50">
+                    <div className="text-slate-400 flex items-center gap-1 text-[9px]">
+                      <Layers className="w-3 h-3 text-blue-400" /> Source
                     </div>
-                    <div className="font-mono font-bold text-white mt-0.5">
-                      {selectedMarker.severity === 'critical' ? '86 mm/h' : '48 mm/h'}
-                    </div>
-                  </div>
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
-                      <Wind className="w-3 h-3 text-amber-400" /> Wind Gusts
-                    </div>
-                    <div className="font-mono font-bold text-white mt-0.5">
-                      {selectedMarker.severity === 'critical' ? '68 km/h' : '34 km/h'}
+                    <div className="font-mono font-bold text-white mt-0.5 truncate">
+                      {markerSourceLabel(selectedMarker)}
                     </div>
                   </div>
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
-                      <Waves className="w-3 h-3 text-rose-400" /> Water Level
-                    </div>
-                    <div className="font-mono font-bold text-white mt-0.5">
-                      {selectedMarker.severity === 'critical' ? '+1.9m Danger' : 'Normal'}
-                    </div>
-                  </div>
-                  <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/50">
-                    <div className="text-slate-400 flex items-center gap-1 text-[10px]">
+                  <div className="bg-slate-800/80 p-1.5 rounded-lg border border-slate-700/50">
+                    <div className="text-slate-400 flex items-center gap-1 text-[9px]">
                       <Activity className="w-3 h-3 text-emerald-400" /> Coordinates
                     </div>
                     <div className="font-mono font-bold text-white mt-0.5 truncate">
@@ -1663,20 +1803,23 @@ export default function GlobeEventMap({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 mt-3 pt-2">
+                <div className="flex items-center gap-2 pt-1">
+                  {(selectedMarker.layer ?? 'event') === 'event' && (
+                    <button
+                      onClick={() => (window.location.href = '/teams')}
+                      className="flex-1 py-1 px-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
+                    >
+                      <Shield className="w-3 h-3" />
+                      <span>Dispatch Team</span>
+                    </button>
+                  )}
                   <button
-                    onClick={() => (window.location.href = '/teams')}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Dispatch NDRF</span>
-                  </button>
-                  <button
-                    onClick={() => flyToHotspot([selectedMarker.lng, selectedMarker.lat], 8.2, 55, 20)}
-                    className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
+                    onClick={() => flyToHotspot([selectedMarker.lng, selectedMarker.lat], 8.2, 55, 20, 2400, [90, 0])}
+                    className="py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors flex items-center gap-1"
                     title="Zoom in to tactical street level"
                   >
-                    Close Zoom
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Zoom In</span>
                   </button>
                 </div>
               </motion.div>
@@ -1692,7 +1835,8 @@ export default function GlobeEventMap({
                 title="Open Live Incidents Roster"
               >
                 <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                <span className="font-semibold">{markersForDisplay.length} Incidents</span>
+                {/* Issue 8: clarify this is total map pins, not a filtered count */}
+                <span className="font-semibold">{markersForDisplay.length} map pins</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
               </button>
             ) : (
@@ -1726,6 +1870,7 @@ export default function GlobeEventMap({
                     const isSelected = selectedMarker?.id === marker.id;
                     const color = severityColors[marker.severity] || '#64748B';
                     const emoji = eventTypeEmojis[marker.eventType] || '⚠️';
+                    const layerGlyph = marker.layer === 'alert' ? '◆' : marker.layer === 'report' ? '○' : '●';
 
                     return (
                       <button
@@ -1741,6 +1886,7 @@ export default function GlobeEventMap({
                           <span className="text-sm">{emoji}</span>
                           <div className="truncate">
                             <div className="text-xs font-semibold text-white group-hover:text-blue-300 truncate">
+                              <span className="text-[9px] opacity-60 mr-1">{layerGlyph}</span>
                               {marker.city}, {marker.state}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate">
@@ -1760,37 +1906,519 @@ export default function GlobeEventMap({
             )}
           </div>
 
-          {/* Real-time Telemetry HUD (Bottom-Left) */}
-          <div className="absolute bottom-3 left-3 z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
-            <span className="flex items-center gap-1 text-emerald-400 font-bold">
-              <Radio className="w-3 h-3 animate-pulse" />
-              {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300">
-              ZOOM <strong className="text-white">{telemetry.zoom}</strong>
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300">
-              {telemetry.lat >= 0 ? `${telemetry.lat}°N` : `${Math.abs(telemetry.lat)}°S`},{' '}
-              {telemetry.lng >= 0 ? `${telemetry.lng}°E` : `${Math.abs(telemetry.lng)}°W`}
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300">
-              PITCH <strong className="text-white">{telemetry.pitch}°</strong>
-            </span>
-            {isAutoOrbiting && (
-              <>
-                <span className="text-slate-600">|</span>
-                <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.12°/F</span>
-              </>
-            )}
-          </div>
+          {/* Issue 3: Cluster detail popover — rendered in React to avoid DOM duplication issues */}
+          <AnimatePresence>
+            {clusterPopover && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.15 }}
+                className="absolute z-40"
+                style={{ left: clusterPopover.position.x, top: clusterPopover.position.y }}
+              >
+                <div className="w-72 bg-slate-900/97 text-white backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/80 p-4">
+                  {/* Close + header */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        backgroundColor: severityColors[clusterPopover.maxSeverity] || '#64748B',
+                        color: '#fff',
+                      }}
+                    >
+                      {clusterPopover.maxSeverity} cluster
+                    </span>
+                    <button
+                      onClick={() => setClusterPopover(null)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
 
-          {/* Tactical Geo-Anchor Status Banner */}
-          <div className="absolute bottom-3 right-3 sm:right-auto sm:left-[430px] z-10 pointer-events-none bg-slate-900/80 text-slate-300 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-800 text-[10px] font-mono flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Horizon Occlusion Active (Pins Hide On Far Side)</span>
+                  {/* Severity breakdown */}
+                  {(() => {
+                    const sevB: Record<string, number> = {};
+                    clusterPopover.items.forEach(m => {
+                      sevB[m.severity] = (sevB[m.severity] || 0) + 1;
+                    });
+                    return (
+                      <div className="text-[10px] text-slate-400 mb-2 flex flex-wrap gap-1.5">
+                        {Object.entries(sevB)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([s, n]) => (
+                            <span
+                              key={s}
+                              className="px-1.5 py-0.5 rounded border"
+                              style={{
+                                borderColor: severityColors[s] || '#64748B',
+                                color: severityColors[s] || '#64748B',
+                              }}
+                            >
+                              {n} {s}
+                            </span>
+                          ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Deduplicated incident list */}
+                  {/* Issue 3: If items share (city, eventType, severity), group them to
+                      avoid repeated identical rows. If no distinguishing data exists
+                      beyond these three fields, show an honest summary rather than
+                      fabricating detail. A future backend field (e.g. incident_ids[]
+                      per cluster) would allow truly itemized detail here. */}
+                  <div className="space-y-1.5 max-h-[200px] overflow-y-auto custom-scrollbar">
+                    {(() => {
+                      const groups: Record<string, { city: string; eventType: string; severity: string; count: number; emoji: string; descriptions: string[] }> = {};
+                      clusterPopover.items.forEach(m => {
+                        const key = `${m.city}|${m.eventType}|${m.severity}`;
+                        if (!groups[key]) {
+                          groups[key] = {
+                            city: m.city,
+                            eventType: m.eventType,
+                            severity: m.severity,
+                            count: 0,
+                            emoji: eventTypeEmojis[m.eventType] || '⚠️',
+                            descriptions: [],
+                          };
+                        }
+                        groups[key].count++;
+                        if (m.description && !groups[key].descriptions.includes(m.description)) {
+                          groups[key].descriptions.push(m.description);
+                        }
+                      });
+                      return Object.values(groups).map((g, i) => (
+                        <div
+                          key={i}
+                          className="p-2 rounded-lg bg-slate-800/70 border border-slate-700/50"
+                        >
+                          <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                            <span>{g.emoji}</span>
+                            <span>{g.city || 'Unknown'}</span>
+                            {g.count > 1 && (
+                              <span className="text-[10px] font-mono text-slate-400">×{g.count}</span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            {g.eventType} · <span style={{ color: severityColors[g.severity] || '#64748B' }}>{g.severity}</span>
+                          </div>
+                          {g.descriptions.length > 1 && (
+                            <div className="text-[10px] text-slate-500 mt-1 line-clamp-2">
+                              {g.descriptions[0]}
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+
+                  {/* Link to events page */}
+                  <Link
+                    href="/events"
+                    className="mt-3 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
+                  >
+                    View all in Incident Events
+                    <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Click outside map to dismiss cluster popover */}
+          {clusterPopover && (
+            <div
+              className="absolute inset-0 z-[38]"
+              onClick={() => setClusterPopover(null)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setClusterPopover(null); }}
+              tabIndex={-1}
+              role="presentation"
+            />
+          )}
+
+          {/* Click outside map to dismiss legend */}
+          {legendOpen && (
+            <div
+              className="absolute inset-0 z-[38]"
+              onClick={() => setLegendOpen(false)}
+              role="presentation"
+            />
+          )}
+
+          {/* Interactive Map Layers & Legend control panel — positioned cleanly above dock */}
+          <AnimatePresence>
+            {legendOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.16, ease: 'easeOut' }}
+                className="absolute bottom-12 left-3 z-40 w-72 sm:w-80 max-h-[calc(100%-60px)] overflow-y-auto custom-scrollbar bg-slate-900/98 text-white backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 p-3.5 space-y-3"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-100">Layers & Legend</span>
+                        {isAnyFilterActive && (
+                          <span className="px-1.5 py-0.2 text-[8px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full">
+                            Filtered
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        Showing {markersForDisplay.length} of {markers.length} pins
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {isAnyFilterActive && (
+                      <button
+                        onClick={resetAllFilters}
+                        className="flex items-center gap-1 px-1.5 py-1 text-[10px] font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-md transition-colors"
+                        title="Reset all filters to show everything"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setLegendOpen(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                      title="Close panel (Esc)"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Section 1: Data Layers */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      Data Layers
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-500">Toggle layers</span>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { layer: 'event' as MapLayer, label: 'Fused Incident', glyph: '●', color: 'text-white', desc: 'AI-fused multi-source' },
+                      { layer: 'alert' as MapLayer, label: 'Agency Warning', glyph: '◆', color: 'text-amber-400', desc: 'Official IMD / NDMA' },
+                      { layer: 'report' as MapLayer, label: 'Citizen Report', glyph: '○', color: 'text-blue-400', desc: 'Unverified field reports' },
+                    ].map((layerItem) => {
+                      const active = visibleLayers[layerItem.layer];
+                      const count = filterCounts.layers[layerItem.layer] || 0;
+                      return (
+                        <button
+                          key={layerItem.layer}
+                          onClick={() =>
+                            setVisibleLayers((prev) => ({ ...prev, [layerItem.layer]: !prev[layerItem.layer] }))
+                          }
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left text-[11px] transition-all ${
+                            active
+                              ? 'bg-slate-800/80 border-slate-700 text-slate-200 shadow-xs'
+                              : 'bg-slate-900/40 border-slate-800/60 text-slate-500 hover:bg-slate-800/40 opacity-60'
+                          }`}
+                          title={`Click to toggle ${layerItem.label}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`text-xs font-bold ${layerItem.color}`}>{layerItem.glyph}</span>
+                            <div className="min-w-0">
+                              <span className={`font-medium ${active ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
+                                {layerItem.label}
+                              </span>
+                              <span className="block text-[9px] text-slate-500 font-normal truncate">
+                                {layerItem.desc}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-300 border border-slate-800">
+                              {count}
+                            </span>
+                            <div
+                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
+                                active
+                                  ? 'bg-blue-600 border-blue-500 text-white'
+                                  : 'border-slate-700 bg-slate-800/50 text-transparent'
+                              }`}
+                            >
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 2: Severity Hierarchy */}
+                <div className="pt-2 border-t border-slate-800">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      Severity Hierarchy
+                    </span>
+                    <div className="flex items-center gap-1 text-[9px] font-mono">
+                      <button
+                        onClick={() =>
+                          setVisibleSeverities({
+                            critical: true,
+                            high: true,
+                            moderate: true,
+                            advisory: true,
+                            low: true,
+                          })
+                        }
+                        className="text-slate-400 hover:text-slate-200 px-1 py-0.5 rounded hover:bg-slate-800 transition-colors"
+                        title="Show all severity levels"
+                      >
+                        All
+                      </button>
+                      <span className="text-slate-600">|</span>
+                      <button
+                        onClick={() =>
+                          setVisibleSeverities({
+                            critical: true,
+                            high: true,
+                            moderate: false,
+                            advisory: false,
+                            low: false,
+                          })
+                        }
+                        className="text-rose-400 hover:text-rose-300 px-1 py-0.5 rounded hover:bg-rose-950/40 transition-colors"
+                        title="Show only Critical and High incidents"
+                      >
+                        Urgent only
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { key: 'critical', label: 'Critical', color: '#EF4444', ring: 'border-red-500/50 hover:border-red-500/80' },
+                      { key: 'high', label: 'High', color: '#F59E0B', ring: 'border-amber-500/50 hover:border-amber-500/80' },
+                      { key: 'moderate', label: 'Moderate', color: '#3B82F6', ring: 'border-blue-500/50 hover:border-blue-500/80' },
+                      { key: 'advisory', label: 'Advisory', color: '#7A8599', ring: 'border-slate-400/40 hover:border-slate-400/70' },
+                      { key: 'low', label: 'Low', color: '#64748B', ring: 'border-slate-600/40 hover:border-slate-600/70' },
+                    ].map((s) => {
+                      const active = visibleSeverities[s.key] !== false;
+                      const count = filterCounts.severities[s.key] || 0;
+                      return (
+                        <button
+                          key={s.key}
+                          onClick={() =>
+                            setVisibleSeverities((prev) => ({
+                              ...prev,
+                              [s.key]: prev[s.key] === false ? true : false,
+                            }))
+                          }
+                          className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-[11px] transition-all ${
+                            active
+                              ? `bg-slate-800/80 ${s.ring} text-slate-200 shadow-xs`
+                              : 'bg-slate-900/30 border-slate-800/60 text-slate-500 opacity-45'
+                          }`}
+                          title={`Toggle ${s.label} severity`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div
+                              className={`w-2 h-2 rounded-full shrink-0 transition-transform ${
+                                active ? 'scale-100 shadow-sm' : 'scale-75 opacity-40'
+                              }`}
+                              style={{ backgroundColor: s.color }}
+                            />
+                            <span className={`font-medium truncate ${active ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
+                              {s.label}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-mono text-slate-400 bg-slate-950/60 px-1 rounded border border-slate-800/80">
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 3: Hazard Types */}
+                <div className="pt-2 border-t border-slate-800">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      Hazard Types
+                    </span>
+                    {hiddenHazards.size > 0 && (
+                      <button
+                        onClick={() => setHiddenHazards(new Set())}
+                        className="text-[9px] font-mono text-blue-400 hover:text-blue-300 px-1 py-0.5 rounded hover:bg-blue-950/40 transition-colors"
+                      >
+                        Show all ({hiddenHazards.size} hidden)
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {(availableHazards.length > 0
+                      ? availableHazards
+                      : Object.keys(eventTypeEmojis)
+                    ).map((hazard) => {
+                      const isHidden = hiddenHazards.has(hazard);
+                      const emoji = eventTypeEmojis[hazard] || '⚠️';
+                      const count = filterCounts.hazards[hazard] ?? 0;
+                      const cleanName = hazard.replace('Severe ', '').replace('Heavy ', '');
+                      return (
+                        <button
+                          key={hazard}
+                          onClick={() => {
+                            setHiddenHazards((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(hazard)) {
+                                next.delete(hazard);
+                              } else {
+                                next.add(hazard);
+                              }
+                              return next;
+                            });
+                          }}
+                          className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-all ${
+                            !isHidden
+                              ? 'bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700/80 shadow-xs'
+                              : 'bg-slate-900/30 border-slate-800/50 text-slate-500 opacity-45 line-through'
+                          }`}
+                          title={`${hazard} (${count} pins) — click to ${isHidden ? 'show' : 'hide'}`}
+                        >
+                          <span className="text-xs">{emoji}</span>
+                          <span className="font-medium truncate max-w-[80px]">{cleanName}</span>
+                          {count > 0 && (
+                            <span className="text-[8px] font-mono bg-slate-950/70 text-slate-400 px-1 rounded">
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer summary */}
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isAnyFilterActive ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+                      }`}
+                    />
+                    <span className="font-mono">
+                      {isAnyFilterActive
+                        ? `${markersForDisplay.length}/${markers.length} pins active`
+                        : `All ${markers.length} items visible`}
+                    </span>
+                  </div>
+                  {isAnyFilterActive && (
+                    <button
+                      onClick={resetAllFilters}
+                      className="text-amber-400 hover:text-amber-300 font-medium hover:underline text-[10px]"
+                    >
+                      Reset all
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Issue 5: Technical readout — telemetry HUD and horizon status banner */}
+          {showTechReadout && (
+            <div className="absolute bottom-3 sm:left-[215px] z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-950/85 text-white backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800/80 text-[11px] font-mono shadow-lg">
+              <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                <Radio className="w-3 h-3 animate-pulse" />
+                {isGlobe ? 'GLOBE: WGS-84' : 'FLAT: 2D SURVEY'}
+              </span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-300">
+                ZOOM <strong className="text-white">{telemetry.zoom}</strong>
+              </span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-300">
+                {telemetry.lat >= 0 ? `${telemetry.lat}°N` : `${Math.abs(telemetry.lat)}°S`},{' '}
+                {telemetry.lng >= 0 ? `${telemetry.lng}°E` : `${Math.abs(telemetry.lng)}°W`}
+              </span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-300">
+                PITCH <strong className="text-white">{telemetry.pitch}°</strong>
+              </span>
+              {isAutoOrbiting && (
+                <>
+                  <span className="text-slate-600">|</span>
+                  <span className="text-indigo-400 animate-pulse font-semibold">ORBIT: 0.12°/F</span>
+                </>
+              )}
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Horizon Occlusion</span>
+              </span>
+            </div>
+          )}
+
+          {/* Bottom-Left Tactical Control Dock */}
+          <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
+            {/* Tech Readout Toggle */}
+            <button
+              onClick={() => setShowTechReadout(!showTechReadout)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-mono font-medium backdrop-blur-xl shadow-lg transition-all ${
+                showTechReadout
+                  ? 'bg-emerald-950/90 text-emerald-300 border-emerald-600/60 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                  : 'bg-slate-900/90 text-slate-400 border-slate-700/80 hover:text-white hover:bg-slate-900'
+              }`}
+              title={showTechReadout ? 'Hide technical telemetry readout' : 'Show technical telemetry readout'}
+            >
+              <Terminal className="w-3 h-3 text-emerald-400" />
+              <span className="hidden sm:inline">Tech</span>
+            </button>
+
+            {/* Map Layers & Legend Toggle */}
+            <button
+              onClick={() => {
+                const next = !legendOpen;
+                setLegendOpen(next);
+                if (next) {
+                  setSelectedMarker(null);
+                  setClusterPopover(null);
+                }
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium backdrop-blur-xl shadow-lg transition-all ${
+                legendOpen
+                  ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]'
+                  : isAnyFilterActive
+                  ? 'bg-slate-900/95 text-amber-300 border-amber-500/60 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                  : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:text-white hover:bg-slate-900'
+              }`}
+              title={
+                legendOpen
+                  ? 'Close layers & filters panel (Esc)'
+                  : isAnyFilterActive
+                  ? 'Filters active — click to edit layers & legend'
+                  : 'Open map layers, severity & hazard controls'
+              }
+            >
+              <Layers
+                className={`w-3.5 h-3.5 ${
+                  legendOpen ? 'text-white' : isAnyFilterActive ? 'text-amber-400' : 'text-blue-400'
+                }`}
+              />
+              <span>Layers & Legend</span>
+              {isAnyFilterActive && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              )}
+              {legendOpen ? (
+                <ChevronUp className="w-3 h-3 opacity-80" />
+              ) : (
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              )}
+            </button>
           </div>
         </div>
       </Card>

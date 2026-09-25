@@ -4,8 +4,8 @@ INDRA Platform — StationReading ORM Model
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Enum, DateTime, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, String, Float, Enum, DateTime, Index, Integer, Text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from geoalchemy2 import Geometry
 
 from app.core.database import Base
@@ -22,15 +22,31 @@ class StationReading(Base):
     station_location = Column(Geometry("POINT", srid=4326), nullable=True)
     rainfall_mm = Column(Float, nullable=True)
     river_level_m = Column(Float, nullable=True)
-    # No default: anomaly detection is out of scope since 20 Sep and does not
-    # run. 0.0 would read as "computed, and normal" for a model that never
-    # executed. NULL says what is true — nothing measured this. (0006)
+    # No default: the frozen anomaly model writes separate advisory evidence,
+    # not this legacy numeric column. NULL means no anomaly factor was computed
+    # here; 0.0 would incorrectly claim a measured normal result. (0006)
     anomaly_score = Column(Float, nullable=True)
     recorded_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+    # Migration 0016 (Phase 2 T3): airport observations. See its docstring.
+    # Which poller wrote the row: open_meteo or metar.
+    feed = Column(String(20), nullable=True)
+    temperature_c = Column(Float, nullable=True)
+    dewpoint_c = Column(Float, nullable=True)
+    wind_kmh = Column(Float, nullable=True)
+    gust_kmh = Column(Float, nullable=True)
+    # 10,000 means "10 km or more" (9999 or CAVOK in the report).
+    visibility_m = Column(Integer, nullable=True)
+    # Present weather, normalised: +TSRA -> ["TS", "RA+"].
+    weather_codes = Column(ARRAY(Text), nullable=True)
+    # A CB or TCU cloud group was reported.
+    convective_cloud = Column(Boolean, nullable=True)
+    # The report exactly as transmitted.
+    raw_observation = Column(Text, nullable=True)
 
     __table_args__ = (
         Index(

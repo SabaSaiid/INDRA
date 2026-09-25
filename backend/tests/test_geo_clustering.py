@@ -258,3 +258,28 @@ async def test_suppressed_duplicates_are_not_clustered(db):
     assert len(clusters) == 1
     assert clusters[0]["size"] == 5
     assert dupe not in clusters[0]["report_ids"]
+
+
+async def test_two_reports_4_8_km_apart_east_west_cluster_at_patna(db):
+    """
+    BUG-012, end to end through PostGIS. 4.8 km due east is inside the 5 km
+    eps on the ground; the old degree-based eps reached only ~4.5 km
+    east-west at this latitude and left both reports unclustered.
+    """
+    import math
+
+    from app.services.geo_clustering import EARTH_RADIUS_KM
+
+    lat, lng = TIGHT[0][0], TIGHT[0][1]
+    dlng = math.degrees(
+        2 * math.asin(math.sin(4.8 / (2 * EARTH_RADIUS_KM)) / math.cos(math.radians(lat)))
+    )
+    ids = await seed(db, [
+        (lat, lng, "Water logging on the main road"),
+        (lat, lng + dlng, "Street flooded after the rain"),
+    ])
+
+    clusters = await GeoClusteringService(db).cluster_unassigned_reports()
+
+    assert len(clusters) == 1
+    assert set(clusters[0]["report_ids"]) == set(ids)

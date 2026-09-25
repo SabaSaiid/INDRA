@@ -5,9 +5,13 @@ import {
   type UserProfile,
   type DutyStatus,
 } from './ui-config';
-import { fetchUserProfile, updateUserProfile, getAuthToken, clearAuthToken } from './api';
-
-const OPERATOR_STORAGE_KEY = 'indra_current_role';
+import {
+  fetchUserProfile,
+  updateUserProfile,
+  getAuthToken,
+  clearAuthToken,
+  OPERATOR_STORAGE_KEY,
+} from './api';
 
 export interface OperatorPersonaOption {
   id: string;
@@ -159,7 +163,15 @@ export function useOperatorProfile() {
       try {
         await updateUserProfile({ duty_status: newStatus }, selectedRole);
       } catch (err) {
+        // A failed write reverts the optimistic edit rather than leaving it on
+        // screen: an operator who sees "STANDBY" must be able to trust it.
         console.warn('Failed to persist duty status', err);
+        setProfile(profile);
+        window.dispatchEvent(
+          new CustomEvent('indra-operator-change', {
+            detail: { role: selectedRole, profile },
+          })
+        );
       } finally {
         setIsUpdatingStatus(false);
       }
@@ -197,18 +209,22 @@ export function useOperatorProfile() {
 
       try {
         const res = await updateUserProfile(formData, selectedRole);
-        if (res) {
-          const finalProfile = { ...updated, ...res };
-          setProfile(finalProfile);
-          return finalProfile;
-        }
+        const finalProfile = { ...updated, ...res };
+        setProfile(finalProfile);
+        return finalProfile;
       } catch (err) {
-        console.warn('Failed to persist profile to server, cached locally', err);
+        // This used to log "cached locally" and return the edit as if it had
+        // been saved. Put the server's version back and let the caller say why.
+        setProfile(profile);
+        window.dispatchEvent(
+          new CustomEvent('indra-operator-change', {
+            detail: { role: selectedRole, profile },
+          })
+        );
+        throw err;
       } finally {
         setIsSavingProfile(false);
       }
-
-      return updated;
     },
     [profile, selectedRole]
   );

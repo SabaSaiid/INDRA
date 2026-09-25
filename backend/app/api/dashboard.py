@@ -20,7 +20,9 @@ DEMO_KPIS = {
     "verified_events_delta_pct": 8.0,
     "critical_events": 5,
     "critical_events_delta_pct": -2.0,
-    "citizen_reports": 8421,
+    # A share of total_reports, as in the real query. It was 8,421 against a
+    # total of 1,248 until 24 Sep (BUG-069): more citizen reports than reports.
+    "citizen_reports": 842,
     "citizen_reports_delta_pct": 15.0,
     "awaiting_review": 14,
     "active_alerts": 23,

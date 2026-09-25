@@ -1,0 +1,234 @@
+alias,district,state,note
+Bombay,Mumbai,Maharashtra,old name
+Navi Mumbai,Thane,Maharashtra,city in Thane district
+Calcutta,Kolkata,West Bengal,old name
+Madras,Chennai,Tamil Nadu,old name
+Bangalore,Bengaluru Urban,Karnataka,old name
+Bengaluru,Bengaluru Urban,Karnataka,city
+Bengaluru city,Bengaluru Urban,Karnataka,city
+Poona,Pune,Maharashtra,old name
+Baroda,Vadodara,Gujarat,old name
+Trivandrum,Thiruvananthapuram,Kerala,old name
+Cochin,Ernakulam,Kerala,city in Ernakulam district
+Kochi,Ernakulam,Kerala,city in Ernakulam district
+Calicut,Kozhikode,Kerala,old name
+Allahabad,Prayagraj,Uttar Pradesh,old name
+Benares,Varanasi,Uttar Pradesh,old name
+Banaras,Varanasi,Uttar Pradesh,old name
+Kashi,Varanasi,Uttar Pradesh,city
+Gurgaon,Gurugram,Haryana,old name
+Vizag,Visakhapatnam,Andhra Pradesh,short name
+Vishakhapatnam,Visakhapatnam,Andhra Pradesh,spelling
+Mangalore,Dakshina Kannada,Karnataka,city in Dakshina Kannada district
+Mangaluru,Dakshina Kannada,Karnataka,city in Dakshina Kannada district
+Mysore,Mysuru,Karnataka,old name
+Pondicherry,Puducherry,Puducherry,old name
+Pondy,Puducherry,Puducherry,short name
+Simla,Shimla,Himachal Pradesh,old name
+New Delhi,Delhi,Delhi,city
+Noida,Gautam Buddha Nagar,Uttar Pradesh,city in Gautam Buddha Nagar district
+Greater Noida,Gautam Buddha Nagar,Uttar Pradesh,city in Gautam Buddha Nagar district
+Secunderabad,Hyderabad,Telangana,twin city
+Cyberabad,Ranga Reddy,Telangana,city area
+Bhubaneswar,Khordha,Odisha,capital in Khordha district
+Bhubaneshwar,Khordha,Odisha,spelling
+Khurda,Khordha,Odisha,spelling
+Guwahati,Kamrup Metropolitan,Assam,city
+Gauhati,Kamrup Metropolitan,Assam,old name
+Dispur,Kamrup Metropolitan,Assam,capital
+Shillong,East Khasi Hills,Meghalaya,capital in East Khasi Hills
+Cherrapunji,East Khasi Hills,Meghalaya,town
+Sohra,East Khasi Hills,Meghalaya,town
+Mawsynram,East Khasi Hills,Meghalaya,town
+Gangtok,East Sikkim,Sikkim,capital
+Port Blair,South Andaman,Andaman and Nicobar Islands,capital
+Sri Vijaya Puram,South Andaman,Andaman and Nicobar Islands,new name of Port Blair
+Panaji,North Goa,Goa,capital
+Panjim,North Goa,Goa,old name
+Mapusa,North Goa,Goa,town
+Margao,South Goa,Goa,town
+Madgaon,South Goa,Goa,town
+Vasco da Gama,South Goa,Goa,town
+Munnar,Idukki,Kerala,town
+Alleppey,Alappuzha,Kerala,old name
+Quilon,Kollam,Kerala,old name
+Trichur,Thrissur,Kerala,old name
+Cannanore,Kannur,Kerala,old name
+Palghat,Palakkad,Kerala,old name
+Kovalam,Thiruvananthapuram,Kerala,town
+Ooty,Nilgiris,Tamil Nadu,town
+Udhagamandalam,Nilgiris,Tamil Nadu,town
+Coonoor,Nilgiris,Tamil Nadu,town
+Kodaikanal,Dindigul,Tamil Nadu,town
+Trichy,Tiruchirappalli,Tamil Nadu,short name
+Tiruchi,Tiruchirappalli,Tamil Nadu,short name
+Tuticorin,Thoothukkudi,Tamil Nadu,old name
+Tanjore,Thanjavur,Tamil Nadu,old name
+Kanchipuram,Kancheepuram,Tamil Nadu,spelling
+Mahabalipuram,Chengalpattu,Tamil Nadu,town
+Tambaram,Chengalpattu,Tamil Nadu,town
+Rameswaram,Ramanathapuram,Tamil Nadu,town
+Nagercoil,Kanyakumari,Tamil Nadu,town
+Hosur,Krishnagiri,Tamil Nadu,town
+Vijayawada,NTR,Andhra Pradesh,city in NTR district
+Amaravati,Guntur,Andhra Pradesh,capital region
+Nellore,Sri Potti Sriramulu Nellore,Andhra Pradesh,city
+Rajahmundry,East Godavari,Andhra Pradesh,city
+Rajamahendravaram,East Godavari,Andhra Pradesh,city
+Hubli,Dharwad,Karnataka,city in Dharwad district
+Hubballi,Dharwad,Karnataka,city in Dharwad district
+Belgaum,Belagavi,Karnataka,old name
+Gulbarga,Kalaburagi,Karnataka,old name
+Bellary,Ballari,Karnataka,old name
+Bijapur,Vijayapura,Karnataka,old name
+Shimoga,Shivamogga,Karnataka,old name
+Tumkur,Tumakuru,Karnataka,old name
+Coorg,Kodagu,Karnataka,old name
+Madikeri,Kodagu,Karnataka,town
+Chikmagalur,Chikkamagaluru,Karnataka,old name
+Manipal,Udupi,Karnataka,town
+Bhilai,Durg,Chhattisgarh,city in Durg district
+Jamshedpur,East Singhbhum,Jharkhand,city
+Bokaro Steel City,Bokaro,Jharkhand,city
+Siliguri,Darjeeling,West Bengal,city
+Durgapur,Paschim Bardhaman,West Bengal,city
+Asansol,Paschim Bardhaman,West Bengal,city
+Burdwan,Purba Bardhaman,West Bengal,old name
+Digha,Purba Medinipur,West Bengal,town
+Haldia,Purba Medinipur,West Bengal,town
+Kharagpur,Paschim Medinipur,West Bengal,town
+Rourkela,Sundargarh,Odisha,city
+Paradip,Jagatsinghpur,Odisha,port
+Gopalpur,Ganjam,Odisha,town
+Berhampur,Ganjam,Odisha,city
+Kanpur,Kanpur Nagar,Uttar Pradesh,city
+Mathura Vrindavan,Mathura,Uttar Pradesh,city
+Vrindavan,Mathura,Uttar Pradesh,town
+Faizabad,Ayodhya,Uttar Pradesh,old name
+Mohali,S.A.S. Nagar,Punjab,city
+SAS Nagar,S.A.S. Nagar,Punjab,short name
+Manali,Kullu,Himachal Pradesh,town
+Dharamshala,Kangra,Himachal Pradesh,town
+Dharamsala,Kangra,Himachal Pradesh,spelling
+McLeod Ganj,Kangra,Himachal Pradesh,town
+Dalhousie,Chamba,Himachal Pradesh,town
+Kasauli,Solan,Himachal Pradesh,town
+Rishikesh,Dehradun,Uttarakhand,town
+Mussoorie,Dehradun,Uttarakhand,town
+Dehra Dun,Dehradun,Uttarakhand,spelling
+Kedarnath,Rudraprayag,Uttarakhand,town
+Badrinath,Chamoli,Uttarakhand,town
+Joshimath,Chamoli,Uttarakhand,town
+Kathgodam,Nainital,Uttarakhand,town
+Haldwani,Nainital,Uttarakhand,city
+Gulmarg,Baramulla,Jammu and Kashmir,town
+Pahalgam,Anantnag,Jammu and Kashmir,town
+Sonmarg,Ganderbal,Jammu and Kashmir,town
+Poonch,Punch,Jammu and Kashmir,spelling
+Bhuj,Kutch,Gujarat,city
+Kachchh,Kutch,Gujarat,spelling
+Gandhidham,Kutch,Gujarat,city
+Kandla,Kutch,Gujarat,port
+Somnath,Gir Somnath,Gujarat,town
+Dwarka,Devbhumi Dwarka,Gujarat,town
+Mount Abu,Sirohi,Rajasthan,town
+Pushkar,Ajmer,Rajasthan,town
+Sambhajinagar,Aurangabad,Maharashtra,new name
+Chhatrapati Sambhajinagar,Aurangabad,Maharashtra,new name
+Dharashiv,Osmanabad,Maharashtra,new name
+Mahabaleshwar,Satara,Maharashtra,town
+Lonavala,Pune,Maharashtra,town
+Pimpri Chinchwad,Pune,Maharashtra,city
+Kalyan,Thane,Maharashtra,city
+Dombivli,Thane,Maharashtra,city
+Bhiwandi,Thane,Maharashtra,city
+Vasai,Palghar,Maharashtra,city
+Virar,Palghar,Maharashtra,city
+Alibag,Raigad,Maharashtra,town
+Matheran,Raigad,Maharashtra,town
+Pachmarhi,Hoshangabad,Madhya Pradesh,town
+Narmadapuram,Hoshangabad,Madhya Pradesh,new name
+Mhow,Indore,Madhya Pradesh,town
+Naya Raipur,Raipur,Chhattisgarh,capital
+Itanagar,Papum Pare,Arunachal Pradesh,capital
+Imphal,Imphal West,Manipur,capital
+Agartala,West Tripura,Tripura,capital
+Silchar,Cachar,Assam,city
+Tezpur,Sonitpur,Assam,town
+Kavaratti,Lakshadweep,Lakshadweep,capital
+Silvassa,Dadra and Nagar Haveli,Dadra and Nagar Haveli and Daman and Diu,capital
+दिल्ली,Delhi,Delhi,Hindi
+नई दिल्ली,Delhi,Delhi,Hindi
+मुंबई,Mumbai,Maharashtra,Hindi
+कोलकाता,Kolkata,West Bengal,Hindi
+चेन्नई,Chennai,Tamil Nadu,Hindi
+बेंगलुरु,Bengaluru Urban,Karnataka,Hindi
+बेंगलूरु,Bengaluru Urban,Karnataka,Hindi
+हैदराबाद,Hyderabad,Telangana,Hindi
+पटना,Patna,Bihar,Hindi
+लखनऊ,Lucknow,Uttar Pradesh,Hindi
+जयपुर,Jaipur,Rajasthan,Hindi
+भोपाल,Bhopal,Madhya Pradesh,Hindi
+अहमदाबाद,Ahmedabad,Gujarat,Hindi
+पुणे,Pune,Maharashtra,Hindi
+नागपुर,Nagpur,Maharashtra,Hindi
+इंदौर,Indore,Madhya Pradesh,Hindi
+कानपुर,Kanpur Nagar,Uttar Pradesh,Hindi
+वाराणसी,Varanasi,Uttar Pradesh,Hindi
+प्रयागराज,Prayagraj,Uttar Pradesh,Hindi
+आगरा,Agra,Uttar Pradesh,Hindi
+रांची,Ranchi,Jharkhand,Hindi
+देहरादून,Dehradun,Uttarakhand,Hindi
+शिमला,Shimla,Himachal Pradesh,Hindi
+श्रीनगर,Srinagar,Jammu and Kashmir,Hindi
+गुवाहाटी,Kamrup Metropolitan,Assam,Hindi
+भुवनेश्वर,Khordha,Odisha,Hindi
+रायपुर,Raipur,Chhattisgarh,Hindi
+चंडीगढ़,Chandigarh,Chandigarh,Hindi
+गुरुग्राम,Gurugram,Haryana,Hindi
+गुड़गांव,Gurugram,Haryana,Hindi
+नोएडा,Gautam Buddha Nagar,Uttar Pradesh,Hindi
+गाजियाबाद,Ghaziabad,Uttar Pradesh,Hindi
+गाज़ियाबाद,Ghaziabad,Uttar Pradesh,Hindi
+मेरठ,Meerut,Uttar Pradesh,Hindi
+सूरत,Surat,Gujarat,Hindi
+वडोदरा,Vadodara,Gujarat,Hindi
+राजकोट,Rajkot,Gujarat,Hindi
+उदयपुर,Udaipur,Rajasthan,Hindi
+जोधपुर,Jodhpur,Rajasthan,Hindi
+अजमेर,Ajmer,Rajasthan,Hindi
+बीकानेर,Bikaner,Rajasthan,Hindi
+जैसलमेर,Jaisalmer,Rajasthan,Hindi
+बाड़मेर,Barmer,Rajasthan,Hindi
+ग्वालियर,Gwalior,Madhya Pradesh,Hindi
+जबलपुर,Jabalpur,Madhya Pradesh,Hindi
+उज्जैन,Ujjain,Madhya Pradesh,Hindi
+मथुरा,Mathura,Uttar Pradesh,Hindi
+अयोध्या,Ayodhya,Uttar Pradesh,Hindi
+गोरखपुर,Gorakhpur,Uttar Pradesh,Hindi
+बरेली,Bareilly,Uttar Pradesh,Hindi
+मुरादाबाद,Moradabad,Uttar Pradesh,Hindi
+हरिद्वार,Haridwar,Uttarakhand,Hindi
+ऋषिकेश,Dehradun,Uttarakhand,Hindi
+नैनीताल,Nainital,Uttarakhand,Hindi
+मनाली,Kullu,Himachal Pradesh,Hindi
+कुल्लू,Kullu,Himachal Pradesh,Hindi
+धर्मशाला,Kangra,Himachal Pradesh,Hindi
+लुधियाना,Ludhiana,Punjab,Hindi
+अमृतसर,Amritsar,Punjab,Hindi
+जालंधर,Jalandhar,Punjab,Hindi
+पटियाला,Patiala,Punjab,Hindi
+भागलपुर,Bhagalpur,Bihar,Hindi
+मुजफ्फरपुर,Muzaffarpur,Bihar,Hindi
+मुज़फ़्फ़रपुर,Muzaffarpur,Bihar,Hindi
+दरभंगा,Darbhanga,Bihar,Hindi
+पूर्णिया,Purnia,Bihar,Hindi
+धनबाद,Dhanbad,Jharkhand,Hindi
+जमशेदपुर,East Singhbhum,Jharkhand,Hindi
+कटक,Cuttack,Odisha,Hindi
+पुरी,Puri,Odisha,Hindi
+सिलीगुड़ी,Darjeeling,West Bengal,Hindi
+दार्जिलिंग,Darjeeling,West Bengal,Hindi
+कोच्चि,Ernakulam,Kerala,Hindi
+तिरुवनंतपुरम,Thiruvananthapuram,Kerala,Hindi
+विशाखापत्तनम,Visakhapatnam,Andhra Pradesh,Hindi

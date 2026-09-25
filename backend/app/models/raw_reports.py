@@ -29,8 +29,10 @@ class RawReport(Base):
         Enum(SourceType, name="source_type_enum"), nullable=False
     )
     raw_text = Column(Text, nullable=False)
-    latitude = Column(Float, nullable=False)
-    longitude = Column(Float, nullable=False)
+    # Nullable since migration 0015: a post that names no place is stored
+    # anyway, with no coordinates. place_precision says what they are worth.
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     geom_point = Column(Geometry("POINT", srid=4326), nullable=True)
     h3_res8 = Column(String(20), nullable=True)
     # Resolved from the report's own coordinates at ingest. NULL when the
@@ -61,6 +63,30 @@ class RawReport(Base):
     # re-extracts from raw_text rather than trusting this column; see
     # services/pipeline.py::_report_texts.
     analysis = Column(JSONB, nullable=True)
+
+    # Token subject of the operator who filed this report through the
+    # authenticated route (POST /api/reports/official, migration 0010). NULL
+    # for citizen reports, which are anonymous by design.
+    submitted_by = Column(String(50), nullable=True)
+
+    # Migration 0012 (Phase 1). See its docstring for each column's meaning.
+    # When it happened; created_at is when INDRA received it.
+    observed_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    # HMAC of the client's random id; the raw id is never stored.
+    reporter_hash = Column(String(64), nullable=True)
+    # The citizen's tracking number, R-XXXXXXXX. Random, never sequential.
+    docket = Column(String(16), nullable=True, unique=True)
+    # Where a fed item came from, and its id there (Phase 2's pollers).
+    platform = Column(String(32), nullable=True)
+    external_id = Column(String(512), nullable=True)
+    source_meta = Column(JSONB, nullable=True)
+    # The category the citizen picked — their claim, not the event's type.
+    citizen_hazard = Column(String(32), nullable=True)
+    # When the pipeline finished with this report, whatever it decided.
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+    # gps | district | state | none (migration 0015). Only gps and district
+    # positions are ever clustered.
+    place_precision = Column(String(10), nullable=True)
 
     # Constraints
     __table_args__ = (
