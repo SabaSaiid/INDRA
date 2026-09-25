@@ -4,22 +4,7 @@
  * **Every value returned by this module came from the backend. There are no
  * fallbacks and no invented rows.**
  *
- * This file used to end every function with `catch { return mockData }`, and
- * several of them treated an empty list as a failure:
- *
- *     if (!Array.isArray(data) || data.length === 0) throw new Error('Empty');
- *     ...
- *     catch (err) { return fallbackApiEvents; }
- *
- * Between them those two lines meant an empty database rendered a *full*
- * dashboard. The first seconds of a live demo are exactly when the database is
- * empty, so the screen showed CRITICAL events at 0.94 confidence and
- * AUTO_PUBLISHED — values the real pipeline cannot currently produce at all,
- * since the maximum achievable confidence is 0.80 while the vision and anomaly
- * factors are offline. Nobody could tell the backend was down, because the
- * failure looked exactly like success.
- *
- * The rules now:
+ * The rules:
  *
  * 1. **An empty list is a result, not an error.** `[]` is returned as `[]`. The
  *    component renders an empty state. An empty dashboard that fills up as
@@ -42,7 +27,6 @@ import {
   type UserProfile,
   type HackathonTeamData,
 } from './ui-config';
-import { sanitizeIncidentCoordinate } from './geo-resolver';
 
 export type { FeedItem };
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -569,34 +553,40 @@ export async function fetchEvents(
   return fetchPromise;
 }
 
+/**
+ * True when both values are finite numbers. `Number.isFinite` rather than a
+ * null check, because `Number(null)` is 0 and would put a pin in the Gulf of
+ * Guinea.
+ */
+function hasPlottableCoords(lat: unknown, lng: unknown): boolean {
+  return typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+/**
+ * Events as map markers, at the coordinates the API sent. An event without
+ * plottable coordinates is left off the map and logged; it is never moved to a
+ * plausible place.
+ */
 export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
-  return events.map((ev, idx) => {
-    const sanitized = sanitizeIncidentCoordinate(
-      ev.lat,
-      ev.lng,
-      ev.city,
-      ev.state,
-      ev.eventType,
-      idx
-    );
-    return {
+  return events
+    .filter((ev) => {
+      if (hasPlottableCoords(ev.lat, ev.lng)) return true;
+      console.warn(`[INDRA map] event ${ev.id} has no plottable coordinates (${ev.lat}, ${ev.lng}); not drawn`);
+      return false;
+    })
+    .map((ev) => ({
       id: ev.id,
-      lat: sanitized.lat,
-      lng: sanitized.lng,
-      city: sanitized.city || ev.city || '',
-      state: sanitized.state || ev.state || '',
-      placeLabel: formatPlace(
-        sanitized.city || ev.city,
-        sanitized.state || ev.state,
-        ev.place_precision
-      ),
+      lat: ev.lat,
+      lng: ev.lng,
+      city: ev.city ?? '',
+      state: ev.state ?? '',
+      placeLabel: formatPlace(ev.city, ev.state, ev.place_precision),
       eventType: ev.eventType as any,
       severity: ev.severity as any,
       description: `${ev.eventType} — ${ev.quadrant}`,
       verification: ev.verification as any,
       layer: 'event' as const,
-    };
-  });
+    }));
 }
 
 export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
@@ -704,7 +694,7 @@ export async function fetchAgencyAlerts(
  */
 export function agencyAlertsToMapMarkers(alerts: AgencyAlert[]): MapMarker[] {
   return alerts
-    .filter((a) => a.lat !== null && a.lng !== null)
+    .filter((a) => hasPlottableCoords(a.lat, a.lng))
     .map((a) => ({
       id: `alert-${a.id}`,
       lat: a.lat as number,
@@ -716,8 +706,9 @@ export function agencyAlertsToMapMarkers(alerts: AgencyAlert[]): MapMarker[] {
           ? `${a.location_label} (state-wide)`
           : formatPlace(a.location_label, null),
       layer: 'alert' as const,
-      eventType: (a.event || 'Severe Rainfall') as any,
-      severity: (a.severity || 'ADVISORY').toLowerCase() as any,
+      // A warning that names no hazard or severity is shown as exactly that.
+      eventType: (a.event || 'Unnamed warning') as any,
+      severity: (a.severity ? a.severity.toLowerCase() : 'unrated') as any,
       description: a.headline || a.event || 'Agency warning',
       title: a.sender || 'Agency',
       verification: 'verified' as any,
@@ -812,21 +803,30 @@ export async function fetchFieldReports(
  * Nothing here has been clustered, corroborated or scored — drawing an
  * unreviewed citizen claim like a verified event is the one thing a national
  * console must not do.
+ *
+ * /api/reports/recent carries no hazard or severity, so a report is a
+ * 'Citizen report' of 'unrated' severity rather than a guessed classification.
  */
 export function fieldReportsToMapMarkers(reports: FieldReport[]): MapMarker[] {
-  return reports.map((r) => ({
-    id: `report-${r.id}`,
-    lat: r.lat,
-    lng: r.lng,
-    city: r.district ?? '',
-    state: r.state ?? '',
-    placeLabel: formatPlace(r.district, r.state),
-    layer: 'report' as const,
-    eventType: 'Flood' as any,
-    severity: 'advisory' as any,
-    description: r.text,
-    verification: 'under-review' as any,
-  }));
+  return reports
+    .filter((r) => {
+      if (hasPlottableCoords(r.lat, r.lng)) return true;
+      console.warn(`[INDRA map] report ${r.id} has no plottable coordinates (${r.lat}, ${r.lng}); not drawn`);
+      return false;
+    })
+    .map((r) => ({
+      id: `report-${r.id}`,
+      lat: r.lat,
+      lng: r.lng,
+      city: r.district ?? '',
+      state: r.state ?? '',
+      placeLabel: formatPlace(r.district, r.state),
+      layer: 'report' as const,
+      eventType: 'Citizen report' as any,
+      severity: 'unrated' as any,
+      description: r.text,
+      verification: 'under-review' as any,
+    }));
 }
 
 // ─── Data sources (GET /api/meta/sources) ────────────────────────────────────

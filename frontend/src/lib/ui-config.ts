@@ -156,7 +156,8 @@ export interface KpiItem {
   bgColor: string;
   icon: 'reports' | 'verified' | 'critical' | 'citizens';
 }
-export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'advisory' | 'low';
+/** 'unrated' is a marker whose source carries no severity (a raw citizen report, an unrated warning). */
+export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'advisory' | 'low' | 'unrated';
 export type VerificationStatus = 'verified' | 'under-review';
 export type EventType = 'Severe Rainfall' | 'Flood' | 'Thunderstorm' | 'Strong Winds' | 'Fog' | 'Urban Flooding' | 'Heavy Rainfall';
 
@@ -241,6 +242,7 @@ export const severityConfig: Record<SeverityLevel, { label: string; color: strin
   // 'moderate' and showed every advisory event as Moderate.
   advisory: { label: 'Advisory', color: '#7A8599', bg: '#EEF0F4', textColor: '#4A5568' },
   low: { label: 'Low', color: '#6B7280', bg: '#F3F4F6', textColor: '#4B5563' },
+  unrated: { label: 'Unrated', color: '#9CA3AF', bg: '#F3F4F6', textColor: '#6B7280' },
 };
 
 export const verificationConfig: Record<VerificationStatus, { label: string; color: string; bg: string; textColor: string; icon: string }> = {
