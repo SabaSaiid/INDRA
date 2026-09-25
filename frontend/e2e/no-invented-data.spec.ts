@@ -8,7 +8,7 @@ import { PERSONA_MARKERS, TELEMETRY_MARKERS, markersIn } from './invented';
  * 22 and 25 Sep: every page, checked for the invented values removed those days.
  *
  * The 21 Sep suite covered the dashboard and four routes against the markers of
- * the deleted mock-data.ts. It could not see the other half of the problem:
+ * the removed fallback rows. It could not see the other half of the problem:
  * constants written straight into JSX — official bulletins credited to IMD and
  * CWC, a cyclone forecast track, an uptime figure, a BigQuery lakehouse. None
  * of those came from a fallback, so none of them tripped a fallback check.
