@@ -118,6 +118,8 @@ ${BOLD}COMMANDS:${RESET}
   ${GREEN}infra${RESET} [up|down|ps|logs] Manage PostGIS, Redis & Redpanda Docker services
   ${GREEN}doctor${RESET}                 Run comprehensive environment and dependency diagnostics
   ${GREEN}test${RESET}                   Run automated health check and API verification probes
+  ${GREEN}e2e-backend${RESET}            Launch a disposable backend on indra_e2e (port 8100) for Playwright
+  ${GREEN}e2e-reset${RESET}              Drop and recreate the indra_e2e database
   ${GREEN}logs${RESET} [-n <lines>]       Stream live backend server logs (tail -f)
   ${GREEN}clean${RESET}                  Purge temporary cache files, .pyc, logs, and PID files
   ${GREEN}help${RESET}                   Display this help message
@@ -141,6 +143,10 @@ ${BOLD}EXAMPLES:${RESET}
 
   ${DIM}# Run system diagnostics and Docker container checks${RESET}
   ./start.sh doctor
+
+  ${DIM}# Browser tests: a disposable backend on indra_e2e, then Playwright against it${RESET}
+  ./start.sh e2e-backend
+  make e2e
 
   ${DIM}# Start in background, verify status, and stream logs${RESET}
   ./start.sh bg
@@ -1014,6 +1020,152 @@ cmd_test() {
     fi
 }
 
+# --- E2E: a disposable backend on its own database ---
+# Playwright runs against this, never the dev stack on :8000. Everything it
+# writes lands in indra_e2e, on the indra.e2e.* topics and in Redis db 15. The
+# backend refuses to start with ENVIRONMENT=e2e on anything else; the name
+# check here is the first guard, not the only one.
+E2E_DB_NAME="indra_e2e"
+E2E_PORT=8100
+
+# Value of KEY in .env, or nothing.
+env_file_value() {
+    [[ -f "$ENV_FILE" ]] || return 0
+    grep -E "^$1=" "$ENV_FILE" 2>/dev/null | tail -n 1 | cut -d '=' -f2- | tr -d '"\r\n'
+}
+
+# The environment wins, then .env, then the defaults in docker-compose.yml.
+load_postgres_credentials() {
+    POSTGRES_USER="${POSTGRES_USER:-$(env_file_value POSTGRES_USER)}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(env_file_value POSTGRES_PASSWORD)}"
+    POSTGRES_PORT="${POSTGRES_PORT:-$(env_file_value POSTGRES_PORT)}"
+    POSTGRES_USER="${POSTGRES_USER:-indra_user}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-indra_password}"
+    POSTGRES_PORT="${POSTGRES_PORT:-5433}"
+}
+
+require_e2e_db_name() {
+    if [[ "$E2E_DB_NAME" != *_e2e ]]; then
+        echo "${RED}✘ Refusing: '$E2E_DB_NAME' does not end in _e2e, so it is not a disposable E2E database.${RESET}"
+        exit 1
+    fi
+}
+
+require_postgres_container() {
+    if ! docker exec indra-postgres pg_isready -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" >/dev/null 2>&1; then
+        echo "${RED}✘ The indra-postgres container is not running. Start it with ${CYAN}./start.sh infra up${RESET}"
+        exit 1
+    fi
+}
+
+# e2e_psql <database> <sql>: one statement, tuples only, stops on error.
+e2e_psql() {
+    docker exec indra-postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$1" -tAc "$2"
+}
+
+create_e2e_database() {
+    docker exec indra-postgres createdb -U "$POSTGRES_USER" "$E2E_DB_NAME" || exit 1
+    e2e_psql "$E2E_DB_NAME" "CREATE EXTENSION IF NOT EXISTS postgis" >/dev/null || exit 1
+}
+
+# --- Subcommand: e2e-backend ---
+cmd_e2e_backend() {
+    ensure_uvicorn
+    print_banner
+    load_postgres_credentials
+    require_e2e_db_name
+
+    echo "${BOLD}▶ Starting the disposable E2E backend...${RESET}"
+    echo "  Database:       ${CYAN}$E2E_DB_NAME${RESET}"
+    echo "  Backend API:    ${CYAN}http://127.0.0.1:$E2E_PORT${RESET}"
+    echo "  Python:         ${CYAN}$("$PYTHON_CMD" --version 2>&1)${RESET}"
+    echo ""
+
+    local port_pids
+    port_pids=$(get_pid_on_port "$E2E_PORT")
+    if [[ -n "$port_pids" ]]; then
+        if [[ "$FORCE" == true ]]; then
+            echo "${YELLOW}⚠ Port $E2E_PORT is occupied by PID(s): $port_pids. Force terminating...${RESET}"
+            for p in $port_pids; do
+                kill_process_gracefully "$p" "E2E Port occupant"
+            done
+        else
+            echo "${RED}✘ Port $E2E_PORT is currently occupied by process PID(s): $port_pids${RESET}"
+            echo "  Stop it, or use ${CYAN}./start.sh e2e-backend -f${RESET} to terminate it."
+            exit 1
+        fi
+    fi
+
+    ensure_docker_infra
+    require_postgres_container
+
+    if [[ "$(e2e_psql postgres "SELECT 1 FROM pg_database WHERE datname='$E2E_DB_NAME'")" != "1" ]]; then
+        echo "${CYAN}Creating database $E2E_DB_NAME (with PostGIS)...${RESET}"
+        create_e2e_database
+    else
+        e2e_psql "$E2E_DB_NAME" "CREATE EXTENSION IF NOT EXISTS postgis" >/dev/null || exit 1
+    fi
+
+    export ENVIRONMENT=e2e
+    export API_PORT="$E2E_PORT"
+    export DATABASE_URL="postgresql+asyncpg://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:$POSTGRES_PORT/$E2E_DB_NAME"
+    export KAFKA_REPORTS_TOPIC=indra.e2e.raw.reports
+    export KAFKA_EVENTS_TOPIC=indra.e2e.verified.events
+    export KAFKA_DLQ_TOPIC=indra.e2e.raw.reports.dlq
+    export KAFKA_CONSUMER_GROUP=indra-e2e-report-processor
+    export REDIS_URL=redis://localhost:6379/15
+    export LAKE_ARCHIVE_ENABLED=false
+    export S3_MEDIA_BUCKET=indra-e2e-media
+    export STATION_POLLER_ENABLED=false
+    export SACHET_POLLER_ENABLED=false
+    export METAR_POLLER_ENABLED=false
+    export MASTODON_POLLER_ENABLED=false
+    export NEWS_POLLER_ENABLED=false
+    export CORS_ORIGINS=http://localhost:3100,http://127.0.0.1:3100
+
+    echo "${CYAN}Migrating $E2E_DB_NAME to head...${RESET}"
+    if ! (cd "$BACKEND_DIR" && "$PYTHON_CMD" -m alembic upgrade head); then
+        echo "${RED}✘ alembic upgrade head failed on $E2E_DB_NAME.${RESET}"
+        exit 1
+    fi
+
+    # The password exists only in this database. It is not the dev password
+    # and nothing else is ever given it.
+    echo "${CYAN}Setting the account passwords in $E2E_DB_NAME...${RESET}"
+    if ! (cd "$ROOT_DIR" && INDRA_OPERATOR_PASSWORD="${E2E_OPERATOR_PASSWORD:-indra-e2e-only}" \
+            "$PYTHON_CMD" scripts/set_operator_password.py --all --from-env INDRA_OPERATOR_PASSWORD); then
+        echo "${RED}✘ Could not set the account passwords in $E2E_DB_NAME.${RESET}"
+        exit 1
+    fi
+
+    echo ""
+    echo "${GREEN}✓ E2E Backend API:${RESET}  ${BOLD}http://127.0.0.1:$E2E_PORT${RESET}"
+    echo "${GREEN}✓ Identity check:${RESET}   ${BOLD}http://127.0.0.1:$E2E_PORT/api/e2e/identity${RESET}"
+    echo "  Run the browser tests from another terminal with ${CYAN}make e2e${RESET}"
+    echo ""
+    echo "${DIM}Press Ctrl+C at any time to halt the E2E backend.${RESET}"
+    echo "--------------------------------------------------------------------------------"
+
+    cd "$BACKEND_DIR" || exit 1
+    trap 'echo -e "\n${YELLOW}Halted by user. Shutting down the E2E backend...${RESET}"; exit 0' INT TERM
+    "$PYTHON_CMD" -m uvicorn app.main:app --host 127.0.0.1 --port "$E2E_PORT"
+}
+
+# --- Subcommand: e2e-reset ---
+cmd_e2e_reset() {
+    load_postgres_credentials
+    require_e2e_db_name
+    require_postgres_container
+
+    echo "${BOLD}▶ Dropping and recreating $E2E_DB_NAME...${RESET}"
+    docker exec indra-postgres dropdb -U "$POSTGRES_USER" --if-exists --force "$E2E_DB_NAME" || exit 1
+    create_e2e_database
+    # Redis db 15 is the E2E backend's alone; its cached responses describe the
+    # database just dropped.
+    docker exec indra-redis redis-cli -n 15 FLUSHDB >/dev/null 2>&1 || true
+    echo "${GREEN}✓ $E2E_DB_NAME is empty.${RESET} ./start.sh e2e-backend migrates it and sets the account passwords."
+}
+
 # --- Subcommand: logs ---
 cmd_logs() {
     if [[ ! -f "$LOG_FILE" ]]; then
@@ -1038,7 +1190,7 @@ cmd_clean() {
 # --- Argument Parsing ---
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|test|logs|clean|help)
+        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|test|e2e-backend|e2e-reset|logs|clean|help)
             COMMAND="$1"
             shift
             if [[ "$COMMAND" == "infra" && $# -gt 0 && ! "$1" =~ ^- ]]; then
@@ -1137,6 +1289,12 @@ case "$COMMAND" in
         ;;
     test)
         cmd_test
+        ;;
+    e2e-backend)
+        cmd_e2e_backend
+        ;;
+    e2e-reset)
+        cmd_e2e_reset
         ;;
     logs)
         cmd_logs
