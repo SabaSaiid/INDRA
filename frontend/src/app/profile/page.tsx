@@ -122,7 +122,7 @@ export default function ProfilePage() {
       await updateProfile(formData);
       setIsEditing(false);
       setToastTone('ok');
-      setToastMessage('Operator identity synchronized successfully across INDRA command grid.');
+      setToastMessage('Profile saved');
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err) {
       // Keep the form open with the operator's edits, and say why it failed.
@@ -136,10 +136,7 @@ export default function ProfilePage() {
   };
 
   const activeStatusCfg = dutyStatusConfig[profile.duty_status as DutyStatus] || dutyStatusConfig.ON_DUTY;
-  // Real ledger actions, real counts, real RBAC. mockRoleActivities /
-  // mockRoleTelemetry / mockRoleSecurity are gone: they invented a tactical
-  // history, an accuracy rate and a "clearance level" that INDRA has no notion
-  // of anywhere in its code.
+  // Real ledger actions, real counts, real RBAC.
   const currentActivities = profile.recent_activities ?? [];
   const currentTelemetry = [
     {
@@ -233,12 +230,6 @@ export default function ProfilePage() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-black text-text-primary tracking-tight">Operator Profile</h1>
-                {/* These read "Verified Identity" and a pulsing "Grid Synced". The
-                    accounts are the four seeded demo operators. */}
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                  <CheckCircle2 className="w-3 h-3 text-slate-500" />
-                  Demo account
-                </span>
               </div>
               <p className="text-sm text-text-secondary mt-1">
                 Identity, role, duty status and the actions this operator has taken in the audit ledger.
@@ -331,7 +322,7 @@ export default function ProfilePage() {
               <div className="flex flex-col sm:flex-row sm:items-center gap-5">
                 <div className="relative self-start sm:self-auto">
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-lg shadow-primary/20">
-                    {profile.avatar_initials || 'OP'}
+                    {profile.avatar_initials || '—'}
                   </div>
                   <span
                     className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ring-2 ring-slate-100"
@@ -354,7 +345,7 @@ export default function ProfilePage() {
                   </div>
 
                   <p className="text-xs sm:text-sm text-text-secondary font-medium">
-                    {profile.team_role || 'Operational Member'} • {profile.team_name || 'National Grid'}
+                    {[profile.team_role, profile.team_name].filter(Boolean).join(' • ') || 'No unit assigned'}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-2.5 pt-1.5">
@@ -390,7 +381,7 @@ export default function ProfilePage() {
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-400">
                         <Radio className="w-3.5 h-3.5 text-slate-300" />
-                        No Callsign (Citizen)
+                        No callsign
                       </span>
                     )}
 
@@ -474,23 +465,25 @@ export default function ProfilePage() {
                         <Mail className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-slate-400 block text-[11px]">Official Email</span>
-                        <span className="font-semibold text-slate-800 truncate block">
-                          {profile.email || 'operator@sih-indra.gov.in'}
+                        <span className="text-slate-400 block text-[11px]">Email</span>
+                        <span className={`truncate block ${profile.email ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
+                          {profile.email || 'Not on record'}
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => copyToClipboard(profile.email, 'cred-email')}
-                      className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
-                      title="Copy Email"
-                    >
-                      {copiedField === 'cred-email' ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
+                    {profile.email && (
+                      <button
+                        onClick={() => copyToClipboard(profile.email, 'cred-email')}
+                        className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+                        title="Copy Email"
+                      >
+                        {copiedField === 'cred-email' ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
                   </div>
 
                   {/* Phone */}
@@ -500,23 +493,25 @@ export default function ProfilePage() {
                         <Phone className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-slate-400 block text-[11px]">Emergency Hotline / Contact</span>
-                        <span className="font-semibold text-slate-800 truncate block">
-                          {profile.phone || '+91 94311 02847'}
+                        <span className="text-slate-400 block text-[11px]">Phone</span>
+                        <span className={`truncate block ${profile.phone ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
+                          {profile.phone || 'Not on record'}
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => copyToClipboard(profile.phone, 'cred-phone')}
-                      className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
-                      title="Copy Phone"
-                    >
-                      {copiedField === 'cred-phone' ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
+                    {profile.phone && (
+                      <button
+                        onClick={() => copyToClipboard(profile.phone, 'cred-phone')}
+                        className="p-1.5 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+                        title="Copy Phone"
+                      >
+                        {copiedField === 'cred-phone' ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
                   </div>
 
                   {/* Callsign */}
@@ -527,8 +522,8 @@ export default function ProfilePage() {
                       </div>
                       <div className="min-w-0">
                         <span className="text-slate-400 block text-[11px]">Radio Callsign</span>
-                        <span className="font-mono font-bold text-slate-800 truncate block">
-                          {profile.callsign || 'NONE (PUBLIC)'}
+                        <span className={`truncate block ${profile.callsign ? 'font-mono font-bold text-slate-800' : 'text-slate-400'}`}>
+                          {profile.callsign || 'No callsign'}
                         </span>
                       </div>
                     </div>
@@ -554,9 +549,9 @@ export default function ProfilePage() {
                         <Award className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-slate-400 block text-[11px]">Official Badge Number</span>
+                        <span className="text-slate-400 block text-[11px]">Badge Number</span>
                         <span className="font-mono font-bold text-slate-800 truncate block">
-                          {profile.badge_number || 'VOL-CIT-01'}
+                          {profile.badge_number || '—'}
                         </span>
                       </div>
                     </div>
@@ -581,55 +576,66 @@ export default function ProfilePage() {
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                     Command Assignment &amp; Mission Scope
                   </span>
-                  <p className="text-xs text-text-secondary leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    {profile.bio ||
-                      'Tactical operator dedicated to emergency weather monitoring, risk mitigation, and verified data workflows across the INDRA platform.'}
+                  <p
+                    className={`text-xs leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 ${
+                      profile.bio ? 'text-text-secondary' : 'text-slate-400'
+                    }`}
+                  >
+                    {profile.bio || 'No bio on record'}
                   </p>
                 </div>
               </div>
 
-              {/* Assigned Response Unit Card with Live Link */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
+              {/* Assigned response unit, only when the profile names one */}
+              {(profile.team_id || profile.team_code) && (
+                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
                     <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                      Assigned Disaster Response Unit
+                      Assigned Response Unit
                     </span>
-                    <span className="px-2 py-0.2 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      ACTIVE READY
-                    </span>
+                    <h4 className="text-lg font-bold text-text-primary">
+                      {profile.team_name || profile.team_code}
+                    </h4>
+                    <p className="text-xs text-text-secondary">
+                      {profile.team_code && (
+                        <>
+                          Unit Code: <strong className="font-mono text-slate-800">{profile.team_code}</strong>
+                        </>
+                      )}
+                      {profile.team_code && profile.team_role && ' • '}
+                      {profile.team_role && (
+                        <>
+                          Role in unit: <strong className="text-slate-800">{profile.team_role}</strong>
+                        </>
+                      )}
+                    </p>
                   </div>
-                  <h4 className="text-lg font-bold text-text-primary">
-                    {profile.team_name || 'State Emergency Operations Centre — Bihar / NDMA'}
-                  </h4>
-                  <p className="text-xs text-text-secondary">
-                    Unit Code: <strong className="font-mono text-slate-800">{profile.team_code || 'TEAM-SEOC-01'}</strong> •
-                    Operational Role: <strong className="text-slate-800">{profile.team_role || 'Operations Director'}</strong>
-                  </p>
-                </div>
 
-                <Link
-                  href={`/teams?search=${encodeURIComponent(profile.team_code || '')}`}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all self-start sm:self-auto shadow-sm shadow-primary/20 shrink-0"
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  View Team in Roster →
-                </Link>
-              </div>
+                  {profile.team_code && (
+                    <Link
+                      href={`/teams?search=${encodeURIComponent(profile.team_code)}`}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all self-start sm:self-auto shadow-sm shadow-primary/20 shrink-0"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      View Team in Roster →
+                    </Link>
+                  )}
+                </div>
+              )}
 
               {/* Dynamic Role-Specific Tactical Activity Ledger */}
               <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-primary" />
-                    Tactical Activity Ledger (Immutable SHA-256 Chain)
-                  </h3>
-                  <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
-                    SHA-256 Armed
-                  </span>
-                </div>
+                <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-primary" />
+                  Activity Ledger (SHA-256 Hash Chain)
+                </h3>
 
                 <div className="space-y-3 text-xs">
+                  {currentActivities.length === 0 && (
+                    <p className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-slate-400">
+                      No ledger entries by this operator yet.
+                    </p>
+                  )}
                   {currentActivities.map((act) => {
                     const isDispatched = act.status === 'DISPATCHED' || act.status === 'COMPLETED';
                     const isVerified = act.status === 'VERIFIED';
@@ -667,9 +673,10 @@ export default function ProfilePage() {
                   })}
                 </div>
 
-                <div className="pt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-100">
-                  <span>Cryptographic Ledger: Block #84920</span>
-                  <span className="font-mono text-slate-500">Hash: 8f4b...1a9e (Valid)</span>
+                <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100">
+                  <Link href="/admin" className="hover:text-slate-700 hover:underline">
+                    The chain&apos;s verification status is on Admin Command →
+                  </Link>
                 </div>
               </div>
             </div>
@@ -802,7 +809,7 @@ export default function ProfilePage() {
                 <div>
                   <h3 className="text-lg font-bold text-text-primary">Edit Operator Profile</h3>
                   <p className="text-xs text-text-secondary mt-0.5">
-                    Modifications will be immediately synchronized across the INDRA command cluster.
+                    Saved to your operator record.
                   </p>
                 </div>
                 <button
@@ -832,7 +839,7 @@ export default function ProfilePage() {
                   {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Official Email
+                      Email
                     </label>
                     <input
                       type="email"
@@ -845,7 +852,7 @@ export default function ProfilePage() {
                   {/* Phone */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Emergency Hotline / Phone
+                      Phone
                     </label>
                     <input
                       type="text"
@@ -926,6 +933,7 @@ export default function ProfilePage() {
                       }}
                       className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     >
+                      <option value="">No unit assigned</option>
                       {teams.map((team) => (
                         <option key={team.id} value={team.team_code}>
                           {team.team_code} — {team.name} ({team.city}, {team.agency})
@@ -967,7 +975,7 @@ export default function ProfilePage() {
                     className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm shadow-primary/20 flex items-center gap-2"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    {isSavingProfile ? 'Synchronizing...' : 'Save & Propagate'}
+                    {isSavingProfile ? 'Saving…' : 'Save'}
                   </button>
                 </div>
               </form>
