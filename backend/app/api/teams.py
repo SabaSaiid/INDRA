@@ -55,7 +55,9 @@ class TeamAssignRequest(BaseModel):
     event_id: Optional[str] = None  # None unassigns
 
 
-# ── Hackathon Team Showcase Data ──────────────────────────────────────────────
+# ── Team roster ───────────────────────────────────────────────────────────────
+# What each member built, in terms the code bears out. Reworded 25 Sep: the
+# bios claimed capabilities and feeds INDRA does not have.
 SIXTH_SENSE_TEAM = {
     "team_name": "Sixth Sense",
     "problem_statement": "SIH26069 — National Weather Big Data Analytics Platform",
@@ -77,8 +79,8 @@ SIXTH_SENSE_TEAM = {
             "id": "ss-2",
             "name": "Pritam Singh",
             "role": "AI & Bayesian Engine Lead",
-            "specialty": "Bayesian Probability Fusion, Anomaly Detection & Cross-Source Weighting",
-            "bio": "Formulated the 3-phase evidence synthesis engine condensing 127 raw signals into verified confidence receipts.",
+            "specialty": "Weighted multi-factor fusion, source reliability and confidence receipts",
+            "bio": "Designed the evidence-fusion engine that turns clustered reports into scored verification receipts.",
             "avatar_initials": "PS",
             "github": "https://github.com/SabaSaiid/INDRA",
             "badge": "FUSION SCIENTIST",
@@ -88,7 +90,7 @@ SIXTH_SENSE_TEAM = {
             "name": "Aditya",
             "role": "Geospatial Systems Engineer",
             "specialty": "Uber H3 Spatial Hexagons, DBSCAN Spatio-Temporal Clustering & PostGIS",
-            "bio": "Implemented dynamic ε-neighborhood spatial clustering and convex hull boundary polygon calculation.",
+            "bio": "Implemented dynamic ε-neighborhood spatial clustering and concave hull boundary polygon calculation.",
             "avatar_initials": "AD",
             "github": "https://github.com/SabaSaiid/INDRA",
             "badge": "SPATIAL ENGINEER",
@@ -98,7 +100,7 @@ SIXTH_SENSE_TEAM = {
             "name": "Salman Khurshid",
             "role": "Data Pipeline Architect",
             "specialty": "Redpanda / Kafka Streaming, Async Workers & Sensor Ingestion",
-            "bio": "Engineered high-throughput consumer pipelines processing citizen reports, AWS gauges, and social signals.",
+            "bio": "Engineered high-throughput consumer pipelines processing citizen reports, SACHET warnings, METAR, Mastodon and news feeds.",
             "avatar_initials": "SK",
             "github": "https://github.com/SabaSaiid/INDRA",
             "badge": "PIPELINE LEAD",
@@ -107,7 +109,7 @@ SIXTH_SENSE_TEAM = {
             "id": "ss-5",
             "name": "Pragati Sahu",
             "role": "NLP & Semantic Deduplication Lead",
-            "specialty": "TF-IDF + Cosine Similarity, Multilingual Signal Deduplication & Spam Filtering",
+            "specialty": "MiniLM sentence embeddings + cosine similarity, Levenshtein fallback",
             "bio": "Created the semantic similarity layer that clusters repetitive emergency reports within spatial windows.",
             "avatar_initials": "PS",
             "github": "https://github.com/SabaSaiid/INDRA",

@@ -120,6 +120,24 @@ def test_the_fabricated_scenario_file_is_deleted():
     assert not (repo_root / "data" / "samples" / "patna_flood_scenario.json").exists()
 
 
+async def test_the_team_roster_claims_nothing_indra_does_not_do(api):
+    """
+    The roster bios repeated the scenario's "127 raw signals", named feeds that
+    do not exist (AWS gauges) and methods the code does not use (TF-IDF,
+    Bayesian fusion, anomaly detection, a convex hull).
+    """
+    r = await api.get("/api/teams/hackathon/sixth-sense")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert {"team_name", "problem_statement", "members"} <= set(body)
+    assert len(body["members"]) == 6
+    for member in body["members"]:
+        claims = f"{member['specialty']} {member['bio']}".lower()
+        for phrase in ("127 raw signals", "aws gauge", "tf-idf", "bayesian", "anomaly detection", "convex hull"):
+            assert phrase not in claims, (member["name"], phrase)
+
+
 # ── Dedup gates come from settings ────────────────────────────────────────────
 
 def test_dedup_defaults_are_unchanged():
