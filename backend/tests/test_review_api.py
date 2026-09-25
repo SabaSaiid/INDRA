@@ -16,17 +16,13 @@ from sqlalchemy import text
 
 from app.core.database import async_session
 from app.services import audit, pipeline
-from tests.conftest import wipe_event_tables
+from tests.conftest import TEST_ACCOUNTS, wipe_event_tables
 from tests.test_pipeline import CLUSTER_TEXTS, PATNA_LAT, PATNA_LNG, insert_report
 
 pytestmark = pytest.mark.integration
 
-PASSWORDS = {
-    "admin": "admin123",
-    "commander": "commander123",
-    "analyst": "analyst123",
-    "citizen": "citizen123",
-}
+COMMANDER_OP = TEST_ACCOUNTS["commander"][3]
+ADMIN_OP = TEST_ACCOUNTS["admin"][3]
 
 
 @pytest.fixture(autouse=True)
@@ -63,12 +59,12 @@ _TOKENS = {}
 
 
 @pytest_asyncio.fixture
-async def tokens(api):
-    """Log in once per user for the module — bcrypt makes each login ~0.2 s."""
+async def tokens(api, accounts):
+    """Log in once per user for the module, with indra_test's test passwords."""
     if not _TOKENS:
-        for user, password in PASSWORDS.items():
+        for user, (password, *_rest) in accounts.items():
             r = await api.post("/api/auth/token", data={"username": user, "password": password})
-            assert r.status_code == 200
+            assert r.status_code == 200, r.text
             _TOKENS[user] = {"Authorization": f"Bearer {r.json()['access_token']}"}
     return _TOKENS
 
@@ -132,10 +128,10 @@ async def test_commander_approves_a_quarantined_event(api, db, tokens, broadcast
     assert body["quadrant"] == "Confirmed Minor Event"
     assert body["confidence_score"] == pytest.approx(0.4314)
     hr = body["verification_receipt"]["human_review"]
-    assert hr["action"] == "approve" and hr["operator_id"] == "OP-CMD-001" and hr["reason"] == REASON
+    assert hr["action"] == "approve" and hr["operator_id"] == COMMANDER_OP and hr["reason"] == REASON
 
     rows = await audit.fetch_rows(db)
-    assert [(a["action_taken"], a["operator_id"]) for a in rows] == [("HUMAN_APPROVE", "OP-CMD-001")]
+    assert [(a["action_taken"], a["operator_id"]) for a in rows] == [("HUMAN_APPROVE", COMMANDER_OP)]
     assert rows[0]["details"]["from_status"] == "QUARANTINED"
     assert rows[0]["details"]["to_status"] == "HUMAN_APPROVED"
 
@@ -151,7 +147,7 @@ async def test_commander_approves_a_quarantined_event(api, db, tokens, broadcast
         "confidence_score": pytest.approx(0.4314),
     }
     assert msg["review"]["action"] == "approve"
-    assert msg["review"]["operator_id"] == "OP-CMD-001"
+    assert msg["review"]["operator_id"] == COMMANDER_OP
     assert msg["review"]["at"] == hr["at"]
 
 
@@ -164,7 +160,7 @@ async def test_admin_approves_a_pending_event(api, db, tokens, broadcasts):
     assert r.status_code == 200
     assert r.json()["quadrant"] == "Critical Verified Event"
     [row] = await audit.fetch_rows(db)
-    assert row["operator_id"] == "OP-ADMIN-001"
+    assert row["operator_id"] == ADMIN_OP
 
 
 @pytest.mark.parametrize("status", ["HUMAN_APPROVED", "AUTO_PUBLISHED", "REJECTED"])

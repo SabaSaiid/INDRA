@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.empty import empty_or_503
-from app.core.security import DEMO_USERS, TokenData, require_roles
+from app.core.security import TokenData, require_roles
 from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, SourceType
 from app.services import audit
 from app.services.fusion_engine import FusionEngine
@@ -686,7 +686,9 @@ async def review_event(
       broadcast only after the commit.
     """
     event_uuid = _event_uuid_or_404(event_id)
-    operator_id = DEMO_USERS.get(operator.sub, {}).get("operator_id", operator.sub)
+    # The account's operator_id from its token (OP-CMD-001 and so on); a token
+    # issued before that claim existed falls back to the username.
+    operator_id = operator.operator_id or operator.sub
 
     try:
         row = (

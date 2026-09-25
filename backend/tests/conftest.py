@@ -90,6 +90,54 @@ def pytest_collection_modifyitems(config, items):
     )
 
 
+# ── Operator accounts ─────────────────────────────────────────────────────────
+
+# username → (password, role, agency, operator_id). The rows are migration
+# 0008's; the passwords are this suite's and only ever exist in indra_test,
+# written by the `accounts` fixture below. Nothing in app/ holds a password.
+TEST_ACCOUNTS = {
+    "admin": ("test-admin-password", "ADMIN", "NDMA", "OP-ADMIN-001"),
+    "commander": ("test-commander-password", "COMMANDER", "SDMA_BIHAR", "OP-CMD-001"),
+    "analyst": ("test-analyst-password", "ANALYST", "IMD", "OP-ANL-001"),
+    "citizen": ("test-citizen-password", "CITIZEN", "PUBLIC", "OP-CIT-001"),
+}
+
+
+async def _set_test_passwords(url: str) -> None:
+    import asyncpg
+    import bcrypt
+    from sqlalchemy.engine import make_url
+
+    u = make_url(url)
+    conn = await asyncpg.connect(
+        user=u.username, password=u.password, host=u.host, port=u.port, database=u.database, timeout=5
+    )
+    try:
+        for username, (password, *_rest) in TEST_ACCOUNTS.items():
+            # Cost 4, not the default 12: a test login need not be slow to be real.
+            hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=4)).decode()
+            status = await conn.execute(
+                "UPDATE user_profiles SET password_hash = $1 WHERE username = $2", hashed, username
+            )
+            if status != "UPDATE 1":
+                raise RuntimeError(f"indra_test has no user_profiles row for {username!r}")
+    finally:
+        await conn.close()
+
+
+@pytest_asyncio.fixture(scope="session")
+async def accounts():
+    """
+    Give indra_test's four accounts the passwords in TEST_ACCOUNTS.
+
+    Session-scoped and requested only by the fixtures that log in, so a run
+    without integration tests never connects. Runs after the migration in
+    pytest_collection_modifyitems, which has created the rows.
+    """
+    await _set_test_passwords(TEST_DATABASE_URL)
+    return TEST_ACCOUNTS
+
+
 # ── Cache isolation ────────────────────────────────────────────────────────────
 
 @pytest.fixture(autouse=True)

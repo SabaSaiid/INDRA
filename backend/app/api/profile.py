@@ -48,17 +48,9 @@ class ProfileUpdate(BaseModel):
 
 # ── Operator statistics, computed ────────────────────────────────────────────
 #
-# DEMO_PROFILES and DEMO_ACTIVITIES used to live here: four invented operators
-# with invented statistics. They were returned whenever `user_profiles` had no
-# row — which was always, because nothing ever seeded it — and, worse, their
-# numbers were pasted over a real row when one did exist:
-#
-#     data["verified_events_triaged"] = role_defaults.get(..., 24)
-#     data["accuracy_rate"] = role_defaults.get(..., 96.8)
-#
-# So the operator card advertised a 96.8 % accuracy rate that no code computes.
-# Migration 0008 seeds the four accounts `core/security.py` genuinely
-# authenticates, and the statistics below are counted from the audit ledger.
+# Accounts are the rows of user_profiles (migration 0008; they sign in against
+# its password_hash since 0019). Statistics are counted from the audit ledger,
+# never invented: an operator who has reviewed nothing shows zeros.
 
 STATS_SQL = text(
     """

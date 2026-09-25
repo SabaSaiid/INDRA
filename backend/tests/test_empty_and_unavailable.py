@@ -176,7 +176,7 @@ def test_there_is_no_demo_mode_setting():
 # Hardcoded accounts and an in-memory preference store that are still being
 # moved to the database. Each is removed from this set in the change that
 # deletes it; the set is then empty.
-_PENDING_REMOVAL = {"DEMO_USERS", "DEMO_PREFERENCES"}
+_PENDING_REMOVAL = {"DEMO_PREFERENCES"}
 
 
 def test_no_module_defines_a_demo_dataset():
