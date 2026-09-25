@@ -1,12 +1,13 @@
 # INDRA — Demo Runbook
 
-**What this is:** the exact sequence to bring INDRA up from nothing and walk someone through it,
-with the number to expect beside every step and a one-line recovery for each thing that can go
-wrong on the table.
+**What this is:** the sequence to bring INDRA up and walk someone through it **on live data
+only**: the feeds the platform is already reading, and real reports filed in front of the audience
+by people who can see what they describe. Nothing in this runbook generates, replays or seeds
+data, and nothing should. Each thing that can go wrong on the table has a one-line recovery.
 
-**Last rehearsed from an empty volume: 21 Sep 2026; re-run from an empty database on 22 Sep
-2026.** Every number below was read off those runs. Where the two days differ it is the live
-rainfall, and both are shown.
+**Rewritten 25 Sep 2026** after the demo scripts, the seed script and the demo mode were deleted.
+This version has not yet been rehearsed end to end. Numbers from 20–24 Sep are marked as past
+measurements, taken with test reports that are no longer in any database.
 
 Read [`nodal-officer-qa.md`](nodal-officer-qa.md) before presenting. This file is what to type;
 that one is what to say.
@@ -19,16 +20,19 @@ that one is what to say.
 |---|---|---|
 | External SSD mounted | `ls /Volumes/"Aditya ssd"/Applications/Docker.app` | exists |
 | Docker running | `docker ps` | no error |
-| `DEMO_MODE` | `grep DEMO_MODE .env` | **`false`** |
+| Feeds switched on | `grep -E '^(STATION\|SACHET\|METAR\|MASTODON\|NEWS)_POLLER_ENABLED' .env` | all five `true`. METAR, Mastodon and News default to `false`: turn them on and restart **at least an hour before**, so there is something to show |
+| Operators can sign in | **Sign in** on the dashboard as `commander` | the topbar's account menu shows `commander` and its role. "Incorrect username or password" on a known account means its password was never set on this database (see Cold start) |
 
 > **`command not found: docker` means the SSD is unmounted, not that Docker is missing.** Every
 > `/usr/local/bin/docker*` entry is a symlink into the drive. Mount it — do not reinstall.
 > If instead you get `Cannot connect to the Docker daemon`, the drive is there and the daemon is
 > not: `open -a "/Volumes/Aditya ssd/Applications/Docker.app"` and wait.
 
-> **`DEMO_MODE=true` will ruin the demo.** With it on, an empty database answers `GET /api/events`
-> with a fabricated `0.94 / AUTO_PUBLISHED / CRITICAL` event — a score this engine cannot produce.
-> The opening seconds of a live run are exactly when the database is empty. Check it every time.
+> **There is no demo mode and no seed script.** Every read answers what the database holds: no
+> rows is an empty list or zero counts, an unknown id is a 404, a database error is a 503. An
+> empty database therefore shows an empty event list until real reports cluster. That is the
+> correct opening; the live feeds are what fill the screen. A `DEMO_MODE` line left in an old
+> `.env` is ignored.
 
 ---
 
@@ -37,16 +41,17 @@ that one is what to say.
 ```bash
 cd ~/CODING/sih/INDRA
 
-docker compose down -v          # only for a true cold rehearsal — destroys all data
+docker compose down -v          # only on a rehearsal machine: destroys every collected warning, reading, post and report
 docker compose up -d --wait     # returns when Postgres and Redis are healthy and Redpanda is running
                                 # (./start.sh infra up does the same)
 ```
 
 ```bash
 docker ps --format '{{.Names}}\t{{.Status}}'
-# indra-postgres   Up (healthy)
-# indra-redis      Up (healthy)
-# indra-redpanda   Up             ← no healthcheck is defined for it; /healthz checks it instead
+# indra-postgres      Up (healthy)
+# indra-redis         Up (healthy)
+# indra-redpanda      Up             ← no healthcheck is defined for it; /healthz checks it instead
+# indra-objectstore   Up             ← the S3 store; /healthz checks it too
 ```
 
 > **Healthy now means `indra_db` exists (BUG-028, fixed 22 Sep).** The Postgres healthcheck used a
@@ -56,12 +61,26 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0014_event_filter_indexes (head)
+# → 0019_operator_password_hash (head)
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
 schema, and `/healthz` used to answer `healthy` against exactly that (BUG-027). It now checks the
 schema too, but check the migration anyway.
+
+**Then set the operator passwords, or nobody can sign in.** Accounts live in `user_profiles`, and
+an account with no password hash cannot sign in; a fresh database, or one just migrated to 0019,
+has none. No password is in the code or in this file.
+
+```bash
+backend/.venv/bin/python scripts/set_operator_password.py commander analyst
+# prints the host, port and database it is about to change, then asks for each password twice
+```
+
+It refuses a username that is not in `user_profiles` (exit 2) and a password shorter than 10
+characters. `--all` sets every account; `--generate` makes a password for each and prints it once;
+`--from-env VAR` reads one password from an environment variable. After deploying to a server, the
+order is the same: `alembic upgrade head`, then this script.
 
 ```bash
 ./start.sh bg          # or: ./start.sh -b
@@ -76,8 +95,8 @@ curl -s localhost:8000/healthz | jq .status
 
 | `/healthz` says | Meaning | Do |
 |---|---|---|
-| `healthy` | all five checks up | continue |
-| `degraded` (200) | Redis or Open-Meteo down, or reports have waited over 60 s for Kafka (`outbox_backlog`) | **continue** — none of these loses anything, and this is worth showing |
+| `healthy` | all six checks up | continue |
+| `degraded` (200) | Redis, Open-Meteo or the object store down, or reports have waited over 60 s for Kafka (`outbox_backlog`) | **continue** — none of these loses anything, and this is worth showing |
 | `unhealthy` (503) | Postgres or Kafka down | stop and fix. Postgres down: reports are refused with 503. Kafka down: reports are kept in the outbox and processed when it is back, but nothing new reaches the map until then |
 
 **Cold start to a ready API: under 5 minutes**, nearly all of it Docker pulling and the embedding
@@ -86,135 +105,168 @@ the first report pays nothing.
 
 ---
 
-## Scene 1 — The platform is already watching
+## Scene 1 — The platform is already watching: five live feeds
 
 ```bash
-docker exec indra-postgres psql -U indra_user -d indra_db \
-  -c "SELECT station_code, rainfall_mm, recorded_at FROM station_readings ORDER BY station_code;"
+curl -s localhost:8000/api/meta/sources | jq -r '.feeds[] | "\(.feed)\t\(.status)\t\(.rows_24h)"'
+curl -s 'localhost:8000/api/alerts/agency?limit=5' | jq '.[] | {sender, event, area_desc, severity}'
+curl -s 'localhost:8000/api/stations/latest?feed=open_meteo' | jq '.stations[] | {station_name, rainfall_mm, recorded_at}'
+curl -s 'localhost:8000/api/stations/latest?feed=metar' | jq '.count'
+curl -s 'localhost:8000/api/feed/recent?limit=10' | jq '.[] | {kind, sourceLabel, message, time}'
 ```
 
-Six rows, one per city, written by the station poller within seconds of startup. Measured on
-21 Sep: Kolkata **17.2 mm**, Guwahati 5.6, Chennai 2.4, Delhi 1.5, Mumbai 1.1, Patna 0.2 — real
-differentiated 24-hour accumulations from Open-Meteo, not fixtures.
+`/api/meta/sources` lists each feed with its state (`ok`, `stale`, `failing` or `disabled`) from
+the poller's own heartbeat, and how many rows it stored in the last 24 hours. On the dashboard:
+**Early Warnings** (`/alerts`) and the warnings layer of the **Live Tactical Map** for SACHET; the
+live feed on the home page, where warnings, collected posts and headlines, reports and events
+scroll past on one clock; **Telemetry Analytics** (`/analytics`) for the Open-Meteo rainfall
+points; and **Geospatial Feeds** (`/datasets`) for each feed's state and row counts, METAR
+included. Read the numbers off the screen on the day; do not quote rehearsal values. For example,
+on 21 Sep the six Open-Meteo points read Kolkata **17.2 mm**, Guwahati 5.6, Chennai 2.4, Delhi 1.5,
+Mumbai 1.1, Patna 0.2 — real differentiated 24-hour accumulations, not fixtures.
 
-**What to say:** this is the one external feed that exists, and it is real and live. `anomaly_score`
-is `NULL` on every row because nothing computes it — the column stays empty rather than claiming a
-normal reading from a model that does not run.
+**What to say:** everything on this screen was published by someone else in the last hours: IMD,
+CWC and state SDMAs through NDMA's SACHET, Open-Meteo, airport METARs, public posts and news
+headlines. Nothing here was typed for today. `anomaly_score` is `NULL` on every `station_readings`
+row because nothing computes it — the column stays empty rather than claiming a normal reading
+from a model that does not run.
 
 ---
 
-## Scene 2 — Five citizen reports become one event
+## Scene 2 — A real report, filed in front of them
+
+On the dashboard: **Report Incident** → the location (the locate button fills it from the device's
+GPS, which browsers allow only over HTTPS or on `localhost`; otherwise type the coordinates) →
+what you can actually see, in your own words, at least 10 characters → **Submit Report**. The form
+confirms it, and the report is in the live feed within seconds. The form does not print the
+docket; the API returns one, and curl shows it.
+
+The same with curl:
 
 ```bash
-backend/.venv/bin/python scripts/run_patna_demo.py
+curl -s -X POST localhost:8000/api/reports/submit -H 'Content-Type: application/json' \
+  -d '{"latitude": <where you are>, "longitude": <where you are>, "text": "<what you can see>"}'
+# → 202, "status": "accepted", a "docket", "queued": true
+curl -s localhost:8000/api/reports/track/<docket> | jq .status
+# → "received", then "not_yet_an_event" once the pipeline has processed it, alone
 ```
 
-The script posts five synthetic citizen reports to `POST /api/reports/submit`, waits for the
-cluster to settle, then reads **every number back out of the API**.
+> **File only what is actually happening where the reporter is, now.** This is the production
+> database: a report typed for effect is fabricated data, and it stays in the audit trail. The
+> best reporter is a nodal officer or a teammate who is somewhere something is happening, on their
+> own phone.
 
-**Expected** (21 Sep reproduced twice; 22 Sep once; 23 Sep twice, after each Phase 1 change to the
-schema and the pipeline — all from an empty database):
+**What to say:** one report never makes an event. DBSCAN needs two within 5 km, so a lone report
+waits as `not_yet_an_event` until someone else corroborates it.
 
-| | 21 Sep | 22 Sep | 23 Sep (Phase 1) |
+---
+
+## Scene 3 — A second witness, and one event
+
+A second person, within 5 km of the first, files what *they* see, in their own words. The dashboard
+receives a `VERIFIED_EVENT`: one event, a boundary polygon and a receipt. Both dockets now read
+`part_of_event`.
+
+A near-verbatim copy of the first text is suppressed as a duplicate (cosine ≥ 0.88, within 1 km and
+15 minutes; its docket reads `duplicate`) and never counts as corroboration. Two reports from one
+person are not two witnesses, but the dashboard's form sends no reporter id, so the platform would
+count them as two. That is exactly why it must never be staged.
+
+**Expect** a score of about 0.4–0.5 at coverage 0.80 on a dry day, and `QUARANTINED` — or
+`PENDING_HUMAN_REVIEW` if the reports describe a High or Critical situation, or the day's rain
+lifts the score past 0.60. Read the number off the receipt; do not promise one in advance.
+
+Receipt, the factors and their states:
+
+| Factor | Weight | State | Reads |
 |---|---|---|---|
-| Reports stored | 5 / 5 | 5 / 5 | 5 / 5, each with a docket |
-| Events created | **1** | **1** | **1** `URBAN_FLOOD` |
-| Severity | `MODERATE` | `MODERATE` | `MODERATE` |
-| Review status | **`QUARANTINED`** | **`QUARANTINED`** | **`QUARANTINED`** |
-| Quadrant | `Noise` | `Noise` | `Noise` |
-| Confidence | **0.4984** | **0.5146** | **0.5319**, then **0.5295** |
-| Factor coverage | **0.80** | **0.80** | **0.80** |
-| Boundary | Polygon, **39 vertices** | Polygon, **39 vertices** | Polygon, **39 vertices** |
-| Heat map | 2 H3 cells at res 8, 5 reports | the same | the same |
+| Weather Station Corroboration | 25% | computed | the 24 h rainfall near the event, on IMD's categories |
+| Report Density Analysis | 20% | computed | independent, non-duplicate reports |
+| Spatial Coherence Score | 20% | computed | how tight the cluster is |
+| Computer Vision Analysis | 15% | **offline** | out of scope since 20 Sep |
+| Source Reliability Index | 15% | computed | the best source prior in the cluster |
+| Anomaly Detection Signal | 5% | **offline** | out of scope since 20 Sep |
 
-Only the weather factor moved: **0.0080** on 21 Sep, **0.0600** on 22 Sep, **0.1153** and **0.1076**
-on 23 Sep, as Patna's rainfall changed. Every other factor was identical, including after the
-clustering radius became a true great-circle distance on 22 Sep and after Phase 1 added the outbox,
-the dockets and 12 event types on 23 Sep.
+`total_weighted / factor_coverage` is printed so anyone can check it, and the dashboard's receipt
+shows it too.
 
-> **On a wet day the scene reaches a human.** 24 Sep, after 22.1 mm of rain in Patna: weather
-> factor 0.3965, confidence **0.6198**, **`PENDING_HUMAN_REVIEW`** — every other factor unchanged,
-> and the receipt's `routing.basis` reads `confidence`. That is the receipt's own story: real
-> rainfall is corroboration. Check the Scene 1 reading before presenting, and say which case you
-> are in.
+Severity: `max(content_axis, count_axis, impact_floor)` — the content axis read from the words by
+the hazard's own measure (for a flood, depth: "knee deep" is 50 cm, `MODERATE`), the count axis from
+the number of reports (≥ 5 `MODERATE`, ≥ 10 `HIGH`), and impact words such as "stranded" or "died"
+setting a floor. The receipt names the winning axis and the phrase it read.
 
-Receipt:
+> **`QUARANTINED` is the correct answer, not a failure.** Say this before anyone asks. A few
+> unverified reports and a dry day is not a verified disaster. The receipt shows exactly which
+> evidence produced that number, and the score rises with independent corroboration and with real
+> rainfall. A system that called this a confirmed flood would be the broken one.
 
-| Factor | Weight | Score | Points | State |
-|---|---|---|---|---|
-| Weather Station Corroboration | 25% | 0.0080 | 0.0020 | computed |
-| Report Density Analysis | 20% | 0.5483 | 0.1097 | computed |
-| Spatial Coherence Score | 20% | 0.9850 | 0.1970 | computed |
-| Computer Vision Analysis | 15% | — | 0.0 | **offline** |
-| Source Reliability Index | 15% | 0.6000 | 0.0900 | computed |
-| Anomaly Detection Signal | 5% | — | 0.0 | **offline** |
+For reference only: between 20 and 24 Sep, test clusters of five scripted Patna reports scored
+0.4984–0.6198 at coverage 0.80 (`0.3987 / 0.80 = 0.4984` on 20 Sep), depending only on the day's
+rainfall; after 22.1 mm of rain on 24 Sep the same five crossed 0.60 into review. The script, the
+reports and the event were deleted on 25 Sep.
 
-`0.3987 / 0.80 = 0.4984` (21 Sep); `0.4117 / 0.80 = 0.5146` (22 Sep). The arithmetic is printed
-so anyone can check it, and the dashboard's receipt shows it too.
+### If no event forms
 
-Severity: `max(depth_axis, count_axis)` → depth `MODERATE` (50 cm, read from the phrase
-"knee deep"), count `MODERATE` (5 reports).
-
-> **`QUARANTINED` is the correct answer, not a failure.** Say this before anyone asks. Five
-> unverified citizen reports and 0.2 mm of rain is not a verified disaster. The receipt shows
-> exactly which evidence produced that number, and the score rises with independent corroboration
-> and with real rainfall. A system that called this a confirmed flood would be the broken one.
-
-The weather factor scoring 0.008 is **Patna being dry today**, not a failure. If you want a wetter
-story, the Kolkata reading above is 17.2 mm.
-
-The script waits until **every report it sent has joined the event** (up to 45 s) before printing.
-On a backend started seconds earlier, the last few reports wait for the embedding model to warm:
-expect a line like `cluster size 2 → 5`. If fewer ever join, it says so instead of printing a
-partial event as final.
+That is a correct outcome, and it is the corroboration rule working: one person's report stays
+`not_yet_an_event`, and nobody on stage adds a second. Say so, and show the report waiting in the
+live feed (or its docket, if it was filed with curl). Then show any
+event the platform has already formed from real reports, posts or headlines (the Events page, or
+`curl -s localhost:8000/api/events | jq length`), and carry on with the scenes that need no new
+event: the permission gate (3b), the geography of whatever has been reported (5), and breaking it
+on purpose (6).
 
 ---
 
-## Scene 2b — One official dispatch, and the event reaches a human
+## Scene 3b — Who may file an official dispatch (nothing is written)
 
-On an **empty database** (on top of Scene 2 it merges into the same event, which is fine to show
-but gives different numbers):
+Show the gate, not a dispatch. Signed in as `analyst` on the dashboard, the Report Incident form
+does not offer *"File as an official dispatch"*; signed in as `commander`, it does. Do not tick it
+on stage: a dispatch is stored as `OFFICIAL_DISPATCH` with the commander's name, and an invented
+one would be a fake official report in the production record. File a real dispatch only when a
+real control room reports a real incident.
+
+With curl, the API refuses before anything is stored:
 
 ```bash
-backend/.venv/bin/python scripts/run_patna_demo.py --official
+read -rs INDRA_PW      # type the analyst's password; it is not echoed or saved
+ANALYST_TOKEN=$(curl -s -X POST localhost:8000/api/auth/token \
+  --data-urlencode 'username=analyst' --data-urlencode "password=$INDRA_PW" | jq -r .access_token)
+unset INDRA_PW
+
+curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8000/api/reports/official \
+  -H 'Content-Type: application/json' \
+  -d '{"latitude":25.6,"longitude":85.1,"text":"authorisation check, refused and not stored"}'
+# → 401: no token
+curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8000/api/reports/official \
+  -H "Authorization: Bearer $ANALYST_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"latitude":25.6,"longitude":85.1,"text":"authorisation check, refused and not stored"}'
+# → 403: an analyst may not file one
 ```
-
-The same five citizen reports, plus one report filed **as the commander** through
-`POST /api/reports/official`: *"District control room confirms waterlogging at Kankarbagh, SDRF
-team en route."* It is stored as `OFFICIAL_DISPATCH` with `submitted_by = commander`. From the
-dashboard, the same thing is the **Report Incident** button with *"File as an official dispatch"*
-ticked, which only a Commander or Admin persona sees.
-
-**Measured 22 Sep, cold start:**
-
-| | Value |
-|---|---|
-| Reports in the event | **6** (5 citizen + 1 official) |
-| Review status | **`PENDING_HUMAN_REVIEW`** |
-| Quadrant | `Confirmed Minor Event` |
-| Confidence | **0.6065** (`0.4852 / 0.80`) |
-| Source Reliability | **1.0000** (0.6000 with citizens only) |
-| Report Density | 0.6159 (6 reports) |
-| Boundary | Polygon, 40 vertices |
 
 **What to say:** a citizen cannot claim to be official — the public route stores `CITIZEN_APP`
 whatever the request says. A trusted report comes through a route that needs a commander's token
-and records who filed it; open the event's **Reports** tab and it says *"filed by commander"*. One
-trusted report did not publish anything: it moved the event across 0.60 into a human's queue.
-
-Try it as the analyst persona: the checkbox is not offered, and the API answers `403`.
+and records who filed it; the event's **Reports** tab says *"filed by"* and the name. One trusted
+report does not publish anything: it lifts source reliability to 1.00 and can move an event across
+0.60 into a human's queue. Measured 22 Sep on a test cluster: one dispatch moved it 0.5146 →
+0.6065 and into review.
 
 ---
 
-## Scene 3 — A commander takes the decision
+## Scene 4 — A commander takes the decision
+
+On the dashboard: signed in as `commander`, open the event, **Approve** or **Reject**, with the
+true reason — "Two independent on-site reports" if that is what there is, or reject with "Not
+corroborated". It goes into the audit chain and cannot be edited. The same with curl:
 
 ```bash
+read -rs INDRA_PW      # type the commander's password; it is not echoed or saved
 TOKEN=$(curl -s -X POST localhost:8000/api/auth/token \
-  -d 'username=commander&password=commander123' | jq -r .access_token)
+  --data-urlencode 'username=commander' --data-urlencode "password=$INDRA_PW" | jq -r .access_token)
+unset INDRA_PW
 
 curl -s -X PATCH localhost:8000/api/events/<EVENT_ID>/review \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"action":"approve","reason":"Control room confirms waterlogging at Kankarbagh"}' | jq .review_status
+  -d '{"action":"approve","reason":"<the true reason>"}' | jq .review_status
 # → "HUMAN_APPROVED"
 ```
 
@@ -225,8 +277,8 @@ scene: the decision is gated, attributed and recorded.
 
 ```bash
 curl -s localhost:8000/api/events/<EVENT_ID>/provenance \
-  -H "Authorization: Bearer $TOKEN" | jq '.chain, [.reports[].id] | length'
-# → {"valid": true, "checked": N, "broken_at_seq": null}
+  -H "Authorization: Bearer $TOKEN" | jq '.chain, (.reports | length)'
+# → {"valid": true, "checked": N, "broken_at_seq": null}, then the number of reports
 ```
 
 `confidence_score` is unchanged by the review. The machine's reading and the human's decision are
@@ -234,30 +286,34 @@ recorded separately, on purpose.
 
 ---
 
-## Scene 4 — The geography
+## Scene 5 — The geography
 
 ```bash
-curl -s 'localhost:8000/api/geo/heatmap?resolution=8' | jq '.cells'
+curl -s 'localhost:8000/api/geo/heatmap?resolution=8' | jq '[.cells[].report_count] | add'
 curl -s 'localhost:8000/api/geo/heatmap?resolution=7' | jq '[.cells[].report_count] | add'
 ```
 
-Res 8 gives 2 cells summing to 5; res 7 gives 1 cell with 5. **Zooming out is aggregation, not
-re-binning** — the coarser count is the exact sum of its children, nothing smoothed or spread.
+The two totals are equal. **Zooming out is aggregation, not re-binning** — the coarser count is the
+exact sum of its children, nothing smoothed or spread.
 
 `GET /api/events/{id}` returns `boundary_geojson`, a Polygon containing every contributing report.
 
 ---
 
-## Scene 5 — Break it on purpose
+## Scene 6 — Break it on purpose
 
 The most convincing part of the demo, and it takes thirty seconds.
 
 ```bash
 docker stop indra-redis
-curl -s localhost:8000/healthz | jq .status      # → "degraded", still HTTP 200
-backend/.venv/bin/python scripts/run_patna_demo.py   # still works
+curl -s localhost:8000/healthz | jq .status                            # → "degraded", still HTTP 200
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/api/events     # → 200: reads still work
+curl -s localhost:8000/api/meta/sources | jq -r '.feeds[] | "\(.feed) \(.status)"'   # the pollers carry on
 docker start indra-redis
 ```
+
+If a second real report is on its way for Scene 3, stopping Redis just before it arrives shows it
+is still scored.
 
 **What to say:** Redis holds the weather cache and the broadcast-dedup set. Both fall back to
 process memory, so losing it costs cross-restart memory and nothing else. A dependency that can
@@ -277,19 +333,28 @@ Until 23 Sep this was the one outage that lost data (BUG-060): a report accepted
 down was stored, answered 202, and never processed. Each report's message is now written to an
 outbox in the same transaction as the report, and a relay publishes whatever is waiting.
 
+This drill needs a report submitted while the bus is down, so it runs against the **isolated E2E
+backend**, never the live one: a test sentence must not land in `indra_db`. In another terminal,
+`make e2e-backend` starts it on port 8100, on the `indra_e2e` database, the `indra.e2e.*` topics and
+Redis db 15, with every poller off. Stopping Redpanda stops it for both backends; that is the point.
+
 ```bash
 docker stop indra-redpanda
-curl -s -X POST localhost:8000/api/reports/submit -H 'Content-Type: application/json' \
-  -d '{"latitude":25.5941,"longitude":85.1376,"text":"Water entering ground floor shops near Kankarbagh main road"}'
+curl -s -X POST localhost:8100/api/reports/submit -H 'Content-Type: application/json' \
+  -d '{"latitude":25.5941,"longitude":85.1376,"text":"Outbox drill: test report, not an observation"}'
 # → 202 … "queued": false, "will_retry": true, and a "docket"
-curl -s localhost:8000/healthz | jq '.status, .checks.outbox_backlog'
+curl -s localhost:8100/healthz | jq '.status, .checks.outbox_backlog'
 # → "unhealthy" (Kafka is critical) and {"status": "up", "count": 1, "oldest_s": …}
 docker start indra-redpanda
-curl -s localhost:8000/healthz | jq '.checks.outbox_backlog.count'   # → 0 within a couple of seconds
-curl -s localhost:8000/api/reports/track/<docket> | jq .status       # → "not_yet_an_event" or "part_of_event"
+curl -s localhost:8100/healthz | jq '.checks.outbox_backlog.count'   # → 0 within a couple of seconds
+curl -s localhost:8100/api/reports/track/<docket> | jq .status       # → "not_yet_an_event" or "part_of_event"
 ```
 
-**Measured 23 Sep** — ten Patna reports sent with Redpanda stopped, on an empty database:
+`make e2e-reset` empties `indra_e2e` again afterwards. In front of an audience, the alternative is
+to stop Redpanda just before a real report is filed through the form.
+
+**Measured 23 Sep** — ten test reports sent with Redpanda stopped, on an empty database (those
+reports have since been deleted):
 
 | | |
 |---|---|
@@ -309,22 +374,6 @@ probes it, so a clean outage leaves `attempts` at 0.
 
 ---
 
-## Throughput, if asked
-
-```bash
-backend/.venv/bin/python scripts/burst_reports.py --count 100 --spread-km 3 --city patna
-```
-
-Measured: 100/100 accepted and stored, 215 reports/s, submit p50 4 ms / p95 5 ms, connection pool
-Δ+1, RSS Δ+1.9 MB, audit chain still valid.
-
-> **Do not present the burst as a confidence-raising demo.** Confidence *fell* to 0.4555 with 101
-> reports, below the 5-report cluster. That is correct: 100 reports scattered over 3 km have a wide
-> diameter, so spatial coherence drops and outweighs density saturating. A tight cluster is
-> stronger evidence of one incident than a diffuse one. Present it as throughput and leak evidence.
-
----
-
 ## If something goes wrong
 
 | Symptom | Cause | Fix |
@@ -333,19 +382,23 @@ Measured: 100/100 accepted and stored, 215 reports/s, submit p50 4 ms / p95 5 ms
 | `Cannot connect to the Docker daemon` | Daemon stopped | `open -a "/Volumes/Aditya ssd/Applications/Docker.app"` |
 | `/healthz` 503 on `database` | Postgres not up, or no schema | `docker compose up -d`, then `alembic upgrade head` — and read its output |
 | `/healthz` 503 on `streaming_bus` | Redpanda not up | `docker compose up -d`; submit still returns 202 `queued: false` |
-| `/healthz` `degraded` | Redis or Open-Meteo down | **Nothing.** This is fine, and worth showing |
-| Dashboard shows a `0.94` CRITICAL event | `DEMO_MODE=true` | Set it `false` and restart. This is fabricated data |
+| `/healthz` `degraded` | Redis, Open-Meteo or the object store down | **Nothing.** This is fine, and worth showing |
+| Every sign-in answers "Incorrect username or password" | The account has no password on this database: a fresh one, or one just migrated to 0019 | `backend/.venv/bin/python scripts/set_operator_password.py commander analyst` |
+| A feed shows `disabled` or `stale` | Poller off in `.env`, or its source is down | Turn it on and restart, or say the source is down; the page says so too |
+| The event list is empty | No two real reports have clustered yet | Correct. Show the feeds (Scene 1) and the corroboration rule |
 | The same report appears twice in the feed | Two backend processes on one broker | Kill one. One process only |
 | First report seems to hang | Embedding model still loading | It is warmed at startup; wait for `✓ Embedding model warm` in the log |
-| The demo prints `… N of M reports joined` | Reports still in the pipeline, or suppressed as duplicates | Re-run the read with `curl localhost:8000/api/events`; the script waited 45 s and said so rather than guessing |
+| An event has fewer reports than were filed | One was suppressed as a duplicate, or is still in the pipeline | Provenance lists each report; `curl localhost:8000/api/reports/track/<docket>` |
 | The map's badge counts incidents but no pins show | A late map `load` wiped the pins (BUG-043 race, fixed 22 Sep) | Should not recur; if it does, switch view once and report it |
 | An event has no boundary polygon | Polygon computation failed, non-fatal | The event is still correct; say so |
-| Confidence is lower than last rehearsal | Rainfall changed | Correct behaviour — it is live data |
+| Confidence differs from a past measurement | Different reports, different rainfall | Correct behaviour — it is live data |
 
 ---
 
-## The three sentences to have ready
+## The four sentences to have ready
 
-1. **"The score is 0.4984 out of a coverage of 0.80."** Never one without the other.
+1. **"The score is <the number on screen>, out of a coverage of 0.80."** Never one without the other.
 2. **"Quarantined is the right answer here."** Say it before it is asked.
 3. **"That factor is offline, and the receipt says so."** For vision and anomaly, every time.
+4. **"Nothing on this screen was typed for today."** Everything came from a public feed or from
+   someone who filed a report.
