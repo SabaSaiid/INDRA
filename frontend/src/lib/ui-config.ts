@@ -2,20 +2,8 @@
  * INDRA Platform — UI configuration
  *
  * Types and presentation constants only. **There is no fabricated data in this
- * file, and none may be added to it.**
- *
- * This is what remains of `mock-data.ts` after 21 Sep. That file mixed two
- * unrelated things: the design system's lookup tables (severity colours, nav
- * items, duty-status chips) and ~730 lines of invented events, teams and
- * profiles that every component fell back to whenever an API call failed *or
- * returned an empty list*. The result was a dashboard that looked fully
- * populated against an empty database — during a live demo the first seconds
- * are exactly when the database is empty, so the screen showed confident
- * CRITICAL events that no code had computed.
- *
- * The colours and labels below are the design and are used by live data. The
- * invented rows are gone. A component with nothing to show now renders an empty
- * state that says so.
+ * file, and none may be added to it.** A component with nothing to show renders
+ * an empty state that says so.
  */
 
 import {
@@ -65,7 +53,7 @@ export const navItems: NavItem[] = [
     icon: LayoutDashboard,
     href: '/',
     section: 'tactical',
-    description: 'National overview & key telemetry metrics',
+    description: 'National overview: reports, events, warnings',
   },
   {
     id: 'live-map',
@@ -82,7 +70,7 @@ export const navItems: NavItem[] = [
     icon: CalendarClock,
     href: '/events',
     section: 'tactical',
-    description: 'Active severe weather alerts & emergency timeline',
+    description: 'Fused events, their severity and review status',
   },
 
   // Intelligence & Feeds
@@ -126,7 +114,7 @@ export const navItems: NavItem[] = [
     icon: Users,
     href: '/teams',
     section: 'command',
-    description: 'Disaster response battalions & command units',
+    description: 'Response teams and dispatch',
   },
   {
     id: 'profile',
@@ -150,7 +138,7 @@ export const navItems: NavItem[] = [
     icon: Settings,
     href: '/settings',
     section: 'command',
-    description: 'Tactical GIS, alert siren audio, units & HUD preferences',
+    description: 'Map, units and display preferences',
   },
 ];
 
@@ -194,11 +182,6 @@ export interface MapMarker {
   verification: VerificationStatus;
   description: string;
   title?: string;
-  impact?: string;
-  action?: string;
-  timeAgo?: string;
-  confidence?: number;
-  verified?: boolean;
 }
 export interface RecentEvent {
   id: string;
@@ -213,7 +196,6 @@ export interface RecentEvent {
   imageGradient: string;
 }
 
-const now = new Date();
 export interface DistributionItem {
   name: string;
   value: number;

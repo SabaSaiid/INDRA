@@ -1139,11 +1139,10 @@ export default function GlobeEventMap({
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
-            <span class="hud-time font-mono">${marker.timeAgo || layerLabel}</span>
+            <span class="hud-time font-mono">${layerLabel}</span>
           </div>
           <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
           <div class="hud-location">📍 ${marker.placeLabel || [marker.city, marker.state].filter(Boolean).join(', ') || 'Location unresolved'}</div>
-          ${marker.action ? `<div class="hud-action"><span>⚡ Action</span><span>${marker.action}</span></div>` : ''}
         `;
         innerEl.appendChild(tooltip);
 
