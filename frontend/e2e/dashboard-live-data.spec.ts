@@ -104,11 +104,12 @@ test.describe('dashboard renders live data or an honest empty state', () => {
 
     // A real submission through the real endpoint: validated, credibility-scored,
     // written to Postgres and published to Kafka.
+    const probe = `E2E probe ${Date.now()}`;
     const submit = await page.request.post(`${API}/api/reports/submit`, {
       data: {
         latitude: 25.5941,
         longitude: 85.1376,
-        text: `E2E probe ${Date.now()} — water rising near the underpass, knee deep`,
+        text: `${probe} — water rising near the underpass, knee deep`,
       },
     });
     expect(submit.status()).toBe(202);
@@ -122,7 +123,19 @@ test.describe('dashboard renders live data or an honest empty state', () => {
         },
         { timeout: 30_000, intervals: [1000] }
       )
-      .toBeGreaterThan(before.total_reports - 1);
+      .toBeGreaterThan(before.total_reports);
+
+    // And the stored row is this probe, not merely any new report.
+    await expect
+      .poll(
+        async () => {
+          const res = await page.request.get(`${API}/api/reports/recent?hours=1&unfused_only=false`);
+          const rows: Array<{ text: string }> = await res.json();
+          return rows.some((r) => r.text.startsWith(probe));
+        },
+        { timeout: 30_000, intervals: [1000] }
+      )
+      .toBe(true);
 
     await page.goto('/');
     await settle(page);
