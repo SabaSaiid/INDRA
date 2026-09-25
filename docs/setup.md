@@ -38,7 +38,7 @@ The defaults work for local development. The values worth knowing:
 | `DATABASE_URL` | `…@localhost:5433/indra_db` | **Port 5433**, not 5432, so it cannot clash with a local Postgres |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:19092` | Redpanda |
 | `REDIS_URL` | `redis://localhost:6379/0` | |
-| `DEMO_MODE` | **`false`** | Leave it false. See the warning below |
+| `SACHET_POLLER_ENABLED` | `true` | Polls NDMA's SACHET CAP feed every 5 min into `agency_alerts` |
 | `STATION_POLLER_ENABLED` | `true` | Polls Open-Meteo every 10 min into `station_readings` |
 | `METAR_POLLER_ENABLED`, `MASTODON_POLLER_ENABLED`, `NEWS_POLLER_ENABLED` | `false` | Phase 2's feeds: airport weather, #IMD posts, news headlines. No keys needed; turn them on to collect |
 | `S3_ACCESS_KEY`, `S3_SECRET_KEY` | placeholders | The object store's keys (Phase 2). Generate real ones — see below. Placeholders mean "not configured": the lake is off and `/healthz` says `degraded`, nothing else changes |
@@ -57,9 +57,12 @@ python3 scripts/make_s3_config.py
 containers before running the script, Docker creates an empty *directory* at `infra/seaweedfs/s3.json`
 and the object store will not start; stop it, `rmdir infra/seaweedfs/s3.json`, and run the script.
 
-> **`DEMO_MODE=true` makes the API serve data nothing computed.** An empty database answers
-> `GET /api/events` with a fabricated `0.94 / AUTO_PUBLISHED / CRITICAL` event — a score the real
-> engine cannot reach. It is off by default for that reason. Never demonstrate with it on.
+> **There is no demo mode.** A read with no rows returns the real empty result (`[]`, zero
+> counts, empty cells), an unknown id is a `404`, and a database error is a `503`
+> `{"detail":"Database unavailable"}` — never a made-up payload. An empty database shows an empty
+> event list until real reports cluster; the pollers fill the warnings, rainfall and feed panels
+> within minutes. `DEMO_MODE` was removed on 25 Sep, and a leftover `DEMO_MODE` line in an old
+> `.env` is ignored.
 
 The backend reads the **repo-root `.env`**. A `backend/.env`, if one exists, silently wins over it
 — which has cost this project a debugging session before.
@@ -141,23 +144,25 @@ It creates it if missing.
 
 ## 5. Seeing it work
 
+Nothing in this repository generates reports. Within minutes of startup the pollers fill the
+dashboard with real data:
+
 ```bash
-backend/.venv/bin/python scripts/run_patna_demo.py
+curl -s localhost:8000/api/meta/sources | jq -r '.feeds[] | "\(.feed)\t\(.status)\t\(.rows_24h)"'
 ```
 
-Five synthetic citizen reports → one verified event, with every number read back out of the API.
-Add `--official` to file one more report as the commander through the authenticated route and
-watch source reliability go to 1.00. Expected output and the full walkthrough:
+That prints one line per feed — its name, its state (`ok`, `stale`, `failing` or `disabled`) and
+the rows it stored in the last 24 h. `sachet` and `open_meteo` are on by default. Set
+`METAR_POLLER_ENABLED`, `MASTODON_POLLER_ENABLED` and `NEWS_POLLER_ENABLED` to `true` in `.env` for
+airport observations, #IMD posts and news headlines. To watch the pipeline build an event, two
+people file what they actually see, in their own words, within 5 km of each other, through the
+dashboard's **Report Incident** form: one report never makes an event, and a copy of the same
+text from close by is suppressed as a duplicate. The walkthrough is in
 [`demo-runbook.md`](demo-runbook.md).
 
-Load test, if you want one:
-
-```bash
-backend/.venv/bin/python scripts/burst_reports.py --count 100 --spread-km 3 --city patna
-```
-
-> `scripts/seed_national_data.py` writes **synthetic** rows and refuses to run without
-> `--synthetic`, marking every receipt it creates. It is not a data import.
+To exercise the pipeline with test input, use the test suites, which write only to `indra_test` and
+`indra_e2e` (sections 4 and 6). **Never post test sentences to the API on `:8000`**: its database
+is the real one, and a test report there is fabricated data in the audit trail.
 
 ---
 
