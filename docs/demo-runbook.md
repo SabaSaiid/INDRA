@@ -350,8 +350,10 @@ curl -s localhost:8100/healthz | jq '.checks.outbox_backlog.count'   # → 0 wit
 curl -s localhost:8100/api/reports/track/<docket> | jq .status       # → "not_yet_an_event" or "part_of_event"
 ```
 
-`make e2e-reset` empties `indra_e2e` again afterwards. In front of an audience, the alternative is
-to stop Redpanda just before a real report is filed through the form.
+`make e2e-reset` empties `indra_e2e` again afterwards. It is the same backend `make e2e` runs the
+browser tests against, and Playwright refuses any other: a backend on port 8000, off loopback, or
+whose `/api/e2e/identity` does not name an `_e2e` database. In front of an audience, the
+alternative is to stop Redpanda just before a real report is filed through the form.
 
 **Measured 23 Sep** — ten test reports sent with Redpanda stopped, on an empty database (those
 reports have since been deleted):
