@@ -321,7 +321,7 @@ export default function EventsPage() {
             >
               {filtered.map((ev) => {
                 const sevBadge = SEVERITY_BADGE[ev.severity] || SEVERITY_BADGE.moderate;
-                // The API's review_status and quadrant, derived only when absent (BUG-070).
+                // The API's review_status and quadrant, never derived (BUG-070).
                 const eventState = eventReviewState(ev.review_status, ev.quadrant);
                 const reviewBadge = REVIEW_BADGE[eventState.reviewStatus] || REVIEW_BADGE.UNKNOWN;
                 return (

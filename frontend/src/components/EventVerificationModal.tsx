@@ -90,6 +90,8 @@ const SEVERITY_STYLES: Record<string, { bg: string; text: string; border: string
   moderate: { bg: '#DBEAFE', text: '#1E40AF', border: '#93C5FD' },
   low: { bg: '#D1FAE5', text: '#065F46', border: '#6EE7B7' },
 };
+/** A severity the API did not send, or one not listed above: grey, never Moderate. */
+const UNRATED_STYLE = { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' };
 
 const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
   AUTO_PUBLISHED: { label: 'Auto-Published', color: '#065F46', bg: '#D1FAE5' },
@@ -167,7 +169,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const confidenceScore = detail?.confidence_score ?? provenance?.event?.confidence_score ?? 0;
   const confidencePct = Math.round(confidenceScore * 100);
   const apiReviewStatus = detail?.review_status ?? provenance?.event?.review_status;
-  const severity = detail?.severity ?? provenance?.event?.severity ?? 'MODERATE';
+  const severity = detail?.severity ?? provenance?.event?.severity ?? 'UNRATED';
   // Use detailEventId (not eventId) to avoid shadowing the eventId prop parameter.
   const detailEventId = detail?.id ?? provenance?.event?.id ?? eventId ?? '';
   const eventType = detail?.event_type_display ?? detail?.event_type ?? '';
@@ -176,7 +178,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const reviewState = eventReviewState(apiReviewStatus, detail?.quadrant);
   const reviewStatus = reviewState.reviewStatus;
   const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.UNKNOWN;
-  const sevStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.MODERATE;
+  const sevStyle = SEVERITY_STYLES[severity] || UNRATED_STYLE;
 
   return (
     <AnimatePresence>

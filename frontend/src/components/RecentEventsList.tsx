@@ -246,7 +246,7 @@ export default function RecentEventsList({
             className="flex-1 min-h-0 space-y-0.5 custom-scrollbar overflow-y-auto scroll-smooth pr-1"
           >
             {events.map((event) => {
-              const severity = severityConfig[event.severity] || severityConfig.moderate;
+              const severity = severityConfig[event.severity] || severityConfig.unrated;
               const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
               const isSelected = selectedEventId === event.id;
               const spine = spineColor[event.severity] ?? '#9CA3AF';
