@@ -31,6 +31,8 @@ the snapshot is replaced.
 Nothing is invented here. A table with no rows exports as a CSV containing only
 its header, and `export_log.txt` says `0 rows` beside it — which is the honest
 answer on a stack that has just started.
+
+Credentials are never exported: `user_profiles.password_hash` stays in Postgres.
 """
 
 from __future__ import annotations
@@ -67,6 +69,12 @@ GEOJSON = {
     "verified_events": ("boundary_polygon", ["event_code", "event_type", "severity", "confidence_score", "review_status", "report_count"]),
 }
 
+# Columns left out of every file. data/live is committed, and a bcrypt hash in
+# git can be attacked offline for as long as the repository exists.
+EXCLUDED_COLUMNS = {
+    "user_profiles": {"password_hash"},
+}
+
 
 async def fetch_all(engine, table: str, geom_col: str | None):
     """Every row of one table, with geometry as GeoJSON text and a WKT-free copy."""
@@ -84,6 +92,7 @@ async def fetch_all(engine, table: str, geom_col: str | None):
                     {"t": table},
                 )
             ).all()
+            if r[0] not in EXCLUDED_COLUMNS.get(table, ())
         ]
         if not cols:
             return [], []
