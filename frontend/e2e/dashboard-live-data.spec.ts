@@ -10,27 +10,23 @@ import { API } from './env';
  * These assertions are written as *negatives* on purpose. Checking that the page
  * rendered proves nothing here: before 21 Sep the dashboard rendered beautifully
  * against a backend that was switched off, because every panel fell back to
- * `mock-data.ts`. The screenshot of that failure looked exactly like success.
+ * invented rows. The screenshot of that failure looked exactly like success.
  *
- * So the suite checks for the absence of the specific fabricated values that
- * file used to supply. If any of them reappear, a fallback has come back.
+ * So the suite checks for the absence of the specific fabricated values those
+ * fallbacks supplied. If any of them reappear, a fallback has come back.
  */
 
 const SHOTS = path.join(__dirname, 'screenshots');
 fs.mkdirSync(SHOTS, { recursive: true });
 
 /**
- * Strings that only ever existed in the deleted mock-data.ts, plus values the
- * real pipeline provably cannot produce.
- *
- * `0.94` / `AUTO_PUBLISHED`: the maximum confidence achievable while the vision
- * and anomaly factors are offline is 0.80, and AUTO_PUBLISHED needs 0.90. Both
- * appearing together is proof of fabricated data, not of a very confident event.
+ * An event code and a place that only the fallback rows removed on 21 Sep ever
+ * produced. (AUTO_PUBLISHED used to be here too, but a real event can now reach
+ * it: confidence is divided by the factors that are online.)
  */
 const FABRICATED_MARKERS = [
   'WX-EV-28231827-A',
   'Kankarbagh Sector 4',
-  'AUTO_PUBLISHED',
 ];
 
 async function shoot(page: Page, name: string) {
@@ -73,7 +69,7 @@ test.describe('dashboard renders live data or an honest empty state', () => {
 
     const body = await page.locator('body').innerText();
     for (const marker of FABRICATED_MARKERS) {
-      expect(body, `"${marker}" is a value only mock-data.ts ever produced`).not.toContain(marker);
+      expect(body, `"${marker}" is a value only the removed fallback rows ever produced`).not.toContain(marker);
     }
   });
 
