@@ -39,7 +39,8 @@ class TeamCreate(BaseModel):
     radio_callsign: Optional[str] = Field(None, max_length=40)
     specialization: Optional[str] = Field(None, max_length=200)
     status: TeamStatus = TeamStatus.AVAILABLE
-    members_count: int = Field(12, ge=1, le=1000)
+    # Required: a team created without a size used to be stored as 12.
+    members_count: int = Field(..., ge=1, le=1000)
 
     # The enums are upper case; the old str fields upper-cased whatever came
     # in, so "ndrf" keeps working. An unknown agency is now a 422 rather than

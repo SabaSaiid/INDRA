@@ -37,7 +37,7 @@ class UserProfile(Base):
         ForeignKey("teams.id", ondelete="SET NULL"),
         nullable=True,
     )
-    team_role = Column(String(80), nullable=True, default="Operational Specialist")
+    team_role = Column(String(80), nullable=True)
     duty_status = Column(
         Enum(DutyStatus, name="duty_status_enum"),
         nullable=False,

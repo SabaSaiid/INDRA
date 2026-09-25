@@ -86,6 +86,7 @@ TEAM = {
     "city": "Patna",
     "state": "Bihar",
     "lead_name": "Test Lead",
+    "members_count": 18,
 }
 
 
@@ -119,6 +120,15 @@ async def test_a_duplicate_team_code_is_409_not_500(api, tokens, clean_teams):  
 
 async def test_an_unknown_agency_is_422_not_a_database_error(api, tokens, clean_teams):  # noqa: F811
     r = await api.post("/api/teams", json={**TEAM, "agency": "SPACE_FORCE"}, headers=tokens["commander"])
+
+    assert r.status_code == 422
+
+
+async def test_a_team_without_a_size_is_422_not_twelve(api, tokens, clean_teams):  # noqa: F811
+    """A missing members_count was stored as 12 responders nobody reported."""
+    team = {k: v for k, v in TEAM.items() if k != "members_count"}
+
+    r = await api.post("/api/teams", json=team, headers=tokens["commander"])
 
     assert r.status_code == 422
 
