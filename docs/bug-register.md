@@ -10,7 +10,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 24 Sep 2026, after the dashboard repair (BUG-070 fixed, BUG-071 … BUG-080).**
+**Last updated: 25 Sep 2026, after the demo-data removal (BUG-045 fixed, BUG-093 … BUG-100).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -152,6 +152,7 @@ Fix: routed through `demo_fallback()`. `DEMO_MODE=false` + DB error → **503**;
 **Root cause of its survival:** the endpoint was missing from `test_demo_mode.py`'s `LIST_ENDPOINTS`,
 so the hole had no test and outlived a gate added three days earlier. It and `/api/geo/heatmap` are
 both in that list now — that, not the fix, is what prevents a recurrence.
+**25 Sep:** the gate itself is gone (BUG-100); the test file is now `tests/test_empty_and_unavailable.py`.
 
 ### BUG-005 — CORS is `allow_origins=["*"]`
 **S3 → S2** · Layer 8a · **`FIXED`** by `bcd4b85` (T8) · Found by: code read · 20 Sep
@@ -182,6 +183,7 @@ so no frontend change was needed. `start.sh`'s banner also advertised the file a
 verified" and now reports the labelled dataset as synthetic.
 Tests: `test_the_scenario_endpoint_is_gone`, `test_the_demo_trigger_endpoint_is_gone`,
 `test_the_fabricated_scenario_file_is_deleted`.
+**25 Sep:** the dashboard's leftover `DEMO_PULSE` message type went too (BUG-100).
 
 ### BUG-022 — `scripts/run_patna_demo.py` exercised nothing and contradicted the code
 **S2** · Demo tooling · **`FIXED`** by `bcd4b85` (T8) · Found by: T12/T14 dependency check during planning · 20 Sep
@@ -197,6 +199,7 @@ Fix: rewritten to POST five reports to `/api/reports/submit`, poll `/api/events`
 and print **only values read back from the API** — including `factor_coverage`, the per-factor
 `state` column and `severity_basis`. Exits non-zero if no event appears, so it is a smoke test rather
 than a slideshow. `--official` adds the dispatch report that crosses the review gate.
+**25 Sep:** `run_patna_demo.py` and `run_hazard_demo.py` were deleted (BUG-100).
 
 ### BUG-023 — `/legacy` serves a prototype dashboard full of fabricated telemetry
 **S2** · Layer 8a · **`FIXED`** by `fd0842c` · Found by: T8 sweep · 20 Sep
@@ -568,6 +571,8 @@ for real. It was invisible to 517 passing tests, because every one of those test
 rows or asserts the fallback *works* — none of them asked whether the fallback could be mistaken for
 a live result.
 
+**25 Sep:** `DEMO_MODE` and the fallback events were deleted outright, so this cannot recur (BUG-100).
+
 ### BUG-025 — The demo's "official dispatch crosses 0.60" step is not reachable through the API
 **S2** · Layers 2, 6 · `WONT-FIX-TODAY` (narrative corrected instead) → **`FIXED` 22 Sep** (see Day 9) · Found by: running the demo with `--official` · 20 Sep
 
@@ -621,6 +626,7 @@ Actual: printed `3 reports, confidence 0.4585`; eight seconds later the same eve
 was still absorbing members — but on a projector it reads as a number that will not sit still.
 Fix: the script now polls `report_count` until it has held steady for 4 s before printing anything.
 Measured: all five land within ~8 s on a local stack.
+**25 Sep:** `run_patna_demo.py` was deleted (BUG-100).
 
 ---
 
@@ -695,7 +701,8 @@ subcommand — the flag is **`-b`** / `--background`. Both demo scripts now say 
 # T12 — 100-report burst, measured
 
 `backend/.venv/bin/python scripts/burst_reports.py --count 100 --spread-km 3 --city patna`
-(model pre-warmed, so these are steady-state numbers, not a cold MiniLM load)
+(model pre-warmed, so these are steady-state numbers, not a cold MiniLM load). The script was deleted
+on 25 Sep with the other synthetic injectors; the numbers stand as measured.
 
 | Measure | Value |
 |---|---|
@@ -1196,7 +1203,7 @@ Found by checking the shared server (`15.252.50.176`) against the runbook before
 rehearsal. Neither defect is in the backend code; both are in what is deployed.
 
 ### BUG-045 — The team server serves fabricated events: `DEMO_MODE=true` in the deployed `.env`
-**S1** · Layer 8a / infra · **`OPEN`** (a one-line config fix, pending) · Found by: comparing the server `.env` to the runbook before seeding · 22 Sep
+**S1** · Layer 8a / infra · `OPEN` → **`FIXED` 22 Sep on the server, impossible since 25 Sep** · Found by: comparing the server `.env` to the runbook before seeding · 22 Sep
 
 Repro: `curl -s http://15.252.50.176:8000/api/events`
 Expected: `[]` — the server database holds **0** verified events.
@@ -1212,6 +1219,11 @@ you saw were not real.**
 Fix: `DEMO_MODE=false` in `/opt/indra/.env`, then `sudo systemctl restart indra-api`;
 `/api/events` must return `[]`. The same edit should set `ENVIRONMENT=production` — its only
 effect (`database.py:24`) is SQLAlchemy echoing every SQL statement into the API log.
+
+**→ `FIXED`.** On 22 Sep, at the deploy, the server's `.env` was set to `DEMO_MODE=false` and
+`ENVIRONMENT=production` (recorded in Aditya's server notes; not re-checked on the server since).
+**Since 25 Sep it cannot recur:** `DEMO_MODE`, `core/demo.py` and every hardcoded payload
+were deleted (BUG-100), so a `DEMO_MODE` line left in any `.env` is ignored.
 
 ### BUG-046 — `next build` fails on `main`, so the server cannot run a production frontend
 **S2** · Layer 9 · **`FIXED`** by `1004d75` (events page) and `2f411d1` (alerts page) · Found by: building on the server, 21 Sep; `tsc --noEmit` on `main`, 22 Sep
@@ -1247,6 +1259,8 @@ The test walks the OpenAPI schema, not `app.routes` — FastAPI 0.141 hides incl
 which the test's own guard caught — so a mutation added later without a guard fails the suite.
 Say: "Every write is role-checked and attributed. The demo accounts' passwords ship with the
 dashboard's persona switcher, so this shows roles, not secrecy; a deployment needs a real login."
+**25 Sep:** no password ships with the dashboard any more (BUG-093). Say instead: "Every write is
+role-checked and attributed to the operator who signed in. There is no MFA."
 
 ### BUG-012 → `FIXED` — DBSCAN uses a great-circle radius
 `05da3fa` · Test: `test_dbscan_great_circle.py` (15, boundaries at 4.99/5.01 km both ways, at
@@ -1286,9 +1300,11 @@ container: socket `pg_isready` green at 1.1 s on the temporary init server, TCP 
 
 ### BUG-046 → `FIXED` — `npm run build` passes on the branch
 
-### BUG-045 — still `OPEN`
+### BUG-045 — still `OPEN` here, `FIXED` at the deploy the same day
 The fix is a line in the server's `.env` and a restart; it needs a write on the server, which was
 not made from this session. Commands are in the PR.
+**25 Sep:** made at the 22 Sep deploy, and impossible since the demo mode was deleted; see the row
+above.
 
 ## Found 22 Sep by reading every page of the dashboard
 
@@ -1355,6 +1371,7 @@ ones included, with a missing confidence defaulting to 85%; every review was cre
 The model finished warming mid-dedup, the last three reports merged seconds later, and the script
 printed "steady at 3", 0.4748 `QUARANTINED` for an event the database held at 6 reports, 0.6065.
 BUG-026 again. It now waits for every report it sent.
+**25 Sep:** `run_patna_demo.py` was deleted (BUG-100).
 
 ### BUG-056 — A late map `load` wiped every pin
 **S1** · Layer 9 · **`FIXED`** by `38c6785` · Found by: the BUG-043 cold-load e2e test, the moment
@@ -1464,6 +1481,7 @@ Half the seeded events read `AUTO_PUBLISHED` at 0.55–0.89, a value this engine
 seeder's own quadrant still used the pre-20 Sep 0.70 gate. Status and quadrant now come from
 `FusionEngine`, as in the pipeline: 0 of 37 seeded events off the engine's rule (was 11
 `AUTO_PUBLISHED` below 0.90).
+**25 Sep:** the seeder, `scripts/seed_national_data.py`, was deleted (BUG-100).
 
 ### BUG-065 — The seeder linked each report to a random event anywhere in India
 **S2** · `scripts/` → layer 6 · **`FIXED`** by `e55ea41`
@@ -1472,6 +1490,7 @@ A seeded Bhojpur event owned reports in Chennai and Delhi. Once the live pipelin
 report into such an event, it recomputed the footprint over every linked report and the radius
 spanned the country: the mechanism behind the report's 1,564 km radius. A seeded report now links only
 to an event in its own city: farthest 11.7 km, median 4.7 km (was 2,096 km).
+**25 Sep:** the seeder was deleted (BUG-100).
 
 ### BUG-066 — The merge catchment grows with the event, without a ceiling
 **S3** · Layer 6 · **`OPEN`** — Phase 3
@@ -1505,6 +1524,7 @@ job.
 
 `DEMO_KPIS` had `total_reports` 1,248 and `citizen_reports` 8,421. They are served only with
 `DEMO_MODE=true`, which stays false, but an impossible pair should not exist even there.
+**25 Sep:** `DEMO_KPIS` was deleted with the demo mode (BUG-100).
 
 ### BUG-070 — The dashboard shows its own review status, never the API's
 **S2** · Layer 9 · **`FIXED`** by `44f2486` (branch `aditya_24sept_frontend`) · Found by: marking up
@@ -1632,4 +1652,3 @@ credibility, and a news publisher counts once. Commits `2b0131e`, `9a4c91d`, `ee
 The type was hard-coded at insert. It is now the majority of the reports' tagged hazards, ties by
 precedence, UNCLASSIFIED (never auto-published) with no votes; a commander can override it on the
 record. Commits `ddeef6e`, `c8e8025`, `36d231b`.
-
