@@ -41,8 +41,7 @@ export default function Home() {
     closeMobile,
   } = useSidebar();
   // No seeded values: an empty dashboard that fills as reports arrive is the
-  // honest state. Seeding with invented KPIs showed confident numbers before a
-  // single request had returned.
+  // honest state.
   const [liveKpiData, setLiveKpiData] = useState<KpiItem[]>([]);
   const [kpiError, setKpiError] = useState<unknown>(null);
   const [eventsError, setEventsError] = useState<unknown>(null);

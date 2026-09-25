@@ -4,14 +4,10 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * The honest alternative to mock data.
- *
- * Before 21 Sep every panel fell back to invented rows when its request failed
- * *or came back empty*, so an empty database and a dead backend both rendered a
- * full, confident dashboard. These two states replace that: one says there is
- * nothing to show yet, the other says the backend could not be reached. They are
- * visually distinct on purpose — an operator has to be able to tell "no floods
- * reported" from "I am not receiving data".
+ * What a panel shows when it has nothing to show. One state says there is
+ * nothing to show yet, the other says the backend could not be reached. They
+ * are visually distinct on purpose — an operator has to be able to tell "no
+ * floods reported" from "I am not receiving data".
  *
  * Styling follows the existing card language (#FDFAF5 paper, #E8E2D4 borders,
  * muted ink) so a panel in either state still looks like part of the dashboard.

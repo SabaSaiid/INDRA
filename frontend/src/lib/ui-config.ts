@@ -420,10 +420,7 @@ export const PLACEHOLDER_OPERATOR: UserProfile = {
  * matrix (`backend/tests/test_auth_enforcement.py` and, since 22 Sep,
  * `test_mutation_auth.py`, `test_official_ingest.py` and `test_audit_api.py`).
  *
- * This replaces `mockRoleSecurity`, which invented "clearance codes" and
- * "clearance levels" — concepts INDRA has no notion of anywhere in its code.
- * Everything below is a statement about behaviour the backend really enforces,
- * so it belongs with the design constants rather than with the deleted fakes.
+ * Everything below is a statement about behaviour the backend really enforces.
  *
  * Session expiry is the real JWT lifetime (`JWT_EXPIRY_HOURS = 8`, HS256).
  * Ledger immutability is real too: `services/audit.py` hash-chains every

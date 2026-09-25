@@ -329,8 +329,7 @@ export default function GlobeEventMap({
   const isGlobeRef = useRef(true);
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
   const [timeRange, setTimeRange] = useState('7d');
-  // Starts empty. Seeding the globe with invented markers put pins on Indian
-  // cities that had reported nothing.
+  // Starts empty, and stays empty until the API returns markers.
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [markersError, setMarkersError] = useState<unknown>(null);
   // Three sources of live data, three layers, each toggleable and each drawn

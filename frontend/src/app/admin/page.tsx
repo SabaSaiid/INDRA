@@ -7,12 +7,8 @@
  * /healthz, accounts from /api/profile/operators, and the audit trail from the
  * hash-chained ledger (/api/audit/recent).
  *
- * It used to be entirely static: "99.98% Uptime · 4 Nodes Active · Zero
- * Errors", a "BigQuery Data Warehouse 14ms · GCP asia-south1" INDRA does not
- * use, "Zero Breaches · MFA" for a platform with no MFA, "CLEARANCE: LEVEL 5",
- * a badge reading ALL SYSTEMS OPERATIONAL whatever the system's state, and an
- * audit trail of invented entries — among them a CAP broadcast "pushed to Puri
- * district civil authorities" by an alert engine that does not exist.
+ * Removed 22 Sep: static uptime, cloud-warehouse and clearance figures and an
+ * invented audit trail.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
