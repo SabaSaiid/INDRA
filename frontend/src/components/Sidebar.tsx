@@ -256,7 +256,7 @@ export default function Sidebar({
                   transition={{ duration: 0.18 }}
                   className="overflow-hidden whitespace-nowrap min-w-0"
                 >
-                  {/* No version chip: 'v1.2' here contradicted package.json, and INDRA has no release numbering. */}
+                  {/* Removed 25 Sep: a version chip; INDRA has no release numbering. */}
                   <div className="flex items-center gap-2">
                     <h1
                       className="text-white font-bold text-[15px] tracking-wide"
