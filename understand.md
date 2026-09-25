@@ -1449,11 +1449,11 @@ It looks impressive but proves almost nothing.
 Good demo:
 
 ```text
-Generate a burst of synthetic reports
+A person files what they actually see
         ↓
-Kafka
+REST → outbox → Kafka
         ↓
-classification
+hazard tagging (rules)
         ↓
 deduplication
         ↓
@@ -1466,13 +1466,13 @@ real event
 dashboard
 ```
 
+Around it, the live feeds (official warnings, rainfall, airport weather, posts and headlines) were already arriving. Nothing is generated for the occasion. Even a generator that goes through the real pipeline is the wrong demo: its reports land in the same database as real ones, and afterwards nobody can tell them apart.
+
 Now the judges can see the system actually working.
 
 ---
 
 # 44. The demo story
-
-![Demo storyline](understand_diagrams/08_demo.png)
 
 The demonstration should tell a simple story.
 
@@ -1480,25 +1480,25 @@ The demonstration should tell a simple story.
 
 The dashboard shows normal conditions.
 
-### Scene 2 — Sudden spike
+### Scene 2 — A real report
 
-A replay script injects a weather incident with many reports.
+A real report arrives: typed by a person about what they can actually see, or collected from a public feed.
 
-### Scene 3 — Chaos arrives
+### Scene 3 — More arrives
 
-The system receives duplicates, conflicting messages and useful evidence.
+More arrives beside it: a second witness, posts and headlines, official warnings. Some repeat each other; some are about other places.
 
-### Scene 4 — The machine organizes the chaos
+### Scene 4 — The machine organizes it
 
-Reports are classified, deduplicated and spatially clustered.
+Reports are tagged by hazard (rules), deduplicated and spatially clustered.
 
-### Scene 5 — Evidence agrees
+### Scene 5 — Evidence is checked
 
-Authoritative data and other sources support the incident.
+Rainfall and source reliability are checked against it; what cannot be checked (images, anomalies) is marked offline.
 
-### Scene 6 — Verified event
+### Scene 6 — One event
 
-A single incident appears on the map.
+If at least two independent reports agree, a single incident appears on the map. If nothing is happening, no event forms, and that is the right answer.
 
 ### Scene 7 — Explain it
 
@@ -2293,11 +2293,11 @@ Build:
 
 ## Phase 7 — Demo
 
-1. replay scenario
-2. load spike
-3. duplicates
-4. verification
-5. dashboard alert
+1. live feeds on screen
+2. a real report filed live
+3. duplicates suppressed
+4. verification receipt
+5. human review
 6. provenance trace
 
 ---
