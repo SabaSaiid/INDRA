@@ -182,7 +182,9 @@ Day 3 ✅ audit chain, human review, RBAC · Day 4 ✅ correctness fixes, text p
 Day 5 ✅ coverage-aware confidence, content severity, geo surface, every invented number removed ·
 Day 6 ✅ Redis in real use, a scheduled station feed, documentation published ·
 22 Sep ✅ every write token-gated, an authenticated route for official reports, great-circle
-clustering, and the dashboard audited for invented data
+clustering, and the dashboard audited for invented data ·
+25 Sep ✅ every demo, scripted and placeholder row removed, operator accounts with their own
+passwords in the database, and the browser tests moved onto a disposable database
 
 > **Scope, stated once and plainly.** Layers **4 (AI/ML)** and **8b (the alert engine)** left the
 > backend's scope on 20 Sep. They are **cancelled, not deferred**. The ML code already committed
@@ -202,9 +204,9 @@ Legend: ✅ built · 🟡 partial · ⬛ out of scope
 | 5 | **Geo-Analytics** | ✅ | DBSCAN clustering with a great-circle 5 km radius (since 22 Sep; it was in degrees), Uber H3 res-8 indexing, a **boundary polygon on every event** that contains all of its reports, and `GET /api/geo/heatmap` aggregating res 6/7/8 with duplicates excluded. Risk zones are not built. |
 | 6 | **Event Fusion Engine** | ✅ | Correlation, duplicate merging, scoring and event construction run end to end. **No randomness.** Confidence is re-normalised over the factors that reported and the receipt publishes `factor_coverage` beside it. Severity comes from **what the reports say** — a depth axis and a corroboration axis, published thresholds, no model. Determinism is pinned by tests, and a human decision survives later merges. |
 | 7 | **Data Platform** | ✅ | PostgreSQL + PostGIS, an `audit_logs` **SHA-256 hash chain**, **Redis genuinely in use** (the Open-Meteo cache and the broadcast-dedup set, both with a memory fallback so losing it degrades nothing), and `station_readings` **holding real polled rows** for the first time. Object storage is configured but not deployed. |
-| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo for real, including whether the schema exists. **Every write is auth-enforced** (review, team dispatch, official reports, profile edits), pinned by a test that walks the whole API; provenance and the audit ledger need an analyst or above; dashboard reads stay open. |
+| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo for real, including whether the schema exists. **Every write is auth-enforced** (review, team dispatch, official reports, profile edits), pinned by a test that walks the whole API; provenance and the audit ledger need an analyst or above; dashboard reads stay open. Operators sign in with a username and password checked against a bcrypt hash in `user_profiles`. A read with no rows returns the real empty result, an unknown id is a `404`, and a database error is a `503` — **there is no demo mode and no fallback payload**. |
 | 8b | **Alert Engine** | ⬛ | **Cancelled 20 Sep.** INDRA sends no SMS, email or CAP broadcast. `GET /api/alerts/agency` serves official warnings that IMD, CWC and SDMAs issued — data it reads, not alerts it sends. |
-| 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is owned by the rest of the team. On 22 Sep invented official bulletins, a fictional cyclone track and static admin/datasets/analytics figures were removed, and the production build passes again; 26 browser tests pin it — see [`docs/frontend-handover.md`](docs/frontend-handover.md). |
+| 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is owned by the rest of the team. On 22 Sep invented official bulletins, a fictional cyclone track and static admin/datasets/analytics figures were removed, and the production build passes again; 26 browser tests pin it. On 25 Sep a sign-in replaced the persona switcher and the passwords built into it, and the invented operator personas, station telemetry and AI-generated photos went — see [`docs/frontend-handover.md`](docs/frontend-handover.md). |
 
 **The honest one-liner:** the spine works and is honest — *a citizen report travels REST → Kafka →
 dedup → spatial clustering → deterministic confidence scoring (with real Open-Meteo rainfall, read
