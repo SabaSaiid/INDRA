@@ -11,7 +11,7 @@ export type TempUnit = 'celsius' | 'fahrenheit';
 export type WindUnit = 'kmh' | 'knots' | 'ms';
 export type RainUnit = 'mm' | 'inches';
 export type PressureUnit = 'hpa' | 'mbar' | 'inhg';
-export type CoordFormat = 'dd' | 'dms' | 'mgrs';
+export type CoordFormat = 'dd' | 'dms';
 export type TimezoneMode = 'ist' | 'utc';
 export type ThemeMode = 'dark' | 'light' | 'high_contrast';
 export type UiDensity = 'compact' | 'standard';
@@ -209,54 +209,9 @@ export function playAlertSound(pattern: SirenPattern = 'warble_fast', volume = 0
   }
 }
 
-// ==============================================================================
-// Unit Formatting & Conversion Utilities
-// ==============================================================================
-export function formatTemperature(celsius: number, unit: TempUnit = 'celsius'): string {
-  if (unit === 'fahrenheit') {
-    const f = (celsius * 9) / 5 + 32;
-    return `${f.toFixed(1)}°F`;
-  }
-  return `${celsius.toFixed(1)}°C`;
-}
-
-export function formatWindSpeed(kmh: number, unit: WindUnit = 'kmh'): string {
-  if (unit === 'knots') {
-    return `${(kmh * 0.539957).toFixed(0)} kt`;
-  }
-  if (unit === 'ms') {
-    return `${(kmh / 3.6).toFixed(1)} m/s`;
-  }
-  return `${kmh.toFixed(0)} km/h`;
-}
-
-export function formatRainfall(mm: number, unit: RainUnit = 'mm'): string {
-  if (unit === 'inches') {
-    return `${(mm / 25.4).toFixed(2)} in`;
-  }
-  return `${mm.toFixed(1)} mm`;
-}
-
-export function formatCoordinates(lat: number, lng: number, format: CoordFormat = 'dd'): string {
-  if (format === 'dms') {
-    const latDir = lat >= 0 ? 'N' : 'S';
-    const lngDir = lng >= 0 ? 'E' : 'W';
-    const latAbs = Math.abs(lat);
-    const lngAbs = Math.abs(lng);
-    const latDeg = Math.floor(latAbs);
-    const latMin = Math.floor((latAbs - latDeg) * 60);
-    const latSec = Math.round(((latAbs - latDeg) * 60 - latMin) * 60);
-    const lngDeg = Math.floor(lngAbs);
-    const lngMin = Math.floor((lngAbs - lngDeg) * 60);
-    const lngSec = Math.round(((lngAbs - lngDeg) * 60 - lngMin) * 60);
-    return `${latDeg}°${latMin}'${latSec}"${latDir}, ${lngDeg}°${lngMin}'${lngSec}"${lngDir}`;
-  }
-  if (format === 'mgrs') {
-    // Tactical grid approximate format for disaster ops
-    const zone = Math.floor((lng + 180) / 6) + 1;
-    return `${zone}R ${Math.abs(Math.round(lat * 1000)).toString().slice(0, 5)} ${Math.abs(Math.round(lng * 1000)).toString().slice(0, 5)}`;
-  }
-  return `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`;
+/** A stored 'mgrs' (an option removed 25 Sep) or any unknown format reads as decimal degrees. */
+function withKnownCoordFormat(s: IndraSettings): IndraSettings {
+  return s.coordFormat === 'dd' || s.coordFormat === 'dms' ? s : { ...s, coordFormat: 'dd' };
 }
 
 // ==============================================================================
@@ -268,7 +223,7 @@ export function useSettings() {
     try {
       const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (stored) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+        return withKnownCoordFormat({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
       }
     } catch {
       // Fallback
@@ -281,11 +236,11 @@ export function useSettings() {
     (newSettings: Partial<IndraSettings> | ((prev: IndraSettings) => Partial<IndraSettings>)) => {
       setSettingsState((prev) => {
         const patch = typeof newSettings === 'function' ? newSettings(prev) : newSettings;
-        const merged: IndraSettings = {
+        const merged: IndraSettings = withKnownCoordFormat({
           ...prev,
           ...patch,
           lastSavedAt: new Date().toISOString(),
-        };
+        });
 
         try {
           localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(merged));
@@ -322,7 +277,7 @@ export function useSettings() {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === SETTINGS_STORAGE_KEY && e.newValue) {
         try {
-          setSettingsState(JSON.parse(e.newValue));
+          setSettingsState(withKnownCoordFormat({ ...DEFAULT_SETTINGS, ...JSON.parse(e.newValue) }));
         } catch {
           // ignore
         }

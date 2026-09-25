@@ -43,10 +43,6 @@ import {
   type TimezoneMode,
   type ThemeMode,
   type RefreshInterval,
-  formatTemperature,
-  formatWindSpeed,
-  formatRainfall,
-  formatCoordinates,
 } from '@/lib/useSettings';
 import { cn } from '@/lib/utils';
 
@@ -114,10 +110,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
   const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: 'map', label: 'Tactical Map', icon: Globe },
-    { key: 'alerts', label: 'Audio & Siren', icon: Volume2 },
+    { key: 'alerts', label: 'Audio & Refresh', icon: Volume2 },
     { key: 'units', label: 'Units & Grid', icon: Gauge },
     { key: 'hud', label: 'Command HUD', icon: Sliders },
-    { key: 'network', label: 'Field Network', icon: Wifi },
+    { key: 'network', label: 'Data Source', icon: Wifi },
     { key: 'system', label: 'Backup & Reset', icon: Shield },
   ];
 
@@ -166,7 +162,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    Tactical HUD Calibration • SIH26069
+                    Saved only in this browser • SIH26069
                   </p>
                 </div>
               </div>
@@ -331,7 +327,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 </div>
               )}
 
-              {/* TAB 2: ALERTS & SIREN AUDIO */}
+              {/* TAB 2: AUDIO BEACON & REFRESH */}
               {activeTab === 'alerts' && (
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-gradient-to-br from-[#B5482E]/15 to-white/[0.02] border border-[#B5482E]/30">
@@ -340,10 +336,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         <Volume2 className="w-5 h-5 text-[#F97316]" />
                         <div>
                           <h4 className="text-xs font-bold text-white uppercase font-mono">
-                            Emergency Siren Audio
+                            Audio Beacon
                           </h4>
                           <p className="text-[10px] text-slate-400">
-                            Synthesized tone for critical flash flood &amp; cyclone events
+                            INDRA issues no alerts, so only the test below plays this tone
                           </p>
                         </div>
                       </div>
@@ -366,7 +362,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     {/* Volume Slider */}
                     <div className="space-y-1.5 mt-2">
                       <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                        <span>Audio Siren Volume</span>
+                        <span>Beacon Volume</span>
                         <span className="font-bold text-[#F97316]">{Math.round(settings.alertVolume * 100)}%</span>
                       </div>
                       <input
@@ -395,7 +391,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         )}
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
-                        {isPlayingAudio ? 'Sounding Siren...' : 'Test Siren Audio'}
+                        {isPlayingAudio ? 'Playing…' : 'Test Tone'}
                       </button>
                     </div>
                   </div>
@@ -403,7 +399,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   {/* Siren Sound Pattern */}
                   <div>
                     <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
-                      Siren Pattern Style
+                      Tone Pattern
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                       {[
@@ -448,7 +444,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         { id: 'ALL', label: 'All Incidents', desc: 'Low, Moderate & Critical' },
                         { id: 'MODERATE_PLUS', label: 'Moderate & Above', desc: 'Exclude minor warnings' },
                         { id: 'HIGH_PLUS', label: 'High & Critical', desc: 'Severe hazard bulletins' },
-                        { id: 'CRITICAL_ONLY', label: 'Critical Only', desc: 'Immediate flash floods/cyclones' },
+                        { id: 'CRITICAL_ONLY', label: 'Critical Only', desc: 'Critical severity only' },
                       ].map((sev) => {
                         const isSelected = settings.minSeverityThreshold === sev.id;
                         return (
@@ -473,7 +469,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   {/* Auto-Refresh Rate */}
                   <div>
                     <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
-                      Telemetry Polling Interval
+                      Refresh Interval
                     </h3>
                     <div className="grid grid-cols-4 gap-1.5 font-mono text-xs">
                       {[
@@ -506,36 +502,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {/* TAB 3: UNITS & GRID */}
               {activeTab === 'units' && (
                 <div className="space-y-4">
-                  {/* Live Conversion Preview Card */}
-                  <div className="p-3.5 rounded-xl bg-white/[0.05] border border-white/10">
-                    <p className="text-[10px] font-mono uppercase text-[#F97316] font-bold mb-2">
-                      Live Telemetry Output Sample
-                    </p>
-                    <div className="grid grid-cols-3 gap-2 font-mono text-center">
-                      <div className="bg-black/30 p-2 rounded-lg border border-white/10">
-                        <span className="text-[9px] text-slate-400 block">Temperature</span>
-                        <span className="text-sm font-bold text-amber-400">
-                          {formatTemperature(32.4, settings.tempUnit)}
-                        </span>
-                      </div>
-                      <div className="bg-black/30 p-2 rounded-lg border border-white/10">
-                        <span className="text-[9px] text-slate-400 block">Wind Velocity</span>
-                        <span className="text-sm font-bold text-sky-400">
-                          {formatWindSpeed(68, settings.windUnit)}
-                        </span>
-                      </div>
-                      <div className="bg-black/30 p-2 rounded-lg border border-white/10">
-                        <span className="text-[9px] text-slate-400 block">Precipitation</span>
-                        <span className="text-sm font-bold text-blue-400">
-                          {formatRainfall(85.5, settings.rainUnit)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-center text-[10px] font-mono text-slate-400">
-                      Coordinates: <span className="text-emerald-400 font-semibold">{formatCoordinates(25.5941, 85.1376, settings.coordFormat)}</span>
-                    </div>
-                  </div>
-
                   {/* Temperature Unit */}
                   <div>
                     <h4 className="text-xs font-mono font-bold text-slate-400 uppercase mb-2">
@@ -604,9 +570,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     </h4>
                     <div className="space-y-1.5">
                       {[
-                        { id: 'dd', label: 'Decimal Degrees', sample: '25.5941° N, 85.1376° E' },
-                        { id: 'dms', label: 'Degrees Minutes Seconds (DMS)', sample: '25°35\'38"N, 85°08\'15"E' },
-                        { id: 'mgrs', label: 'Military Grid Reference (MGRS)', sample: '45R 25594 85137' },
+                        { id: 'dd', label: 'Decimal Degrees', sample: 'dd.dddd° N, ddd.dddd° E' },
+                        { id: 'dms', label: 'Degrees Minutes Seconds (DMS)', sample: 'dd°mm\'ss"N, ddd°mm\'ss"E' },
                       ].map((cf) => {
                         const isSelected = settings.coordFormat === cf.id;
                         return (
@@ -778,12 +743,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 </div>
               )}
 
-              {/* TAB 5: FIELD NETWORK & DATA SAVER */}
+              {/* TAB 5: DATA SOURCE */}
               {activeTab === 'network' && (
                 <div className="space-y-4">
-                  {/* A "satellite data saver", a "~6.4 MB" tile-cache meter with a
-                      purge button, and a live-vs-simulated source switch used to sit
-                      here. None of them was read by anything. */}
+                  {/* Removed 22 Sep: a data-saver switch, a tile-cache meter and a source switch that nothing read. */}
                   <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10">
                     <p className="text-xs font-semibold text-white">Data source</p>
                     <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
@@ -802,7 +765,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       Operator Preferences Backup
                     </h4>
                     <p className="text-xs text-slate-400">
-                      Export your configured GIS presets, alert thresholds, and units into a JSON configuration file.
+                      Save these preferences to a JSON file, or load a file saved from another browser.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
                       <button
@@ -833,12 +796,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       FACTORY DEFAULTS RESET
                     </div>
                     <p className="text-xs text-slate-400">
-                      Reverts all GIS basemaps, audio alarms, measurement units, and telemetry rates to the initial INDRA specification.
+                      Restores the default for every preference here, in this browser.
                     </p>
                     <button
                       onClick={() => {
                         resetSettings();
-                        showToast('All settings reset to factory defaults');
+                        showToast('All settings reset to defaults');
                       }}
                       className="mt-2 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#8C2F26]/30 hover:bg-[#8C2F26]/60 text-rose-200 border border-[#8C2F26]/50 text-xs font-mono font-semibold transition-colors shadow-sm"
                     >
@@ -853,7 +816,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             {/* Footer Quick Action */}
             <div className="p-3 border-t border-white/10 bg-black/30 flex items-center justify-between text-xs shrink-0">
               <span className="text-[11px] text-slate-400 font-mono">
-                Auto-saved to local memory
+                Saved in this browser only
               </span>
               <Link
                 href="/settings"
