@@ -117,7 +117,6 @@ ${BOLD}COMMANDS:${RESET}
   ${GREEN}setup${RESET}                  Create virtualenv and install backend + frontend dependencies
   ${GREEN}infra${RESET} [up|down|ps|logs] Manage PostGIS, Redis & Redpanda Docker services
   ${GREEN}doctor${RESET}                 Run comprehensive environment and dependency diagnostics
-  ${GREEN}demo${RESET}                   Execute 10-Scene Patna flood verification simulation
   ${GREEN}test${RESET}                   Run automated health check and API verification probes
   ${GREEN}logs${RESET} [-n <lines>]       Stream live backend server logs (tail -f)
   ${GREEN}clean${RESET}                  Purge temporary cache files, .pyc, logs, and PID files
@@ -142,9 +141,6 @@ ${BOLD}EXAMPLES:${RESET}
 
   ${DIM}# Run system diagnostics and Docker container checks${RESET}
   ./start.sh doctor
-
-  ${DIM}# Run the 10-Scene SIH Patna Verification Narrative${RESET}
-  ./start.sh demo
 
   ${DIM}# Start in background, verify status, and stream logs${RESET}
   ./start.sh bg
@@ -876,18 +872,6 @@ cmd_doctor() {
     echo ""
 }
 
-# --- Subcommand: demo ---
-cmd_demo() {
-    detect_python
-    local demo_script="$SCRIPTS_DIR/run_patna_demo.py"
-    if [[ ! -f "$demo_script" ]]; then
-        echo "${RED}✘ Demo script not found at $demo_script${RESET}"
-        exit 1
-    fi
-
-    "$PYTHON_CMD" "$demo_script"
-}
-
 # --- Subcommand: test ---
 cmd_test() {
     print_banner
@@ -1049,7 +1033,7 @@ cmd_clean() {
 # --- Argument Parsing ---
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|demo|test|logs|clean|help)
+        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|test|logs|clean|help)
             COMMAND="$1"
             shift
             if [[ "$COMMAND" == "infra" && $# -gt 0 && ! "$1" =~ ^- ]]; then
@@ -1145,9 +1129,6 @@ case "$COMMAND" in
         ;;
     doctor)
         cmd_doctor
-        ;;
-    demo)
-        cmd_demo
         ;;
     test)
         cmd_test

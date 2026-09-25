@@ -5,7 +5,7 @@
 # ==============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help dev start bg stop restart status setup infra-up infra-down infra-status doctor demo test test-integration smoke logs clean
+.PHONY: help dev start bg stop restart status setup infra-up infra-down infra-status doctor test test-integration smoke logs clean
 
 help:
 	@./start.sh help
@@ -45,9 +45,6 @@ infra-ps:
 
 doctor:
 	@./start.sh doctor
-
-demo:
-	@./start.sh demo
 
 # Backend pytest suites. Both run against the `indra_test` database (see
 # backend/tests/conftest.py), never the dev database.
