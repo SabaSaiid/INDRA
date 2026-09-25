@@ -535,17 +535,18 @@ make e2e           # terminal 2: cd frontend && E2E_API_URL=http://localhost:810
 make e2e-reset     # drop and recreate indra_e2e
 ```
 
-The E2E backend runs with `ENVIRONMENT=e2e` on its own database, `indra.e2e.*` topics, consumer
-group and Redis db, with every poller and the lake off, and gives each account the password in
-`E2E_OPERATOR_PASSWORD` (its default lives in `start.sh` and exists only in `indra_e2e`). Playwright
-refuses to run unless `E2E_API_URL` is set, is a loopback host and not port 8000, its
-`/api/e2e/identity` says `environment: e2e` with a database ending in `_e2e` and equal to
-`E2E_EXPECT_DB`, and `/healthz` reports the database up; any other backend answers that route with a
-`404`. It builds the dashboard with `NEXT_PUBLIC_API_BASE_URL=$E2E_API_URL` into `.next-e2e`
-(`NEXT_DIST_DIR`) and serves it on `:3100`, so your `.next` and `:3000` are untouched. The sign-in
-specs use the account `commander` and that password. `e2e/no-invented-data.spec.ts` now also bans
-the removed persona, role-switcher, telemetry and grid strings; if a real feature later needs one of
-them, update the list in the same commit.
+The E2E backend runs with `ENVIRONMENT=e2e` and will not start unless its database ends in `_e2e`,
+its topics start with `indra.e2e.`, its consumer group with `indra-e2e-`, and the lake archive is
+off. It uses Redis db 15 with every poller off, and gives each account the password in
+`E2E_OPERATOR_PASSWORD` (its default lives in `start.sh` and exists only in `indra_e2e`;
+`e2e/env.ts` reads the same variable for any spec that signs in). Playwright refuses to run unless
+`E2E_API_URL` is set, is a loopback host and not port 8000, its `/api/e2e/identity` says
+`environment: e2e` with a database ending in `_e2e` and equal to `E2E_EXPECT_DB` and the E2E topic
+and consumer group, and `/healthz` reports the database up; any other backend answers that route
+with a `404`. It builds the dashboard with `NEXT_PUBLIC_API_BASE_URL=$E2E_API_URL` into `.next-e2e`
+(`NEXT_DIST_DIR`), serves it on `:3100` and never reuses a running server, so your `.next` and
+`:3000` are untouched. If a real feature later needs one of the strings
+`e2e/no-invented-data.spec.ts` bans, update its list in the same commit.
 
 ---
 
