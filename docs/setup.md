@@ -1,7 +1,8 @@
 # INDRA — Setup
 
 **What this is:** how to get the stack running from a fresh clone. Verified end to end on
-21 Sep 2026; migration head, health gate and test counts re-checked 22 Sep.
+21 Sep 2026; migration head and health gate re-checked 22 Sep. Updated 25 Sep: operator
+accounts and their passwords, the disposable E2E backend, and no demo mode.
 
 If you only want to *run the demo*, this page plus [`demo-runbook.md`](demo-runbook.md) is
 everything.
@@ -172,13 +173,14 @@ unset PW             # forget it again
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                        # 948 passed, 2 skipped
+.venv/bin/pytest -q                                        # everything; needs docker compose up
 .venv/bin/pytest -q -m "not integration"                   # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```
 
-The suite runs against its own **`indra_test`** database and cannot touch your development data.
-It creates it if missing.
+The suite runs against its own **`indra_test`** database and cannot touch your development data:
+it refuses to run against `indra_db`, creates `indra_test` if missing, and gives the accounts there
+passwords of its own that exist nowhere else.
 
 ---
 
@@ -208,16 +210,38 @@ is the real one, and a test report there is fabricated data in the audit trail.
 
 ## 6. Frontend
 
-Owned by the rest of the team. (On 22 Sep, on request, the backend side fixed a list of defects
-in it; they are written up in [`frontend-handover.md`](frontend-handover.md).)
+Owned by the rest of the team. (On 22 and 25 Sep, on request, the backend side fixed defects in
+it; they are written up in [`frontend-handover.md`](frontend-handover.md).)
 
 ```bash
 cd frontend && npm install && npm run dev      # http://localhost:3000
-
-# production build and the browser tests (backend on :8000 first)
-npm run build                                  # type check + lint + build
-npx playwright test                            # 26 tests, serves the build on :3000
+npm run build                                  # production build: type check + lint + build
 ```
+
+**The browser tests never touch the development stack.** They run against a disposable backend,
+from the repo root, in two terminals:
+
+```bash
+make e2e-backend     # terminal 1: backend on 127.0.0.1:8100, database indra_e2e
+make e2e             # terminal 2: builds the dashboard into .next-e2e, serves it on :3100, runs Playwright
+make e2e-reset       # afterwards, if you want indra_e2e empty again
+```
+
+`make e2e-backend` (`./start.sh e2e-backend`) creates `indra_e2e` with PostGIS if it is missing,
+migrates it to head, gives every account there the password in `E2E_OPERATOR_PASSWORD` (start.sh
+has a default that only ever exists in that database), and starts the API with `ENVIRONMENT=e2e`
+on its own Kafka topics (`indra.e2e.*`), consumer group, Redis database (15) and media bucket,
+with every poller and the lake archive off. In that mode the backend refuses to start unless its
+database name ends in `_e2e`, its topics start with `indra.e2e.` and its consumer group with
+`indra-e2e-`, and it answers `GET /api/e2e/identity`; in every other mode that route is a `404`.
+
+Playwright refuses to run unless `E2E_API_URL` is set to a loopback address that is not port
+8000, `/api/e2e/identity` reports `environment: "e2e"` and a database ending in `_e2e` equal to
+`E2E_EXPECT_DB` (default `indra_e2e`), and `/healthz` reports the database up. It builds the
+dashboard with `NEXT_PUBLIC_API_BASE_URL` pointed at that backend, into `.next-e2e` so the
+development build is left alone. **The specs cannot write into `indra_db`.** `make e2e-reset`
+(`./start.sh e2e-reset`) drops and recreates `indra_e2e`, and refuses any name that does not end
+in `_e2e`.
 
 The backend's CORS list defaults to `http://localhost:3000` and `http://127.0.0.1:3000`. If you
 serve the dashboard from anywhere else, add it to `CORS_ORIGINS` in `.env` — it is an explicit
@@ -229,7 +253,9 @@ list, not a wildcard.
 
 **Run one backend process.** WebSocket fan-out is an in-process list, the station poller has no
 leader election, and two consumers against one broker will re-deliver reports. This is a deliberate
-limit of a demo stack, not a bug to work around.
+limit of this single-server deployment, not a bug to work around. The E2E backend on `:8100` is
+not a second one: it has its own database, topics, consumer group and Redis database, and its
+pollers are off.
 
 **A shared remote server exists** — the full stack also runs on a dedicated cloud box in
 `ap-south-1`, with the project at `/opt/indra`. Its address, instance identifiers and SSH key are
