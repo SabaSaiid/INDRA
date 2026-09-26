@@ -38,6 +38,7 @@ import csv
 import random
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -123,7 +124,8 @@ async def _fetch(since: str):
     engine = create_async_engine(get_settings().DATABASE_URL, echo=False)
     try:
         async with engine.connect() as conn:
-            result = await conn.execute(text(QUERY), {"since": since})
+            # asyncpg binds a timestamptz from a datetime, never from a string.
+            result = await conn.execute(text(QUERY), {"since": datetime.fromisoformat(since)})
             return [
                 {"id": str(r[0]), "source_type": r[1], "platform": r[2], "publisher": r[3], "language": r[4],
                  "text": r[5], "url": r[6]}
