@@ -764,7 +764,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 variants={navRailVariants}
                 initial="hidden"
                 animate="visible"
-                className="w-[56px] shrink-0 flex flex-col py-2 border-r border-white/[0.07] bg-black/35 select-none"
+                className="w-[60px] shrink-0 flex flex-col py-2 border-r border-white/[0.07] bg-black/35 select-none"
               >
                 {TAB_GROUPS.map((group, gi) => (
                   <React.Fragment key={gi}>
@@ -773,7 +773,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.key && !searchQuery;
                       return (
-                        <div key={tab.key} className="relative px-1 my-0.5">
+                        <div key={tab.key} className="relative px-1.5 my-0.5">
                           <motion.button
                             variants={navItemVariants}
                             whileHover={{ scale: 1.05 }}
@@ -785,19 +785,17 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                               isActive ? 'text-[#F97316]' : 'text-slate-400 hover:text-white',
                             )}
                           >
-                            {/* Unified tactile active pill */}
+                            {/* Unified tactile active pill (clean highlight with zero text overlap) */}
                             {isActive && (
                               <motion.div
                                 layoutId="nav-active-pill"
-                                className="absolute inset-0 rounded-xl bg-[#B5482E]/20 border border-[#B5482E]/50 shadow-[0_0_12px_rgba(181,72,46,0.25)]"
+                                className="absolute inset-0 rounded-xl bg-gradient-to-b from-[#B5482E]/25 to-[#B5482E]/15 border border-[#B5482E]/55 shadow-[0_0_12px_rgba(181,72,46,0.25)]"
                                 transition={{ type: 'spring', stiffness: 450, damping: 32 }}
-                              >
-                                <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-[#F97316]" />
-                              </motion.div>
+                              />
                             )}
 
                             <Icon className="w-[17px] h-[17px] relative z-10" />
-                            <span className={cn('text-[9px] font-semibold tracking-wide relative z-10', isActive ? 'text-[#F97316]' : 'text-slate-400')}>
+                            <span className={cn('text-[9px] font-semibold tracking-tight relative z-10', isActive ? 'text-[#F97316]' : 'text-slate-400')}>
                               {tab.shortLabel}
                             </span>
                           </motion.button>
