@@ -190,12 +190,18 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             <div className="flex items-center gap-0.5 bg-[#F0EBE0]/60 p-0.5 rounded-lg border border-[#E8E2D4]">
               <NotificationPopover />
               <button
-                onClick={() => setSettingsOpen(true)}
-                className="w-8 h-8 rounded-md flex items-center justify-center text-[#7A8599] hover:text-ink hover:bg-[#FDFAF5] transition-colors focus:outline-none focus:ring-1 focus:ring-[#B5482E]/30"
+                onClick={() => setSettingsOpen((prev) => !prev)}
+                className={cn(
+                  "w-8 h-8 rounded-md flex items-center justify-center transition-all focus:outline-none focus:ring-1 focus:ring-[#B5482E]/30 relative",
+                  settingsOpen
+                    ? "bg-[#B5482E]/15 text-[#B5482E] ring-1 ring-[#B5482E]/30 shadow-sm"
+                    : "text-[#7A8599] hover:text-ink hover:bg-[#FDFAF5]"
+                )}
                 aria-label="Platform Settings"
+                aria-expanded={settingsOpen}
                 title="System Settings & HUD Preferences (⌘,)"
               >
-                <Settings className="w-4 h-4 transition-transform duration-300 hover:rotate-45" />
+                <Settings className={cn("w-4 h-4 transition-transform duration-300", settingsOpen ? "rotate-90 text-[#B5482E]" : "hover:rotate-45")} />
               </button>
             </div>
 
