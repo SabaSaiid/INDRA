@@ -65,9 +65,29 @@ async def db():
 
 
 async def insert_report(db, lat, lng, body, when=None) -> uuid.UUID:
-    """Insert a report the way api/reports.py does, and return its id."""
+    """
+    Insert a report the way api/reports.py does, and return its id.
+
+    Since Phase 3 the pipeline reads what ingest derives from the text (the
+    tagged hazard, the flags, the credibility), so they are written here from
+    ingest's own `derive_text_fields`. A bare row would be an untagged report
+    with no credibility: an UNCLASSIFIED event that counts no witnesses, which
+    no report stored through the API can be.
+    """
+    import json
+
+    from app.services.ingest import derive_text_fields
+
     rid = uuid.uuid4()
-    params = {"id": str(rid), "t": body, "lat": lat, "lng": lng}
+    derived = derive_text_fields("CITIZEN_APP", body, rid)
+    params = {
+        "id": str(rid), "t": body, "lat": lat, "lng": lng,
+        "analysis": json.dumps(derived["analysis"]) if derived["analysis"] is not None else None,
+        "hazard_primary": derived["hazard_primary"],
+        "hazard_family": derived["hazard_family"],
+        "flags": derived["flags"],
+        "credibility": derived["credibility"],
+    }
     when_sql = "NOW()"
     if when is not None:
         when_sql = ":created_at"
@@ -75,9 +95,12 @@ async def insert_report(db, lat, lng, body, when=None) -> uuid.UUID:
     await db.execute(
         text(f"""
             INSERT INTO raw_reports
-                (id, source_type, raw_text, latitude, longitude, geom_point, created_at)
+                (id, source_type, raw_text, latitude, longitude, geom_point, created_at,
+                 analysis, hazard_primary, hazard_family, flags, credibility_score)
             VALUES (:id, 'CITIZEN_APP', :t, :lat, :lng,
-                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), {when_sql})
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), {when_sql},
+                    CAST(:analysis AS jsonb), :hazard_primary, :hazard_family,
+                    CAST(:flags AS text[]), :credibility)
         """),
         params,
     )
