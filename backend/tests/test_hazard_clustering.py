@@ -317,6 +317,8 @@ async def test_a_commanders_type_survives_later_reports(db, api, monkeypatch):
     assert basis["override"]["event_type"] == "FOG"
     assert basis["override"]["machine_vote"] == "URBAN_FLOOD"
     assert basis["votes"]["URBAN_FLOOD"] == 5
+    # The re-score under the commander's type keeps PR #39's ML block (BUG-101).
+    assert "ml_event_grouping" in after["verification_receipt"]
 
     ledger = (await db.execute(text("""
         SELECT details FROM audit_logs
