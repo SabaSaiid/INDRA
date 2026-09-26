@@ -30,11 +30,10 @@ import {
   ArrowRight,
   Search,
   Copy,
-  Activity,
   Compass,
   Zap,
   Clock,
-  Radio,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   useSettings,
@@ -56,7 +55,7 @@ import {
 } from '@/lib/useSettings';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { SUPPORTED_LANGUAGES } from '@/lib/i18n/types';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/lib/i18n/types';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -77,24 +76,24 @@ const TAB_GROUPS: { groupLabel: string; tabs: TabItem[] }[] = [
   {
     groupLabel: 'Core',
     tabs: [
-      { key: 'general', label: 'General Settings', shortLabel: 'General', icon: Sliders, hotkey: '1' },
+      { key: 'general', label: 'General Overview', shortLabel: 'General', icon: SlidersHorizontal, hotkey: '1' },
     ],
   },
   {
     groupLabel: 'GIS & Environment',
     tabs: [
-      { key: 'map', label: 'Map & GIS', shortLabel: 'Map', icon: Globe, hotkey: '2' },
-      { key: 'alerts', label: 'Audio Alarms', shortLabel: 'Audio', icon: Volume2, hotkey: '3' },
-      { key: 'units', label: 'Units & Metrics', shortLabel: 'Units', icon: Gauge, hotkey: '4' },
-      { key: 'hud', label: 'HUD & Style', shortLabel: 'Style', icon: Layers, hotkey: '5' },
+      { key: 'map', label: 'Map & GIS Layers', shortLabel: 'Map', icon: Globe, hotkey: '2' },
+      { key: 'alerts', label: 'Emergency Siren', shortLabel: 'Audio', icon: Volume2, hotkey: '3' },
+      { key: 'units', label: 'Units & Coordinates', shortLabel: 'Units', icon: Gauge, hotkey: '4' },
+      { key: 'hud', label: 'HUD & Styling', shortLabel: 'Style', icon: Layers, hotkey: '5' },
     ],
   },
   {
     groupLabel: 'Ops & Comms',
     tabs: [
-      { key: 'notifications', label: 'Alert Delivery', shortLabel: 'Alerts', icon: Bell, hotkey: '6' },
+      { key: 'notifications', label: 'Alert Broadcasts', shortLabel: 'Notify', icon: Bell, hotkey: '6' },
       { key: 'security', label: 'Security & Access', shortLabel: 'Access', icon: Lock, hotkey: '7' },
-      { key: 'network', label: 'Live Network', shortLabel: 'Net', icon: Wifi, hotkey: '8' },
+      { key: 'network', label: 'Live Network Engine', shortLabel: 'Network', icon: Wifi, hotkey: '8' },
     ],
   },
   {
@@ -164,7 +163,7 @@ const panelVariants = {
 
 const navRailVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.025, delayChildren: 0.08 } },
+  visible: { transition: { staggerChildren: 0.02, delayChildren: 0.06 } },
 };
 
 const navItemVariants = {
@@ -180,9 +179,9 @@ function TabContent({ tabKey, direction, children }: { tabKey: string; direction
       <motion.div
         key={tabKey}
         custom={direction}
-        initial={{ y: direction * 14, opacity: 0, filter: 'blur(3px)' }}
-        animate={{ y: 0, opacity: 1, filter: 'blur(0px)', transition: { type: 'spring', damping: 24, stiffness: 280 } }}
-        exit={{ y: direction * -14, opacity: 0, filter: 'blur(3px)', transition: { duration: 0.12 } }}
+        initial={{ y: direction * 12, opacity: 0, filter: 'blur(2px)' }}
+        animate={{ y: 0, opacity: 1, filter: 'blur(0px)', transition: { type: 'spring', damping: 25, stiffness: 290 } }}
+        exit={{ y: direction * -12, opacity: 0, filter: 'blur(2px)', transition: { duration: 0.1 } }}
         className="space-y-4 pb-2"
       >
         {children}
@@ -191,7 +190,7 @@ function TabContent({ tabKey, direction, children }: { tabKey: string; direction
   );
 }
 
-// ── Reusable Micro-Components ────────────────────────────────────────────────
+// ── Unified SelectCard (Consistent indicator across all settings) ─────────────
 
 function SelectCard({
   isSelected,
@@ -207,22 +206,25 @@ function SelectCard({
   return (
     <motion.button
       type="button"
-      whileHover={{ y: -2, scale: 1.015 }}
+      whileHover={{ y: -1.5, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 450, damping: 26 }}
       onClick={onClick}
       className={cn(
-        'relative text-left p-2.5 rounded-xl border transition-all text-xs outline-none select-none',
+        'relative text-left p-2.5 rounded-xl border transition-all text-xs outline-none select-none flex flex-col justify-between',
         isSelected
-          ? 'bg-gradient-to-br from-[#B5482E]/20 to-white/[0.04] border-[#B5482E]/80 shadow-[0_0_0_1px_rgba(181,72,46,0.6),0_4px_18px_rgba(181,72,46,0.18)]'
-          : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/[0.08] hover:border-white/20 text-slate-300',
+          ? 'bg-gradient-to-br from-[#B5482E]/22 to-[#F97316]/05 border-[#B5482E] shadow-[0_0_0_1px_rgba(181,72,46,0.5),0_4px_16px_rgba(181,72,46,0.18)] text-white'
+          : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08] hover:border-white/20 text-slate-300',
         className,
       )}
     >
+      {/* Unified top-right check badge */}
       {isSelected && (
-        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#F97316] shadow-[0_0_6px_#F97316]" />
+        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#B5482E] flex items-center justify-center text-white shadow-sm shrink-0">
+          <Check className="w-2.5 h-2.5 stroke-[3]" />
+        </span>
       )}
-      {children}
+      <div className={cn('w-full', isSelected && 'pr-5')}>{children}</div>
     </motion.button>
   );
 }
@@ -324,28 +326,33 @@ function ToggleRow({
 // ── Interactive Widgets ───────────────────────────────────────────────────────
 
 function AudioWaveformVisualizer({ isPlaying }: { isPlaying: boolean }) {
-  const bars = [35, 70, 95, 60, 100, 85, 40, 90, 65, 80, 50, 75];
+  const bars = [35, 75, 95, 60, 100, 85, 40, 90, 65, 80, 50, 75, 45, 90, 60, 85];
   return (
-    <div className="flex items-center gap-1 h-6 px-2.5 bg-black/40 rounded-lg border border-white/10">
-      {bars.map((h, i) => (
-        <motion.span
-          key={i}
-          className="w-1 rounded-full bg-gradient-to-t from-[#B5482E] to-[#F97316]"
-          animate={
-            isPlaying
-              ? {
-                  height: [`${Math.max(20, h * 0.3)}%`, `${h}%`, `${Math.max(20, h * 0.4)}%`],
-                  opacity: [0.6, 1, 0.7],
-                }
-              : { height: '22%', opacity: 0.35 }
-          }
-          transition={{
-            repeat: isPlaying ? Infinity : 0,
-            duration: 0.35 + (i % 3) * 0.12,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
+    <div className="w-full flex items-center justify-between h-7 px-3 bg-black/50 rounded-lg border border-white/10">
+      <div className="flex items-center gap-1 h-full py-1">
+        {bars.map((h, i) => (
+          <motion.span
+            key={i}
+            className="w-1 rounded-full bg-gradient-to-t from-[#B5482E] to-[#F97316]"
+            animate={
+              isPlaying
+                ? {
+                    height: [`${Math.max(20, h * 0.25)}%`, `${h}%`, `${Math.max(20, h * 0.35)}%`],
+                    opacity: [0.6, 1, 0.7],
+                  }
+                : { height: '22%', opacity: 0.3 }
+            }
+            transition={{
+              repeat: isPlaying ? Infinity : 0,
+              duration: 0.3 + (i % 4) * 0.08,
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+      </div>
+      <span className={cn('text-[9px] font-mono uppercase font-bold', isPlaying ? 'text-[#F97316] animate-pulse' : 'text-slate-500')}>
+        {isPlaying ? '● 850Hz DUAL-SWEEP SOUNDING' : 'IDLE READY'}
+      </span>
     </div>
   );
 }
@@ -380,7 +387,7 @@ function CoordinateMatrixCard({
         <span className="flex items-center gap-1.5 text-[#F97316] font-bold uppercase">
           <Compass className="w-3.5 h-3.5" /> Live Reference Matrix (New Delhi HQ)
         </span>
-        <span className="text-[9px] text-slate-500">Tap to copy</span>
+        <span className="text-[9px] text-slate-500">Tap format to copy</span>
       </div>
 
       <div className="grid grid-cols-1 gap-1.5 text-xs font-mono">
@@ -464,7 +471,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   const { language: currentLang, setLanguage: changeLang } = useTranslation();
   const { settings, updateSettings, resetSettings, testAlarm } = useSettings();
 
-  // DEFAULT TAB IS NOW 'general'
   const [activeTab, setActiveTab] = useState<TabKey>('general');
   const [direction, setDirection] = useState(1);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -473,9 +479,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Rail tooltip hover state
-  const [hoveredTab, setHoveredTab] = useState<TabKey | null>(null);
 
   // Reset confirmation safety state
   const [resetConfirming, setResetConfirming] = useState(false);
@@ -603,6 +606,16 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     ? Volume1
     : Volume2;
 
+  // Primary languages for General tab quick-picker
+  const primaryLanguages: { code: SupportedLanguage; label: string; native: string }[] = [
+    { code: 'en', label: 'English', native: 'English' },
+    { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
+    { code: 'bn', label: 'Bengali', native: 'বাংলা' },
+    { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
+    { code: 'te', label: 'Telugu', native: 'తెలుగు' },
+    { code: 'mr', label: 'Marathi', native: 'मराठी' },
+  ];
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -616,7 +629,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             onClick={onClose}
             className="fixed inset-0 z-50"
             style={{
-              background: 'radial-gradient(ellipse 70% 100% at 100% 50%, rgba(3, 7, 18, 0.85) 0%, rgba(0, 0, 0, 0.5) 100%)',
+              background: 'radial-gradient(ellipse 70% 100% at 100% 50%, rgba(3, 7, 18, 0.85) 0%, rgba(0, 0, 0, 0.55) 100%)',
               backdropFilter: 'blur(8px)',
             }}
           />
@@ -630,13 +643,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             className="fixed right-0 top-0 h-screen z-50 flex flex-col overflow-hidden text-slate-200"
             style={{
               width: 'min(520px, 100vw)',
-              background: 'linear-gradient(165deg, rgba(16, 24, 38, 0.97) 0%, rgba(10, 16, 26, 0.99) 100%)',
-              borderLeft: '1px solid rgba(249, 115, 22, 0.18)',
-              boxShadow: '-20px 0 60px rgba(0, 0, 0, 0.75), inset 1px 0 0 rgba(255, 255, 255, 0.05)',
+              background: 'linear-gradient(165deg, rgba(16, 24, 38, 0.98) 0%, rgba(10, 16, 26, 0.99) 100%)',
+              borderLeft: '1px solid rgba(249, 115, 22, 0.22)',
+              boxShadow: '-24px 0 64px rgba(0, 0, 0, 0.8), inset 1px 0 0 rgba(255, 255, 255, 0.06)',
             }}
           >
-            {/* ── UNIFIED FULL-WIDTH HEADER ──────────────────────────── */}
-            <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-black/40">
+            {/* ── UNIFIED FULL-WIDTH HEADER (Tactical font) ──────────── */}
+            <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-black/45">
               <div className="flex items-center gap-2.5 min-w-0">
                 <motion.div
                   whileHover={{ rotate: 90 }}
@@ -652,7 +665,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 </motion.div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold tracking-wide text-white truncate" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                    <h2 className="text-xs font-mono font-bold tracking-wider text-white uppercase truncate">
                       INDRA Tactical Config
                     </h2>
                     <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
@@ -660,7 +673,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       LIVE SYNC
                     </span>
                   </div>
-                  <p className="text-[9px] text-slate-400 font-mono">NODE-01 &middot; Auto-persisted to browser</p>
+                  <p className="text-[9px] text-slate-400 font-mono">NODE-01 &middot; Auto-persisted to browser memory</p>
                 </div>
               </div>
 
@@ -681,13 +694,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               </div>
             </header>
 
-            {/* ── SEARCH & FILTER BAR ───────────────────────────────── */}
+            {/* ── SEARCH & FILTER BAR (Clean placeholder) ───────────── */}
             <div className="shrink-0 px-4 py-2 border-b border-white/[0.06] bg-black/25 flex items-center gap-2">
               <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search 30+ settings (e.g. siren, mgrs, wind, dark)... [/]"
+                placeholder="Search settings (e.g. siren, coords, dark)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
@@ -702,23 +715,23 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   <X className="w-3.5 h-3.5" />
                 </button>
               ) : (
-                <span className="text-[9px] font-mono text-slate-500 bg-white/[0.04] px-1 py-0.2 rounded border border-white/[0.06]">
+                <kbd className="text-[9px] font-mono text-slate-400 bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">
                   /
-                </span>
+                </kbd>
               )}
             </div>
 
-            {/* ── TOAST NOTIFICATION ────────────────────────────────── */}
+            {/* ── TOAST NOTIFICATION (Absolute Overlay — ZERO Layout Shift) ── */}
             <AnimatePresence>
               {toastMsg && (
                 <motion.div
                   key="toast"
-                  initial={{ opacity: 0, y: -12, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 450, damping: 22 } }}
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 450, damping: 24 } }}
                   exit={{ opacity: 0, y: -8, scale: 0.95, transition: { duration: 0.15 } }}
-                  className="shrink-0 flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border-b border-emerald-500/30 text-emerald-300 text-[11px] font-mono shadow-sm"
+                  className="absolute top-14 right-4 z-50 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 border border-emerald-500/40 text-emerald-300 text-xs font-mono shadow-2xl backdrop-blur-md pointer-events-none"
                 >
-                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>{toastMsg}</span>
                 </motion.div>
               )}
@@ -727,70 +740,48 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             {/* ── MAIN BODY: LEFT RAIL + RIGHT CONTENT ──────────────── */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
 
-              {/* ── LEFT TACTICAL NAVIGATION RAIL ─────────────────────── */}
+              {/* ── LEFT TACTICAL NAVIGATION RAIL (Unified Pill & Native Tooltips) ── */}
               <motion.nav
                 variants={navRailVariants}
                 initial="hidden"
                 animate="visible"
-                className="w-[56px] shrink-0 flex flex-col py-2 border-r border-white/[0.07] bg-black/30 relative select-none"
+                className="w-[56px] shrink-0 flex flex-col py-2 border-r border-white/[0.07] bg-black/35 select-none"
               >
                 {TAB_GROUPS.map((group, gi) => (
                   <React.Fragment key={gi}>
-                    {gi > 0 && <div className="mx-2.5 my-1.5 h-px bg-white/[0.07]" />}
+                    {gi > 0 && <div className="mx-2 my-1.5 h-px bg-white/[0.07]" />}
                     {group.tabs.map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.key && !searchQuery;
                       return (
-                        <div key={tab.key} className="relative">
+                        <div key={tab.key} className="relative px-1 my-0.5">
                           <motion.button
                             variants={navItemVariants}
-                            whileHover={{ scale: 1.08 }}
-                            whileTap={{ scale: 0.92 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.94 }}
                             onClick={() => handleTabChange(tab.key)}
-                            onMouseEnter={() => setHoveredTab(tab.key)}
-                            onMouseLeave={() => setHoveredTab(null)}
+                            title={`${tab.label} [Hotkey: ${tab.hotkey}]`}
                             className={cn(
-                              'relative flex flex-col items-center justify-center gap-0.5 h-[48px] w-full transition-colors duration-150',
+                              'relative flex flex-col items-center justify-center gap-0.5 h-[50px] w-full rounded-xl transition-colors duration-150',
                               isActive ? 'text-[#F97316]' : 'text-slate-400 hover:text-white',
                             )}
-                            title={tab.label}
                           >
+                            {/* Unified tactile active pill */}
                             {isActive && (
-                              <motion.span
-                                layoutId="nav-active-bar"
-                                className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#F97316]"
-                                transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                              />
+                              <motion.div
+                                layoutId="nav-active-pill"
+                                className="absolute inset-0 rounded-xl bg-[#B5482E]/20 border border-[#B5482E]/50 shadow-[0_0_12px_rgba(181,72,46,0.25)]"
+                                transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                              >
+                                <span className="absolute left-1 top-2.5 bottom-2.5 w-[3px] rounded-full bg-[#F97316]" />
+                              </motion.div>
                             )}
-                            {isActive && (
-                              <motion.span
-                                layoutId="nav-active-bg"
-                                className="absolute inset-1 rounded-xl"
-                                style={{ background: 'rgba(181, 72, 46, 0.16)' }}
-                                transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                              />
-                            )}
-                            <Icon className="w-4 h-4 relative z-10" />
-                            <span className={cn('text-[8px] font-bold tracking-wide relative z-10', isActive ? 'text-[#F97316]' : 'text-slate-400')}>
+
+                            <Icon className="w-[17px] h-[17px] relative z-10" />
+                            <span className={cn('text-[9px] font-semibold tracking-wide relative z-10', isActive ? 'text-[#F97316]' : 'text-slate-400')}>
                               {tab.shortLabel}
                             </span>
                           </motion.button>
-
-                          {/* Floating Tooltip */}
-                          <AnimatePresence>
-                            {hoveredTab === tab.key && (
-                              <motion.div
-                                initial={{ opacity: 0, x: 4, scale: 0.92 }}
-                                animate={{ opacity: 1, x: 0, scale: 1 }}
-                                exit={{ opacity: 0, x: 4, scale: 0.92 }}
-                                transition={{ duration: 0.12 }}
-                                className="absolute left-[58px] top-1/2 -translate-y-1/2 z-50 pointer-events-none whitespace-nowrap px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-slate-900/95 text-white border border-white/15 shadow-xl flex items-center gap-1.5"
-                              >
-                                <span>{tab.label}</span>
-                                <span className="text-slate-400 text-[8px] bg-white/10 px-1 rounded">[{tab.hotkey}]</span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
                         </div>
                       );
                     })}
@@ -811,7 +802,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         onClick={() => setSearchQuery('')}
                         className="text-[10px] text-slate-400 hover:text-white underline"
                       >
-                        Clear filter
+                        Clear search
                       </button>
                     </div>
 
@@ -849,10 +840,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   </div>
                 ) : (
                   <>
-                    {/* ── TAB 1: GENERAL SETTINGS (DEFAULT) ─────────── */}
+                    {/* ── TAB 1: GENERAL OVERVIEW (DEFAULT) ──────────── */}
                     {activeTab === 'general' && (
                       <TabContent tabKey="general" direction={direction}>
-                        {/* Station Profile Banner */}
+                        {/* Station Identity Card */}
                         <div className="p-3.5 rounded-xl border border-white/10 bg-white/[0.03] space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -874,37 +865,44 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           </div>
                         </div>
 
-                        {/* Interface Language */}
+                        {/* Interface Language (No clipping — clean quick-picker) */}
                         <div>
-                          <SectionHeader icon={Globe} label="Interface Language / भाषा" badge="11 Languages" />
-                          <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1 drawer-scroll">
-                            {Object.entries(SUPPORTED_LANGUAGES).map(([code, meta]) => {
-                              const isSel = currentLang === code;
+                          <div className="flex items-center justify-between mb-2">
+                            <SectionHeader icon={Globe} label="Interface Language / भाषा" />
+                            <button
+                              type="button"
+                              onClick={() => handleTabChange('hud')}
+                              className="text-[10px] font-mono text-[#F97316] hover:underline"
+                            >
+                              All 11 languages →
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {primaryLanguages.map((item) => {
+                              const isSel = currentLang === item.code;
                               return (
                                 <SelectCard
-                                  key={code}
+                                  key={item.code}
                                   isSelected={isSel}
-                                  onClick={() => changeLang(code as any)}
+                                  onClick={() => changeLang(item.code)}
                                   className="p-2"
                                 >
-                                  <p className="text-xs truncate font-medium" style={{ fontFamily: meta.fontFamily }}>
-                                    {meta.nativeName}
-                                  </p>
-                                  <p className="text-[9px] text-slate-400 truncate">{meta.name}</p>
+                                  <p className="text-xs font-semibold">{item.native}</p>
+                                  <p className="text-[9px] text-slate-400 mt-0.5">{item.label}</p>
                                 </SelectCard>
                               );
                             })}
                           </div>
                         </div>
 
-                        {/* Interface Theme */}
+                        {/* Color Theme (Unified cards) */}
                         <div>
                           <SectionHeader icon={Sliders} label="Interface Theme" />
                           <div className="grid grid-cols-3 gap-2">
                             {[
-                              { id: 'dark', label: 'Dark Ops', desc: 'Tactical command' },
+                              { id: 'dark', label: 'Dark Ops', desc: 'Tactical night mode' },
                               { id: 'light', label: 'Light', desc: 'Day parchment' },
-                              { id: 'high_contrast', label: 'Contrast', desc: 'Sunlight visibility' },
+                              { id: 'high_contrast', label: 'Contrast', desc: 'Sunlight glare' },
                             ].map((m) => {
                               const isSel = settings.themeMode === m.id;
                               return (
@@ -912,9 +910,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   key={m.id}
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ themeMode: m.id as ThemeMode })}
-                                  className="text-center"
                                 >
-                                  <p className="text-xs font-semibold text-white">{m.label}</p>
+                                  <p className="text-xs font-semibold">{m.label}</p>
                                   <p className="text-[9px] text-slate-400 mt-0.5">{m.desc}</p>
                                 </SelectCard>
                               );
@@ -922,11 +919,11 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           </div>
                         </div>
 
-                        {/* Refresh Rate & Timezone */}
+                        {/* Telemetry Polling Rate & Timezone */}
                         <div className="grid grid-cols-2 gap-2.5">
                           <div>
                             <SectionHeader icon={Zap} label="Refresh Rate" />
-                            <div className="grid grid-cols-2 gap-1 font-mono">
+                            <div className="grid grid-cols-2 gap-1.5 font-mono">
                               {[
                                 { id: 5, label: '5s Live' },
                                 { id: 15, label: '15s Normal' },
@@ -935,20 +932,14 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                               ].map((rate) => {
                                 const isSel = settings.autoRefreshInterval === rate.id;
                                 return (
-                                  <motion.button
+                                  <SelectCard
                                     key={rate.id}
-                                    whileHover={{ y: -1 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    isSelected={isSel}
                                     onClick={() => updateSettings({ autoRefreshInterval: rate.id as RefreshInterval })}
-                                    className={cn(
-                                      'py-1.5 px-1 text-center rounded-lg border text-[10px] font-mono transition-all',
-                                      isSel
-                                        ? 'bg-[#B5482E] text-white border-[#B5482E] font-bold shadow-md'
-                                        : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]',
-                                    )}
+                                    className="p-1.5 text-center items-center justify-center"
                                   >
-                                    {rate.label}
-                                  </motion.button>
+                                    <span className="text-[11px] font-mono font-bold">{rate.label}</span>
+                                  </SelectCard>
                                 );
                               })}
                             </div>
@@ -956,7 +947,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
                           <div>
                             <SectionHeader icon={Clock} label="Timezone" />
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                               {[
                                 { id: 'ist', label: 'IST (+05:30)', desc: 'New Delhi HQ' },
                                 { id: 'utc', label: 'UTC Zulu', desc: 'Aviation Standard' },
@@ -967,9 +958,9 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                     key={tz.id}
                                     isSelected={isSel}
                                     onClick={() => updateSettings({ timezone: tz.id as TimezoneMode })}
-                                    className="py-1 px-2"
+                                    className="py-1.5 px-2"
                                   >
-                                    <p className="text-xs font-semibold text-white">{tz.label}</p>
+                                    <p className="text-xs font-semibold">{tz.label}</p>
                                     <p className="text-[9px] text-slate-400">{tz.desc}</p>
                                   </SelectCard>
                                 );
@@ -978,10 +969,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           </div>
                         </div>
 
-                        {/* Master Siren Audio Quick Toggle */}
-                        <div className="p-3 rounded-xl border border-[#B5482E]/35 bg-[#B5482E]/10 flex items-center justify-between">
+                        {/* Master Siren Quick Toggle */}
+                        <div className="p-3.5 rounded-xl border border-[#B5482E]/35 bg-[#B5482E]/10 flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
-                            <Volume2 className="w-4 h-4 text-[#F97316]" />
+                            <Volume2 className="w-5 h-5 text-[#F97316]" />
                             <div>
                               <p className="text-xs font-semibold text-white">Emergency Siren Audio</p>
                               <p className="text-[10px] text-slate-400">Master sound toggle for disaster alerts</p>
@@ -993,32 +984,26 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           />
                         </div>
 
-                        {/* Display & Performance */}
+                        {/* Display Density */}
                         <div>
-                          <SectionHeader icon={Sliders} label="Display & Performance" />
-                          <div className="rounded-xl border border-white/[0.08] divide-y divide-white/[0.06] bg-white/[0.03]">
-                            <div className="px-3 py-2.5 flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-medium text-white">Compact Data Density</p>
-                                <p className="text-[10px] text-slate-400">Tight spacing for multi-monitor operations</p>
-                              </div>
-                              <SpringToggle
-                                value={settings.uiDensity === 'compact'}
-                                onChange={() => updateSettings({ uiDensity: settings.uiDensity === 'compact' ? 'standard' : 'compact' })}
-                              />
-                            </div>
-                            <ToggleRow
-                              label="Glassmorphism & Glow"
-                              desc="Frosted blur panels and edge lighting"
-                              value={settings.glassmorphismEffects}
-                              onChange={() => updateSettings({ glassmorphismEffects: !settings.glassmorphismEffects })}
-                            />
-                            <ToggleRow
-                              label="Reduced Motion"
-                              desc="Optimize performance on field hardware"
-                              value={settings.reducedMotion}
-                              onChange={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
-                            />
+                          <SectionHeader icon={Sliders} label="Display Density" />
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { id: 'standard', label: 'Standard Spacing', desc: 'Comfortable HUD padding' },
+                              { id: 'compact', label: 'Compact Matrix', desc: 'High data density' },
+                            ].map((d) => {
+                              const isSel = settings.uiDensity === d.id;
+                              return (
+                                <SelectCard
+                                  key={d.id}
+                                  isSelected={isSel}
+                                  onClick={() => updateSettings({ uiDensity: d.id as any })}
+                                >
+                                  <p className="text-xs font-semibold">{d.label}</p>
+                                  <p className="text-[9px] text-slate-400 mt-0.5">{d.desc}</p>
+                                </SelectCard>
+                              );
+                            })}
                           </div>
                         </div>
                       </TabContent>
@@ -1042,12 +1027,11 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ mapProjection: proj.id as ProjectionPreset })}
                                 >
-                                  <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-1.5 mb-1">
                                     <Icon className={cn('w-4 h-4', isSel ? 'text-[#F97316]' : 'text-slate-400')} />
-                                    {isSel && <Check className="w-3.5 h-3.5 text-[#F97316]" />}
+                                    <span className="text-xs font-semibold">{proj.label}</span>
                                   </div>
-                                  <p className="text-xs font-semibold text-white">{proj.label}</p>
-                                  <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{proj.desc}</p>
+                                  <p className="text-[10px] text-slate-400 leading-tight">{proj.desc}</p>
                                 </SelectCard>
                               );
                             })}
@@ -1059,7 +1043,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           <div className="grid grid-cols-2 gap-2">
                             {[
                               { id: 'satellite', label: 'Satellite', badge: 'ESRI HIGH-RES', desc: 'Orbital imagery' },
-                              { id: 'dark', label: 'Dark Tactical', badge: 'CARTO DARK', desc: 'Night ops high contrast' },
+                              { id: 'dark', label: 'Dark Tactical', badge: 'CARTO DARK', desc: 'Night ops contrast' },
                               { id: 'topo', label: 'Topographic', badge: 'TERRAIN HYBRID', desc: 'Elevation contours' },
                               { id: 'street', label: 'Street Vector', badge: 'OPENSTREETMAP', desc: 'Road network vector' },
                             ].map((base) => {
@@ -1070,11 +1054,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ defaultBasemap: base.id as BasemapPreset })}
                                 >
-                                  <div className="flex items-center justify-between mb-0.5">
-                                    <span className="text-xs font-semibold text-white">{base.label}</span>
-                                    {isSel && <Check className="w-3.5 h-3.5 text-[#F97316]" />}
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 leading-tight">{base.desc}</p>
+                                  <span className="text-xs font-semibold block">{base.label}</span>
+                                  <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{base.desc}</p>
                                   <span className="text-[8px] font-mono text-[#F97316]/80 mt-1 block">{base.badge}</span>
                                 </SelectCard>
                               );
@@ -1095,7 +1076,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </TabContent>
                     )}
 
-                    {/* ── TAB 3: AUDIO ALARMS ───────────────────────── */}
+                    {/* ── TAB 3: AUDIO ALARMS (Polished Equalizer) ──── */}
                     {activeTab === 'alerts' && (
                       <TabContent tabKey="alerts" direction={direction}>
                         <div
@@ -1139,29 +1120,31 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                               className="w-full accent-[#E05D38] h-1.5 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
                             />
 
-                            <div className="flex items-center justify-between pt-1">
-                              <AudioWaveformVisualizer isPlaying={isPlayingAudio} />
+                            {/* Full-width waveform equalizer */}
+                            <AudioWaveformVisualizer isPlaying={isPlayingAudio} />
+
+                            <div className="flex items-center justify-end pt-1">
                               <motion.button
-                                whileHover={{ scale: 1.04 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={() => handleTestAudio()}
                                 disabled={!settings.audioAlertsEnabled || isPlayingAudio}
                                 className={cn(
-                                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all',
+                                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all',
                                   isPlayingAudio
                                     ? 'bg-[#B5482E] text-white shadow-lg animate-pulse'
                                     : 'bg-[#B5482E]/25 hover:bg-[#B5482E]/40 text-white border border-[#B5482E]/60',
                                 )}
                               >
                                 <Play className="w-3.5 h-3.5 fill-current" />
-                                {isPlayingAudio ? 'Sounding...' : 'Test Siren'}
+                                {isPlayingAudio ? 'Sounding...' : 'Test Siren Tone'}
                               </motion.button>
                             </div>
                           </div>
                         </div>
 
                         <div>
-                          <SectionHeader icon={Volume2} label="Siren Pattern" />
+                          <SectionHeader icon={Volume2} label="Siren Pitch Pattern" />
                           <div className="grid grid-cols-2 gap-2">
                             {[
                               { id: 'warble_fast', label: 'Tactical Warble', desc: 'Rapid 8Hz sweep' },
@@ -1179,10 +1162,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                     if (settings.audioAlertsEnabled) handleTestAudio(pat.id as SirenPattern);
                                   }}
                                 >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-semibold text-white">{pat.label}</span>
-                                    {isSel && <Check className="w-3 h-3 text-[#F97316]" />}
-                                  </div>
+                                  <span className="text-xs font-semibold block">{pat.label}</span>
                                   <span className="text-[10px] text-slate-400 mt-0.5 block">{pat.desc}</span>
                                 </SelectCard>
                               );
@@ -1206,8 +1186,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ minSeverityThreshold: sev.id as any })}
                                 >
-                                  <p className="text-xs font-semibold text-white">{sev.label}</p>
-                                  <p className="text-[9px] text-slate-400">{sev.desc}</p>
+                                  <p className="text-xs font-semibold">{sev.label}</p>
+                                  <p className="text-[9px] text-slate-400 mt-0.5">{sev.desc}</p>
                                 </SelectCard>
                               );
                             })}
@@ -1257,8 +1237,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ tempUnit: u.id as TempUnit })}
                                 >
-                                  <p className="text-xs font-semibold text-white">{u.label}</p>
-                                  <p className="text-[10px] text-slate-400">{u.desc}</p>
+                                  <p className="text-xs font-semibold">{u.label}</p>
+                                  <p className="text-[10px] text-slate-400 mt-0.5">{u.desc}</p>
                                 </SelectCard>
                               );
                             })}
@@ -1269,7 +1249,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           <SectionHeader icon={Gauge} label="Wind Speed" />
                           <div className="grid grid-cols-3 gap-2">
                             {[
-                              { id: 'kmh', label: 'km/h', desc: 'Civilian standard' },
+                              { id: 'kmh', label: 'km/h', desc: 'Civil standard' },
                               { id: 'knots', label: 'Knots', desc: 'Maritime / NDMA' },
                               { id: 'ms', label: 'm/s', desc: 'Scientific model' },
                             ].map((u) => {
@@ -1281,8 +1261,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   onClick={() => updateSettings({ windUnit: u.id as WindUnit })}
                                   className="text-center"
                                 >
-                                  <p className="text-xs font-mono font-semibold text-white">{u.label}</p>
-                                  <p className="text-[9px] text-slate-500">{u.desc}</p>
+                                  <p className="text-xs font-mono font-semibold">{u.label}</p>
+                                  <p className="text-[9px] text-slate-400 mt-0.5">{u.desc}</p>
                                 </SelectCard>
                               );
                             })}
@@ -1306,10 +1286,9 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   className="flex items-center justify-between"
                                 >
                                   <div>
-                                    <p className="text-xs font-semibold text-white">{cf.label}</p>
+                                    <p className="text-xs font-semibold">{cf.label}</p>
                                     <p className="text-[10px] font-mono text-slate-400">{cf.sample}</p>
                                   </div>
-                                  {isSel && <Check className="w-4 h-4 text-[#F97316] shrink-0" />}
                                 </SelectCard>
                               );
                             })}
@@ -1321,12 +1300,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </TabContent>
                     )}
 
-                    {/* ── TAB 5: HUD & STYLE ────────────────────────── */}
+                    {/* ── TAB 5: HUD & STYLE (Full Language Matrix) ─── */}
                     {activeTab === 'hud' && (
                       <TabContent tabKey="hud" direction={direction}>
                         <div>
-                          <SectionHeader icon={Globe} label="Interface Language / भाषा" />
-                          <div className="grid grid-cols-3 gap-1.5 max-h-44 overflow-y-auto pr-1 drawer-scroll">
+                          <SectionHeader icon={Globe} label="Full Language Matrix / भाषा" badge="11 Languages" />
+                          <div className="grid grid-cols-3 gap-2">
                             {Object.entries(SUPPORTED_LANGUAGES).map(([code, meta]) => {
                               const isSel = currentLang === code;
                               return (
@@ -1336,10 +1315,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   onClick={() => changeLang(code as any)}
                                   className="p-2"
                                 >
-                                  <p className="text-xs truncate font-medium" style={{ fontFamily: meta.fontFamily }}>
+                                  <p className="text-xs truncate font-semibold" style={{ fontFamily: meta.fontFamily }}>
                                     {meta.nativeName}
                                   </p>
-                                  <p className="text-[9px] text-slate-400 truncate">{meta.name}</p>
+                                  <p className="text-[9px] text-slate-400 truncate mt-0.5">{meta.name}</p>
                                 </SelectCard>
                               );
                             })}
@@ -1352,7 +1331,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             {[
                               { id: 'dark', label: 'Dark Ops', desc: 'Command center' },
                               { id: 'light', label: 'Light', desc: 'Day parchment' },
-                              { id: 'high_contrast', label: 'Contrast', desc: 'Sunlight visibility' },
+                              { id: 'high_contrast', label: 'Contrast', desc: 'Sunlight glare' },
                             ].map((m) => {
                               const isSel = settings.themeMode === m.id;
                               return (
@@ -1360,9 +1339,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   key={m.id}
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ themeMode: m.id as ThemeMode })}
-                                  className="text-center"
                                 >
-                                  <p className="text-xs font-semibold text-white">{m.label}</p>
+                                  <p className="text-xs font-semibold">{m.label}</p>
                                   <p className="text-[9px] text-slate-400 mt-0.5">{m.desc}</p>
                                 </SelectCard>
                               );
@@ -1374,8 +1352,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           <SectionHeader icon={Sliders} label="Display Density" />
                           <div className="grid grid-cols-2 gap-2">
                             {[
-                              { id: 'standard', label: 'Standard', desc: 'Balanced spacing' },
-                              { id: 'compact', label: 'Compact', desc: 'Maximum data density' },
+                              { id: 'standard', label: 'Standard Spacing', desc: 'Balanced padding' },
+                              { id: 'compact', label: 'Compact Matrix', desc: 'Max data density' },
                             ].map((d) => {
                               const isSel = settings.uiDensity === d.id;
                               return (
@@ -1384,8 +1362,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ uiDensity: d.id as any })}
                                 >
-                                  <p className="text-xs font-semibold text-white">{d.label}</p>
-                                  <p className="text-[10px] text-slate-400">{d.desc}</p>
+                                  <p className="text-xs font-semibold">{d.label}</p>
+                                  <p className="text-[10px] text-slate-400 mt-0.5">{d.desc}</p>
                                 </SelectCard>
                               );
                             })}
@@ -1502,20 +1480,14 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             ).map((opt) => {
                               const isSel = settings.idleLockMinutes === opt.id;
                               return (
-                                <motion.button
+                                <SelectCard
                                   key={opt.id}
-                                  whileHover={{ y: -1 }}
-                                  whileTap={{ scale: 0.95 }}
+                                  isSelected={isSel}
                                   onClick={() => updateSettings({ idleLockMinutes: opt.id })}
-                                  className={cn(
-                                    'py-2 px-1 text-center rounded-lg border transition-all',
-                                    isSel
-                                      ? 'bg-[#B5482E] text-white border-[#B5482E] font-bold shadow-md'
-                                      : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]',
-                                  )}
+                                  className="p-1.5 text-center items-center justify-center"
                                 >
-                                  {opt.label}
-                                </motion.button>
+                                  <span className="font-mono text-xs font-bold">{opt.label}</span>
+                                </SelectCard>
                               );
                             })}
                           </div>
