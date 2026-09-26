@@ -194,3 +194,19 @@ def test_the_number_phrase_is_recorded_for_the_receipt():
 def test_the_tagger_is_deterministic():
     texts = [t for t, _, _ in T1_TABLE + MORE]
     assert [tag_hazards(t) for t in texts] == [tag_hazards(t) for t in texts]
+
+
+@pytest.mark.parametrize(
+    "text, hazards, negated",
+    [
+        # The plan's own spellings, which the first regexes missed (26 Sep).
+        ("Bhishan garmi se log pareshan, bahar mat niklo", {"HEATWAVE"}, []),
+        ("Shitlahar chal rahi hai Patna mein", {"COLD_WAVE"}, []),
+        ("sheet lehar ka prakop", {"COLD_WAVE"}, []),
+        ("Not a single drop of rain in Jaipur this week", set(), ["RAINFALL"]),
+    ],
+)
+def test_spelling_variants_and_not_a_drop(text, hazards, negated):
+    r = tag_hazards(text)
+    assert {h["type"] for h in r["hazards"]} == hazards
+    assert r["negated"] == negated
