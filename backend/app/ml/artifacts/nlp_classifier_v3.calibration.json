@@ -1,0 +1,227 @@
+{
+  "schema_version": "1.0",
+  "evaluation_scope": "VALIDATION_ONLY",
+  "validation_split_sha256": "4405d3083c15b13fff47ebb773e0321f0bebdca6d22f18127af6427d0f4150a6",
+  "method_evaluated": "SCALAR_TEMPERATURE_SCALING",
+  "selected_status": "CALIBRATED_ON_VALIDATION",
+  "selected_method": "TEMPERATURE_SCALING",
+  "selected_temperature": 0.39154547863530537,
+  "optimization": {
+    "success": true,
+    "message": "Solution found.",
+    "bounds": [
+      0.25,
+      4.0
+    ],
+    "candidate_temperature": 0.39154547863530537,
+    "boundary_status": "INTERIOR_OPTIMUM",
+    "search_expanded": false,
+    "objective": "multiclass log loss"
+  },
+  "metrics": {
+    "pre_calibration_log_loss": 0.47745326394211063,
+    "post_calibration_log_loss": 0.28349350710196364,
+    "pre_calibration_multiclass_brier": 0.21865126863230552,
+    "post_calibration_multiclass_brier": 0.15535996402330135,
+    "pre_calibration_ece": 0.2023368719637998,
+    "post_calibration_ece": 0.025787741167492922
+  },
+  "reliability_before": {
+    "bin_count": 10,
+    "expected_calibration_error": 0.2023368719637998,
+    "bins": [
+      {
+        "lower_inclusive": 0.0,
+        "upper_exclusive": 0.1,
+        "upper_inclusive": null,
+        "sample_count": 0,
+        "mean_confidence": null,
+        "empirical_accuracy": null,
+        "absolute_gap": null
+      },
+      {
+        "lower_inclusive": 0.1,
+        "upper_exclusive": 0.2,
+        "upper_inclusive": null,
+        "sample_count": 0,
+        "mean_confidence": null,
+        "empirical_accuracy": null,
+        "absolute_gap": null
+      },
+      {
+        "lower_inclusive": 0.2,
+        "upper_exclusive": 0.30000000000000004,
+        "upper_inclusive": null,
+        "sample_count": 94,
+        "mean_confidence": 0.2765021048515805,
+        "empirical_accuracy": 0.5106382978723404,
+        "absolute_gap": 0.2341361930207599
+      },
+      {
+        "lower_inclusive": 0.30000000000000004,
+        "upper_exclusive": 0.4,
+        "upper_inclusive": null,
+        "sample_count": 841,
+        "mean_confidence": 0.3576016179789672,
+        "empirical_accuracy": 0.5897740784780023,
+        "absolute_gap": 0.23217246049903512
+      },
+      {
+        "lower_inclusive": 0.4,
+        "upper_exclusive": 0.5,
+        "upper_inclusive": null,
+        "sample_count": 1209,
+        "mean_confidence": 0.4497949802110959,
+        "empirical_accuracy": 0.6443341604631927,
+        "absolute_gap": 0.19453918025209682
+      },
+      {
+        "lower_inclusive": 0.5,
+        "upper_exclusive": 0.6000000000000001,
+        "upper_inclusive": null,
+        "sample_count": 1128,
+        "mean_confidence": 0.5533699276695756,
+        "empirical_accuracy": 0.7987588652482269,
+        "absolute_gap": 0.24538893757865132
+      },
+      {
+        "lower_inclusive": 0.6000000000000001,
+        "upper_exclusive": 0.7000000000000001,
+        "upper_inclusive": null,
+        "sample_count": 1566,
+        "mean_confidence": 0.6527093745949618,
+        "empirical_accuracy": 0.9859514687100894,
+        "absolute_gap": 0.3332420941151276
+      },
+      {
+        "lower_inclusive": 0.7000000000000001,
+        "upper_exclusive": 0.8,
+        "upper_inclusive": null,
+        "sample_count": 1794,
+        "mean_confidence": 0.7504876568086087,
+        "empirical_accuracy": 1.0,
+        "absolute_gap": 0.24951234319139126
+      },
+      {
+        "lower_inclusive": 0.8,
+        "upper_exclusive": 0.9,
+        "upper_inclusive": null,
+        "sample_count": 1614,
+        "mean_confidence": 0.8452982976443768,
+        "empirical_accuracy": 1.0,
+        "absolute_gap": 0.1547017023556232
+      },
+      {
+        "lower_inclusive": 0.9,
+        "upper_exclusive": null,
+        "upper_inclusive": 1.0,
+        "sample_count": 1754,
+        "mean_confidence": 0.957277379116743,
+        "empirical_accuracy": 1.0,
+        "absolute_gap": 0.042722620883256957
+      }
+    ]
+  },
+  "reliability_after": {
+    "bin_count": 10,
+    "expected_calibration_error": 0.025787741167492922,
+    "bins": [
+      {
+        "lower_inclusive": 0.0,
+        "upper_exclusive": 0.1,
+        "upper_inclusive": null,
+        "sample_count": 0,
+        "mean_confidence": null,
+        "empirical_accuracy": null,
+        "absolute_gap": null
+      },
+      {
+        "lower_inclusive": 0.1,
+        "upper_exclusive": 0.2,
+        "upper_inclusive": null,
+        "sample_count": 0,
+        "mean_confidence": null,
+        "empirical_accuracy": null,
+        "absolute_gap": null
+      },
+      {
+        "lower_inclusive": 0.2,
+        "upper_exclusive": 0.30000000000000004,
+        "upper_inclusive": null,
+        "sample_count": 6,
+        "mean_confidence": 0.28744385408307743,
+        "empirical_accuracy": 0.3333333333333333,
+        "absolute_gap": 0.04588947925025588
+      },
+      {
+        "lower_inclusive": 0.30000000000000004,
+        "upper_exclusive": 0.4,
+        "upper_inclusive": null,
+        "sample_count": 85,
+        "mean_confidence": 0.36239891821759185,
+        "empirical_accuracy": 0.49411764705882355,
+        "absolute_gap": 0.1317187288412317
+      },
+      {
+        "lower_inclusive": 0.4,
+        "upper_exclusive": 0.5,
+        "upper_inclusive": null,
+        "sample_count": 282,
+        "mean_confidence": 0.45800797486040695,
+        "empirical_accuracy": 0.5567375886524822,
+        "absolute_gap": 0.09872961379207529
+      },
+      {
+        "lower_inclusive": 0.5,
+        "upper_exclusive": 0.6000000000000001,
+        "upper_inclusive": null,
+        "sample_count": 518,
+        "mean_confidence": 0.5494392914532669,
+        "empirical_accuracy": 0.583011583011583,
+        "absolute_gap": 0.03357229155831609
+      },
+      {
+        "lower_inclusive": 0.6000000000000001,
+        "upper_exclusive": 0.7000000000000001,
+        "upper_inclusive": null,
+        "sample_count": 522,
+        "mean_confidence": 0.6502209740233524,
+        "empirical_accuracy": 0.6590038314176245,
+        "absolute_gap": 0.008782857394272092
+      },
+      {
+        "lower_inclusive": 0.7000000000000001,
+        "upper_exclusive": 0.8,
+        "upper_inclusive": null,
+        "sample_count": 598,
+        "mean_confidence": 0.7520433502322628,
+        "empirical_accuracy": 0.6705685618729097,
+        "absolute_gap": 0.08147478835935307
+      },
+      {
+        "lower_inclusive": 0.8,
+        "upper_exclusive": 0.9,
+        "upper_inclusive": null,
+        "sample_count": 741,
+        "mean_confidence": 0.8521554235217993,
+        "empirical_accuracy": 0.7031039136302294,
+        "absolute_gap": 0.1490515098915699
+      },
+      {
+        "lower_inclusive": 0.9,
+        "upper_exclusive": null,
+        "upper_inclusive": 1.0,
+        "sample_count": 7248,
+        "mean_confidence": 0.982833879566364,
+        "empirical_accuracy": 0.9879966887417219,
+        "absolute_gap": 0.00516280917535783
+      }
+    ]
+  },
+  "test_used": false,
+  "production_calibration": "NOT_VALIDATED",
+  "limitations": [
+    "Calibration was fitted and measured on synthetic validation data.",
+    "A boundary result is reported without expanding the search or touching test data."
+  ]
+}

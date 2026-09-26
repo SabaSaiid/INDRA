@@ -1,0 +1,207 @@
+{
+  "report_version": "dataset-validation-report-v1",
+  "schema_version": "1.0",
+  "generated_at": "2026-09-24T06:00:00Z",
+  "dataset_id": "indra-synthetic-image-v1",
+  "dataset_version": "1.0.0",
+  "component": "IMAGE",
+  "local_path": "../../../../../data/labelled/image/synthetic_v1",
+  "format": "DIRECTORY",
+  "registered_content_sha256": "df953d70db8707f3b56e7b597c81d1f99a34d67b3b2dab32f12740a881ee1a85",
+  "content_sha256": "df953d70db8707f3b56e7b597c81d1f99a34d67b3b2dab32f12740a881ee1a85",
+  "hash_matches_registry": true,
+  "valid": true,
+  "validation_status": "VALID",
+  "checks": [
+    {
+      "code": "FILE_INTEGRITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "CONTENT_HASH",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "ENCODING_AND_UNICODE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "SCHEMA_AND_REQUIRED_FIELDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "NULL_AND_REQUIRED_VALUES",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_RECORDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_IMAGES",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "CONTRADICTORY_LABELS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "COORDINATE_VALIDITY",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "TIMESTAMP_VALIDITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "GROUP_IDENTIFIERS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "LABEL_DISTRIBUTION",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    }
+  ],
+  "leakage": {
+    "exact_duplicate_leakage": {
+      "code": "EXACT_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "near_duplicate_leakage": {
+      "code": "NEAR_DUPLICATE_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "complete perceptual hashes are unavailable"
+      ]
+    },
+    "group_leakage": {
+      "code": "GROUP_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "temporal_leakage": {
+      "code": "TEMPORAL_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "temporal ordering is not a required split rule for this component"
+      ]
+    },
+    "label_leakage": {
+      "code": "LABEL_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "cross_split_overlap": {
+      "code": "CROSS_SPLIT_OVERLAP",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "overall_status": "PASS"
+  },
+  "errors": [],
+  "warnings": [
+    "No images have judgments from multiple annotators; agreement was not calculated."
+  ],
+  "row_or_image_count": 100000,
+  "label_count": 166664,
+  "label_distribution": {
+    "FLOODED_SCENE": 33332,
+    "HEAVY_RAIN_VISUAL": 33332,
+    "NORMAL_SCENE": 25002,
+    "STANDING_WATER": 49999,
+    "STORM_DAMAGE": 24999
+  },
+  "split_counts": {
+    "train": 70000,
+    "validation": 15000,
+    "test": 15000
+  },
+  "split_label_counts": {
+    "train": {
+      "FLOODED_SCENE": 23332,
+      "HEAVY_RAIN_VISUAL": 23332,
+      "NORMAL_SCENE": 17502,
+      "STANDING_WATER": 34999,
+      "STORM_DAMAGE": 17499
+    },
+    "validation": {
+      "FLOODED_SCENE": 5000,
+      "HEAVY_RAIN_VISUAL": 5000,
+      "NORMAL_SCENE": 3750,
+      "STANDING_WATER": 7500,
+      "STORM_DAMAGE": 3750
+    },
+    "test": {
+      "FLOODED_SCENE": 5000,
+      "HEAVY_RAIN_VISUAL": 5000,
+      "NORMAL_SCENE": 3750,
+      "STANDING_WATER": 7500,
+      "STORM_DAMAGE": 3750
+    }
+  },
+  "grouping_coverage": 1.0,
+  "component_readiness": {
+    "image_count": 100000,
+    "corrupt_images": [],
+    "duplicate_hashes": {},
+    "resolution_distribution": {
+      "64x64": 100000
+    },
+    "class_multilabel_frequency": {
+      "FLOODED_SCENE": 33332,
+      "HEAVY_RAIN_VISUAL": 33332,
+      "NORMAL_SCENE": 25002,
+      "STANDING_WATER": 49999,
+      "STORM_DAMAGE": 24999
+    },
+    "grouping_coverage": 1.0
+  },
+  "approval_blockers": {
+    "TRAINING": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "MODEL_GENERATED_LABELS_PROHIBITED"
+    ],
+    "VALIDATION": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "MODEL_GENERATED_LABELS_PROHIBITED"
+    ],
+    "TEST": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "MODEL_GENERATED_LABELS_PROHIBITED"
+    ]
+  }
+}

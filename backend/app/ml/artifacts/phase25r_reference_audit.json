@@ -1,0 +1,254 @@
+{
+  "schema_version": "phase25r-reference-audit-v1",
+  "scope": "Repository text scan excluding .git, .venv, test caches, and this audit to avoid self-reference; earlier Phase 25 audit artifacts were counted separately",
+  "patterns": [
+    "MiniLM",
+    "SentenceTransformer",
+    "sentence-transformers",
+    "all-MiniLM-L6-v2",
+    "random.uniform",
+    "placeholder ML scoring",
+    "no trained models",
+    "14-class",
+    "Isolation Forest",
+    "image analysis missing",
+    "anomaly detection missing"
+  ],
+  "files_scanned_with_matches": 44,
+  "matching_line_counts_by_classification": {
+    "HISTORICAL": 596,
+    "DOCUMENTATION_ONLY": 13,
+    "TEST_ONLY": 87,
+    "QUARANTINED": 5
+  },
+  "live_runtime_matches": 0,
+  "interpretation": [
+    "No live backend path imports SentenceTransformer, Hugging Face, or the quarantined legacy event classifier.",
+    "The random.uniform matches are synthetic image/national seed generators, not inference scoring.",
+    "Historical audit artifacts and dated plans retain old terms and are not rewritten.",
+    "The older release_gate.py contains a historical pre-Phase-25 MiniLM blocker message; it is not a current Phase 25R pass claim.",
+    "Path-level classifications cover every matching line in each listed file; mixed current README references are contextual/historical documentation."
+  ],
+  "entries": [
+    {
+      "path": "understand.md",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "README.md",
+      "matching_lines": 5,
+      "classification": "DOCUMENTATION_ONLY"
+    },
+    {
+      "path": "docs/bug-register.md",
+      "matching_lines": 5,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "docs/backend-architecture.md",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "matching_lines": 4,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "docs/setup.md",
+      "matching_lines": 1,
+      "classification": "DOCUMENTATION_ONLY"
+    },
+    {
+      "path": "docs/nodal-officer-qa.md",
+      "matching_lines": 2,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "docs/ML_VALIDATION_REPORT.md",
+      "matching_lines": 1,
+      "classification": "DOCUMENTATION_ONLY"
+    },
+    {
+      "path": "scripts/phase25_audit.py",
+      "matching_lines": 13,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "docs/ML_MODEL_CARD.md",
+      "matching_lines": 2,
+      "classification": "DOCUMENTATION_ONLY"
+    },
+    {
+      "path": "docs/ML_LIMITATIONS.md",
+      "matching_lines": 1,
+      "classification": "DOCUMENTATION_ONLY"
+    },
+    {
+      "path": "backend/tests/conftest.py",
+      "matching_lines": 2,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "scripts/seed_national_data.py",
+      "matching_lines": 12,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/tests/test_event_classifier.py",
+      "matching_lines": 1,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/tests/test_dedup.py",
+      "matching_lines": 1,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/tests/test_geo_heatmap.py",
+      "matching_lines": 2,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/tests/test_labelled_dataset.py",
+      "matching_lines": 1,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/tests/test_scoring_determinism.py",
+      "matching_lines": 1,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/app/ml/event_classifier.py",
+      "matching_lines": 5,
+      "classification": "QUARANTINED"
+    },
+    {
+      "path": "backend/app/ml/training/image_synthetic_validation.py",
+      "matching_lines": 4,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/app/ml/training/duplicate_validation.py",
+      "matching_lines": 2,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+      "matching_lines": 3,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/docs/NLP_DATASET_WORKFLOW.md",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/docs/MODEL_CARD.md",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+      "matching_lines": 5,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/data/synthetic_image/generator.py",
+      "matching_lines": 52,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/app/ml/docs/DUPLICATE_V1_SYNTHETIC_VALIDATION.md",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/tests/test_phase25_minilm_migration.py",
+      "matching_lines": 2,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/app/ml/tests/test_phase24_final_freeze.py",
+      "matching_lines": 3,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/app/ml/docs/ARCHITECTURE.md",
+      "matching_lines": 3,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/release_gate.py",
+      "matching_lines": 4,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/tests/test_artifact_policy.py",
+      "matching_lines": 4,
+      "classification": "TEST_ONLY"
+    },
+    {
+      "path": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+      "matching_lines": 3,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/components/anomaly_detection.py",
+      "matching_lines": 2,
+      "classification": "DOCUMENTATION_ONLY"
+    },
+    {
+      "path": "backend/app/ml/final_freeze.py",
+      "matching_lines": 3,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "data/labelled/DATASHEET.md",
+      "matching_lines": 2,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json",
+      "matching_lines": 107,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/artifacts/duplicate_v1_final_test_receipt.json",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/artifacts/phase25_runtime_environment.json",
+      "matching_lines": 1,
+      "classification": "DOCUMENTATION_ONLY"
+    },
+    {
+      "path": "backend/app/ml/artifacts/event_classifier_v1.metrics.json",
+      "matching_lines": 1,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/artifacts/phase25_minilm_inventory.json",
+      "matching_lines": 425,
+      "classification": "HISTORICAL"
+    },
+    {
+      "path": "backend/app/ml/artifacts/phase25_minilm_migration_manifest.json",
+      "matching_lines": 8,
+      "classification": "HISTORICAL"
+    }
+  ]
+}

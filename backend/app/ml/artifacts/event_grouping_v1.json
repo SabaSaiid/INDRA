@@ -1,0 +1,70 @@
+{
+  "algorithm_version": "event-grouping-v2",
+  "artifact_hash": "e70a61efdbcb5be22b75236b4822c2721df94bb4eaf5d1e93ceb5e4e314d5d3d",
+  "artifact_hash_scope": "CANONICAL_JSON_EXCLUDING_ARTIFACT_HASH",
+  "artifact_kind": "DETERMINISTIC_CONFIGURATION_NOT_LEARNED_MODEL",
+  "artifact_version": "event-grouping-v1-synthetic-development",
+  "cluster_constraints": {
+    "method": "COMPLETE_LINK_ALL_MEMBER_PAIRS",
+    "spatial_span_limit_km": 5.0,
+    "temporal_span_limit_minutes": 180.0,
+    "transitive_bridge_merge_permitted": false,
+    "type_compatibility_required_for_every_member_pair": true
+  },
+  "dataset_id": "indra-event-project-synthetic-v1",
+  "dataset_manifest_sha256": "8ddbfa05c5a773fc7323976b7c9fda4e3f88ecfdcb4f09fd64705ccb97eea712",
+  "dataset_sha256": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+  "dataset_version": "synthetic-event-110k-v1",
+  "development_status": "DEVELOPMENT_ONLY_SYNTHETIC",
+  "event_type_compatibility": {
+    "CLOUDBURST": [
+      "CLOUDBURST"
+    ],
+    "CYCLONE_INUNDATION": [
+      "CYCLONE_INUNDATION"
+    ],
+    "NOT_RELEVANT": [
+      "NOT_RELEVANT"
+    ],
+    "RIVER_BREACH": [
+      "RIVER_BREACH"
+    ],
+    "URBAN_FLOOD": [
+      "URBAN_FLOOD"
+    ]
+  },
+  "evidence_score_interpretation": "HEURISTIC_EVIDENCE_SCORE_NOT_PROBABILITY",
+  "feature_version": "event-features-v1",
+  "frozen_at": "2026-09-23T21:00:00Z",
+  "generator_version": "synthetic-event-generator-v1",
+  "library_versions": {
+    "pydantic": "2.12.5",
+    "python": "3.14.3"
+  },
+  "merge_logic": "SPATIAL_AND_TEMPORAL_AND_TYPE_COMPATIBILITY",
+  "policy": {
+    "duplicate_model_modified": false,
+    "external_apis": [],
+    "learned_model_created": false,
+    "live_backend_modified": false,
+    "network_access": false,
+    "nlp_model_modified": false,
+    "open_weight_models": [],
+    "pretrained_models": [],
+    "runtime_downloads": false
+  },
+  "preprocessing_version": "event-observation-normalization-v1",
+  "production_validation": "NOT_VALIDATED",
+  "random_seed": 200020,
+  "scenario_version": "synthetic-event-scenarios-v1",
+  "schema_version": "1.0",
+  "selection_split": "validation",
+  "split_sha256": "5ba383c9565739486a67e79ad6ae9a651261a11c00c4ac9dd7ec7c6c67d555e6",
+  "test_rows_accessed_for_selection": false,
+  "thresholds": {
+    "minimum_independent_reports": 2,
+    "minimum_type_probability": 0.4,
+    "spatial_radius_km": 5.0,
+    "temporal_window_minutes": 180.0
+  }
+}

@@ -1,0 +1,391 @@
+{
+  "architecture_version": "scratch-cnn-v2-dual-pool",
+  "artifact_manifest_sha256": "71ca9272f54a77b061d8c4881c21b57a780d76cd37eaf0a68d0e3ce80748e9b8",
+  "artifact_name": "image_model_v1.pt",
+  "artifact_sha256": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+  "augmentation_version": "image-local-augmentation-v1",
+  "calibration": {
+    "after": {
+      "bins": [
+        {
+          "count": 48717,
+          "lower": 0.0,
+          "mean_score": 0.0036781862,
+          "positive_rate": 0.0043106103,
+          "upper": 0.1
+        },
+        {
+          "count": 811,
+          "lower": 0.1,
+          "mean_score": 0.1423176476,
+          "positive_rate": 0.2207151665,
+          "upper": 0.2
+        },
+        {
+          "count": 440,
+          "lower": 0.2,
+          "mean_score": 0.2476902829,
+          "positive_rate": 0.3954545455,
+          "upper": 0.3
+        },
+        {
+          "count": 353,
+          "lower": 0.3,
+          "mean_score": 0.3481264853,
+          "positive_rate": 0.5042492918,
+          "upper": 0.4
+        },
+        {
+          "count": 271,
+          "lower": 0.4,
+          "mean_score": 0.4464198261,
+          "positive_rate": 0.6051660517,
+          "upper": 0.5
+        },
+        {
+          "count": 292,
+          "lower": 0.5,
+          "mean_score": 0.5507766157,
+          "positive_rate": 0.6952054795,
+          "upper": 0.6
+        },
+        {
+          "count": 357,
+          "lower": 0.6,
+          "mean_score": 0.6498850655,
+          "positive_rate": 0.8543417367,
+          "upper": 0.7
+        },
+        {
+          "count": 465,
+          "lower": 0.7,
+          "mean_score": 0.7520106769,
+          "positive_rate": 0.864516129,
+          "upper": 0.8
+        },
+        {
+          "count": 785,
+          "lower": 0.8,
+          "mean_score": 0.8579557207,
+          "positive_rate": 0.927388535,
+          "upper": 0.9
+        },
+        {
+          "count": 22509,
+          "lower": 0.9,
+          "mean_score": 0.9943484187,
+          "positive_rate": 0.997689813,
+          "upper": 1.0
+        }
+      ],
+      "brier_score": 0.0122864507,
+      "expected_calibration_error": 0.0073964472,
+      "per_label_brier": {
+        "FLOODED_SCENE": 0.028033229,
+        "HEAVY_RAIN_VISUAL": 0.0006778356,
+        "NORMAL_SCENE": 0.0069926844,
+        "STANDING_WATER": 0.0170520863,
+        "STORM_DAMAGE": 0.008676418
+      }
+    },
+    "before": {
+      "bins": [
+        {
+          "count": 47724,
+          "lower": 0.0,
+          "mean_score": 0.0071766225,
+          "positive_rate": 0.0029125807,
+          "upper": 0.1
+        },
+        {
+          "count": 1390,
+          "lower": 0.1,
+          "mean_score": 0.1418728653,
+          "positive_rate": 0.1172661871,
+          "upper": 0.2
+        },
+        {
+          "count": 655,
+          "lower": 0.2,
+          "mean_score": 0.2447009515,
+          "positive_rate": 0.2977099237,
+          "upper": 0.3
+        },
+        {
+          "count": 458,
+          "lower": 0.3,
+          "mean_score": 0.3495339564,
+          "positive_rate": 0.4366812227,
+          "upper": 0.4
+        },
+        {
+          "count": 365,
+          "lower": 0.4,
+          "mean_score": 0.4464284376,
+          "positive_rate": 0.5698630137,
+          "upper": 0.5
+        },
+        {
+          "count": 386,
+          "lower": 0.5,
+          "mean_score": 0.5517114128,
+          "positive_rate": 0.7305699482,
+          "upper": 0.6
+        },
+        {
+          "count": 456,
+          "lower": 0.6,
+          "mean_score": 0.6514053623,
+          "positive_rate": 0.8399122807,
+          "upper": 0.7
+        },
+        {
+          "count": 596,
+          "lower": 0.7,
+          "mean_score": 0.7528891934,
+          "positive_rate": 0.8976510067,
+          "upper": 0.8
+        },
+        {
+          "count": 1069,
+          "lower": 0.8,
+          "mean_score": 0.8564815077,
+          "positive_rate": 0.9625818522,
+          "upper": 0.9
+        },
+        {
+          "count": 21901,
+          "lower": 0.9,
+          "mean_score": 0.9917074731,
+          "positive_rate": 0.9984018995,
+          "upper": 1.0
+        }
+      ],
+      "brier_score": 0.0126776554,
+      "expected_calibration_error": 0.0114493447,
+      "per_label_brier": {
+        "FLOODED_SCENE": 0.0284606926,
+        "HEAVY_RAIN_VISUAL": 0.0011856703,
+        "NORMAL_SCENE": 0.007131523,
+        "STANDING_WATER": 0.017096268,
+        "STORM_DAMAGE": 0.0095141223
+      }
+    },
+    "field_probability_claim": false,
+    "fit_source": "VALIDATION_ONLY",
+    "method": "PER_LABEL_TEMPERATURE_GRID_MINIMUM_BINARY_CROSS_ENTROPY",
+    "score_interpretation": "VALIDATION_TEMPERATURE_CALIBRATED_SYNTHETIC_CONFIDENCE_SCORE",
+    "search": {
+      "FLOODED_SCENE": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0950710547,
+        "selected_temperature": 0.8
+      },
+      "HEAVY_RAIN_VISUAL": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0027828963,
+        "selected_temperature": 0.5
+      },
+      "NORMAL_SCENE": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0247930299,
+        "selected_temperature": 0.8
+      },
+      "STANDING_WATER": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0616233686,
+        "selected_temperature": 0.9
+      },
+      "STORM_DAMAGE": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0312230458,
+        "selected_temperature": 0.6
+      }
+    },
+    "temperatures": {
+      "FLOODED_SCENE": 0.8,
+      "HEAVY_RAIN_VISUAL": 0.5,
+      "NORMAL_SCENE": 0.8,
+      "STANDING_WATER": 0.9,
+      "STORM_DAMAGE": 0.6
+    },
+    "test_images_accessed": false,
+    "version": "image-validation-temperature-v1"
+  },
+  "dataset_id": "indra-synthetic-image-v1",
+  "dataset_manifest_sha256": "d222faf83b6f621707dfcc6791e2ccdd7337a46c44173dd197cf5e915fe1853f",
+  "dataset_root": "D:\\INDRA\\data\\labelled\\image\\synthetic_v1",
+  "dataset_sha256": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+  "dataset_version": "1.0.0",
+  "development_status": "DEVELOPMENT_ONLY_SYNTHETIC",
+  "feature_version": "image-pixel-features-v1",
+  "frozen_at": "2026-09-24T07:00:00Z",
+  "generator_version": "synthetic-image-generator-v1",
+  "initialization": "SCRATCH_INITIALIZED",
+  "label_mapping": {
+    "FLOODED_SCENE": 0,
+    "HEAVY_RAIN_VISUAL": 1,
+    "NORMAL_SCENE": 4,
+    "STANDING_WATER": 2,
+    "STORM_DAMAGE": 3
+  },
+  "model_version": "image-model-v1-synthetic-development",
+  "phase": "22 — IMAGE MODEL SYNTHETIC VALIDATION",
+  "policy": {
+    "development_only": true,
+    "external_apis": [],
+    "live_backend_modified": false,
+    "network_access": false,
+    "open_weight_models": [],
+    "pretrained_models": [],
+    "project_trained": true,
+    "runtime_downloads": false,
+    "scratch_initialized": true
+  },
+  "preprocessing_version": "image-preprocessing-v2-64x64",
+  "production_validation": "NOT_VALIDATED",
+  "protected_artifacts": {
+    "credibility_v1.json": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+    "credibility_v1_final_test_receipt.json": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+    "duplicate_feature_state_v2.json": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+    "duplicate_matcher_v1.json": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+    "duplicate_v1_final_test_receipt.json": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+    "event_grouping_v1.json": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+    "event_grouping_v1_final_test_receipt.json": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+    "nlp_classifier_v3.final_test_receipt.json": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+    "nlp_classifier_v3.json": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca"
+  },
+  "protected_final_test": {
+    "accessed_for_calibration": false,
+    "accessed_for_selection": false,
+    "accessed_for_threshold_selection": false,
+    "hidden_metadata_sha256": "fc606a093c2a3e854653377f9038e0c7c09fdc52e8d926508709afb9a2bbc903",
+    "model_input_path": "D:\\INDRA\\data\\labelled\\image\\synthetic_v1\\model_inputs\\test.jsonl",
+    "model_input_sha256": "c3c432037e49e70e2d3ec3d87ede6693b6b2367d985d3ebf5171ad3e80c17296",
+    "row_count": 15000
+  },
+  "provenance_name": "image_model_v1.provenance.json",
+  "provenance_sha256": "5ca7661a201d304ee7d142621cc22396d827f50a7541104eb8c07694d2ff4873",
+  "schema_version": "1.0",
+  "selected_epoch": 9,
+  "source_hashes": {
+    "backend\\app\\ml\\components\\image_processing.py": "a063509aebd63d65003315a6df46d6f2a9dcc2540bbfab77d062b5809ed7498f",
+    "backend\\app\\ml\\data\\synthetic_image\\generator.py": "895cbf9a2265bc05abf0e496e3fcd3f04d8bf48c4b393536644c72f90d2706be",
+    "backend\\app\\ml\\image_artifacts.py": "1f1aab1d435213b7ff12101db3c1ba8e7e857ae5e890f44d5aabff4e3e16f7bc",
+    "backend\\app\\ml\\models\\custom_cnn.py": "4da1140012e2018b5d7f08c4077735ee2840ea1bf68266e4a1bad7ce0a1a6871",
+    "backend\\app\\ml\\training\\image_synthetic_validation.py": "c1434ecfe75cffa588f8cffa08d1c4bf8cf97b25ccf574de01a1d60ff278b5fa"
+  },
+  "test_images_accessed_for_selection": false,
+  "thresholds": {
+    "FLOODED_SCENE": 0.32,
+    "HEAVY_RAIN_VISUAL": 0.44,
+    "NORMAL_SCENE": 0.2,
+    "STANDING_WATER": 0.36,
+    "STORM_DAMAGE": 0.5
+  },
+  "training_configuration": {
+    "batch_size": 256,
+    "blur_probability": 0.08,
+    "brightness_delta": 0.1,
+    "class_weighting_trigger_ratio": 3.0,
+    "contrast_delta": 0.1,
+    "crop_min_scale": 0.92,
+    "epochs": 10,
+    "horizontal_flip_probability": 0.5,
+    "image_size": 64,
+    "learning_rate": 0.0015,
+    "min_validation_macro_f1": 0.72,
+    "min_validation_micro_f1": 0.75,
+    "min_validation_per_label_f1": 0.55,
+    "noise_probability": 0.1,
+    "num_workers": 0,
+    "optimizer": "Adam",
+    "scheduler": "CosineAnnealingLR",
+    "seed": 220022,
+    "torch_threads": 12,
+    "weight_decay": 0.0001
+  },
+  "training_dataset_sha256": "bf4ceb5505c68c9c3895bb4a5e7c1c2f1e9959b2c2ab3fa8e12c0dbb1a76d3f9",
+  "validation_dataset_sha256": "670dca2c55ade99cc4524fff59899775735f5afdaddb9699669a3c70d6c51d02",
+  "validation_metrics": {
+    "hamming_loss": 0.01424,
+    "macro_f1": 0.9791804974,
+    "micro_f1": 0.9785800241,
+    "micro_precision": 0.9813354787,
+    "micro_recall": 0.97584,
+    "per_label": {
+      "FLOODED_SCENE": {
+        "confusion": {
+          "false_negative": 263,
+          "false_positive": 241,
+          "true_negative": 9759,
+          "true_positive": 4737
+        },
+        "f1": 0.9494888755,
+        "precision": 0.9515869827,
+        "recall": 0.9474,
+        "support": 5000
+      },
+      "HEAVY_RAIN_VISUAL": {
+        "confusion": {
+          "false_negative": 5,
+          "false_positive": 4,
+          "true_negative": 9996,
+          "true_positive": 4995
+        },
+        "f1": 0.99909991,
+        "precision": 0.99919984,
+        "recall": 0.999,
+        "support": 5000
+      },
+      "NORMAL_SCENE": {
+        "confusion": {
+          "false_negative": 35,
+          "false_positive": 44,
+          "true_negative": 11206,
+          "true_positive": 3715
+        },
+        "f1": 0.9894792915,
+        "precision": 0.9882947592,
+        "recall": 0.9906666667,
+        "support": 3750
+      },
+      "STANDING_WATER": {
+        "confusion": {
+          "false_negative": 205,
+          "false_positive": 118,
+          "true_negative": 7382,
+          "true_positive": 7295
+        },
+        "f1": 0.9783410447,
+        "precision": 0.9840820181,
+        "recall": 0.9726666667,
+        "support": 7500
+      },
+      "STORM_DAMAGE": {
+        "confusion": {
+          "false_negative": 96,
+          "false_positive": 57,
+          "true_negative": 11193,
+          "true_positive": 3654
+        },
+        "f1": 0.9794933655,
+        "precision": 0.9846402587,
+        "recall": 0.9744,
+        "support": 3750
+      }
+    },
+    "sample_count": 15000,
+    "subset_accuracy": 0.9384
+  },
+  "validation_release_checks": {
+    "all_labels_present": true,
+    "held_out_test": true,
+    "leakage": true,
+    "macro_f1": true,
+    "micro_f1": true,
+    "per_label_f1": true,
+    "scratch_initialization": true,
+    "test_not_accessed": true
+  }
+}

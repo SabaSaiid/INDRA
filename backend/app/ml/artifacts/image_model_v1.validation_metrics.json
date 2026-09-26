@@ -1,0 +1,1076 @@
+{
+  "calibration": {
+    "after": {
+      "bins": [
+        {
+          "count": 48717,
+          "lower": 0.0,
+          "mean_score": 0.0036781862,
+          "positive_rate": 0.0043106103,
+          "upper": 0.1
+        },
+        {
+          "count": 811,
+          "lower": 0.1,
+          "mean_score": 0.1423176476,
+          "positive_rate": 0.2207151665,
+          "upper": 0.2
+        },
+        {
+          "count": 440,
+          "lower": 0.2,
+          "mean_score": 0.2476902829,
+          "positive_rate": 0.3954545455,
+          "upper": 0.3
+        },
+        {
+          "count": 353,
+          "lower": 0.3,
+          "mean_score": 0.3481264853,
+          "positive_rate": 0.5042492918,
+          "upper": 0.4
+        },
+        {
+          "count": 271,
+          "lower": 0.4,
+          "mean_score": 0.4464198261,
+          "positive_rate": 0.6051660517,
+          "upper": 0.5
+        },
+        {
+          "count": 292,
+          "lower": 0.5,
+          "mean_score": 0.5507766157,
+          "positive_rate": 0.6952054795,
+          "upper": 0.6
+        },
+        {
+          "count": 357,
+          "lower": 0.6,
+          "mean_score": 0.6498850655,
+          "positive_rate": 0.8543417367,
+          "upper": 0.7
+        },
+        {
+          "count": 465,
+          "lower": 0.7,
+          "mean_score": 0.7520106769,
+          "positive_rate": 0.864516129,
+          "upper": 0.8
+        },
+        {
+          "count": 785,
+          "lower": 0.8,
+          "mean_score": 0.8579557207,
+          "positive_rate": 0.927388535,
+          "upper": 0.9
+        },
+        {
+          "count": 22509,
+          "lower": 0.9,
+          "mean_score": 0.9943484187,
+          "positive_rate": 0.997689813,
+          "upper": 1.0
+        }
+      ],
+      "brier_score": 0.0122864507,
+      "expected_calibration_error": 0.0073964472,
+      "per_label_brier": {
+        "FLOODED_SCENE": 0.028033229,
+        "HEAVY_RAIN_VISUAL": 0.0006778356,
+        "NORMAL_SCENE": 0.0069926844,
+        "STANDING_WATER": 0.0170520863,
+        "STORM_DAMAGE": 0.008676418
+      }
+    },
+    "before": {
+      "bins": [
+        {
+          "count": 47724,
+          "lower": 0.0,
+          "mean_score": 0.0071766225,
+          "positive_rate": 0.0029125807,
+          "upper": 0.1
+        },
+        {
+          "count": 1390,
+          "lower": 0.1,
+          "mean_score": 0.1418728653,
+          "positive_rate": 0.1172661871,
+          "upper": 0.2
+        },
+        {
+          "count": 655,
+          "lower": 0.2,
+          "mean_score": 0.2447009515,
+          "positive_rate": 0.2977099237,
+          "upper": 0.3
+        },
+        {
+          "count": 458,
+          "lower": 0.3,
+          "mean_score": 0.3495339564,
+          "positive_rate": 0.4366812227,
+          "upper": 0.4
+        },
+        {
+          "count": 365,
+          "lower": 0.4,
+          "mean_score": 0.4464284376,
+          "positive_rate": 0.5698630137,
+          "upper": 0.5
+        },
+        {
+          "count": 386,
+          "lower": 0.5,
+          "mean_score": 0.5517114128,
+          "positive_rate": 0.7305699482,
+          "upper": 0.6
+        },
+        {
+          "count": 456,
+          "lower": 0.6,
+          "mean_score": 0.6514053623,
+          "positive_rate": 0.8399122807,
+          "upper": 0.7
+        },
+        {
+          "count": 596,
+          "lower": 0.7,
+          "mean_score": 0.7528891934,
+          "positive_rate": 0.8976510067,
+          "upper": 0.8
+        },
+        {
+          "count": 1069,
+          "lower": 0.8,
+          "mean_score": 0.8564815077,
+          "positive_rate": 0.9625818522,
+          "upper": 0.9
+        },
+        {
+          "count": 21901,
+          "lower": 0.9,
+          "mean_score": 0.9917074731,
+          "positive_rate": 0.9984018995,
+          "upper": 1.0
+        }
+      ],
+      "brier_score": 0.0126776554,
+      "expected_calibration_error": 0.0114493447,
+      "per_label_brier": {
+        "FLOODED_SCENE": 0.0284606926,
+        "HEAVY_RAIN_VISUAL": 0.0011856703,
+        "NORMAL_SCENE": 0.007131523,
+        "STANDING_WATER": 0.017096268,
+        "STORM_DAMAGE": 0.0095141223
+      }
+    },
+    "field_probability_claim": false,
+    "fit_source": "VALIDATION_ONLY",
+    "method": "PER_LABEL_TEMPERATURE_GRID_MINIMUM_BINARY_CROSS_ENTROPY",
+    "score_interpretation": "VALIDATION_TEMPERATURE_CALIBRATED_SYNTHETIC_CONFIDENCE_SCORE",
+    "search": {
+      "FLOODED_SCENE": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0950710547,
+        "selected_temperature": 0.8
+      },
+      "HEAVY_RAIN_VISUAL": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0027828963,
+        "selected_temperature": 0.5
+      },
+      "NORMAL_SCENE": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0247930299,
+        "selected_temperature": 0.8
+      },
+      "STANDING_WATER": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0616233686,
+        "selected_temperature": 0.9
+      },
+      "STORM_DAMAGE": {
+        "candidate_count": 26,
+        "selected_binary_cross_entropy": 0.0312230458,
+        "selected_temperature": 0.6
+      }
+    },
+    "temperatures": {
+      "FLOODED_SCENE": 0.8,
+      "HEAVY_RAIN_VISUAL": 0.5,
+      "NORMAL_SCENE": 0.8,
+      "STANDING_WATER": 0.9,
+      "STORM_DAMAGE": 0.6
+    },
+    "test_images_accessed": false,
+    "version": "image-validation-temperature-v1"
+  },
+  "degradation_subgroups": {
+    "blurred": {
+      "hamming_loss": 0.0172694515,
+      "macro_f1": 0.9747501057,
+      "micro_f1": 0.9738680884,
+      "micro_precision": 0.9780950836,
+      "micro_recall": 0.9696774712,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 146,
+            "false_positive": 125,
+            "true_negative": 4902,
+            "true_positive": 2320
+          },
+          "f1": 0.9448177561,
+          "precision": 0.9488752556,
+          "recall": 0.9407948094,
+          "support": 2466
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 5,
+            "false_positive": 2,
+            "true_negative": 4979,
+            "true_positive": 2507
+          },
+          "f1": 0.9986058554,
+          "precision": 0.9992028697,
+          "recall": 0.9980095541,
+          "support": 2512
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 20,
+            "false_positive": 30,
+            "true_negative": 5650,
+            "true_positive": 1793
+          },
+          "f1": 0.9862486249,
+          "precision": 0.9835436094,
+          "recall": 0.9889685604,
+          "support": 1813
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 146,
+            "false_positive": 72,
+            "true_negative": 3715,
+            "true_positive": 3560
+          },
+          "f1": 0.9702916326,
+          "precision": 0.9801762115,
+          "recall": 0.9606044253,
+          "support": 3706
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 60,
+            "false_positive": 41,
+            "true_negative": 5516,
+            "true_positive": 1876
+          },
+          "f1": 0.9737866597,
+          "precision": 0.9786124152,
+          "recall": 0.9690082645,
+          "support": 1936
+        }
+      },
+      "sample_count": 7493,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9272654478
+    },
+    "compressed": {
+      "hamming_loss": 0.0169527145,
+      "macro_f1": 0.9763384492,
+      "micro_f1": 0.9747653806,
+      "micro_precision": 0.9729392173,
+      "micro_recall": 0.976598412,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 38,
+            "false_positive": 58,
+            "true_negative": 1808,
+            "true_positive": 951
+          },
+          "f1": 0.951951952,
+          "precision": 0.9425173439,
+          "recall": 0.9615773509,
+          "support": 989
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1931,
+            "true_positive": 923
+          },
+          "f1": 0.9994585815,
+          "precision": 0.9989177489,
+          "recall": 1.0,
+          "support": 923
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 17,
+            "false_positive": 2,
+            "true_negative": 2170,
+            "true_positive": 666
+          },
+          "f1": 0.9859363434,
+          "precision": 0.997005988,
+          "recall": 0.9751098097,
+          "support": 683
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 34,
+            "false_positive": 54,
+            "true_negative": 1371,
+            "true_positive": 1396
+          },
+          "f1": 0.9694444444,
+          "precision": 0.9627586207,
+          "recall": 0.9762237762,
+          "support": 1430
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 23,
+            "false_positive": 15,
+            "true_negative": 2079,
+            "true_positive": 738
+          },
+          "f1": 0.9749009247,
+          "precision": 0.9800796813,
+          "recall": 0.9697766097,
+          "support": 761
+        }
+      },
+      "sample_count": 2855,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9264448336
+    },
+    "low_light": {
+      "hamming_loss": 0.0155131776,
+      "macro_f1": 0.9734689692,
+      "micro_f1": 0.9744350282,
+      "micro_precision": 0.9798324102,
+      "micro_recall": 0.9690967833,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 85,
+            "false_positive": 58,
+            "true_negative": 3365,
+            "true_positive": 1159
+          },
+          "f1": 0.9418935392,
+          "precision": 0.9523418242,
+          "recall": 0.9316720257,
+          "support": 1244
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 5,
+            "false_positive": 1,
+            "true_negative": 3468,
+            "true_positive": 1193
+          },
+          "f1": 0.9974916388,
+          "precision": 0.9991624791,
+          "recall": 0.9958263773,
+          "support": 1198
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 25,
+            "false_positive": 17,
+            "true_negative": 2763,
+            "true_positive": 1862
+          },
+          "f1": 0.9888475836,
+          "precision": 0.9909526344,
+          "recall": 0.9867514573,
+          "support": 1887
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 71,
+            "false_positive": 46,
+            "true_negative": 2763,
+            "true_positive": 1787
+          },
+          "f1": 0.9683012734,
+          "precision": 0.9749045281,
+          "recall": 0.9617868676,
+          "support": 1858
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 34,
+            "false_positive": 20,
+            "true_negative": 3715,
+            "true_positive": 898
+          },
+          "f1": 0.9708108108,
+          "precision": 0.9782135076,
+          "recall": 0.9635193133,
+          "support": 932
+        }
+      },
+      "sample_count": 4667,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9389329334
+    },
+    "occluded": {
+      "hamming_loss": 0.0191358025,
+      "macro_f1": 0.9717496045,
+      "micro_f1": 0.9712874344,
+      "micro_precision": 0.9754030591,
+      "micro_recall": 0.9672063948,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 69,
+            "false_positive": 53,
+            "true_negative": 1894,
+            "true_positive": 900
+          },
+          "f1": 0.9365244537,
+          "precision": 0.944386149,
+          "recall": 0.9287925697,
+          "support": 969
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 3,
+            "false_positive": 1,
+            "true_negative": 1913,
+            "true_positive": 999
+          },
+          "f1": 0.998001998,
+          "precision": 0.999,
+          "recall": 0.997005988,
+          "support": 1002
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 11,
+            "false_positive": 17,
+            "true_negative": 2205,
+            "true_positive": 683
+          },
+          "f1": 0.9799139168,
+          "precision": 0.9757142857,
+          "recall": 0.9841498559,
+          "support": 694
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 51,
+            "false_positive": 36,
+            "true_negative": 1399,
+            "true_positive": 1430
+          },
+          "f1": 0.9704784527,
+          "precision": 0.9754433834,
+          "recall": 0.9655638082,
+          "support": 1481
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 26,
+            "false_positive": 12,
+            "true_negative": 2171,
+            "true_positive": 707
+          },
+          "f1": 0.9738292011,
+          "precision": 0.983310153,
+          "recall": 0.9645293315,
+          "support": 733
+        }
+      },
+      "sample_count": 2916,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9214677641
+    }
+  },
+  "evaluation_label": "SYNTHETIC_VALIDATION_MODEL_SELECTION_CALIBRATION_THRESHOLD_SELECTION",
+  "hard_negative_results": {
+    "FLOOD_WITHOUT_HEAVY_RAIN": {
+      "hamming_loss": 0.00352,
+      "macro_f1": 0.3983870968,
+      "micro_f1": 0.9955841028,
+      "micro_precision": 0.9991941982,
+      "micro_recall": 0.992,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 20,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1230
+          },
+          "f1": 0.9919354839,
+          "precision": 1.0,
+          "recall": 0.984,
+          "support": 1250
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1250
+          },
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 1250
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 2,
+            "true_negative": 1248,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9824
+    },
+    "HEAVY_RAIN_WITHOUT_FLOODING": {
+      "hamming_loss": 0.00448,
+      "macro_f1": 0.199919968,
+      "micro_f1": 0.9889152811,
+      "micro_precision": 0.9788401254,
+      "micro_recall": 0.9992,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 1,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1249
+          },
+          "f1": 0.9995998399,
+          "precision": 1.0,
+          "recall": 0.9992,
+          "support": 1250
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 4,
+            "true_negative": 1246,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 22,
+            "true_negative": 1228,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9784
+    },
+    "NORMAL_DARK": {
+      "hamming_loss": 0.00544,
+      "macro_f1": 0.1986306887,
+      "micro_f1": 0.9864,
+      "micro_precision": 0.9864,
+      "micro_recall": 0.9864,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 17,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1233
+          },
+          "f1": 0.9931534434,
+          "precision": 1.0,
+          "recall": 0.9864,
+          "support": 1250
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 16,
+            "true_negative": 1234,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9864
+    },
+    "NORMAL_WET_SURFACE": {
+      "hamming_loss": 0.00352,
+      "macro_f1": 0.1991161109,
+      "micro_f1": 0.9912,
+      "micro_precision": 0.9912,
+      "micro_recall": 0.9912,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 11,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1239
+          },
+          "f1": 0.9955805544,
+          "precision": 1.0,
+          "recall": 0.9912,
+          "support": 1250
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 10,
+            "true_negative": 1240,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9912
+    },
+    "STANDING_WATER_ONLY": {
+      "hamming_loss": 0.03616,
+      "macro_f1": 0.1974068071,
+      "micro_f1": 0.9151014275,
+      "micro_precision": 0.8626062323,
+      "micro_recall": 0.9744,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 161,
+            "true_negative": 1089,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 31,
+            "true_negative": 1219,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 32,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1218
+          },
+          "f1": 0.9870340357,
+          "precision": 1.0,
+          "recall": 0.9744,
+          "support": 1250
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 2,
+            "true_negative": 1248,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.8448
+    },
+    "STORM_DAMAGE_WITHOUT_FLOODING": {
+      "hamming_loss": 0.01712,
+      "macro_f1": 0.1989545637,
+      "micro_f1": 0.9585432003,
+      "micro_precision": 0.9293764087,
+      "micro_recall": 0.9896,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 25,
+            "true_negative": 1225,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 9,
+            "true_negative": 1241,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 59,
+            "true_negative": 1191,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 13,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1237
+          },
+          "f1": 0.9947728187,
+          "precision": 1.0,
+          "recall": 0.9896,
+          "support": 1250
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9336
+    }
+  },
+  "metrics": {
+    "hamming_loss": 0.01424,
+    "macro_f1": 0.9791804974,
+    "micro_f1": 0.9785800241,
+    "micro_precision": 0.9813354787,
+    "micro_recall": 0.97584,
+    "per_label": {
+      "FLOODED_SCENE": {
+        "confusion": {
+          "false_negative": 263,
+          "false_positive": 241,
+          "true_negative": 9759,
+          "true_positive": 4737
+        },
+        "f1": 0.9494888755,
+        "precision": 0.9515869827,
+        "recall": 0.9474,
+        "support": 5000
+      },
+      "HEAVY_RAIN_VISUAL": {
+        "confusion": {
+          "false_negative": 5,
+          "false_positive": 4,
+          "true_negative": 9996,
+          "true_positive": 4995
+        },
+        "f1": 0.99909991,
+        "precision": 0.99919984,
+        "recall": 0.999,
+        "support": 5000
+      },
+      "NORMAL_SCENE": {
+        "confusion": {
+          "false_negative": 35,
+          "false_positive": 44,
+          "true_negative": 11206,
+          "true_positive": 3715
+        },
+        "f1": 0.9894792915,
+        "precision": 0.9882947592,
+        "recall": 0.9906666667,
+        "support": 3750
+      },
+      "STANDING_WATER": {
+        "confusion": {
+          "false_negative": 205,
+          "false_positive": 118,
+          "true_negative": 7382,
+          "true_positive": 7295
+        },
+        "f1": 0.9783410447,
+        "precision": 0.9840820181,
+        "recall": 0.9726666667,
+        "support": 7500
+      },
+      "STORM_DAMAGE": {
+        "confusion": {
+          "false_negative": 96,
+          "false_positive": 57,
+          "true_negative": 11193,
+          "true_positive": 3654
+        },
+        "f1": 0.9794933655,
+        "precision": 0.9846402587,
+        "recall": 0.9744,
+        "support": 3750
+      }
+    },
+    "sample_count": 15000,
+    "subset_accuracy": 0.9384
+  },
+  "phase": "22 — IMAGE MODEL SYNTHETIC VALIDATION",
+  "production_validation": "NOT_VALIDATED",
+  "release_checks": {
+    "all_labels_present": true,
+    "held_out_test": true,
+    "leakage": true,
+    "macro_f1": true,
+    "micro_f1": true,
+    "per_label_f1": true,
+    "scratch_initialization": true,
+    "test_not_accessed": true
+  },
+  "test_images_accessed": false,
+  "threshold_search": {
+    "search": {
+      "FLOODED_SCENE": {
+        "candidate_count": 31,
+        "selected_threshold": 0.32,
+        "validation_f1": 0.9494888755,
+        "validation_precision": 0.9515869827,
+        "validation_recall": 0.9474
+      },
+      "HEAVY_RAIN_VISUAL": {
+        "candidate_count": 31,
+        "selected_threshold": 0.44,
+        "validation_f1": 0.99919984,
+        "validation_precision": 0.9993997599,
+        "validation_recall": 0.999
+      },
+      "NORMAL_SCENE": {
+        "candidate_count": 31,
+        "selected_threshold": 0.2,
+        "validation_f1": 0.9878747502,
+        "validation_precision": 0.9872170439,
+        "validation_recall": 0.9885333333
+      },
+      "STANDING_WATER": {
+        "candidate_count": 31,
+        "selected_threshold": 0.36,
+        "validation_f1": 0.9782069335,
+        "validation_precision": 0.9839471199,
+        "validation_recall": 0.9725333333
+      },
+      "STORM_DAMAGE": {
+        "candidate_count": 31,
+        "selected_threshold": 0.5,
+        "validation_f1": 0.979082864,
+        "validation_precision": 0.9846278317,
+        "validation_recall": 0.9736
+      }
+    },
+    "selected_thresholds": {
+      "FLOODED_SCENE": 0.32,
+      "HEAVY_RAIN_VISUAL": 0.44,
+      "NORMAL_SCENE": 0.2,
+      "STANDING_WATER": 0.36,
+      "STORM_DAMAGE": 0.5
+    },
+    "selection_rule": "MAX_F1_THEN_RECALL_THEN_PRECISION_THEN_CLOSEST_TO_0.5_THEN_LOWER_THRESHOLD",
+    "selection_source": "VALIDATION_ONLY",
+    "test_images_accessed": false,
+    "version": "image-validation-per-label-thresholds-v1"
+  },
+  "thresholds": {
+    "FLOODED_SCENE": 0.32,
+    "HEAVY_RAIN_VISUAL": 0.44,
+    "NORMAL_SCENE": 0.2,
+    "STANDING_WATER": 0.36,
+    "STORM_DAMAGE": 0.5
+  }
+}

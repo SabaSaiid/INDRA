@@ -1,0 +1,4813 @@
+{
+  "schema_version": "1.0",
+  "evaluation_label": "FINAL_SYNTHETIC_HOLDOUT_EVALUATION",
+  "evaluation_timestamp": "2026-09-23T12:48:53.145837+00:00",
+  "evaluation_invocation_count": 1,
+  "model_version": "nlp-classifier-v3-synthetic-development",
+  "development_status": "DEVELOPMENT_ONLY_SYNTHETIC",
+  "production_status": "NOT_PRODUCTION_READY",
+  "production_validation": "NOT_VALIDATED",
+  "field_validation": "NOT_VALIDATED",
+  "real_world_validation": "NOT_VALIDATED",
+  "dataset_id": "indra-nlp-project-synthetic-v1",
+  "dataset_version": "synthetic-nlp-100k-v1",
+  "dataset_sha256": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+  "generator_version": "synthetic-nlp-generator-v1",
+  "generator_seed": 170017,
+  "train_split_sha256": "9ebe62d97a1a14d2ad114cd5a8ccb814442cddac739d55c8633d4303f231073e",
+  "validation_split_sha256": "4405d3083c15b13fff47ebb773e0321f0bebdca6d22f18127af6427d0f4150a6",
+  "final_test_split_sha256": "cea06fa366c4de7387c1ed89e92f795071cdc8aff8c98a74a7ce492c9ab6033b",
+  "n_train": 80000,
+  "n_validation": 10000,
+  "n_test": 10000,
+  "configurations_tested": 11,
+  "selected_configuration": {
+    "configuration_id": "B_EQUAL_NONE_C1",
+    "feature_space_id": "B",
+    "char_ngram_range": [
+      2,
+      5
+    ],
+    "word_ngram_range": [
+      1,
+      2
+    ],
+    "character_weight": 1.0,
+    "word_weight": 1.0,
+    "classifier": "LOGISTIC_REGRESSION",
+    "regularization_c": 1.0,
+    "class_weight": "NONE",
+    "deterministic_tie_rank": 7
+  },
+  "selection_rule": {
+    "rule_version": "nlp-v3-validation-selection-v1",
+    "evaluation_split": "validation",
+    "validation_row_count": 10000,
+    "primary_optimization": "maximize macro F1",
+    "constraint": {
+      "metric": "NOT_RELEVANT recall",
+      "minimum": 0.8,
+      "threshold_altered_after_results": false
+    },
+    "ordered_tie_breaks": [
+      "higher NOT_RELEVANT recall",
+      "higher hard-negative macro F1",
+      "higher minimum English/Hindi/Hinglish macro F1",
+      "lower frozen deterministic complexity rank",
+      "lexicographically smaller configuration ID"
+    ],
+    "selection_path": "NOT_RELEVANT_FLOOR_SATISFIED",
+    "eligible_configuration_ids": [
+      "B_EQUAL_NONE_C1",
+      "B_EQUAL_BALANCED_C1",
+      "A_EQUAL_NONE_C0_25",
+      "A_EQUAL_NONE_C1",
+      "A_EQUAL_BALANCED_C1",
+      "A_EQUAL_NONE_C0_5",
+      "C_EQUAL_NONE_C1",
+      "C_EQUAL_BALANCED_C1",
+      "A_EQUAL_NONE_C2",
+      "A_CHAR125_NONE_C1",
+      "A_CHAR150_NONE_C1"
+    ],
+    "selected_configuration_id": "B_EQUAL_NONE_C1",
+    "test_set_used": false,
+    "test_rows_available_to_function": false
+  },
+  "validation": {
+    "overall": {
+      "status": "DATA_AVAILABLE",
+      "sample_count": 10000,
+      "accuracy": 0.893,
+      "macro_precision": 0.9015925832225902,
+      "macro_recall": 0.893,
+      "macro_f1": 0.8925588427176322,
+      "macro_f1_present_classes": 0.8925588427176322,
+      "not_relevant_recall": 0.915,
+      "per_class_metrics": {
+        "CLOUDBURST": {
+          "precision": 0.8423519386450788,
+          "recall": 0.9885,
+          "f1": 0.9095928226363009,
+          "support": 2000
+        },
+        "CYCLONE_INUNDATION": {
+          "precision": 0.9267040149393091,
+          "recall": 0.9925,
+          "f1": 0.9584741670690488,
+          "support": 2000
+        },
+        "NOT_RELEVANT": {
+          "precision": 0.9945652173913043,
+          "recall": 0.915,
+          "f1": 0.953125,
+          "support": 2000
+        },
+        "RIVER_BREACH": {
+          "precision": 0.7624647224835371,
+          "recall": 0.8105,
+          "f1": 0.7857489093553078,
+          "support": 2000
+        },
+        "URBAN_FLOOD": {
+          "precision": 0.9818770226537217,
+          "recall": 0.7585,
+          "f1": 0.8558533145275036,
+          "support": 2000
+        }
+      },
+      "confusion_matrix": [
+        [
+          1977,
+          22,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1985,
+          0,
+          14,
+          1
+        ],
+        [
+          27,
+          135,
+          1830,
+          8,
+          0
+        ],
+        [
+          343,
+          0,
+          10,
+          1621,
+          26
+        ],
+        [
+          0,
+          0,
+          0,
+          483,
+          1517
+        ]
+      ]
+    },
+    "languages": {
+      "English": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3333,
+        "accuracy": 0.9252925292529253,
+        "macro_precision": 0.9317650717808702,
+        "macro_recall": 0.9252927590258924,
+        "macro_f1": 0.9254648387562895,
+        "macro_f1_present_classes": 0.9254648387562895,
+        "not_relevant_recall": 0.9640179910044977,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 0.8224414303329223,
+            "recall": 1.0,
+            "f1": 0.9025710419485792,
+            "support": 667
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 0.9910714285714286,
+            "recall": 1.0,
+            "f1": 0.9955156950672646,
+            "support": 666
+          },
+          "NOT_RELEVANT": {
+            "precision": 1.0,
+            "recall": 0.9640179910044977,
+            "f1": 0.981679389312977,
+            "support": 667
+          },
+          "RIVER_BREACH": {
+            "precision": 0.8453125,
+            "recall": 0.8110944527736131,
+            "f1": 0.827850038255547,
+            "support": 667
+          },
+          "URBAN_FLOOD": {
+            "precision": 1.0,
+            "recall": 0.8513513513513513,
+            "f1": 0.9197080291970803,
+            "support": 666
+          }
+        },
+        "confusion_matrix": [
+          [
+            667,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            666,
+            0,
+            0,
+            0
+          ],
+          [
+            18,
+            6,
+            643,
+            0,
+            0
+          ],
+          [
+            126,
+            0,
+            0,
+            541,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            99,
+            567
+          ]
+        ]
+      },
+      "Hindi": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3334,
+        "accuracy": 0.8389322135572885,
+        "macro_precision": 0.8599411781747127,
+        "macro_recall": 0.8389805097451275,
+        "macro_f1": 0.8353235361547398,
+        "macro_f1_present_classes": 0.8353235361547398,
+        "not_relevant_recall": 0.8455772113943029,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 0.8774703557312253,
+            "recall": 1.0,
+            "f1": 0.9347368421052632,
+            "support": 666
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 0.8704939919893191,
+            "recall": 0.9775112443778111,
+            "f1": 0.9209039548022598,
+            "support": 667
+          },
+          "NOT_RELEVANT": {
+            "precision": 0.9825783972125436,
+            "recall": 0.8455772113943029,
+            "f1": 0.9089443996776793,
+            "support": 667
+          },
+          "RIVER_BREACH": {
+            "precision": 0.6370023419203747,
+            "recall": 0.815592203898051,
+            "f1": 0.715318869165023,
+            "support": 667
+          },
+          "URBAN_FLOOD": {
+            "precision": 0.9321608040201005,
+            "recall": 0.5562218890554723,
+            "f1": 0.6967136150234742,
+            "support": 667
+          }
+        },
+        "confusion_matrix": [
+          [
+            666,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            652,
+            0,
+            14,
+            1
+          ],
+          [
+            6,
+            97,
+            564,
+            0,
+            0
+          ],
+          [
+            87,
+            0,
+            10,
+            544,
+            26
+          ],
+          [
+            0,
+            0,
+            0,
+            296,
+            371
+          ]
+        ]
+      },
+      "Hinglish": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3333,
+        "accuracy": 0.9147914791479148,
+        "macro_precision": 0.920061995782396,
+        "macro_recall": 0.9147646897272084,
+        "macro_f1": 0.9148434708048072,
+        "macro_f1_present_classes": 0.9148434708048072,
+        "not_relevant_recall": 0.9354354354354354,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 0.8288288288288288,
+            "recall": 0.9655172413793104,
+            "f1": 0.8919667590027701,
+            "support": 667
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 0.9251040221914009,
+            "recall": 1.0,
+            "f1": 0.9610951008645533,
+            "support": 667
+          },
+          "NOT_RELEVANT": {
+            "precision": 1.0,
+            "recall": 0.9354354354354354,
+            "f1": 0.9666408068269977,
+            "support": 666
+          },
+          "RIVER_BREACH": {
+            "precision": 0.8481012658227848,
+            "recall": 0.8048048048048048,
+            "f1": 0.8258859784283513,
+            "support": 666
+          },
+          "URBAN_FLOOD": {
+            "precision": 0.9982758620689656,
+            "recall": 0.8680659670164917,
+            "f1": 0.9286287089013633,
+            "support": 667
+          }
+        },
+        "confusion_matrix": [
+          [
+            644,
+            22,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            667,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
+            32,
+            623,
+            8,
+            0
+          ],
+          [
+            130,
+            0,
+            0,
+            536,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            88,
+            579
+          ]
+        ]
+      }
+    },
+    "noise": {
+      "NONE": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3333,
+        "accuracy": 0.8547854785478548,
+        "macro_f1": 0.8521203851302331,
+        "not_relevant_recall": 0.9354354354354354
+      },
+      "LOW": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3334,
+        "accuracy": 0.9286142771445711,
+        "macro_f1": 0.9287782683525052,
+        "not_relevant_recall": 0.9640179910044977
+      },
+      "MEDIUM": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3333,
+        "accuracy": 0.8955895589558955,
+        "macro_f1": 0.8949690525927736,
+        "not_relevant_recall": 0.8455772113943029
+      },
+      "HIGH": {
+        "status": "NO_SAMPLES_IN_SPLIT",
+        "sample_count": 0,
+        "accuracy": null,
+        "macro_f1": null,
+        "not_relevant_recall": null
+      }
+    },
+    "hard_negatives": {
+      "scope": "SYNTHETIC_ASSIGNED_SPLIT_ONLY",
+      "overall": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 2000,
+        "accuracy": 0.5815,
+        "macro_precision": 0.6273810137099032,
+        "macro_recall": 0.5814999999999999,
+        "macro_f1": 0.5477122048906475,
+        "macro_f1_present_classes": 0.5477122048906475,
+        "not_relevant_recall": 0.6475,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 0.5390835579514824,
+            "recall": 1.0,
+            "f1": 0.7005253940455342,
+            "support": 400
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 0.7408829174664108,
+            "recall": 0.965,
+            "f1": 0.8382193268186754,
+            "support": 400
+          },
+          "NOT_RELEVANT": {
+            "precision": 1.0,
+            "recall": 0.6475,
+            "f1": 0.7860394537177542,
+            "support": 400
+          },
+          "RIVER_BREACH": {
+            "precision": 0.10455764075067024,
+            "recall": 0.0975,
+            "f1": 0.10090556274256145,
+            "support": 400
+          },
+          "URBAN_FLOOD": {
+            "precision": 0.7523809523809524,
+            "recall": 0.1975,
+            "f1": 0.31287128712871287,
+            "support": 400
+          }
+        },
+        "confusion_matrix": [
+          [
+            400,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            386,
+            0,
+            13,
+            1
+          ],
+          [
+            6,
+            135,
+            259,
+            0,
+            0
+          ],
+          [
+            336,
+            0,
+            0,
+            39,
+            25
+          ],
+          [
+            0,
+            0,
+            0,
+            321,
+            79
+          ]
+        ]
+      },
+      "by_generator_type": {
+        "CYCLONE_SURGE_NOT_ROUTINE_URBAN_FLOOD": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.965,
+          "macro_precision": 1.0,
+          "macro_recall": 0.965,
+          "macro_f1": 0.9821882951653944,
+          "macro_f1_present_classes": 0.9821882951653944,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.965,
+              "f1": 0.9821882951653944,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              386
+            ]
+          ]
+        },
+        "LOCALIZED_DOWNPOUR_NOT_GENERIC_WATERLOGGING": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              400
+            ]
+          ]
+        },
+        "RIVER_FAILURE_NOT_URBAN_DRAINAGE": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.0975,
+          "macro_precision": 1.0,
+          "macro_recall": 0.0975,
+          "macro_f1": 0.1776765375854214,
+          "macro_f1_present_classes": 0.1776765375854214,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.0975,
+              "f1": 0.1776765375854214,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              39
+            ]
+          ]
+        },
+        "URBAN_DRAINAGE_NOT_RIVER_FAILURE": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.1975,
+          "macro_precision": 1.0,
+          "macro_recall": 0.1975,
+          "macro_f1": 0.3298538622129436,
+          "macro_f1_present_classes": 0.3298538622129436,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.1975,
+              "f1": 0.3298538622129436,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              79
+            ]
+          ]
+        },
+        "WEATHER_MENTION_WITHOUT_OBSERVED_EVENT": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.6475,
+          "macro_precision": 1.0,
+          "macro_recall": 0.6475,
+          "macro_f1": 0.7860394537177542,
+          "macro_f1_present_classes": 0.7860394537177542,
+          "not_relevant_recall": 0.6475,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.6475,
+              "f1": 0.7860394537177542,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              259
+            ]
+          ]
+        }
+      },
+      "distinctions": {
+        "URBAN_FLOOD_VS_RIVER_BREACH": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 800,
+          "accuracy": 0.1475,
+          "macro_precision": 0.433974358974359,
+          "macro_recall": 0.14750000000000002,
+          "macro_f1": 0.20806182121971595,
+          "macro_f1_present_classes": 0.20806182121971595,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 0.10833333333333334,
+              "recall": 0.0975,
+              "f1": 0.10263157894736842,
+              "support": 400
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.7596153846153846,
+              "recall": 0.1975,
+              "f1": 0.3134920634920635,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              39,
+              25
+            ],
+            [
+              321,
+              79
+            ]
+          ]
+        },
+        "CLOUDBURST_VS_URBAN_FLOOD": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              400
+            ]
+          ]
+        },
+        "CYCLONE_INUNDATION_VS_URBAN_FLOOD": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.965,
+          "macro_precision": 1.0,
+          "macro_recall": 0.965,
+          "macro_f1": 0.9821882951653944,
+          "macro_f1_present_classes": 0.9821882951653944,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.965,
+              "f1": 0.9821882951653944,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              386
+            ]
+          ]
+        },
+        "WEATHER_MENTION_VS_ACTUAL_EVENT": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.6475,
+          "macro_precision": 1.0,
+          "macro_recall": 0.6475,
+          "macro_f1": 0.7860394537177542,
+          "macro_f1_present_classes": 0.7860394537177542,
+          "not_relevant_recall": 0.6475,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.6475,
+              "f1": 0.7860394537177542,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              259
+            ]
+          ]
+        }
+      }
+    },
+    "template_generalization": {
+      "scope": "HELD_OUT_SYNTHETIC_GENERATOR_FAMILIES",
+      "base_template_family_count": 45,
+      "realized_structure_family_count": 6,
+      "base_template_families": {
+        "validation-cloudburst-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "validation-cloudburst-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 266,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 266
+            }
+          },
+          "confusion_matrix": [
+            [
+              266
+            ]
+          ]
+        },
+        "validation-cloudburst-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 268,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 268
+            }
+          },
+          "confusion_matrix": [
+            [
+              268
+            ]
+          ]
+        },
+        "validation-cloudburst-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "validation-cloudburst-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 252,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 252
+            }
+          },
+          "confusion_matrix": [
+            [
+              252
+            ]
+          ]
+        },
+        "validation-cloudburst-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 281,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 281
+            }
+          },
+          "confusion_matrix": [
+            [
+              281
+            ]
+          ]
+        },
+        "validation-cloudburst-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              134
+            ]
+          ]
+        },
+        "validation-cloudburst-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 268,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 268
+            }
+          },
+          "confusion_matrix": [
+            [
+              268
+            ]
+          ]
+        },
+        "validation-cloudburst-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 265,
+          "accuracy": 0.9132075471698113,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9132075471698113,
+          "macro_f1": 0.9546351084812623,
+          "macro_f1_present_classes": 0.9546351084812623,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 0.9132075471698113,
+              "f1": 0.9546351084812623,
+              "support": 265
+            }
+          },
+          "confusion_matrix": [
+            [
+              242
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 276,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 276
+            }
+          },
+          "confusion_matrix": [
+            [
+              276
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 257,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 257
+            }
+          },
+          "confusion_matrix": [
+            [
+              257
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.8955223880597015,
+          "macro_precision": 1.0,
+          "macro_recall": 0.8955223880597015,
+          "macro_f1": 0.9448818897637795,
+          "macro_f1_present_classes": 0.9448818897637795,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.8955223880597015,
+              "f1": 0.9448818897637795,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              120
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 269,
+          "accuracy": 0.9962825278810409,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9962825278810409,
+          "macro_f1": 0.9981378026070763,
+          "macro_f1_present_classes": 0.9981378026070763,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.9962825278810409,
+              "f1": 0.9981378026070763,
+              "support": 269
+            }
+          },
+          "confusion_matrix": [
+            [
+              268
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 264,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 264
+            }
+          },
+          "confusion_matrix": [
+            [
+              264
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 272,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 272
+            }
+          },
+          "confusion_matrix": [
+            [
+              272
+            ]
+          ]
+        },
+        "validation-cyclone-inundation-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 262,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 262
+            }
+          },
+          "confusion_matrix": [
+            [
+              262
+            ]
+          ]
+        },
+        "validation-not-relevant-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.9552238805970149,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9552238805970149,
+          "macro_f1": 0.9770992366412213,
+          "macro_f1_present_classes": 0.9770992366412213,
+          "not_relevant_recall": 0.9552238805970149,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9552238805970149,
+              "f1": 0.9770992366412213,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              128
+            ]
+          ]
+        },
+        "validation-not-relevant-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 264,
+          "accuracy": 0.9318181818181818,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9318181818181818,
+          "macro_f1": 0.9647058823529412,
+          "macro_f1_present_classes": 0.9647058823529412,
+          "not_relevant_recall": 0.9318181818181818,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9318181818181818,
+              "f1": 0.9647058823529412,
+              "support": 264
+            }
+          },
+          "confusion_matrix": [
+            [
+              246
+            ]
+          ]
+        },
+        "validation-not-relevant-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 269,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 269
+            }
+          },
+          "confusion_matrix": [
+            [
+              269
+            ]
+          ]
+        },
+        "validation-not-relevant-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.22556390977443608,
+          "macro_precision": 1.0,
+          "macro_recall": 0.22556390977443608,
+          "macro_f1": 0.36809815950920244,
+          "macro_f1_present_classes": 0.36809815950920244,
+          "not_relevant_recall": 0.22556390977443608,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.22556390977443608,
+              "f1": 0.36809815950920244,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              30
+            ]
+          ]
+        },
+        "validation-not-relevant-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 238,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 238
+            }
+          },
+          "confusion_matrix": [
+            [
+              238
+            ]
+          ]
+        },
+        "validation-not-relevant-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 296,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 296
+            }
+          },
+          "confusion_matrix": [
+            [
+              296
+            ]
+          ]
+        },
+        "validation-not-relevant-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.7593984962406015,
+          "macro_precision": 1.0,
+          "macro_recall": 0.7593984962406015,
+          "macro_f1": 0.8632478632478633,
+          "macro_f1_present_classes": 0.8632478632478633,
+          "not_relevant_recall": 0.7593984962406015,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.7593984962406015,
+              "f1": 0.8632478632478633,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              101
+            ]
+          ]
+        },
+        "validation-not-relevant-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 258,
+          "accuracy": 0.9573643410852714,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9573643410852714,
+          "macro_f1": 0.9782178217821782,
+          "macro_f1_present_classes": 0.9782178217821782,
+          "not_relevant_recall": 0.9573643410852714,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9573643410852714,
+              "f1": 0.9782178217821782,
+              "support": 258
+            }
+          },
+          "confusion_matrix": [
+            [
+              247
+            ]
+          ]
+        },
+        "validation-not-relevant-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 275,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 275
+            }
+          },
+          "confusion_matrix": [
+            [
+              275
+            ]
+          ]
+        },
+        "validation-river-breach-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.05970149253731343,
+          "macro_precision": 1.0,
+          "macro_recall": 0.05970149253731343,
+          "macro_f1": 0.11267605633802817,
+          "macro_f1_present_classes": 0.11267605633802817,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.05970149253731343,
+              "f1": 0.11267605633802817,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              8
+            ]
+          ]
+        },
+        "validation-river-breach-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 284,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 284
+            }
+          },
+          "confusion_matrix": [
+            [
+              284
+            ]
+          ]
+        },
+        "validation-river-breach-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 249,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 249
+            }
+          },
+          "confusion_matrix": [
+            [
+              249
+            ]
+          ]
+        },
+        "validation-river-breach-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.21052631578947367,
+          "macro_precision": 1.0,
+          "macro_recall": 0.21052631578947367,
+          "macro_f1": 0.34782608695652173,
+          "macro_f1_present_classes": 0.34782608695652173,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.21052631578947367,
+              "f1": 0.34782608695652173,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              28
+            ]
+          ]
+        },
+        "validation-river-breach-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 292,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 292
+            }
+          },
+          "confusion_matrix": [
+            [
+              292
+            ]
+          ]
+        },
+        "validation-river-breach-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 242,
+          "accuracy": 0.9256198347107438,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9256198347107438,
+          "macro_f1": 0.9613733905579399,
+          "macro_f1_present_classes": 0.9613733905579399,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.9256198347107438,
+              "f1": 0.9613733905579399,
+              "support": 242
+            }
+          },
+          "confusion_matrix": [
+            [
+              224
+            ]
+          ]
+        },
+        "validation-river-breach-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.022556390977443608,
+          "macro_precision": 1.0,
+          "macro_recall": 0.022556390977443608,
+          "macro_f1": 0.04411764705882353,
+          "macro_f1_present_classes": 0.04411764705882353,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.022556390977443608,
+              "f1": 0.04411764705882353,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              3
+            ]
+          ]
+        },
+        "validation-river-breach-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 245,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 245
+            }
+          },
+          "confusion_matrix": [
+            [
+              245
+            ]
+          ]
+        },
+        "validation-river-breach-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 288,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 288
+            }
+          },
+          "confusion_matrix": [
+            [
+              288
+            ]
+          ]
+        },
+        "validation-urban-flood-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.2556390977443609,
+          "macro_precision": 1.0,
+          "macro_recall": 0.2556390977443609,
+          "macro_f1": 0.40718562874251496,
+          "macro_f1_present_classes": 0.40718562874251496,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.2556390977443609,
+              "f1": 0.40718562874251496,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              34
+            ]
+          ]
+        },
+        "validation-urban-flood-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 252,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 252
+            }
+          },
+          "confusion_matrix": [
+            [
+              252
+            ]
+          ]
+        },
+        "validation-urban-flood-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 281,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 281
+            }
+          },
+          "confusion_matrix": [
+            [
+              281
+            ]
+          ]
+        },
+        "validation-urban-flood-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.0,
+          "macro_precision": 0.0,
+          "macro_recall": 0.0,
+          "macro_f1": 0.0,
+          "macro_f1_present_classes": 0.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              0
+            ]
+          ]
+        },
+        "validation-urban-flood-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 296,
+          "accuracy": 0.6554054054054054,
+          "macro_precision": 1.0,
+          "macro_recall": 0.6554054054054054,
+          "macro_f1": 0.7918367346938775,
+          "macro_f1_present_classes": 0.7918367346938775,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.6554054054054054,
+              "f1": 0.7918367346938775,
+              "support": 296
+            }
+          },
+          "confusion_matrix": [
+            [
+              194
+            ]
+          ]
+        },
+        "validation-urban-flood-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 237,
+          "accuracy": 0.7468354430379747,
+          "macro_precision": 1.0,
+          "macro_recall": 0.7468354430379747,
+          "macro_f1": 0.855072463768116,
+          "macro_f1_present_classes": 0.855072463768116,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.7468354430379747,
+              "f1": 0.855072463768116,
+              "support": 237
+            }
+          },
+          "confusion_matrix": [
+            [
+              177
+            ]
+          ]
+        },
+        "validation-urban-flood-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.3383458646616541,
+          "macro_precision": 1.0,
+          "macro_recall": 0.3383458646616541,
+          "macro_f1": 0.5056179775280899,
+          "macro_f1_present_classes": 0.5056179775280899,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.3383458646616541,
+              "f1": 0.5056179775280899,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              45
+            ]
+          ]
+        },
+        "validation-urban-flood-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 279,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 279
+            }
+          },
+          "confusion_matrix": [
+            [
+              279
+            ]
+          ]
+        },
+        "validation-urban-flood-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 255,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 255
+            }
+          },
+          "confusion_matrix": [
+            [
+              255
+            ]
+          ]
+        }
+      },
+      "realized_structure_families": {
+        "frame-citizen-app": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1661,
+          "accuracy": 0.8699578567128236,
+          "macro_precision": 0.8859709200077652,
+          "macro_recall": 0.8691069988978816,
+          "macro_f1": 0.8676324960231738,
+          "macro_f1_present_classes": 0.8676324960231738,
+          "not_relevant_recall": 0.9040697674418605,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.8316582914572864,
+              "recall": 0.9792899408284024,
+              "f1": 0.8994565217391305,
+              "support": 338
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 0.9126760563380282,
+              "recall": 0.9938650306748467,
+              "f1": 0.9515418502202643,
+              "support": 326
+            },
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9040697674418605,
+              "f1": 0.9496183206106871,
+              "support": 344
+            },
+            "RIVER_BREACH": {
+              "precision": 0.6947368421052632,
+              "recall": 0.8148148148148148,
+              "f1": 0.75,
+              "support": 324
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9907834101382489,
+              "recall": 0.6534954407294833,
+              "f1": 0.7875457875457875,
+              "support": 329
+            }
+          },
+          "confusion_matrix": [
+            [
+              331,
+              7,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              324,
+              0,
+              2,
+              0
+            ],
+            [
+              9,
+              24,
+              311,
+              0,
+              0
+            ],
+            [
+              58,
+              0,
+              0,
+              264,
+              2
+            ],
+            [
+              0,
+              0,
+              0,
+              114,
+              215
+            ]
+          ]
+        },
+        "frame-community-post": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1642,
+          "accuracy": 0.8757612667478685,
+          "macro_precision": 0.889299083430022,
+          "macro_recall": 0.876623249647529,
+          "macro_f1": 0.8738968436104336,
+          "macro_f1_present_classes": 0.8738968436104336,
+          "not_relevant_recall": 0.9127725856697819,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.8527777777777777,
+              "recall": 0.9839743589743589,
+              "f1": 0.9136904761904762,
+              "support": 312
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 0.9212598425196851,
+              "recall": 0.9887323943661972,
+              "f1": 0.9538043478260869,
+              "support": 355
+            },
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9127725856697819,
+              "f1": 0.9543973941368078,
+              "support": 321
+            },
+            "RIVER_BREACH": {
+              "precision": 0.6853333333333333,
+              "recall": 0.8290322580645161,
+              "f1": 0.7503649635036497,
+              "support": 310
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9871244635193133,
+              "recall": 0.6686046511627907,
+              "f1": 0.7972270363951474,
+              "support": 344
+            }
+          },
+          "confusion_matrix": [
+            [
+              307,
+              4,
+              0,
+              0,
+              1
+            ],
+            [
+              0,
+              351,
+              0,
+              4,
+              0
+            ],
+            [
+              2,
+              26,
+              293,
+              0,
+              0
+            ],
+            [
+              51,
+              0,
+              0,
+              257,
+              2
+            ],
+            [
+              0,
+              0,
+              0,
+              114,
+              230
+            ]
+          ]
+        },
+        "frame-control-room-note": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1676,
+          "accuracy": 0.8884248210023866,
+          "macro_precision": 0.8963369716683408,
+          "macro_recall": 0.8884651925263729,
+          "macro_f1": 0.8876685017470661,
+          "macro_f1_present_classes": 0.8876685017470661,
+          "not_relevant_recall": 0.8856304985337243,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.8197115384615384,
+              "recall": 0.9884057971014493,
+              "f1": 0.8961892247043364,
+              "support": 345
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 0.8991596638655462,
+              "recall": 0.9968944099378882,
+              "f1": 0.9455081001472754,
+              "support": 322
+            },
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.8856304985337243,
+              "f1": 0.9393468118195957,
+              "support": 341
+            },
+            "RIVER_BREACH": {
+              "precision": 0.7808641975308642,
+              "recall": 0.7760736196319018,
+              "f1": 0.7784615384615384,
+              "support": 326
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9819494584837545,
+              "recall": 0.7953216374269005,
+              "f1": 0.8788368336025848,
+              "support": 342
+            }
+          },
+          "confusion_matrix": [
+            [
+              341,
+              4,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              321,
+              0,
+              1,
+              0
+            ],
+            [
+              7,
+              32,
+              302,
+              0,
+              0
+            ],
+            [
+              68,
+              0,
+              0,
+              253,
+              5
+            ],
+            [
+              0,
+              0,
+              0,
+              70,
+              272
+            ]
+          ]
+        },
+        "frame-field-volunteer": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1648,
+          "accuracy": 0.9029126213592233,
+          "macro_precision": 0.9070203404218624,
+          "macro_recall": 0.9054156805042821,
+          "macro_f1": 0.9040712863419966,
+          "macro_f1_present_classes": 0.9040712863419966,
+          "not_relevant_recall": 0.9171597633136095,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.8544474393530997,
+              "recall": 0.9968553459119497,
+              "f1": 0.9201741654571843,
+              "support": 318
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 0.9411764705882353,
+              "recall": 0.9743589743589743,
+              "f1": 0.9574803149606299,
+              "support": 312
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9841269841269841,
+              "recall": 0.9171597633136095,
+              "f1": 0.9494640122511485,
+              "support": 338
+            },
+            "RIVER_BREACH": {
+              "precision": 0.7994186046511628,
+              "recall": 0.7994186046511628,
+              "f1": 0.7994186046511628,
+              "support": 344
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9559322033898305,
+              "recall": 0.8392857142857143,
+              "f1": 0.8938193343898574,
+              "support": 336
+            }
+          },
+          "confusion_matrix": [
+            [
+              317,
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              304,
+              0,
+              7,
+              1
+            ],
+            [
+              2,
+              18,
+              310,
+              8,
+              0
+            ],
+            [
+              52,
+              0,
+              5,
+              275,
+              12
+            ],
+            [
+              0,
+              0,
+              0,
+              54,
+              282
+            ]
+          ]
+        },
+        "frame-helpline-transcript": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1703,
+          "accuracy": 0.9142689371697005,
+          "macro_precision": 0.9230833961342155,
+          "macro_recall": 0.9129987130337247,
+          "macro_f1": 0.9144635880026325,
+          "macro_f1_present_classes": 0.9144635880026325,
+          "not_relevant_recall": 0.939297124600639,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.8721227621483376,
+              "recall": 0.9855491329479769,
+              "f1": 0.9253731343283582,
+              "support": 346
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 0.9422572178477691,
+              "recall": 1.0,
+              "f1": 0.9702702702702702,
+              "support": 359
+            },
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.939297124600639,
+              "f1": 0.9686985172981878,
+              "support": 313
+            },
+            "RIVER_BREACH": {
+              "precision": 0.8126649076517151,
+              "recall": 0.8579387186629527,
+              "f1": 0.8346883468834688,
+              "support": 359
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9883720930232558,
+              "recall": 0.7822085889570553,
+              "f1": 0.8732876712328768,
+              "support": 326
+            }
+          },
+          "confusion_matrix": [
+            [
+              341,
+              5,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              359,
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              17,
+              294,
+              0,
+              0
+            ],
+            [
+              48,
+              0,
+              0,
+              308,
+              3
+            ],
+            [
+              0,
+              0,
+              0,
+              71,
+              255
+            ]
+          ]
+        },
+        "frame-sms": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1670,
+          "accuracy": 0.9059880239520958,
+          "macro_precision": 0.9128122348246539,
+          "macro_recall": 0.9055272660959929,
+          "macro_f1": 0.9054741481643033,
+          "macro_f1_present_classes": 0.9054741481643033,
+          "not_relevant_recall": 0.9329446064139941,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.8272506082725061,
+              "recall": 0.9970674486803519,
+              "f1": 0.9042553191489362,
+              "support": 341
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 0.9449275362318841,
+              "recall": 1.0,
+              "f1": 0.9716840536512668,
+              "support": 326
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9846153846153847,
+              "recall": 0.9329446064139941,
+              "f1": 0.9580838323353293,
+              "support": 343
+            },
+            "RIVER_BREACH": {
+              "precision": 0.8148148148148148,
+              "recall": 0.7833827893175074,
+              "f1": 0.7987897125567323,
+              "support": 337
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9924528301886792,
+              "recall": 0.8142414860681114,
+              "f1": 0.8945578231292517,
+              "support": 323
+            }
+          },
+          "confusion_matrix": [
+            [
+              340,
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              326,
+              0,
+              0,
+              0
+            ],
+            [
+              5,
+              18,
+              320,
+              0,
+              0
+            ],
+            [
+              66,
+              0,
+              5,
+              264,
+              2
+            ],
+            [
+              0,
+              0,
+              0,
+              60,
+              263
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "calibration": {
+    "schema_version": "1.0",
+    "evaluation_scope": "VALIDATION_ONLY",
+    "validation_split_sha256": "4405d3083c15b13fff47ebb773e0321f0bebdca6d22f18127af6427d0f4150a6",
+    "method_evaluated": "SCALAR_TEMPERATURE_SCALING",
+    "selected_status": "CALIBRATED_ON_VALIDATION",
+    "selected_method": "TEMPERATURE_SCALING",
+    "selected_temperature": 0.39154547863530537,
+    "optimization": {
+      "success": true,
+      "message": "Solution found.",
+      "bounds": [
+        0.25,
+        4.0
+      ],
+      "candidate_temperature": 0.39154547863530537,
+      "boundary_status": "INTERIOR_OPTIMUM",
+      "search_expanded": false,
+      "objective": "multiclass log loss"
+    },
+    "metrics": {
+      "pre_calibration_log_loss": 0.47745326394211063,
+      "post_calibration_log_loss": 0.28349350710196364,
+      "pre_calibration_multiclass_brier": 0.21865126863230552,
+      "post_calibration_multiclass_brier": 0.15535996402330135,
+      "pre_calibration_ece": 0.2023368719637998,
+      "post_calibration_ece": 0.025787741167492922
+    },
+    "reliability_before": {
+      "bin_count": 10,
+      "expected_calibration_error": 0.2023368719637998,
+      "bins": [
+        {
+          "lower_inclusive": 0.0,
+          "upper_exclusive": 0.1,
+          "upper_inclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.1,
+          "upper_exclusive": 0.2,
+          "upper_inclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.2,
+          "upper_exclusive": 0.30000000000000004,
+          "upper_inclusive": null,
+          "sample_count": 94,
+          "mean_confidence": 0.2765021048515805,
+          "empirical_accuracy": 0.5106382978723404,
+          "absolute_gap": 0.2341361930207599
+        },
+        {
+          "lower_inclusive": 0.30000000000000004,
+          "upper_exclusive": 0.4,
+          "upper_inclusive": null,
+          "sample_count": 841,
+          "mean_confidence": 0.3576016179789672,
+          "empirical_accuracy": 0.5897740784780023,
+          "absolute_gap": 0.23217246049903512
+        },
+        {
+          "lower_inclusive": 0.4,
+          "upper_exclusive": 0.5,
+          "upper_inclusive": null,
+          "sample_count": 1209,
+          "mean_confidence": 0.4497949802110959,
+          "empirical_accuracy": 0.6443341604631927,
+          "absolute_gap": 0.19453918025209682
+        },
+        {
+          "lower_inclusive": 0.5,
+          "upper_exclusive": 0.6000000000000001,
+          "upper_inclusive": null,
+          "sample_count": 1128,
+          "mean_confidence": 0.5533699276695756,
+          "empirical_accuracy": 0.7987588652482269,
+          "absolute_gap": 0.24538893757865132
+        },
+        {
+          "lower_inclusive": 0.6000000000000001,
+          "upper_exclusive": 0.7000000000000001,
+          "upper_inclusive": null,
+          "sample_count": 1566,
+          "mean_confidence": 0.6527093745949618,
+          "empirical_accuracy": 0.9859514687100894,
+          "absolute_gap": 0.3332420941151276
+        },
+        {
+          "lower_inclusive": 0.7000000000000001,
+          "upper_exclusive": 0.8,
+          "upper_inclusive": null,
+          "sample_count": 1794,
+          "mean_confidence": 0.7504876568086087,
+          "empirical_accuracy": 1.0,
+          "absolute_gap": 0.24951234319139126
+        },
+        {
+          "lower_inclusive": 0.8,
+          "upper_exclusive": 0.9,
+          "upper_inclusive": null,
+          "sample_count": 1614,
+          "mean_confidence": 0.8452982976443768,
+          "empirical_accuracy": 1.0,
+          "absolute_gap": 0.1547017023556232
+        },
+        {
+          "lower_inclusive": 0.9,
+          "upper_exclusive": null,
+          "upper_inclusive": 1.0,
+          "sample_count": 1754,
+          "mean_confidence": 0.957277379116743,
+          "empirical_accuracy": 1.0,
+          "absolute_gap": 0.042722620883256957
+        }
+      ]
+    },
+    "reliability_after": {
+      "bin_count": 10,
+      "expected_calibration_error": 0.025787741167492922,
+      "bins": [
+        {
+          "lower_inclusive": 0.0,
+          "upper_exclusive": 0.1,
+          "upper_inclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.1,
+          "upper_exclusive": 0.2,
+          "upper_inclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.2,
+          "upper_exclusive": 0.30000000000000004,
+          "upper_inclusive": null,
+          "sample_count": 6,
+          "mean_confidence": 0.28744385408307743,
+          "empirical_accuracy": 0.3333333333333333,
+          "absolute_gap": 0.04588947925025588
+        },
+        {
+          "lower_inclusive": 0.30000000000000004,
+          "upper_exclusive": 0.4,
+          "upper_inclusive": null,
+          "sample_count": 85,
+          "mean_confidence": 0.36239891821759185,
+          "empirical_accuracy": 0.49411764705882355,
+          "absolute_gap": 0.1317187288412317
+        },
+        {
+          "lower_inclusive": 0.4,
+          "upper_exclusive": 0.5,
+          "upper_inclusive": null,
+          "sample_count": 282,
+          "mean_confidence": 0.45800797486040695,
+          "empirical_accuracy": 0.5567375886524822,
+          "absolute_gap": 0.09872961379207529
+        },
+        {
+          "lower_inclusive": 0.5,
+          "upper_exclusive": 0.6000000000000001,
+          "upper_inclusive": null,
+          "sample_count": 518,
+          "mean_confidence": 0.5494392914532669,
+          "empirical_accuracy": 0.583011583011583,
+          "absolute_gap": 0.03357229155831609
+        },
+        {
+          "lower_inclusive": 0.6000000000000001,
+          "upper_exclusive": 0.7000000000000001,
+          "upper_inclusive": null,
+          "sample_count": 522,
+          "mean_confidence": 0.6502209740233524,
+          "empirical_accuracy": 0.6590038314176245,
+          "absolute_gap": 0.008782857394272092
+        },
+        {
+          "lower_inclusive": 0.7000000000000001,
+          "upper_exclusive": 0.8,
+          "upper_inclusive": null,
+          "sample_count": 598,
+          "mean_confidence": 0.7520433502322628,
+          "empirical_accuracy": 0.6705685618729097,
+          "absolute_gap": 0.08147478835935307
+        },
+        {
+          "lower_inclusive": 0.8,
+          "upper_exclusive": 0.9,
+          "upper_inclusive": null,
+          "sample_count": 741,
+          "mean_confidence": 0.8521554235217993,
+          "empirical_accuracy": 0.7031039136302294,
+          "absolute_gap": 0.1490515098915699
+        },
+        {
+          "lower_inclusive": 0.9,
+          "upper_exclusive": null,
+          "upper_inclusive": 1.0,
+          "sample_count": 7248,
+          "mean_confidence": 0.982833879566364,
+          "empirical_accuracy": 0.9879966887417219,
+          "absolute_gap": 0.00516280917535783
+        }
+      ]
+    },
+    "test_used": false,
+    "production_calibration": "NOT_VALIDATED",
+    "limitations": [
+      "Calibration was fitted and measured on synthetic validation data.",
+      "A boundary result is reported without expanding the search or touching test data."
+    ]
+  },
+  "test": {
+    "overall": {
+      "status": "DATA_AVAILABLE",
+      "sample_count": 10000,
+      "accuracy": 0.9359,
+      "macro_precision": 0.9368249631190861,
+      "macro_recall": 0.9359,
+      "macro_f1": 0.9359267894270392,
+      "macro_f1_present_classes": 0.9359267894270392,
+      "not_relevant_recall": 0.936,
+      "per_class_metrics": {
+        "CLOUDBURST": {
+          "precision": 0.9280742459396751,
+          "recall": 1.0,
+          "f1": 0.9626955475330926,
+          "support": 2000
+        },
+        "CYCLONE_INUNDATION": {
+          "precision": 1.0,
+          "recall": 0.953,
+          "f1": 0.9759344598054276,
+          "support": 2000
+        },
+        "NOT_RELEVANT": {
+          "precision": 0.9674418604651163,
+          "recall": 0.936,
+          "f1": 0.9514612452350699,
+          "support": 2000
+        },
+        "RIVER_BREACH": {
+          "precision": 0.8840361445783133,
+          "recall": 0.8805,
+          "f1": 0.8822645290581163,
+          "support": 2000
+        },
+        "URBAN_FLOOD": {
+          "precision": 0.904572564612326,
+          "recall": 0.91,
+          "f1": 0.9072781655034895,
+          "support": 2000
+        }
+      },
+      "confusion_matrix": [
+        [
+          2000,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1906,
+          49,
+          4,
+          41
+        ],
+        [
+          72,
+          0,
+          1872,
+          56,
+          0
+        ],
+        [
+          74,
+          0,
+          14,
+          1761,
+          151
+        ],
+        [
+          9,
+          0,
+          0,
+          171,
+          1820
+        ]
+      ]
+    },
+    "languages": {
+      "English": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3334,
+        "accuracy": 0.9289142171565686,
+        "macro_precision": 0.930861195359545,
+        "macro_recall": 0.928935532233883,
+        "macro_f1": 0.9288706617996916,
+        "macro_f1_present_classes": 0.9288706617996916,
+        "not_relevant_recall": 0.8785607196401799,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 0.8903743315508021,
+            "recall": 1.0,
+            "f1": 0.942008486562942,
+            "support": 666
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 1.0,
+            "recall": 0.9655172413793104,
+            "f1": 0.9824561403508771,
+            "support": 667
+          },
+          "NOT_RELEVANT": {
+            "precision": 0.9528455284552846,
+            "recall": 0.8785607196401799,
+            "f1": 0.9141965678627145,
+            "support": 667
+          },
+          "RIVER_BREACH": {
+            "precision": 0.8770370370370371,
+            "recall": 0.8875562218890555,
+            "f1": 0.8822652757078987,
+            "support": 667
+          },
+          "URBAN_FLOOD": {
+            "precision": 0.9340490797546013,
+            "recall": 0.9130434782608695,
+            "f1": 0.9234268385140257,
+            "support": 667
+          }
+        },
+        "confusion_matrix": [
+          [
+            666,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            644,
+            15,
+            4,
+            4
+          ],
+          [
+            60,
+            0,
+            586,
+            21,
+            0
+          ],
+          [
+            22,
+            0,
+            14,
+            592,
+            39
+          ],
+          [
+            0,
+            0,
+            0,
+            58,
+            609
+          ]
+        ]
+      },
+      "Hindi": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3333,
+        "accuracy": 0.9321932193219322,
+        "macro_precision": 0.9347280635384921,
+        "macro_recall": 0.9321839080459771,
+        "macro_f1": 0.933082567370878,
+        "macro_f1_present_classes": 0.933082567370878,
+        "not_relevant_recall": 0.9834834834834835,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 667
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 1.0,
+            "recall": 0.9505247376311844,
+            "f1": 0.9746348962336664,
+            "support": 667
+          },
+          "NOT_RELEVANT": {
+            "precision": 1.0,
+            "recall": 0.9834834834834835,
+            "f1": 0.991672975018925,
+            "support": 666
+          },
+          "RIVER_BREACH": {
+            "precision": 0.858877086494689,
+            "recall": 0.8498498498498499,
+            "f1": 0.8543396226415094,
+            "support": 666
+          },
+          "URBAN_FLOOD": {
+            "precision": 0.8147632311977716,
+            "recall": 0.8770614692653673,
+            "f1": 0.8447653429602888,
+            "support": 667
+          }
+        },
+        "confusion_matrix": [
+          [
+            667,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            634,
+            0,
+            0,
+            33
+          ],
+          [
+            0,
+            0,
+            655,
+            11,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            566,
+            100
+          ],
+          [
+            0,
+            0,
+            0,
+            82,
+            585
+          ]
+        ]
+      },
+      "Hinglish": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 3333,
+        "accuracy": 0.9465946594659466,
+        "macro_precision": 0.9483429574565199,
+        "macro_recall": 0.9465915690803246,
+        "macro_f1": 0.9467145850128553,
+        "macro_f1_present_classes": 0.9467145850128553,
+        "not_relevant_recall": 0.9460269865067467,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 0.9013513513513514,
+            "recall": 1.0,
+            "f1": 0.9481165600568585,
+            "support": 667
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 1.0,
+            "recall": 0.9429429429429429,
+            "f1": 0.9706336939721792,
+            "support": 666
+          },
+          "NOT_RELEVANT": {
+            "precision": 0.9488721804511279,
+            "recall": 0.9460269865067467,
+            "f1": 0.9474474474474475,
+            "support": 667
+          },
+          "RIVER_BREACH": {
+            "precision": 0.9164133738601824,
+            "recall": 0.904047976011994,
+            "f1": 0.910188679245283,
+            "support": 667
+          },
+          "URBAN_FLOOD": {
+            "precision": 0.9750778816199377,
+            "recall": 0.93993993993994,
+            "f1": 0.9571865443425076,
+            "support": 666
+          }
+        },
+        "confusion_matrix": [
+          [
+            667,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            628,
+            34,
+            0,
+            4
+          ],
+          [
+            12,
+            0,
+            631,
+            24,
+            0
+          ],
+          [
+            52,
+            0,
+            0,
+            603,
+            12
+          ],
+          [
+            9,
+            0,
+            0,
+            31,
+            626
+          ]
+        ]
+      }
+    },
+    "noise": {
+      "NONE": {
+        "status": "NO_SAMPLES_IN_SPLIT",
+        "sample_count": 0,
+        "accuracy": null,
+        "macro_f1": null,
+        "not_relevant_recall": null
+      },
+      "LOW": {
+        "status": "NO_SAMPLES_IN_SPLIT",
+        "sample_count": 0,
+        "accuracy": null,
+        "macro_f1": null,
+        "not_relevant_recall": null
+      },
+      "MEDIUM": {
+        "status": "NO_SAMPLES_IN_SPLIT",
+        "sample_count": 0,
+        "accuracy": null,
+        "macro_f1": null,
+        "not_relevant_recall": null
+      },
+      "HIGH": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 10000,
+        "accuracy": 0.9359,
+        "macro_f1": 0.9359267894270392,
+        "not_relevant_recall": 0.936
+      }
+    },
+    "hard_negatives": {
+      "scope": "SYNTHETIC_ASSIGNED_SPLIT_ONLY",
+      "overall": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 2000,
+        "accuracy": 0.831,
+        "macro_precision": 0.8410781388152078,
+        "macro_recall": 0.8310000000000001,
+        "macro_f1": 0.8303691025601274,
+        "macro_f1_present_classes": 0.8303691025601274,
+        "not_relevant_recall": 0.9975,
+        "per_class_metrics": {
+          "CLOUDBURST": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 400
+          },
+          "CYCLONE_INUNDATION": {
+            "precision": 1.0,
+            "recall": 0.775,
+            "f1": 0.8732394366197183,
+            "support": 400
+          },
+          "NOT_RELEVANT": {
+            "precision": 0.890625,
+            "recall": 0.9975,
+            "f1": 0.9410377358490566,
+            "support": 400
+          },
+          "RIVER_BREACH": {
+            "precision": 0.6538461538461539,
+            "recall": 0.8075,
+            "f1": 0.7225950782997763,
+            "support": 400
+          },
+          "URBAN_FLOOD": {
+            "precision": 0.6609195402298851,
+            "recall": 0.575,
+            "f1": 0.6149732620320856,
+            "support": 400
+          }
+        },
+        "confusion_matrix": [
+          [
+            400,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            310,
+            49,
+            0,
+            41
+          ],
+          [
+            0,
+            0,
+            399,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            323,
+            77
+          ],
+          [
+            0,
+            0,
+            0,
+            170,
+            230
+          ]
+        ]
+      },
+      "by_generator_type": {
+        "CYCLONE_SURGE_NOT_ROUTINE_URBAN_FLOOD": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.775,
+          "macro_precision": 1.0,
+          "macro_recall": 0.775,
+          "macro_f1": 0.8732394366197183,
+          "macro_f1_present_classes": 0.8732394366197183,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.775,
+              "f1": 0.8732394366197183,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              310
+            ]
+          ]
+        },
+        "LOCALIZED_DOWNPOUR_NOT_GENERIC_WATERLOGGING": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              400
+            ]
+          ]
+        },
+        "RIVER_FAILURE_NOT_URBAN_DRAINAGE": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.8075,
+          "macro_precision": 1.0,
+          "macro_recall": 0.8075,
+          "macro_f1": 0.8934993084370678,
+          "macro_f1_present_classes": 0.8934993084370678,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.8075,
+              "f1": 0.8934993084370678,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              323
+            ]
+          ]
+        },
+        "URBAN_DRAINAGE_NOT_RIVER_FAILURE": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.575,
+          "macro_precision": 1.0,
+          "macro_recall": 0.575,
+          "macro_f1": 0.7301587301587301,
+          "macro_f1_present_classes": 0.7301587301587301,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.575,
+              "f1": 0.7301587301587301,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              230
+            ]
+          ]
+        },
+        "WEATHER_MENTION_WITHOUT_OBSERVED_EVENT": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.9975,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9975,
+          "macro_f1": 0.9987484355444305,
+          "macro_f1_present_classes": 0.9987484355444305,
+          "not_relevant_recall": 0.9975,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9975,
+              "f1": 0.9987484355444305,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              399
+            ]
+          ]
+        }
+      },
+      "distinctions": {
+        "URBAN_FLOOD_VS_RIVER_BREACH": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 800,
+          "accuracy": 0.69125,
+          "macro_precision": 0.7021790407727733,
+          "macro_recall": 0.6912499999999999,
+          "macro_f1": 0.6870203737698999,
+          "macro_f1_present_classes": 0.6870203737698999,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 0.6551724137931034,
+              "recall": 0.8075,
+              "f1": 0.723404255319149,
+              "support": 400
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.749185667752443,
+              "recall": 0.575,
+              "f1": 0.6506364922206507,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              323,
+              77
+            ],
+            [
+              170,
+              230
+            ]
+          ]
+        },
+        "CLOUDBURST_VS_URBAN_FLOOD": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              400
+            ]
+          ]
+        },
+        "CYCLONE_INUNDATION_VS_URBAN_FLOOD": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.775,
+          "macro_precision": 1.0,
+          "macro_recall": 0.775,
+          "macro_f1": 0.8732394366197183,
+          "macro_f1_present_classes": 0.8732394366197183,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.775,
+              "f1": 0.8732394366197183,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              310
+            ]
+          ]
+        },
+        "WEATHER_MENTION_VS_ACTUAL_EVENT": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 400,
+          "accuracy": 0.9975,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9975,
+          "macro_f1": 0.9987484355444305,
+          "macro_f1_present_classes": 0.9987484355444305,
+          "not_relevant_recall": 0.9975,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9975,
+              "f1": 0.9987484355444305,
+              "support": 400
+            }
+          },
+          "confusion_matrix": [
+            [
+              399
+            ]
+          ]
+        }
+      }
+    },
+    "template_generalization": {
+      "scope": "HELD_OUT_SYNTHETIC_GENERATOR_FAMILIES",
+      "base_template_family_count": 45,
+      "realized_structure_family_count": 6,
+      "base_template_families": {
+        "test-cloudburst-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "test-cloudburst-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 272,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 272
+            }
+          },
+          "confusion_matrix": [
+            [
+              272
+            ]
+          ]
+        },
+        "test-cloudburst-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 261,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 261
+            }
+          },
+          "confusion_matrix": [
+            [
+              261
+            ]
+          ]
+        },
+        "test-cloudburst-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              134
+            ]
+          ]
+        },
+        "test-cloudburst-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 271,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 271
+            }
+          },
+          "confusion_matrix": [
+            [
+              271
+            ]
+          ]
+        },
+        "test-cloudburst-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 262,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 262
+            }
+          },
+          "confusion_matrix": [
+            [
+              262
+            ]
+          ]
+        },
+        "test-cloudburst-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "test-cloudburst-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 270,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 270
+            }
+          },
+          "confusion_matrix": [
+            [
+              270
+            ]
+          ]
+        },
+        "test-cloudburst-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 264,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 264
+            }
+          },
+          "confusion_matrix": [
+            [
+              264
+            ]
+          ]
+        },
+        "test-cyclone-inundation-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.8582089552238806,
+          "macro_precision": 1.0,
+          "macro_recall": 0.8582089552238806,
+          "macro_f1": 0.9236947791164659,
+          "macro_f1_present_classes": 0.9236947791164659,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.8582089552238806,
+              "f1": 0.9236947791164659,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              115
+            ]
+          ]
+        },
+        "test-cyclone-inundation-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 260,
+          "accuracy": 0.9846153846153847,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9846153846153847,
+          "macro_f1": 0.9922480620155039,
+          "macro_f1_present_classes": 0.9922480620155039,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.9846153846153847,
+              "f1": 0.9922480620155039,
+              "support": 260
+            }
+          },
+          "confusion_matrix": [
+            [
+              256
+            ]
+          ]
+        },
+        "test-cyclone-inundation-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 273,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 273
+            }
+          },
+          "confusion_matrix": [
+            [
+              273
+            ]
+          ]
+        },
+        "test-cyclone-inundation-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.7518796992481203,
+          "macro_precision": 1.0,
+          "macro_recall": 0.7518796992481203,
+          "macro_f1": 0.8583690987124464,
+          "macro_f1_present_classes": 0.8583690987124464,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.7518796992481203,
+              "f1": 0.8583690987124464,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              100
+            ]
+          ]
+        },
+        "test-cyclone-inundation-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 285,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 285
+            }
+          },
+          "confusion_matrix": [
+            [
+              285
+            ]
+          ]
+        },
+        "test-cyclone-inundation-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 249,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 249
+            }
+          },
+          "confusion_matrix": [
+            [
+              249
+            ]
+          ]
+        },
+        "test-cyclone-inundation-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.7142857142857143,
+          "macro_precision": 1.0,
+          "macro_recall": 0.7142857142857143,
+          "macro_f1": 0.8333333333333334,
+          "macro_f1_present_classes": 0.8333333333333334,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.7142857142857143,
+              "f1": 0.8333333333333334,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              95
+            ]
+          ]
+        },
+        "test-cyclone-inundation-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 290,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 290
+            }
+          },
+          "confusion_matrix": [
+            [
+              290
+            ]
+          ]
+        },
+        "test-cyclone-inundation-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 243,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 243
+            }
+          },
+          "confusion_matrix": [
+            [
+              243
+            ]
+          ]
+        },
+        "test-not-relevant-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "test-not-relevant-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 248,
+          "accuracy": 0.6733870967741935,
+          "macro_precision": 1.0,
+          "macro_recall": 0.6733870967741935,
+          "macro_f1": 0.8048192771084337,
+          "macro_f1_present_classes": 0.8048192771084337,
+          "not_relevant_recall": 0.6733870967741935,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.6733870967741935,
+              "f1": 0.8048192771084337,
+              "support": 248
+            }
+          },
+          "confusion_matrix": [
+            [
+              167
+            ]
+          ]
+        },
+        "test-not-relevant-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 286,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 286
+            }
+          },
+          "confusion_matrix": [
+            [
+              286
+            ]
+          ]
+        },
+        "test-not-relevant-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "test-not-relevant-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 269,
+          "accuracy": 0.9591078066914498,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9591078066914498,
+          "macro_f1": 0.9791271347248577,
+          "macro_f1_present_classes": 0.9791271347248577,
+          "not_relevant_recall": 0.9591078066914498,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9591078066914498,
+              "f1": 0.9791271347248577,
+              "support": 269
+            }
+          },
+          "confusion_matrix": [
+            [
+              258
+            ]
+          ]
+        },
+        "test-not-relevant-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 264,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 264
+            }
+          },
+          "confusion_matrix": [
+            [
+              264
+            ]
+          ]
+        },
+        "test-not-relevant-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.9925373134328358,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9925373134328358,
+          "macro_f1": 0.9962546816479401,
+          "macro_f1_present_classes": 0.9962546816479401,
+          "not_relevant_recall": 0.9925373134328358,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.9925373134328358,
+              "f1": 0.9962546816479401,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              133
+            ]
+          ]
+        },
+        "test-not-relevant-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 268,
+          "accuracy": 0.8694029850746269,
+          "macro_precision": 1.0,
+          "macro_recall": 0.8694029850746269,
+          "macro_f1": 0.9301397205588823,
+          "macro_f1_present_classes": 0.9301397205588823,
+          "not_relevant_recall": 0.8694029850746269,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 0.8694029850746269,
+              "f1": 0.9301397205588823,
+              "support": 268
+            }
+          },
+          "confusion_matrix": [
+            [
+              233
+            ]
+          ]
+        },
+        "test-not-relevant-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 265,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": 1.0,
+          "per_class_metrics": {
+            "NOT_RELEVANT": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 265
+            }
+          },
+          "confusion_matrix": [
+            [
+              265
+            ]
+          ]
+        },
+        "test-river-breach-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.706766917293233,
+          "macro_precision": 1.0,
+          "macro_recall": 0.706766917293233,
+          "macro_f1": 0.8281938325991189,
+          "macro_f1_present_classes": 0.8281938325991189,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.706766917293233,
+              "f1": 0.8281938325991189,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              94
+            ]
+          ]
+        },
+        "test-river-breach-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 259,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 259
+            }
+          },
+          "confusion_matrix": [
+            [
+              259
+            ]
+          ]
+        },
+        "test-river-breach-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 275,
+          "accuracy": 0.8690909090909091,
+          "macro_precision": 1.0,
+          "macro_recall": 0.8690909090909091,
+          "macro_f1": 0.9299610894941635,
+          "macro_f1_present_classes": 0.9299610894941635,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.8690909090909091,
+              "f1": 0.9299610894941635,
+              "support": 275
+            }
+          },
+          "confusion_matrix": [
+            [
+              239
+            ]
+          ]
+        },
+        "test-river-breach-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.8045112781954887,
+          "macro_precision": 1.0,
+          "macro_recall": 0.8045112781954887,
+          "macro_f1": 0.8916666666666667,
+          "macro_f1_present_classes": 0.8916666666666667,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.8045112781954887,
+              "f1": 0.8916666666666667,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              107
+            ]
+          ]
+        },
+        "test-river-breach-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 285,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 285
+            }
+          },
+          "confusion_matrix": [
+            [
+              285
+            ]
+          ]
+        },
+        "test-river-breach-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 248,
+          "accuracy": 0.7016129032258065,
+          "macro_precision": 1.0,
+          "macro_recall": 0.7016129032258065,
+          "macro_f1": 0.8246445497630331,
+          "macro_f1_present_classes": 0.8246445497630331,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.7016129032258065,
+              "f1": 0.8246445497630331,
+              "support": 248
+            }
+          },
+          "confusion_matrix": [
+            [
+              174
+            ]
+          ]
+        },
+        "test-river-breach-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.9104477611940298,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9104477611940298,
+          "macro_f1": 0.953125,
+          "macro_f1_present_classes": 0.953125,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.9104477611940298,
+              "f1": 0.953125,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              122
+            ]
+          ]
+        },
+        "test-river-breach-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 249,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 249
+            }
+          },
+          "confusion_matrix": [
+            [
+              249
+            ]
+          ]
+        },
+        "test-river-breach-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 284,
+          "accuracy": 0.8169014084507042,
+          "macro_precision": 1.0,
+          "macro_recall": 0.8169014084507042,
+          "macro_f1": 0.8992248062015504,
+          "macro_f1_present_classes": 0.8992248062015504,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "RIVER_BREACH": {
+              "precision": 1.0,
+              "recall": 0.8169014084507042,
+              "f1": 0.8992248062015504,
+              "support": 284
+            }
+          },
+          "confusion_matrix": [
+            [
+              232
+            ]
+          ]
+        },
+        "test-urban-flood-en-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 134,
+          "accuracy": 0.5746268656716418,
+          "macro_precision": 1.0,
+          "macro_recall": 0.5746268656716418,
+          "macro_f1": 0.7298578199052133,
+          "macro_f1_present_classes": 0.7298578199052133,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.5746268656716418,
+              "f1": 0.7298578199052133,
+              "support": 134
+            }
+          },
+          "confusion_matrix": [
+            [
+              77
+            ]
+          ]
+        },
+        "test-urban-flood-en-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 279,
+          "accuracy": 0.996415770609319,
+          "macro_precision": 1.0,
+          "macro_recall": 0.996415770609319,
+          "macro_f1": 0.9982046678635548,
+          "macro_f1_present_classes": 0.9982046678635548,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.996415770609319,
+              "f1": 0.9982046678635548,
+              "support": 279
+            }
+          },
+          "confusion_matrix": [
+            [
+              278
+            ]
+          ]
+        },
+        "test-urban-flood-en-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 254,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 254
+            }
+          },
+          "confusion_matrix": [
+            [
+              254
+            ]
+          ]
+        },
+        "test-urban-flood-hi-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.38345864661654133,
+          "macro_precision": 1.0,
+          "macro_recall": 0.38345864661654133,
+          "macro_f1": 0.5543478260869565,
+          "macro_f1_present_classes": 0.5543478260869565,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.38345864661654133,
+              "f1": 0.5543478260869565,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              51
+            ]
+          ]
+        },
+        "test-urban-flood-hi-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 270,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 270
+            }
+          },
+          "confusion_matrix": [
+            [
+              270
+            ]
+          ]
+        },
+        "test-urban-flood-hi-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 264,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 264
+            }
+          },
+          "confusion_matrix": [
+            [
+              264
+            ]
+          ]
+        },
+        "test-urban-flood-hinglish-hard-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 133,
+          "accuracy": 0.7669172932330827,
+          "macro_precision": 1.0,
+          "macro_recall": 0.7669172932330827,
+          "macro_f1": 0.8680851063829788,
+          "macro_f1_present_classes": 0.8680851063829788,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.7669172932330827,
+              "f1": 0.8680851063829788,
+              "support": 133
+            }
+          },
+          "confusion_matrix": [
+            [
+              102
+            ]
+          ]
+        },
+        "test-urban-flood-hinglish-normal-01": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 279,
+          "accuracy": 1.0,
+          "macro_precision": 1.0,
+          "macro_recall": 1.0,
+          "macro_f1": 1.0,
+          "macro_f1_present_classes": 1.0,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 279
+            }
+          },
+          "confusion_matrix": [
+            [
+              279
+            ]
+          ]
+        },
+        "test-urban-flood-hinglish-normal-02": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 254,
+          "accuracy": 0.9645669291338582,
+          "macro_precision": 1.0,
+          "macro_recall": 0.9645669291338582,
+          "macro_f1": 0.9819639278557114,
+          "macro_f1_present_classes": 0.9819639278557114,
+          "not_relevant_recall": null,
+          "per_class_metrics": {
+            "URBAN_FLOOD": {
+              "precision": 1.0,
+              "recall": 0.9645669291338582,
+              "f1": 0.9819639278557114,
+              "support": 254
+            }
+          },
+          "confusion_matrix": [
+            [
+              245
+            ]
+          ]
+        }
+      },
+      "realized_structure_families": {
+        "frame-citizen-app": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1654,
+          "accuracy": 0.9244256348246674,
+          "macro_precision": 0.930807432369216,
+          "macro_recall": 0.9257848698505882,
+          "macro_f1": 0.9270340970071036,
+          "macro_f1_present_classes": 0.9270340970071036,
+          "not_relevant_recall": 0.8997134670487106,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.9333333333333333,
+              "recall": 1.0,
+              "f1": 0.9655172413793104,
+              "support": 322
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.9477351916376306,
+              "f1": 0.9731663685152058,
+              "support": 287
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9751552795031055,
+              "recall": 0.8997134670487106,
+              "f1": 0.9359165424739195,
+              "support": 349
+            },
+            "RIVER_BREACH": {
+              "precision": 0.8379052369077307,
+              "recall": 0.9256198347107438,
+              "f1": 0.8795811518324608,
+              "support": 363
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9076433121019108,
+              "recall": 0.8558558558558559,
+              "f1": 0.8809891808346213,
+              "support": 333
+            }
+          },
+          "confusion_matrix": [
+            [
+              322,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              272,
+              8,
+              2,
+              5
+            ],
+            [
+              19,
+              0,
+              314,
+              16,
+              0
+            ],
+            [
+              3,
+              0,
+              0,
+              336,
+              24
+            ],
+            [
+              1,
+              0,
+              0,
+              47,
+              285
+            ]
+          ]
+        },
+        "frame-community-post": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1678,
+          "accuracy": 0.9445768772348033,
+          "macro_precision": 0.9453195000843546,
+          "macro_recall": 0.9431498307202741,
+          "macro_f1": 0.9432110525192681,
+          "macro_f1_present_classes": 0.9432110525192681,
+          "not_relevant_recall": 0.9233226837060703,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.9287598944591029,
+              "recall": 1.0,
+              "f1": 0.9630642954856361,
+              "support": 352
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.9596774193548387,
+              "f1": 0.9794238683127572,
+              "support": 372
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9796610169491525,
+              "recall": 0.9233226837060703,
+              "f1": 0.9506578947368421,
+              "support": 313
+            },
+            "RIVER_BREACH": {
+              "precision": 0.8771929824561403,
+              "recall": 0.9523809523809523,
+              "f1": 0.91324200913242,
+              "support": 315
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.940983606557377,
+              "recall": 0.8803680981595092,
+              "f1": 0.9096671949286846,
+              "support": 326
+            }
+          },
+          "confusion_matrix": [
+            [
+              352,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              357,
+              6,
+              1,
+              8
+            ],
+            [
+              20,
+              0,
+              289,
+              4,
+              0
+            ],
+            [
+              5,
+              0,
+              0,
+              300,
+              10
+            ],
+            [
+              2,
+              0,
+              0,
+              37,
+              287
+            ]
+          ]
+        },
+        "frame-control-room-note": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1648,
+          "accuracy": 0.9441747572815534,
+          "macro_precision": 0.9464704434333642,
+          "macro_recall": 0.9430621518074271,
+          "macro_f1": 0.9435178028756441,
+          "macro_f1_present_classes": 0.9435178028756441,
+          "not_relevant_recall": 0.9495268138801262,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.9018087855297158,
+              "recall": 1.0,
+              "f1": 0.9483695652173914,
+              "support": 349
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.9732142857142857,
+              "f1": 0.9864253393665159,
+              "support": 336
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9741100323624595,
+              "recall": 0.9495268138801262,
+              "f1": 0.9616613418530351,
+              "support": 317
+            },
+            "RIVER_BREACH": {
+              "precision": 0.9513888888888888,
+              "recall": 0.848297213622291,
+              "f1": 0.8968903436988543,
+              "support": 323
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9050445103857567,
+              "recall": 0.9442724458204335,
+              "f1": 0.9242424242424242,
+              "support": 323
+            }
+          },
+          "confusion_matrix": [
+            [
+              349,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              327,
+              8,
+              0,
+              1
+            ],
+            [
+              16,
+              0,
+              301,
+              0,
+              0
+            ],
+            [
+              18,
+              0,
+              0,
+              274,
+              31
+            ],
+            [
+              4,
+              0,
+              0,
+              14,
+              305
+            ]
+          ]
+        },
+        "frame-field-volunteer": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1747,
+          "accuracy": 0.9221522610188895,
+          "macro_precision": 0.9243309478227616,
+          "macro_recall": 0.9222718331395997,
+          "macro_f1": 0.9222274163987147,
+          "macro_f1_present_classes": 0.9222274163987147,
+          "not_relevant_recall": 0.9270516717325228,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.9699453551912568,
+              "recall": 1.0,
+              "f1": 0.984743411927878,
+              "support": 355
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.936231884057971,
+              "f1": 0.9670658682634731,
+              "support": 345
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9242424242424242,
+              "recall": 0.9270516717325228,
+              "f1": 0.9256449165402124,
+              "support": 329
+            },
+            "RIVER_BREACH": {
+              "precision": 0.8742331288343558,
+              "recall": 0.800561797752809,
+              "f1": 0.8357771260997068,
+              "support": 356
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.8532338308457711,
+              "recall": 0.9475138121546961,
+              "f1": 0.8979057591623036,
+              "support": 362
+            }
+          },
+          "confusion_matrix": [
+            [
+              355,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              323,
+              11,
+              0,
+              11
+            ],
+            [
+              2,
+              0,
+              305,
+              22,
+              0
+            ],
+            [
+              9,
+              0,
+              14,
+              285,
+              48
+            ],
+            [
+              0,
+              0,
+              0,
+              19,
+              343
+            ]
+          ]
+        },
+        "frame-helpline-transcript": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1637,
+          "accuracy": 0.9383017715332926,
+          "macro_precision": 0.9380621228771832,
+          "macro_recall": 0.9383443808879319,
+          "macro_f1": 0.9377143407653896,
+          "macro_f1_present_classes": 0.9377143407653896,
+          "not_relevant_recall": 0.9396551724137931,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.9343283582089552,
+              "recall": 1.0,
+              "f1": 0.9660493827160493,
+              "support": 313
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.9413489736070382,
+              "f1": 0.9697885196374623,
+              "support": 341
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9732142857142857,
+              "recall": 0.9396551724137931,
+              "f1": 0.956140350877193,
+              "support": 348
+            },
+            "RIVER_BREACH": {
+              "precision": 0.8722741433021807,
+              "recall": 0.8945686900958466,
+              "f1": 0.8832807570977917,
+              "support": 313
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9104938271604939,
+              "recall": 0.9161490683229814,
+              "f1": 0.913312693498452,
+              "support": 322
+            }
+          },
+          "confusion_matrix": [
+            [
+              313,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              321,
+              9,
+              1,
+              10
+            ],
+            [
+              7,
+              0,
+              327,
+              14,
+              0
+            ],
+            [
+              14,
+              0,
+              0,
+              280,
+              19
+            ],
+            [
+              1,
+              0,
+              0,
+              26,
+              295
+            ]
+          ]
+        },
+        "frame-sms": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 1636,
+          "accuracy": 0.9425427872860636,
+          "macro_precision": 0.9431073844046676,
+          "macro_recall": 0.943166430862122,
+          "macro_f1": 0.9424184312319962,
+          "macro_f1_present_classes": 0.9424184312319962,
+          "not_relevant_recall": 0.9767441860465116,
+          "per_class_metrics": {
+            "CLOUDBURST": {
+              "precision": 0.9008746355685131,
+              "recall": 1.0,
+              "f1": 0.9478527607361963,
+              "support": 309
+            },
+            "CYCLONE_INUNDATION": {
+              "precision": 1.0,
+              "recall": 0.9592476489028213,
+              "f1": 0.9792,
+              "support": 319
+            },
+            "NOT_RELEVANT": {
+              "precision": 0.9795918367346939,
+              "recall": 0.9767441860465116,
+              "f1": 0.9781659388646288,
+              "support": 344
+            },
+            "RIVER_BREACH": {
+              "precision": 0.910828025477707,
+              "recall": 0.8666666666666667,
+              "f1": 0.8881987577639752,
+              "support": 330
+            },
+            "URBAN_FLOOD": {
+              "precision": 0.9242424242424242,
+              "recall": 0.9131736526946108,
+              "f1": 0.9186746987951807,
+              "support": 334
+            }
+          },
+          "confusion_matrix": [
+            [
+              309,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              306,
+              7,
+              0,
+              6
+            ],
+            [
+              8,
+              0,
+              336,
+              0,
+              0
+            ],
+            [
+              25,
+              0,
+              0,
+              286,
+              19
+            ],
+            [
+              1,
+              0,
+              0,
+              28,
+              305
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "test_probability_metrics": {
+    "log_loss": 0.20090706833087324,
+    "multiclass_brier": 0.10134589390273846,
+    "expected_calibration_error": 0.06266504611485815,
+    "reliability": {
+      "bin_count": 10,
+      "expected_calibration_error": 0.06266504611485815,
+      "bins": [
+        {
+          "lower_inclusive": 0.0,
+          "upper_exclusive": 0.1,
+          "upper_inclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.1,
+          "upper_exclusive": 0.2,
+          "upper_inclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.2,
+          "upper_exclusive": 0.30000000000000004,
+          "upper_inclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.30000000000000004,
+          "upper_exclusive": 0.4,
+          "upper_inclusive": null,
+          "sample_count": 108,
+          "mean_confidence": 0.3679337533215271,
+          "empirical_accuracy": 0.4351851851851852,
+          "absolute_gap": 0.06725143186365806
+        },
+        {
+          "lower_inclusive": 0.4,
+          "upper_exclusive": 0.5,
+          "upper_inclusive": null,
+          "sample_count": 359,
+          "mean_confidence": 0.458842241122055,
+          "empirical_accuracy": 0.5543175487465181,
+          "absolute_gap": 0.09547530762446305
+        },
+        {
+          "lower_inclusive": 0.5,
+          "upper_exclusive": 0.6000000000000001,
+          "upper_inclusive": null,
+          "sample_count": 608,
+          "mean_confidence": 0.5497358214699785,
+          "empirical_accuracy": 0.6710526315789473,
+          "absolute_gap": 0.12131681010896889
+        },
+        {
+          "lower_inclusive": 0.6000000000000001,
+          "upper_exclusive": 0.7000000000000001,
+          "upper_inclusive": null,
+          "sample_count": 650,
+          "mean_confidence": 0.6518015542291435,
+          "empirical_accuracy": 0.8076923076923077,
+          "absolute_gap": 0.15589075346316417
+        },
+        {
+          "lower_inclusive": 0.7000000000000001,
+          "upper_exclusive": 0.8,
+          "upper_inclusive": null,
+          "sample_count": 822,
+          "mean_confidence": 0.7526145090478894,
+          "empirical_accuracy": 0.9257907542579076,
+          "absolute_gap": 0.17317624521001818
+        },
+        {
+          "lower_inclusive": 0.8,
+          "upper_exclusive": 0.9,
+          "upper_inclusive": null,
+          "sample_count": 1173,
+          "mean_confidence": 0.8542902898723627,
+          "empirical_accuracy": 0.9752770673486786,
+          "absolute_gap": 0.12098677747631592
+        },
+        {
+          "lower_inclusive": 0.9,
+          "upper_exclusive": null,
+          "upper_inclusive": 1.0,
+          "sample_count": 6280,
+          "mean_confidence": 0.9791793475747673,
+          "empirical_accuracy": 0.9992038216560509,
+          "absolute_gap": 0.020024474081283605
+        }
+      ]
+    },
+    "calibration_source": "VALIDATION_ONLY"
+  },
+  "development_acceptance_gate": {
+    "macro_f1": {
+      "value": 0.9359267894270392,
+      "minimum": 0.8,
+      "pass": true
+    },
+    "not_relevant_recall": {
+      "value": 0.936,
+      "minimum": 0.8,
+      "pass": true
+    },
+    "passed": true
+  },
+  "v2_comparison": {
+    "comparison_status": "NOT_DIRECTLY_COMPARABLE",
+    "leaderboard_created": false,
+    "reason": "NLP v2 and v3 use different synthetic generators, fitted sample sizes, split construction, and final test sets.",
+    "v2_historical_development_result": {
+      "model_version": "nlp-classifier-v2-development",
+      "source_corpus_rows": 300,
+      "fitted_training_rows": 168,
+      "validation_rows": 42,
+      "test_rows": 90,
+      "test_construction": "original reports_v1 synthetic held-out split",
+      "accuracy": 0.8,
+      "macro_precision": 0.8181188264779596,
+      "macro_recall": 0.8,
+      "macro_f1": 0.8024212658036187,
+      "not_relevant_recall": 0.8333333333333334
+    },
+    "v3_methodology": {
+      "source_corpus_rows": 100000,
+      "fitted_training_rows": 80000,
+      "validation_rows": 10000,
+      "test_rows": 10000,
+      "test_construction": "generator-level held-out templates, lexicons, locations, time range, parameter combinations, and HIGH noise",
+      "generator_version": "synthetic-nlp-generator-v1"
+    },
+    "direct_superiority_claim": false
+  },
+  "artifact_sha256": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+  "development_manifest_sha256": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+  "frozen_configuration_sha256": "57af7a08092fad8a5c6efee3e41b8ce315b56ca0a25408d675c223ddb51ebe9b",
+  "golden_report_sha256": "511c3ccf155bd46c57059b8efd5dbf11c360295c2dc2061948dd488f059ac333",
+  "error_report_sha256": "a3d8d7c76deffcf7d273414edb2898fb35c855f6514bd3f248e9996f54896121",
+  "artifact_integrity": "PASS",
+  "test_feature_operation": "TRANSFORM_ONLY",
+  "test_fit_calls": 0,
+  "test_used_for_retraining": false,
+  "configuration_changed_after_test": false,
+  "pretrained_models": [],
+  "open_weight_models": [],
+  "external_apis": [],
+  "network_access": false,
+  "live_backend_modified": false,
+  "known_limitations": [
+    "All training, validation, and holdout examples are project-generated synthetic text.",
+    "Synthetic holdout performance does not estimate field or real-world performance.",
+    "Generator lexicons, templates, framing rules, and controlled noise cannot represent the full deployment distribution.",
+    "HIGH noise is held out for test, so validation has no HIGH-noise rows and reports that stratum explicitly as unavailable.",
+    "Calibration is selected and measured on the same synthetic validation partition.",
+    "No human-adjudicated real-data evaluation or production calibration exists."
+  ]
+}

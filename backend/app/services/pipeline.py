@@ -43,6 +43,7 @@ from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services.geo_clustering import GeoClusteringService
 from app.services.geocoding import reverse_geocode
+from app.services.ml_adapter import analyze_stored_event_group, analyze_stored_report
 from app.services.text_processing import core_text, extract_metadata
 from app.services.weather import rainfall_to_score, weather_score
 
@@ -312,12 +313,11 @@ def score_cluster(
         weather_score=weather,
         report_density_score=density,
         spatial_score=coherence,
-        # No image classifier and no anomaly model ship this sprint, and after
-        # the 20 Sep scope change they never will. Passing None excludes them
-        # from the weighted mean instead of scoring them 0.0, so they no longer
-        # cap a fully corroborated flood at 0.80. The cost stays visible and
-        # honest in the receipt's `factor_coverage` (0.80, not 1.0) and in the
-        # provenance block below — never as a plausible fake score.
+        # Image and anomaly models now produce separate advisory ML evidence,
+        # but their synthetic-development scores are not calibrated fusion
+        # factors. Passing None excludes them from the weighted mean instead
+        # of treating missing or advisory output as 0.0. The absent factors
+        # remain visible in `factor_coverage` and provenance below.
         vision_score=None,
         reliability_score=reliability,
         anomaly_score=None,
@@ -444,7 +444,7 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
         await db.execute(
             text("""
                 SELECT id, raw_text, latitude, longitude, created_at, event_id,
-                       duplicate_of, CAST(source_type AS text), place_precision,
+                       duplicate_of, CAST(source_type AS text) AS source_type, place_precision,
                        platform, source_meta, observed_at,
                        geom_point IS NOT NULL AS has_geom, district, state
                 FROM raw_reports
@@ -481,8 +481,8 @@ async def _dedup_candidates(db: AsyncSession, report: Dict[str, Any]):
     Recent nearby reports, with the spatial and temporal gates pushed into SQL.
 
     Doing the filtering here rather than loading every recent report into Python
-    keeps the embedding model — the expensive part — to a handful of comparisons.
-    DedupService then applies the text-similarity gate over the survivors.
+    keeps local duplicate comparisons to a handful of nearby candidates.
+    DedupService then applies the frozen Phase 19 similarity decision.
 
     Returns (original_ids, candidates): candidates are the (text, lat, lng,
     created_at) tuples DedupService takes, oldest first, and original_ids[i]
@@ -543,11 +543,11 @@ async def _feed_duplicate(db: AsyncSession, report: Dict[str, Any]) -> Optional[
     2. **The same text about the same place.** Same district (or the same
        state for a state-level post, or both placed nowhere), observed within
        FEED_DEDUP_TEXT_WINDOW_HOURS of each other, and the same words: an
-       identical headline key, or MiniLM cosine ≥ DEDUP_COSINE_THRESHOLD on
-       the text without its links and hashtag tail. This is how a news
+       identical headline key, or local edit similarity on the text without
+       its links and hashtag tail. This is how a news
        outlet's Mastodon post and its own RSS item become one.
 
-    Citizen dedup (1 km, 15 min, 0.88) is not touched by any of this.
+    Citizen dedup keeps its separate 1 km / 15 min gates and frozen matcher.
     """
     params = {"id": str(report["id"]), "created_at": report["created_at"]}
 
@@ -989,21 +989,17 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             original_ids, candidates = [], []
         else:
             original_ids, candidates = await _dedup_candidates(db, stored)
+        # Inference is advisory. Persist its six typed component outcomes even
+        # for a lone report or a duplicate that will not create an event.
+        # The adapter owns PostGIS history reads and JSONB writes; ML owns none.
+        await analyze_stored_report(
+            db, stored, candidate_ids=original_ids, candidates=candidates
+        )
         if candidates:
             # Off the event loop, via a worker thread.
             #
-            # find_duplicate is synchronous and MiniLM's encode() is blocking,
-            # CPU-bound work. Called directly from this coroutine it stalled the
-            # whole uvicorn loop for the duration — about 13 s on the first report,
-            # while the model loaded. The T14 cold-start rehearsal found this the
-            # hard way: GET /api/events timed out completely, then answered in
-            # 0.03 s once the model was in memory. Nothing could be served in that
-            # window: not the API, not /healthz, not the WebSocket, on a cold start,
-            # which is exactly when a demo begins.
-            #
-            # to_thread fixes the class of problem rather than the first instance —
-            # every dedup check was serialising the loop for its own duration, not
-            # just the first.
+            # The frozen local matcher performs synchronous feature transforms;
+            # keep them off the event loop, including the first artifact load.
             match = await asyncio.to_thread(
                 DedupService().find_duplicate,
                 stored["raw_text"],
@@ -1122,6 +1118,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             weather_source=weather_source,
         )
         receipt = scored["receipt"]
+        receipt["ml_event_grouping"] = await analyze_stored_event_group(db, scoring_ids)
         confidence = scored["confidence"]
         severity = scored["severity"]
         quadrant = scored["quadrant"]

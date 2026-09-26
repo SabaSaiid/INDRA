@@ -1,0 +1,47 @@
+{
+  "analysis_method": "DETERMINISTIC_LOCAL_NO_EXTERNAL_AI",
+  "configuration_changed_after_failure_analysis": false,
+  "final_test_failure_analysis": {
+    "categories": {
+      "FALSE_MISLEADING": {
+        "count": 0,
+        "examples": [],
+        "rate": 0.0,
+        "reason_groups": {},
+        "scenarios": {}
+      },
+      "MISSED_MISLEADING": {
+        "count": 0,
+        "examples": [],
+        "rate": 0.0,
+        "reason_groups": {},
+        "scenarios": {}
+      }
+    },
+    "method": "DETERMINISTIC_LOCAL_GROUPING_NO_EXTERNAL_AI",
+    "scope": "test"
+  },
+  "phase": "21 — CREDIBILITY VALIDATION",
+  "production_validation": "NOT_VALIDATED",
+  "schema_version": "1.0",
+  "validation_failure_analysis": {
+    "categories": {
+      "FALSE_MISLEADING": {
+        "count": 0,
+        "examples": [],
+        "rate": 0.0,
+        "reason_groups": {},
+        "scenarios": {}
+      },
+      "MISSED_MISLEADING": {
+        "count": 0,
+        "examples": [],
+        "rate": 0.0,
+        "reason_groups": {},
+        "scenarios": {}
+      }
+    },
+    "method": "DETERMINISTIC_LOCAL_GROUPING_NO_EXTERNAL_AI",
+    "scope": "validation"
+  }
+}

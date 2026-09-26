@@ -1,0 +1,146 @@
+{
+  "annotation_file": "synthetic_credibility_annotations.jsonl",
+  "annotation_sha256": "de07316a82cac3c408b3d67be40d5199c9c1d50e8c0cb3d0684b227a3f3722a1",
+  "classification": "DEVELOPMENT_ONLY",
+  "created_at": "2026-09-24T00:00:00+00:00",
+  "data_kind": "SYNTHETIC",
+  "dataset_id": "indra-credibility-project-synthetic-v1",
+  "dataset_sha256": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+  "dataset_version": "synthetic-credibility-100800-v1",
+  "detector_input_isolation": {
+    "checks": {
+      "forbidden_field_occurrences": 0,
+      "status": "PASS",
+      "truth_and_input_physically_separate": true
+    },
+    "forbidden_fields": [
+      "canonical_event_id",
+      "generated_adjudication_label",
+      "ground_truth_label",
+      "hidden_authenticity_flag",
+      "hidden_event_identity",
+      "label",
+      "language",
+      "parameter_combination_id",
+      "report_family_id",
+      "scenario",
+      "scenario_category",
+      "split",
+      "template_id"
+    ],
+    "physically_separate": true
+  },
+  "detector_used_for_labels": false,
+  "generator": {
+    "family_size": 4,
+    "reports_per_scenario": {
+      "AUTHENTIC_CONSISTENT": 7200,
+      "AUTHENTIC_EXTREME_BUT_PLAUSIBLE": 7200,
+      "AUTHENTIC_WITH_INCOMPLETE_METADATA": 7200,
+      "CONTRADICTORY_EVENT_CONTEXT": 7200,
+      "CONTRADICTORY_LOCATION": 7200,
+      "CONTRADICTORY_TIME": 7200,
+      "IMPOSSIBLE_METADATA": 7200,
+      "LEGITIMATE_DUPLICATE": 7200,
+      "LEGITIMATE_EVENT_CONFLICT": 7200,
+      "MISLEADING_CONTEXT": 7200,
+      "MISLEADING_OMISSION": 7200,
+      "REPEATED_COPYING": 7200,
+      "SOURCE_BEHAVIOR_ANOMALY": 7200,
+      "UNCERTAIN_AMBIGUOUS": 7200
+    },
+    "scenario_version": "synthetic-credibility-scenarios-v1",
+    "seed": 210021,
+    "split_version": "synthetic-credibility-grouped-splits-v1",
+    "template_version": "synthetic-credibility-templates-v1",
+    "version": "synthetic-credibility-generator-v1"
+  },
+  "ground_truth_method": "PROJECT_GENERATED_SCENARIO_IDENTITY",
+  "grouped_split": {
+    "checks": {
+      "canonical_event_cross_split": 0,
+      "exact_normalized_text_cross_split": 0,
+      "grouped_split": true,
+      "parameter_combination_cross_split": 0,
+      "random_row_split": false,
+      "report_family_cross_split": 0,
+      "status": "PASS",
+      "template_cross_split": 0
+    },
+    "group_keys": [
+      "report_family_id",
+      "canonical_event_id",
+      "template_id",
+      "parameter_combination_id"
+    ],
+    "random_row_split": false
+  },
+  "label_distribution": {
+    "AUTHENTIC": 36000,
+    "MISLEADING": 57600,
+    "UNCERTAIN": 7200
+  },
+  "language_distribution": {
+    "English": 33600,
+    "Hindi": 33600,
+    "Hinglish": 33600
+  },
+  "manifest_version": "synthetic-credibility-dataset-manifest-v1",
+  "policy": {
+    "duplicate_matcher_v1_modified": false,
+    "event_grouping_v1_modified": false,
+    "external_apis": [],
+    "live_backend_modified": false,
+    "network_access": false,
+    "nlp_v3_modified": false,
+    "open_weight_models": [],
+    "pretrained_models": []
+  },
+  "production_validation": "NOT_VALIDATED",
+  "provenance": "PROJECT_AUTHORED",
+  "quality_report_file": "synthetic_credibility_quality_report.json",
+  "quality_report_sha256": "5d3fd3052f57e1868ad44efe67444c0cf7384027c424677c667006f382d53c45",
+  "scenario_distribution": {
+    "AUTHENTIC_CONSISTENT": 7200,
+    "AUTHENTIC_EXTREME_BUT_PLAUSIBLE": 7200,
+    "AUTHENTIC_WITH_INCOMPLETE_METADATA": 7200,
+    "CONTRADICTORY_EVENT_CONTEXT": 7200,
+    "CONTRADICTORY_LOCATION": 7200,
+    "CONTRADICTORY_TIME": 7200,
+    "IMPOSSIBLE_METADATA": 7200,
+    "LEGITIMATE_DUPLICATE": 7200,
+    "LEGITIMATE_EVENT_CONFLICT": 7200,
+    "MISLEADING_CONTEXT": 7200,
+    "MISLEADING_OMISSION": 7200,
+    "REPEATED_COPYING": 7200,
+    "SOURCE_BEHAVIOR_ANOMALY": 7200,
+    "UNCERTAIN_AMBIGUOUS": 7200
+  },
+  "schema_version": "1.0",
+  "semantic_target": "MISLEADING_RISK_EVIDENCE",
+  "split_descriptors": {
+    "test": {
+      "detector_input_file": "synthetic_credibility_detector_inputs_test.jsonl",
+      "detector_input_sha256": "e1f15638b76bcc5c3bd74d7dd260177c5b4ce745f3db1d3569efaaf5f20a48dd",
+      "ground_truth_file": "synthetic_credibility_ground_truth_test.jsonl",
+      "ground_truth_sha256": "fad14f89a0b69b17d3f328ef7ab71c693a84ca99deb48fdf1751856b8b8d2ea3",
+      "row_count": 15120
+    },
+    "train": {
+      "detector_input_file": "synthetic_credibility_detector_inputs_train.jsonl",
+      "detector_input_sha256": "1ec67965d3aaef5394a4a9dc08661acc24ad34c5fcd8d18ff7325f87d8bb4de1",
+      "ground_truth_file": "synthetic_credibility_ground_truth_train.jsonl",
+      "ground_truth_sha256": "e0a7e3bb1b80bfc42b3b8a7dc48c6993f2d276023147d0445ff02d58acc191d5",
+      "row_count": 70560
+    },
+    "validation": {
+      "detector_input_file": "synthetic_credibility_detector_inputs_validation.jsonl",
+      "detector_input_sha256": "a587cec4801633edb1366b659065230b668082eb342c48000d1b69d9763047c3",
+      "ground_truth_file": "synthetic_credibility_ground_truth_validation.jsonl",
+      "ground_truth_sha256": "6fea30e1bd9ef2b964cf84700fd93cb9c70d22ec1e53cd17a3a692ead481efba",
+      "row_count": 15120
+    }
+  },
+  "split_sha256": "7142901293a1ac0c0cf5fbc6972168025def9cbdcde8fb27d5ffb46cf352b742",
+  "truth_probability_claimed": false
+}

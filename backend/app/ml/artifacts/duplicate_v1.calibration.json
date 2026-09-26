@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "calibration_version": "duplicate-score-platt-v1",
+  "method": "PLATT_LOGISTIC_SCALAR",
+  "input_score": "MIN_TEXT_AND_COMBINED_WHEN_CANDIDATE_ELIGIBLE",
+  "input_score_interpretation": "SIMILARITY_EVIDENCE_NOT_PROBABILITY",
+  "fit_split": "validation_calibration_fit_partition",
+  "check_split": "validation_calibration_check_partition",
+  "partition_method": "PAIR_ID_SHA256_PARITY",
+  "fit_rows": 6807,
+  "check_rows": 6693,
+  "test_rows_accessed": false,
+  "coefficient": 20.95146730334151,
+  "intercept": -12.255209620360109,
+  "raw_evidence_metrics": {
+    "log_loss": 0.18063124221331842,
+    "brier_score": 0.049541575322308413,
+    "expected_calibration_error_10_bins": 0.13658971573550605
+  },
+  "calibrated_probability_metrics": {
+    "log_loss": 0.06142513883485484,
+    "brier_score": 0.013729189482410241,
+    "expected_calibration_error_10_bins": 0.04865883224137983
+  },
+  "selected_for_artifact": true,
+  "status": "SELECTED_VALIDATION_ONLY_SYNTHETIC_DEVELOPMENT",
+  "production_calibration": "NOT_VALIDATED",
+  "limitations": [
+    "The calibration investigation uses synthetic validation labels only.",
+    "Any selected probability is versioned development evidence, not a production probability.",
+    "Calibration does not change the duplicate decision thresholds."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "status": "COMPLETED_AND_FROZEN",
+  "evaluation_label": "FINAL_SYNTHETIC_HOLDOUT_EVALUATION",
+  "claimed_at": "2026-09-23T12:48:53.145837+00:00",
+  "completed_at": "2026-09-23T12:48:57.918088+00:00",
+  "evaluation_invocation_count": 1,
+  "rerun_permitted": false,
+  "test_examples_available_to_configuration_selection": false,
+  "test_used_for_calibration": false,
+  "configuration_changed_after_freeze": false,
+  "retrained_after_evaluation": false,
+  "development_manifest_sha256": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+  "frozen_configuration_sha256": "57af7a08092fad8a5c6efee3e41b8ce315b56ca0a25408d675c223ddb51ebe9b",
+  "artifact_sha256": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+  "final_test_split_sha256": "cea06fa366c4de7387c1ed89e92f795071cdc8aff8c98a74a7ce492c9ab6033b",
+  "metrics_sha256": "033db50927e45a583f7bcdd9fc6e5ec6577093fc955a2d79d6c65dd7923c3394",
+  "error_report_sha256": "a3d8d7c76deffcf7d273414edb2898fb35c855f6514bd3f248e9996f54896121",
+  "golden_report_sha256": "511c3ccf155bd46c57059b8efd5dbf11c360295c2dc2061948dd488f059ac333",
+  "development_status": "DEVELOPMENT_ONLY_SYNTHETIC",
+  "production_status": "NOT_PRODUCTION_READY",
+  "production_validation": "NOT_VALIDATED"
+}

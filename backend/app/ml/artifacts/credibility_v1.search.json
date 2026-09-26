@@ -1,0 +1,3632 @@
+{
+  "model_selection": {
+    "candidate_count": 6,
+    "candidates": [
+      {
+        "configuration": {
+          "class_weight": "NONE",
+          "configuration_id": "LOGREG_C0_1_NONE",
+          "regularization_c": 0.1,
+          "tie_rank": 0
+        },
+        "default_abstention_thresholds": {
+          "authentic_max_probability": 0.4,
+          "misleading_min_probability": 0.6
+        },
+        "fit_seconds": 0.1510977,
+        "selection_partition_metrics": {
+          "accuracy": 0.9347368421,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 2792,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 4312,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 496,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6394736842,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9184210526,
+              "precision": 0.8491484185,
+              "recall": 1.0,
+              "support": 2792
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 4312
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 496
+            }
+          },
+          "row_count": 7600
+        }
+      },
+      {
+        "configuration": {
+          "class_weight": "BALANCED",
+          "configuration_id": "LOGREG_C0_1_BALANCED",
+          "regularization_c": 0.1,
+          "tie_rank": 1
+        },
+        "default_abstention_thresholds": {
+          "authentic_max_probability": 0.4,
+          "misleading_min_probability": 0.6
+        },
+        "fit_seconds": 0.1575765,
+        "selection_partition_metrics": {
+          "accuracy": 0.9347368421,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 2792,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 4312,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 496,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6394736842,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9184210526,
+              "precision": 0.8491484185,
+              "recall": 1.0,
+              "support": 2792
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 4312
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 496
+            }
+          },
+          "row_count": 7600
+        }
+      },
+      {
+        "configuration": {
+          "class_weight": "NONE",
+          "configuration_id": "LOGREG_C1_0_NONE",
+          "regularization_c": 1.0,
+          "tie_rank": 2
+        },
+        "default_abstention_thresholds": {
+          "authentic_max_probability": 0.4,
+          "misleading_min_probability": 0.6
+        },
+        "fit_seconds": 0.1622636,
+        "selection_partition_metrics": {
+          "accuracy": 0.9347368421,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 2792,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 4312,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 496,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6394736842,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9184210526,
+              "precision": 0.8491484185,
+              "recall": 1.0,
+              "support": 2792
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 4312
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 496
+            }
+          },
+          "row_count": 7600
+        }
+      },
+      {
+        "configuration": {
+          "class_weight": "BALANCED",
+          "configuration_id": "LOGREG_C1_0_BALANCED",
+          "regularization_c": 1.0,
+          "tie_rank": 3
+        },
+        "default_abstention_thresholds": {
+          "authentic_max_probability": 0.4,
+          "misleading_min_probability": 0.6
+        },
+        "fit_seconds": 0.1607968,
+        "selection_partition_metrics": {
+          "accuracy": 0.9347368421,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 2792,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 4312,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 496,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6394736842,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9184210526,
+              "precision": 0.8491484185,
+              "recall": 1.0,
+              "support": 2792
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 4312
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 496
+            }
+          },
+          "row_count": 7600
+        }
+      },
+      {
+        "configuration": {
+          "class_weight": "NONE",
+          "configuration_id": "LOGREG_C10_0_NONE",
+          "regularization_c": 10.0,
+          "tie_rank": 4
+        },
+        "default_abstention_thresholds": {
+          "authentic_max_probability": 0.4,
+          "misleading_min_probability": 0.6
+        },
+        "fit_seconds": 0.152871,
+        "selection_partition_metrics": {
+          "accuracy": 0.94,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 2792,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 4312,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 416,
+              "MISLEADING": 40,
+              "UNCERTAIN": 40
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6917678643,
+          "misleading_precision": 0.9908088235,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9306666667,
+              "precision": 0.8703241895,
+              "recall": 1.0,
+              "support": 2792
+            },
+            "MISLEADING": {
+              "f1": 0.9953831948,
+              "precision": 0.9908088235,
+              "recall": 1.0,
+              "support": 4312
+            },
+            "UNCERTAIN": {
+              "f1": 0.1492537313,
+              "precision": 1.0,
+              "recall": 0.0806451613,
+              "support": 496
+            }
+          },
+          "row_count": 7600
+        }
+      },
+      {
+        "configuration": {
+          "class_weight": "BALANCED",
+          "configuration_id": "LOGREG_C10_0_BALANCED",
+          "regularization_c": 10.0,
+          "tie_rank": 5
+        },
+        "default_abstention_thresholds": {
+          "authentic_max_probability": 0.4,
+          "misleading_min_probability": 0.6
+        },
+        "fit_seconds": 0.1595759,
+        "selection_partition_metrics": {
+          "accuracy": 0.9347368421,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 2792,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 4312,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 416,
+              "MISLEADING": 80,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6404918301,
+          "misleading_precision": 0.9817850638,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9306666667,
+              "precision": 0.8703241895,
+              "recall": 1.0,
+              "support": 2792
+            },
+            "MISLEADING": {
+              "f1": 0.9908088235,
+              "precision": 0.9817850638,
+              "recall": 1.0,
+              "support": 4312
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 496
+            }
+          },
+          "row_count": 7600
+        }
+      }
+    ],
+    "primary_metric": "macro_f1",
+    "production_validation": "NOT_VALIDATED",
+    "resolved_training_rows": 65520,
+    "schema_version": "1.0",
+    "selected_configuration": {
+      "class_weight": "NONE",
+      "configuration_id": "LOGREG_C10_0_NONE",
+      "regularization_c": 10.0,
+      "tie_rank": 4
+    },
+    "selected_metrics": {
+      "accuracy": 0.94,
+      "confusion_matrix": {
+        "AUTHENTIC": {
+          "AUTHENTIC": 2792,
+          "MISLEADING": 0,
+          "UNCERTAIN": 0
+        },
+        "MISLEADING": {
+          "AUTHENTIC": 0,
+          "MISLEADING": 4312,
+          "UNCERTAIN": 0
+        },
+        "UNCERTAIN": {
+          "AUTHENTIC": 416,
+          "MISLEADING": 40,
+          "UNCERTAIN": 40
+        }
+      },
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "macro_f1": 0.6917678643,
+      "misleading_precision": 0.9908088235,
+      "misleading_recall": 1.0,
+      "per_label": {
+        "AUTHENTIC": {
+          "f1": 0.9306666667,
+          "precision": 0.8703241895,
+          "recall": 1.0,
+          "support": 2792
+        },
+        "MISLEADING": {
+          "f1": 0.9953831948,
+          "precision": 0.9908088235,
+          "recall": 1.0,
+          "support": 4312
+        },
+        "UNCERTAIN": {
+          "f1": 0.1492537313,
+          "precision": 1.0,
+          "recall": 0.0806451613,
+          "support": 496
+        }
+      },
+      "row_count": 7600
+    },
+    "selection_method": "DETERMINISTIC_VALIDATION_ONLY_LEXICOGRAPHIC",
+    "selection_partition": "validation:model_selection",
+    "selection_rows": 7600,
+    "test_rows_accessed": false,
+    "tie_break_order": [
+      "macro_f1_desc",
+      "misleading_recall_desc",
+      "misleading_precision_desc",
+      "false_positive_rate_asc",
+      "fixed_candidate_rank_asc"
+    ],
+    "training_rows": 70560
+  },
+  "production_validation": "NOT_VALIDATED",
+  "schema_version": "1.0",
+  "test_rows_accessed": false,
+  "threshold_selection": {
+    "candidate_count": 60,
+    "candidates": [
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-07,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.98434238,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 60,
+              "UNCERTAIN": 236
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9580084777,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.8872180451,
+              "precision": 1.0,
+              "recall": 0.7972972973,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-07,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.98434238,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 60,
+              "UNCERTAIN": 236
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9580084777,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.8872180451,
+              "precision": 1.0,
+              "recall": 0.7972972973,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-07,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.988256785,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 45,
+              "UNCERTAIN": 251
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9692686297,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.9177330896,
+              "precision": 1.0,
+              "recall": 0.847972973,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-07,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 1.0,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 0,
+              "UNCERTAIN": 296
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 1.0,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-07,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 1.0,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 0,
+              "UNCERTAIN": 296
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 1.0,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-07,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 1.0,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 0,
+              "UNCERTAIN": 296
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 1.0,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9799060543,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 17,
+              "MISLEADING": 60,
+              "UNCERTAIN": 219
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9435856257,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9934640523,
+              "precision": 0.987012987,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.8504854369,
+              "precision": 1.0,
+              "recall": 0.7398648649,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9799060543,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 17,
+              "MISLEADING": 60,
+              "UNCERTAIN": 219
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9435856257,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9934640523,
+              "precision": 0.987012987,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.8504854369,
+              "precision": 1.0,
+              "recall": 0.7398648649,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9838204593,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 17,
+              "MISLEADING": 45,
+              "UNCERTAIN": 234
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9555185732,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9934640523,
+              "precision": 0.987012987,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.8830188679,
+              "precision": 1.0,
+              "recall": 0.7905405405,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9955636743,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 17,
+              "MISLEADING": 0,
+              "UNCERTAIN": 279
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9879662783,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9934640523,
+              "precision": 0.987012987,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.9704347826,
+              "precision": 1.0,
+              "recall": 0.9425675676,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9955636743,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 17,
+              "MISLEADING": 0,
+              "UNCERTAIN": 279
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9879662783,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9934640523,
+              "precision": 0.987012987,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.9704347826,
+              "precision": 1.0,
+              "recall": 0.9425675676,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 1e-05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9955636743,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 17,
+              "MISLEADING": 0,
+              "UNCERTAIN": 279
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9879662783,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9934640523,
+              "precision": 0.987012987,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.9704347826,
+              "precision": 1.0,
+              "recall": 0.9425675676,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.001,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9582463466,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 100,
+              "MISLEADING": 60,
+              "UNCERTAIN": 136
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8597263978,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9627421759,
+              "precision": 0.9281609195,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.6296296296,
+              "precision": 1.0,
+              "recall": 0.4594594595,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.001,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9582463466,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 100,
+              "MISLEADING": 60,
+              "UNCERTAIN": 136
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8597263978,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9627421759,
+              "precision": 0.9281609195,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.6296296296,
+              "precision": 1.0,
+              "recall": 0.4594594595,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.001,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9621607516,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 100,
+              "MISLEADING": 45,
+              "UNCERTAIN": 151
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.876143396,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9627421759,
+              "precision": 0.9281609195,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.6756152125,
+              "precision": 1.0,
+              "recall": 0.5101351351,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.001,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9739039666,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 100,
+              "MISLEADING": 0,
+              "UNCERTAIN": 196
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9198300478,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9627421759,
+              "precision": 0.9281609195,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.7967479675,
+              "precision": 1.0,
+              "recall": 0.6621621622,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.001,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9739039666,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 100,
+              "MISLEADING": 0,
+              "UNCERTAIN": 196
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9198300478,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9627421759,
+              "precision": 0.9281609195,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.7967479675,
+              "precision": 1.0,
+              "recall": 0.6621621622,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.001,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9739039666,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 100,
+              "MISLEADING": 0,
+              "UNCERTAIN": 196
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9198300478,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9627421759,
+              "precision": 0.9281609195,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.7967479675,
+              "precision": 1.0,
+              "recall": 0.6621621622,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.01,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9564196242,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 107,
+              "MISLEADING": 60,
+              "UNCERTAIN": 129
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8513680137,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9602378298,
+              "precision": 0.9235167977,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.6070588235,
+              "precision": 1.0,
+              "recall": 0.4358108108,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.01,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9564196242,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 107,
+              "MISLEADING": 60,
+              "UNCERTAIN": 129
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8513680137,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9602378298,
+              "precision": 0.9235167977,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.6070588235,
+              "precision": 1.0,
+              "recall": 0.4358108108,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.01,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9603340292,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 107,
+              "MISLEADING": 45,
+              "UNCERTAIN": 144
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8682853613,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9602378298,
+              "precision": 0.9235167977,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.6545454545,
+              "precision": 1.0,
+              "recall": 0.4864864865,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.01,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9720772443,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 107,
+              "MISLEADING": 0,
+              "UNCERTAIN": 189
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9132064244,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9602378298,
+              "precision": 0.9235167977,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.7793814433,
+              "precision": 1.0,
+              "recall": 0.6385135135,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.01,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9720772443,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 107,
+              "MISLEADING": 0,
+              "UNCERTAIN": 189
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9132064244,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9602378298,
+              "precision": 0.9235167977,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.7793814433,
+              "precision": 1.0,
+              "recall": 0.6385135135,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.01,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9720772443,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 107,
+              "MISLEADING": 0,
+              "UNCERTAIN": 189
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.9132064244,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9602378298,
+              "precision": 0.9235167977,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.7793814433,
+              "precision": 1.0,
+              "recall": 0.6385135135,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9509394572,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 128,
+              "MISLEADING": 60,
+              "UNCERTAIN": 108
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8247544044,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9528023599,
+              "precision": 0.9098591549,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.5346534653,
+              "precision": 1.0,
+              "recall": 0.3648648649,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9509394572,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 128,
+              "MISLEADING": 60,
+              "UNCERTAIN": 108
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8247544044,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9528023599,
+              "precision": 0.9098591549,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.5346534653,
+              "precision": 1.0,
+              "recall": 0.3648648649,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9548538622,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 128,
+              "MISLEADING": 45,
+              "UNCERTAIN": 123
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8433291104,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9528023599,
+              "precision": 0.9098591549,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.5871121718,
+              "precision": 1.0,
+              "recall": 0.4155405405,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9665970772,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 128,
+              "MISLEADING": 0,
+              "UNCERTAIN": 168
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8923134303,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9528023599,
+              "precision": 0.9098591549,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.724137931,
+              "precision": 1.0,
+              "recall": 0.5675675676,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9665970772,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 128,
+              "MISLEADING": 0,
+              "UNCERTAIN": 168
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8923134303,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9528023599,
+              "precision": 0.9098591549,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.724137931,
+              "precision": 1.0,
+              "recall": 0.5675675676,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.05,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9665970772,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 128,
+              "MISLEADING": 0,
+              "UNCERTAIN": 168
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.8923134303,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9528023599,
+              "precision": 0.9098591549,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.724137931,
+              "precision": 1.0,
+              "recall": 0.5675675676,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.1,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9342379958,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 192,
+              "MISLEADING": 60,
+              "UNCERTAIN": 44
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7254888841,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9308357349,
+              "precision": 0.8706199461,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.2588235294,
+              "precision": 1.0,
+              "recall": 0.1486486486,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.1,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9342379958,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 192,
+              "MISLEADING": 60,
+              "UNCERTAIN": 44
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7254888841,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9308357349,
+              "precision": 0.8706199461,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.2588235294,
+              "precision": 1.0,
+              "recall": 0.1486486486,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.1,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9381524008,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 192,
+              "MISLEADING": 45,
+              "UNCERTAIN": 59
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511009669,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9308357349,
+              "precision": 0.8706199461,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3323943662,
+              "precision": 1.0,
+              "recall": 0.1993243243,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.1,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9498956159,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 192,
+              "MISLEADING": 0,
+              "UNCERTAIN": 104
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.816945245,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9308357349,
+              "precision": 0.8706199461,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.52,
+              "precision": 1.0,
+              "recall": 0.3513513514,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.1,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9498956159,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 192,
+              "MISLEADING": 0,
+              "UNCERTAIN": 104
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.816945245,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9308357349,
+              "precision": 0.8706199461,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.52,
+              "precision": 1.0,
+              "recall": 0.3513513514,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.1,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9498956159,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 192,
+              "MISLEADING": 0,
+              "UNCERTAIN": 104
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.816945245,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9308357349,
+              "precision": 0.8706199461,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.52,
+              "precision": 1.0,
+              "recall": 0.3513513514,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.2,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.2,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.2,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9266701461,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 45,
+              "UNCERTAIN": 15
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6676159596,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0964630225,
+              "precision": 1.0,
+              "recall": 0.0506756757,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.2,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.2,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.2,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.3,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.3,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.3,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9266701461,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 45,
+              "UNCERTAIN": 15
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6676159596,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0964630225,
+              "precision": 1.0,
+              "recall": 0.0506756757,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.3,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.3,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.3,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.4,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.4,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.4,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9266701461,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 45,
+              "UNCERTAIN": 15
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6676159596,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0964630225,
+              "precision": 1.0,
+              "recall": 0.0506756757,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.4,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.4,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.4,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.45,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.55
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.45,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9227557411,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 60,
+              "UNCERTAIN": 0
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6343731482,
+          "misleading_precision": 0.9739583333,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9868073879,
+              "precision": 0.9739583333,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.6
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.45,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9266701461,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 45,
+              "UNCERTAIN": 15
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.6676159596,
+          "misleading_precision": 0.9803407602,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 0.9900727995,
+              "precision": 0.9803407602,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.0964630225,
+              "precision": 1.0,
+              "recall": 0.0506756757,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.65
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.45,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.7
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.45,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.75
+      },
+      {
+        "authentic_hard_negative_false_misleading_rate": 0.0,
+        "authentic_max_probability": 0.45,
+        "constraint_satisfied": true,
+        "metrics": {
+          "accuracy": 0.9384133612,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1292,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2244,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 236,
+              "MISLEADING": 0,
+              "UNCERTAIN": 60
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 0.7511302361,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 0.9163120567,
+              "precision": 0.8455497382,
+              "recall": 1.0,
+              "support": 1292
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2244
+            },
+            "UNCERTAIN": {
+              "f1": 0.3370786517,
+              "precision": 1.0,
+              "recall": 0.2027027027,
+              "support": 296
+            }
+          },
+          "row_count": 3832
+        },
+        "misleading_min_probability": 0.8
+      }
+    ],
+    "hard_negative_constraint": {
+      "maximum": 0.1,
+      "metric": "false_misleading_rate",
+      "scenarios": [
+        "AUTHENTIC_EXTREME_BUT_PLAUSIBLE",
+        "AUTHENTIC_WITH_INCOMPLETE_METADATA",
+        "LEGITIMATE_DUPLICATE",
+        "LEGITIMATE_EVENT_CONFLICT"
+      ]
+    },
+    "schema_version": "1.0",
+    "selected_hard_negative_false_misleading_rate": 0.0,
+    "selected_metrics": {
+      "accuracy": 1.0,
+      "confusion_matrix": {
+        "AUTHENTIC": {
+          "AUTHENTIC": 1292,
+          "MISLEADING": 0,
+          "UNCERTAIN": 0
+        },
+        "MISLEADING": {
+          "AUTHENTIC": 0,
+          "MISLEADING": 2244,
+          "UNCERTAIN": 0
+        },
+        "UNCERTAIN": {
+          "AUTHENTIC": 0,
+          "MISLEADING": 0,
+          "UNCERTAIN": 296
+        }
+      },
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "macro_f1": 1.0,
+      "misleading_precision": 1.0,
+      "misleading_recall": 1.0,
+      "per_label": {
+        "AUTHENTIC": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 1292
+        },
+        "MISLEADING": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 2244
+        },
+        "UNCERTAIN": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 296
+        }
+      },
+      "row_count": 3832
+    },
+    "selected_thresholds": {
+      "authentic_max_probability": 1e-07,
+      "misleading_min_probability": 0.7
+    },
+    "selection_partition": "validation:threshold_selection",
+    "selection_rows": 3832,
+    "selection_rule": [
+      "constraint_satisfied_first",
+      "macro_f1_desc",
+      "misleading_recall_desc",
+      "misleading_precision_desc",
+      "false_positive_rate_asc",
+      "hard_negative_false_misleading_rate_asc",
+      "abstention_band_width_asc"
+    ],
+    "test_rows_accessed": false,
+    "threshold_version": "credibility-v1-abstention-thresholds-v1"
+  }
+}

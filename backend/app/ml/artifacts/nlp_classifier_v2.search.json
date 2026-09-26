@@ -1,0 +1,1545 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "nlp-development-validation-v1",
+  "search_scope": "DEVELOPMENT_TRAIN_AND_VALIDATION_ONLY",
+  "configuration_count": 12,
+  "configurations": [
+    {
+      "configuration": {
+        "configuration_id": "A_EQUAL_NONE_C1",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "NONE",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "A_EQUAL_BALANCED_C1",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "BALANCED",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "B_EQUAL_NONE_C1",
+        "char_ngram_range": [
+          2,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "NONE",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19977,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "B_EQUAL_BALANCED_C1",
+        "char_ngram_range": [
+          2,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "BALANCED",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19977,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "C_EQUAL_NONE_C1",
+        "char_ngram_range": [
+          3,
+          6
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "NONE",
+        "regularization_c": 1.0
+      },
+      "feature_count": 27857,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "C_EQUAL_BALANCED_C1",
+        "char_ngram_range": [
+          3,
+          6
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "BALANCED",
+        "regularization_c": 1.0
+      },
+      "feature_count": 27857,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "D_CHAR125_NONE_C1",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.25,
+        "word_weight": 0.75,
+        "class_weight": "NONE",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.7142857142857143,
+        "macro_precision": 0.7123015873015872,
+        "macro_recall": 0.711111111111111,
+        "macro_f1": 0.7106209150326797,
+        "not_relevant_recall": 0.75,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            6,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "D_CHAR125_BALANCED_C1",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.25,
+        "word_weight": 0.75,
+        "class_weight": "BALANCED",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.7142857142857143,
+        "macro_precision": 0.7123015873015872,
+        "macro_recall": 0.711111111111111,
+        "macro_f1": 0.7106209150326797,
+        "not_relevant_recall": 0.75,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            6,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "E_WORD125_NONE_C1",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 0.75,
+        "word_weight": 1.25,
+        "class_weight": "NONE",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.7142857142857143,
+        "macro_precision": 0.7139682539682539,
+        "macro_recall": 0.711111111111111,
+        "macro_f1": 0.710577915376677,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            1,
+            6,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            6
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "E_WORD125_BALANCED_C1",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 0.75,
+        "word_weight": 1.25,
+        "class_weight": "BALANCED",
+        "regularization_c": 1.0
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6901587301587301,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6860681114551083,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            1,
+            6,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "F_EQUAL_NONE_C0_5",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "NONE",
+        "regularization_c": 0.5
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    },
+    {
+      "configuration": {
+        "configuration_id": "G_EQUAL_NONE_C2",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "class_weight": "NONE",
+        "regularization_c": 2.0
+      },
+      "feature_count": 19167,
+      "train": {
+        "sample_count": 168,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "not_relevant_recall": 1.0,
+        "confusion_matrix": [
+          [
+            33,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            34,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            34,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            33,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            34
+          ]
+        ]
+      },
+      "validation": {
+        "sample_count": 42,
+        "accuracy": 0.6904761904761905,
+        "macro_precision": 0.6861904761904761,
+        "macro_recall": 0.6861111111111111,
+        "macro_f1": 0.6850877192982455,
+        "not_relevant_recall": 0.625,
+        "confusion_matrix": [
+          [
+            8,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            5
+          ]
+        ]
+      },
+      "passes_not_relevant_constraint": false,
+      "passes_macro_f1_floor": false
+    }
+  ],
+  "selection_rule": {
+    "rule_version": "constrained-not-relevant-recall-v1",
+    "primary_constraint": {
+      "metric": "validation NOT_RELEVANT recall",
+      "minimum": 0.8
+    },
+    "preservation_constraint": {
+      "metric": "validation macro F1",
+      "minimum": 0.75
+    },
+    "optimization": "fallback maximizes NOT_RELEVANT recall among macro-F1-preserving candidates; otherwise maximizes macro F1",
+    "selection_path": "NO_CONFIGURATION_MET_MACRO_F1_PRESERVATION_FLOOR",
+    "eligible_configuration_ids": [],
+    "test_set_used": false
+  },
+  "selected_configuration_id": "D_CHAR125_BALANCED_C1",
+  "class_weight_result": {
+    "comparison": {
+      "best_none": {
+        "status": "EVALUATED",
+        "configuration_id": "D_CHAR125_NONE_C1",
+        "validation": {
+          "sample_count": 42,
+          "accuracy": 0.7142857142857143,
+          "macro_precision": 0.7123015873015872,
+          "macro_recall": 0.711111111111111,
+          "macro_f1": 0.7106209150326797,
+          "not_relevant_recall": 0.75,
+          "confusion_matrix": [
+            [
+              8,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              5,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              0,
+              6,
+              0,
+              1
+            ],
+            [
+              0,
+              2,
+              0,
+              6,
+              1
+            ],
+            [
+              0,
+              0,
+              1,
+              2,
+              5
+            ]
+          ]
+        }
+      },
+      "best_balanced": {
+        "status": "EVALUATED",
+        "configuration_id": "D_CHAR125_BALANCED_C1",
+        "validation": {
+          "sample_count": 42,
+          "accuracy": 0.7142857142857143,
+          "macro_precision": 0.7123015873015872,
+          "macro_recall": 0.711111111111111,
+          "macro_f1": 0.7106209150326797,
+          "not_relevant_recall": 0.75,
+          "confusion_matrix": [
+            [
+              8,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              5,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              0,
+              6,
+              0,
+              1
+            ],
+            [
+              0,
+              2,
+              0,
+              6,
+              1
+            ],
+            [
+              0,
+              0,
+              1,
+              2,
+              5
+            ]
+          ]
+        }
+      }
+    },
+    "selected_class_weight": "BALANCED",
+    "conclusion": "BALANCED_SELECTED_BY_FROZEN_VALIDATION_RULE",
+    "automatic_preference_for_balanced": false
+  },
+  "same_protocol_previous_configuration_comparison": {
+    "comparison_status": "VALID_SAME_SPLIT_RECREATION",
+    "previous_configuration_proxy": "A_EQUAL_NONE_C1",
+    "note": "The committed v1 model used all 210 development rows, so it cannot be evaluated on this derived validation split without leakage. Its feature/classifier configuration was therefore recreated on the Phase 14 train split for the valid validation comparison.",
+    "previous_configuration_validation": {
+      "sample_count": 42,
+      "accuracy": 0.6904761904761905,
+      "macro_precision": 0.6861904761904761,
+      "macro_recall": 0.6861111111111111,
+      "macro_f1": 0.6850877192982455,
+      "not_relevant_recall": 0.625,
+      "confusion_matrix": [
+        [
+          8,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          1,
+          1,
+          1
+        ],
+        [
+          2,
+          0,
+          5,
+          0,
+          1
+        ],
+        [
+          0,
+          2,
+          0,
+          6,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          2,
+          5
+        ]
+      ]
+    },
+    "selected_configuration_validation": {
+      "sample_count": 42,
+      "accuracy": 0.7142857142857143,
+      "macro_precision": 0.7123015873015872,
+      "macro_recall": 0.711111111111111,
+      "macro_f1": 0.7106209150326797,
+      "not_relevant_recall": 0.75,
+      "confusion_matrix": [
+        [
+          8,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          0,
+          6,
+          0,
+          1
+        ],
+        [
+          0,
+          2,
+          0,
+          6,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          2,
+          5
+        ]
+      ]
+    }
+  },
+  "final_test_accessed": false
+}

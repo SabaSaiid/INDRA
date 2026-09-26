@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0",
+  "phase": "19 — DUPLICATE VALIDATION",
+  "evaluation_split": "validation",
+  "test_rows_accessed": false,
+  "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+  "split_sha256": "c6e503eb19b4b4dd6bbbf2480195abcaf343fd94464d6f3b5320a5792d6c3c1c",
+  "selected_configuration": {
+    "text_threshold": 0.6,
+    "combined_threshold": 0.65,
+    "geographic_gate_km": 5.0,
+    "temporal_gate_minutes": 30.0
+  },
+  "metrics": {
+    "evaluated_rows": 13500,
+    "duplicate_prevalence": 0.5,
+    "precision": 0.9882869692532943,
+    "recall": 1.0,
+    "f1": 0.9941089837997055,
+    "false_positive_rate": 0.011851851851851851,
+    "false_negative_rate": 0.0,
+    "confusion_matrix": {
+      "true_duplicate": 6750,
+      "false_duplicate": 80,
+      "true_non_duplicate": 6670,
+      "missed_duplicate": 0
+    },
+    "pr_auc_average_precision": 0.9999926684969908,
+    "uncertain_rows_excluded": 1500,
+    "configuration": {
+      "text_threshold": 0.6,
+      "combined_threshold": 0.65,
+      "geographic_gate_km": 5.0,
+      "temporal_gate_minutes": 30.0
+    },
+    "score_interpretation": "SIMILARITY_EVIDENCE_NOT_PROBABILITY"
+  },
+  "multilingual_results": {
+    "en": {
+      "rows": 4504,
+      "evaluated_rows": 4504,
+      "duplicate_prevalence": 0.49955595026642985,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0,
+      "confusion_matrix": {
+        "true_duplicate": 2250,
+        "false_duplicate": 0,
+        "true_non_duplicate": 2254,
+        "missed_duplicate": 0
+      },
+      "pr_auc_average_precision": 1.0
+    },
+    "hi": {
+      "rows": 4499,
+      "evaluated_rows": 4499,
+      "duplicate_prevalence": 0.5001111358079573,
+      "precision": 0.9656652360515021,
+      "recall": 1.0,
+      "f1": 0.982532751091703,
+      "false_positive_rate": 0.035571365051133834,
+      "false_negative_rate": 0.0,
+      "confusion_matrix": {
+        "true_duplicate": 2250,
+        "false_duplicate": 80,
+        "true_non_duplicate": 2169,
+        "missed_duplicate": 0
+      },
+      "pr_auc_average_precision": 1.0
+    },
+    "hinglish": {
+      "rows": 4497,
+      "evaluated_rows": 4497,
+      "duplicate_prevalence": 0.5003335557038026,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0,
+      "confusion_matrix": {
+        "true_duplicate": 2250,
+        "false_duplicate": 0,
+        "true_non_duplicate": 2247,
+        "missed_duplicate": 0
+      },
+      "pr_auc_average_precision": 1.0
+    }
+  },
+  "signal_timing_observation": {
+    "feature_transformation_seconds": 4.75293350001084,
+    "similarity_computation_seconds": 5.913048499996876,
+    "scope": "LOCAL_ENGINEERING_ONLY"
+  },
+  "production_validation": "NOT_VALIDATED"
+}

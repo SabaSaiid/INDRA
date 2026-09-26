@@ -1,0 +1,67 @@
+{
+  "checks": {
+    "existing_golden_scenarios_pass": true,
+    "image_present_behavior": true,
+    "missing_image_behavior": true,
+    "no_effect_on_other_components": true,
+    "schema_compatibility": true,
+    "serialization_round_trip": true,
+    "version_consistency": true
+  },
+  "image_present_prediction": {
+    "calibration_status": "CALIBRATED",
+    "confidence": 0.9999979847,
+    "evidence": [
+      "BYTE_HASH:7a1958f1c96e92d7a6aa54efff9d2f6f4fbd68a11a2459780ec8cc8828448b6c",
+      "PROJECT_TRAINED:SYNTHETIC_DEVELOPMENT_ONLY",
+      "INITIALIZATION:SCRATCH_NO_PRETRAINED_WEIGHTS"
+    ],
+    "feature_version": "image-pixel-features-v1",
+    "image_id": "synimg-validation-000000-827f8c8977",
+    "label": null,
+    "labels": [
+      "NORMAL_SCENE"
+    ],
+    "model_version": "image-model-v1-synthetic-development",
+    "preprocessing_version": "image-preprocessing-v2-64x64",
+    "probabilities": {
+      "FLOODED_SCENE": 4.706e-07,
+      "HEAVY_RAIN_VISUAL": 0.0,
+      "NORMAL_SCENE": 0.9999979847,
+      "STANDING_WATER": 4.8558e-06,
+      "STORM_DAMAGE": 1.1847e-06
+    },
+    "reason_codes": [
+      "SYNTHETIC_DEVELOPMENT_MODEL"
+    ],
+    "status": "AVAILABLE",
+    "task_type": "MULTI_LABEL",
+    "warnings": [
+      "Scores are validation-temperature calibrated only on project-authored synthetic data.",
+      "Production and field visual-performance validation are NOT_VALIDATED."
+    ]
+  },
+  "missing_image_prediction": {
+    "calibration_status": "CALIBRATED",
+    "confidence": null,
+    "evidence": [],
+    "feature_version": "image-pixel-features-v1",
+    "image_id": null,
+    "label": null,
+    "labels": [],
+    "model_version": "image-model-v1-synthetic-development",
+    "preprocessing_version": "image-preprocessing-v2-64x64",
+    "probabilities": {},
+    "reason_codes": [
+      "IMAGE_NOT_SUPPLIED"
+    ],
+    "status": "NOT_APPLICABLE",
+    "task_type": "MULTI_LABEL",
+    "warnings": [
+      "No already-loaded image bytes were supplied."
+    ]
+  },
+  "production_validation": "NOT_VALIDATED",
+  "scenario_count": 10,
+  "scope": "SYNTHETIC_ENGINEERING_REGRESSION_ONLY"
+}
