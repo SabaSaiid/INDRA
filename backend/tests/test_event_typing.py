@@ -86,3 +86,43 @@ def test_the_basis_is_the_published_rule():
 def test_the_vote_does_not_depend_on_order():
     reports = [_r("RAINFALL"), _r("URBAN_FLOOD"), _r("THUNDERSTORM"), _r("URBAN_FLOOD"), _r("RAINFALL")]
     assert _type(reports) == _type(list(reversed(reports))) == "URBAN_FLOOD"
+
+
+# ── The caps: UNCLASSIFIED (T6) and posts only (T9) are never auto-published ───
+
+def _near_perfect(event_type, source_types):
+    from app.services.corroboration import effective_reporters
+    from app.services.pipeline import score_cluster
+
+    stats = {"centroid_lat": 25.59, "centroid_lng": 85.13, "radius_km": 0.3, "max_pairwise_km": 0.2,
+             "count": 20}
+    witnesses = effective_reporters(
+        [{"id": i, "credibility": 0.9, "reporter_hash": f"r{i}", "flags": [], "source_type": "CITIZEN_APP"}
+         for i in range(20)]
+    )
+    rain = event_type != "UNCLASSIFIED"
+    return score_cluster(
+        stats, source_types, 1.0 if rain else None, 250.0 if rain else None,
+        report_texts=["Water 5 feet deep, people stranded"] * 20, event_type=event_type,
+        density=witnesses, eps_km=5.0, weather_source="station_reading" if rain else "not_applicable",
+    )
+
+
+def test_an_unclassified_event_at_099_waits_for_a_human():
+    scored = _near_perfect("UNCLASSIFIED", ["OFFICIAL_DISPATCH"] * 10 + ["CWC_GAUGE"] * 10)
+    assert scored["confidence"] >= 0.95
+    assert scored["review_status"].value == "PENDING_HUMAN_REVIEW"
+    assert scored["caps"] == ["unclassified"]
+
+
+def test_a_posts_only_event_above_the_gate_waits_for_a_human():
+    scored = _near_perfect("URBAN_FLOOD", ["SOCIAL_MEDIA"] * 10 + ["NEWS_MEDIA"] * 10)
+    assert scored["confidence"] >= 0.90
+    assert scored["review_status"].value == "PENDING_HUMAN_REVIEW"
+    assert scored["caps"] == ["posts_only"]
+
+
+def test_the_same_score_from_official_sources_is_auto_published():
+    scored = _near_perfect("URBAN_FLOOD", ["OFFICIAL_DISPATCH"] * 10 + ["CWC_GAUGE"] * 10)
+    assert scored["review_status"].value == "AUTO_PUBLISHED"
+    assert scored["caps"] == []
