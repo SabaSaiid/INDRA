@@ -29,6 +29,7 @@ import { useOperatorProfile, AVAILABLE_OPERATOR_PERSONAS } from '@/lib/useOperat
 import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
 import NotificationPopover from './NotificationPopover';
+import LanguagePicker from './LanguagePicker';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -173,6 +174,12 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               <span className="hidden sm:inline">Report Incident</span>
               <Plus className="w-3.5 h-3.5 sm:hidden" />
             </button>
+
+            {/* Divider */}
+            <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
+
+            {/* Language Picker */}
+            <LanguagePicker />
 
             {/* Divider */}
             <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
