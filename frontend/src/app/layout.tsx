@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/lib/i18n';
+import dynamic from 'next/dynamic';
+
+const IdleLockOverlay = dynamic(() => import('@/components/IdleLockOverlay'), { ssr: false });
 
 export const metadata: Metadata = {
   title: 'INDRA — National Weather Intelligence Platform',
@@ -48,6 +51,7 @@ export default function RootLayout({
       <body className="bg-paper text-ink antialiased">
         {/* LanguageProvider: zero-backend client-side i18n — wraps entire app */}
         <LanguageProvider>
+          <IdleLockOverlay />
           {children}
         </LanguageProvider>
       </body>

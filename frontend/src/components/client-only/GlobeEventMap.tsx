@@ -21,6 +21,7 @@ import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useSettings } from '@/lib/useSettings';
 import {
   Globe,
   Map as MapIcon,
@@ -322,11 +323,12 @@ export default function GlobeEventMap({
   const renderProminentPinsRef = useRef<() => void>(() => {});
 
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const [mounted, setMounted] = useState(false);
   const [webGLSupported, setWebGLSupported] = useState(true);
-  const [isGlobe, setIsGlobe] = useState(true);
-  const isGlobeRef = useRef(true);
-  const [basemap, setBasemap] = useState<BasemapMode>('satellite');
+  const [isGlobe, setIsGlobe] = useState(() => settings.mapProjection !== 'mercator');
+  const isGlobeRef = useRef(settings.mapProjection !== 'mercator');
+  const [basemap, setBasemap] = useState<BasemapMode>(() => settings.defaultBasemap as BasemapMode);
   const [timeRange, setTimeRange] = useState('7d');
   // Starts empty. Seeding the globe with invented markers put pins on Indian
   // cities that had reported nothing.
