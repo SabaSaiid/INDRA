@@ -22,6 +22,7 @@ import { getRelativeTime, formatAgo } from '@/lib/utils';
 import { getWeatherMedia } from '@/lib/weather-media';
 import { ArrowRight } from 'lucide-react';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // IMD colour code for a CAP severity, as the Early Warnings page shows it.
 const WARNING_STYLE: Record<string, { label: string; color: string }> = {
@@ -120,6 +121,7 @@ export default function RecentEventsList({
   loading?: boolean;
   error?: unknown;
 }) {
+  const { t } = useTranslation();
   const [internalEvents, setInternalEvents] = useState<RecentEvent[]>([]);
   const [internalLoading, setInternalLoading] = useState<boolean>(true);
   const [internalError, setInternalError] = useState<unknown>(null);
@@ -166,7 +168,7 @@ export default function RecentEventsList({
           className="flex-shrink-0"
           title={
             <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-              Recent Events
+              {t('dashboard.recent_events')}
             </span>
           }
           action={
@@ -174,7 +176,7 @@ export default function RecentEventsList({
               href="/events"
               className="flex items-center gap-1 text-[10px] font-medium text-[#7A8599] hover:text-ink transition-colors"
             >
-              View all
+              {t('common.view_all')}
               <ArrowRight className="w-3 h-3" />
             </Link>
           }

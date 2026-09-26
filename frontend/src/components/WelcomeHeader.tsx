@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Map, BarChart2, LayoutDashboard } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export type ViewMode = 'mission-control' | 'map-focus' | 'analytics-focus';
 
@@ -12,30 +13,31 @@ interface WelcomeHeaderProps {
   onViewModeChange?: (mode: ViewMode) => void;
 }
 
-const VIEW_MODES: { id: ViewMode; label: string; icon: React.ReactNode; title: string }[] = [
-  {
-    id: 'mission-control',
-    label: 'Mission Control',
-    icon: <LayoutDashboard className="w-3 h-3" />,
-    title: 'All panels visible — high-density operational view',
-  },
-  {
-    id: 'map-focus',
-    label: 'Map Focus',
-    icon: <Map className="w-3 h-3" />,
-    title: 'Expanded 3D Globe / Tactical Map for geospatial tracking',
-  },
-  {
-    id: 'analytics-focus',
-    label: 'Analytics',
-    icon: <BarChart2 className="w-3 h-3" />,
-    title: 'Expanded charts and live feed for intelligence reporting',
-  },
-];
-
 export default function WelcomeHeader({ viewMode = 'mission-control', onViewModeChange }: WelcomeHeaderProps) {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
+  const { t } = useTranslation();
+
+  const VIEW_MODES: { id: ViewMode; label: string; icon: React.ReactNode; title: string }[] = [
+    {
+      id: 'mission-control',
+      label: t('dashboard.mission_control'),
+      icon: <LayoutDashboard className="w-3 h-3" />,
+      title: 'All panels visible — high-density operational view',
+    },
+    {
+      id: 'map-focus',
+      label: t('map.title'),
+      icon: <Map className="w-3 h-3" />,
+      title: 'Expanded 3D Globe / Tactical Map for geospatial tracking',
+    },
+    {
+      id: 'analytics-focus',
+      label: t('nav.analytics'),
+      icon: <BarChart2 className="w-3 h-3" />,
+      title: 'Expanded charts and live feed for intelligence reporting',
+    },
+  ];
 
   useEffect(() => {
     const updateClock = () => {
@@ -80,11 +82,11 @@ export default function WelcomeHeader({ viewMode = 'mission-control', onViewMode
           className="text-base font-semibold text-ink leading-none tracking-tight"
           style={{ fontFamily: 'Fraunces, Georgia, serif' }}
         >
-          National Situation Room
+          {t('dashboard.welcome_title')}
         </span>
         <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium text-[#4C7A5B] bg-[#E7F2EC] border border-[#C5DECE] px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(76,122,91,0.12)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#4C7A5B] animate-pulse" />
-          Telemetry Live
+          {t('nav.telemetry_live')}
         </span>
       </div>
 

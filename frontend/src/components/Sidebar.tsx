@@ -22,6 +22,7 @@ import {
   X,
   Settings,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -37,6 +38,7 @@ export default function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { profile: loadedProfile, selectedRole } = useOperatorProfile();
   const rawProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const currentPersona = AVAILABLE_OPERATOR_PERSONAS.find((p) => p.id === selectedRole) || AVAILABLE_OPERATOR_PERSONAS[0];
@@ -149,13 +151,13 @@ export default function Sidebar({
 
             {!isCollapsedState && (
               <span
-                title={item.label}
+                title={t(`nav.${item.id}`) !== `nav.${item.id}` ? t(`nav.${item.id}`) : item.label}
                 className={cn(
                   'truncate block text-[13px]',
                   isActive ? 'font-semibold text-white' : 'font-medium text-slate-300 group-hover:text-white'
                 )}
               >
-                {item.label}
+                {t(`nav.${item.id}`) !== `nav.${item.id}` ? t(`nav.${item.id}`) : item.label}
               </span>
             )}
           </div>
@@ -196,7 +198,7 @@ export default function Sidebar({
               <div className="relative z-10 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-[12px] text-white">
-                    {item.label}
+                    {t(`nav.${item.id}`) !== `nav.${item.id}` ? t(`nav.${item.id}`) : item.label}
                   </span>
                   {item.badge && (
                     <span
@@ -328,7 +330,7 @@ export default function Sidebar({
                   <button
                     onClick={() => toggleSection(section.id)}
                     className="w-full px-1.5 pt-2 pb-1 flex items-center gap-1.5 text-[10.5px] font-semibold tracking-wider uppercase text-slate-500 hover:text-slate-300 transition-colors text-left group/sec"
-                    title={isSectionCollapsed ? `Expand ${section.label}` : `Collapse ${section.label}`}
+                    title={isSectionCollapsed ? `Expand ${t(`nav.section_${section.id}`)}` : `Collapse ${t(`nav.section_${section.id}`)}`}
                   >
                     <ChevronDown
                       className={cn(
@@ -336,7 +338,7 @@ export default function Sidebar({
                         isSectionCollapsed && '-rotate-90'
                       )}
                     />
-                    <span className="transition-colors">{section.label}</span>
+                    <span className="transition-colors">{t(`nav.section_${section.id}`)}</span>
                   </button>
                 ) : (
                   <div className="h-px mx-1.5 my-2 bg-white/[0.08]" />
@@ -372,7 +374,7 @@ export default function Sidebar({
           {!isCollapsedState && (
             <div className="flex items-center justify-between px-1 mb-1.5">
               <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500">
-                Operator
+                {t('nav.operator')}
               </span>
               <span
                 className="text-[10px] font-mono font-bold text-[#F97316] bg-[#B5482E]/12 border border-[#B5482E]/25 px-1.5 rounded"
@@ -477,7 +479,7 @@ export default function Sidebar({
               title="Platform Settings (⌘,)"
             >
               <Settings className="w-3.5 h-3.5 hover:rotate-45 transition-transform duration-300" />
-              <span>Platform Settings</span>
+              <span>{t('nav.platform_settings')}</span>
             </Link>
           )}
         </div>

@@ -1,4 +1,4 @@
-# 🌐 Flawless Multilingual UI Implementation Plan: Hindi & Major Regional Languages
+# 🌐 Multilingual UI Implementation Plan: Hindi & Major Regional Languages
 
 **Document Date:** 26 September 2026  
 **Author / Team:** Saba Saeed • Team Sixth Sense  

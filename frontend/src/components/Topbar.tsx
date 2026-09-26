@@ -30,6 +30,7 @@ import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
 import NotificationPopover from './NotificationPopover';
 import LanguagePicker from './LanguagePicker';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -47,6 +48,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     isUpdatingStatus,
     isAuthenticated,
   } = useOperatorProfile();
+  const { t } = useTranslation();
   const currentProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -148,7 +150,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search events, warnings, teams…"
+                  placeholder={t('nav.search_placeholder')}
                   className="w-full h-8 pl-9 pr-14 rounded-lg bg-[#F0EBE0]/80 border border-[#E8E2D4] text-xs sm:text-sm text-ink placeholder:text-[#7A8599] focus:outline-none focus:bg-[#FDFAF5] focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-inner"
                   aria-label="Search"
                 />
@@ -171,7 +173,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               id="report-incident-btn"
             >
               <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="hidden sm:inline">Report Incident</span>
+              <span className="hidden sm:inline">{t('nav.report_incident')}</span>
               <Plus className="w-3.5 h-3.5 sm:hidden" />
             </button>
 
