@@ -17,6 +17,7 @@ export type ThemeMode = 'dark' | 'light' | 'high_contrast';
 export type UiDensity = 'compact' | 'standard';
 export type SeverityThreshold = 'ALL' | 'MODERATE_PLUS' | 'HIGH_PLUS' | 'CRITICAL_ONLY';
 export type RefreshInterval = 5 | 15 | 30 | 60 | 0; // 0 = manual
+export type IdleLockMinutes = 5 | 15 | 30 | 0; // 0 = disabled
 
 export interface IndraSettings {
   // 1. Tactical Geospatial & Map
@@ -49,7 +50,25 @@ export interface IndraSettings {
   glassmorphismEffects: boolean;
   reducedMotion: boolean;
 
-  // 5. Network & Field Station Mode
+  // 5. Notifications & Alerting
+  notifyInApp: boolean;
+  notifyEmail: boolean;
+  notifyEmailAddress: string;
+  notifyPhoneEnabled: boolean;
+  notifyPhone: string;
+
+  // 6. Per-hazard alert tuning
+  hazardAlertPrefs: Record<string, { minSeverity: SeverityThreshold; muted: boolean }>;
+
+  // 7. Area of Responsibility (AOR) filter
+  aorState: string | null; // null = all-India
+
+  // 8. Map source visibility
+  hiddenSources: string[];
+
+  // 9. Advanced coord / session security
+  advancedCoordFormats: boolean; // gates MGRS option
+  idleLockMinutes: IdleLockMinutes;
 
   // Metadata
   lastSavedAt: string;
@@ -86,7 +105,25 @@ export const DEFAULT_SETTINGS: IndraSettings = {
   glassmorphismEffects: true,
   reducedMotion: false,
 
-  // Network & Field
+  // Notifications
+  notifyInApp: true,
+  notifyEmail: false,
+  notifyEmailAddress: '',
+  notifyPhoneEnabled: false,
+  notifyPhone: '',
+
+  // Per-hazard prefs (empty = all use minSeverityThreshold)
+  hazardAlertPrefs: {},
+
+  // AOR
+  aorState: null,
+
+  // Source visibility
+  hiddenSources: [],
+
+  // Advanced / security
+  advancedCoordFormats: false,
+  idleLockMinutes: 0,
 
   lastSavedAt: new Date().toISOString(),
 };

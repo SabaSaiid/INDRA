@@ -32,6 +32,7 @@ import {
 import { ErrorState, EmptyState } from '@/components/ui/empty-state';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { formatAgo, formatIst } from '@/lib/utils';
+import { useSettings, formatRainfall } from '@/lib/useSettings';
 
 function Figure({
   label,
@@ -70,6 +71,7 @@ function rainfallClass(mm: number | null): { label: string; color: string } {
 function RainfallPanel() {
   const [stations, setStations] = useState<RainfallStation[] | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const { settings } = useSettings();
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +127,7 @@ function RainfallPanel() {
                   <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: cls.color }} />
                 </div>
                 <span className="text-xs tabular-nums text-slate-700">
-                  <strong className="font-mono">{st.rainfall_mm == null ? '—' : st.rainfall_mm.toFixed(1)}</strong> mm
+                  <strong className="font-mono">{st.rainfall_mm == null ? '—' : formatRainfall(st.rainfall_mm, settings.rainUnit)}</strong>
                   <span className="block text-[10px] text-slate-400">{cls.label}</span>
                 </span>
                 <div className="h-8" title={`48 h trend, newest ${formatIst(st.recorded_at)} IST`}>

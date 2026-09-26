@@ -30,6 +30,11 @@ import {
   AlertTriangle,
   Zap,
   Sliders,
+  Bell,
+  Mail,
+  Phone,
+  Lock,
+  Timer,
 } from 'lucide-react';
 import {
   useSettings,
@@ -43,6 +48,7 @@ import {
   type TimezoneMode,
   type ThemeMode,
   type RefreshInterval,
+  type IdleLockMinutes,
   formatTemperature,
   formatWindSpeed,
   formatRainfall,
@@ -57,7 +63,7 @@ interface SettingsDrawerProps {
   onClose: () => void;
 }
 
-type TabKey = 'map' | 'alerts' | 'units' | 'hud' | 'network' | 'system';
+type TabKey = 'map' | 'alerts' | 'units' | 'hud' | 'notifications' | 'security' | 'network' | 'system';
 
 export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
   const { t, language: currentLang, setLanguage: changeLang } = useTranslation();
@@ -119,8 +125,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     { key: 'map', label: 'Tactical Map', icon: Globe },
     { key: 'alerts', label: 'Audio & Siren', icon: Volume2 },
     { key: 'units', label: 'Units & Grid', icon: Gauge },
-    { key: 'hud', label: 'Command HUD', icon: Sliders },
-    { key: 'network', label: 'Field Network', icon: Wifi },
+    { key: 'hud', label: 'Appearance', icon: Sliders },
+    { key: 'notifications', label: 'Notifications', icon: Bell },
+    { key: 'security', label: 'Security', icon: Lock },
+    { key: 'network', label: 'Network', icon: Wifi },
     { key: 'system', label: 'Backup & Reset', icon: Shield },
   ];
 
@@ -169,7 +177,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    Tactical HUD Calibration • SIH26069
+                    Platform Settings • SIH26069
                   </p>
                 </div>
               </div>
@@ -608,8 +616,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     <div className="space-y-1.5">
                       {[
                         { id: 'dd', label: 'Decimal Degrees', sample: '25.5941° N, 85.1376° E' },
-                        { id: 'dms', label: 'Degrees Minutes Seconds (DMS)', sample: '25°35\'38"N, 85°08\'15"E' },
-                        { id: 'mgrs', label: 'Military Grid Reference (MGRS)', sample: '45R 25594 85137' },
+                        { id: 'dms', label: 'Degrees Minutes Seconds', sample: "25°35'38\"N, 85°08'15\"E" },
+                        ...(settings.advancedCoordFormats
+                          ? [{ id: 'mgrs', label: 'Military Grid Reference (MGRS)', sample: '45R 25594 85137' }]
+                          : []),
                       ].map((cf) => {
                         const isSelected = settings.coordFormat === cf.id;
                         return (
@@ -632,6 +642,9 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         );
                       })}
                     </div>
+                    {!settings.advancedCoordFormats && (
+                      <p className="text-[10px] text-slate-500 mt-1.5">Enable MGRS in Security tab to unlock Military Grid.</p>
+                    )}
                   </div>
 
                   {/* Timezone */}
@@ -805,6 +818,147 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: NOTIFICATIONS */}
+              {activeTab === 'notifications' && (
+                <div className="space-y-4">
+                  <div className="bg-white/[0.04] border border-white/10 rounded-xl divide-y divide-white/10">
+                    {/* In-app toasts */}
+                    <div className="p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-white">In-app toast notifications</p>
+                        <p className="text-[10px] text-slate-400">Banner inside the dashboard for new events</p>
+                      </div>
+                      <button
+                        onClick={() => updateSettings({ notifyInApp: !settings.notifyInApp })}
+                        className={cn(
+                          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                          settings.notifyInApp ? 'bg-[#B5482E]' : 'bg-slate-700'
+                        )}
+                      >
+                        <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white transition', settings.notifyInApp ? 'translate-x-4' : 'translate-x-0')} />
+                      </button>
+                    </div>
+
+                    {/* Email */}
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-white flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email alerts</p>
+                          {/* TODO(backend): POST /api/notifications/subscribe { channel: 'email', address } */}
+                          <p className="text-[9px] text-amber-400 font-mono">⚠ Backend endpoint not yet live</p>
+                        </div>
+                        <button
+                          onClick={() => updateSettings({ notifyEmail: !settings.notifyEmail })}
+                          className={cn(
+                            'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                            settings.notifyEmail ? 'bg-[#B5482E]' : 'bg-slate-700'
+                          )}
+                        >
+                          <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white transition', settings.notifyEmail ? 'translate-x-4' : 'translate-x-0')} />
+                        </button>
+                      </div>
+                      {settings.notifyEmail && (
+                        <input
+                          type="email"
+                          placeholder="your@email.gov.in"
+                          value={settings.notifyEmailAddress}
+                          onChange={(e) => updateSettings({ notifyEmailAddress: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs rounded-lg bg-white/[0.08] border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:border-[#B5482E]"
+                        />
+                      )}
+                    </div>
+
+                    {/* SMS */}
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-white flex items-center gap-1.5"><Phone className="w-3 h-3" /> SMS / WhatsApp</p>
+                          {/* TODO(backend): POST /api/notifications/subscribe { channel: 'sms', phone } */}
+                          <p className="text-[9px] text-amber-400 font-mono">⚠ SMS gateway not yet live</p>
+                        </div>
+                        <button
+                          onClick={() => updateSettings({ notifyPhoneEnabled: !settings.notifyPhoneEnabled })}
+                          className={cn(
+                            'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                            settings.notifyPhoneEnabled ? 'bg-[#B5482E]' : 'bg-slate-700'
+                          )}
+                        >
+                          <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white transition', settings.notifyPhoneEnabled ? 'translate-x-4' : 'translate-x-0')} />
+                        </button>
+                      </div>
+                      {settings.notifyPhoneEnabled && (
+                        <input
+                          type="tel"
+                          placeholder="+91 98765 43210"
+                          value={settings.notifyPhone}
+                          onChange={(e) => updateSettings({ notifyPhone: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs rounded-lg bg-white/[0.08] border border-white/20 text-white placeholder-slate-500 focus:outline-none focus:border-[#B5482E]"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: SESSION SECURITY */}
+              {activeTab === 'security' && (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2 flex items-center gap-1.5">
+                      <Timer className="w-3.5 h-3.5 text-[#F97316]" />
+                      Auto-lock after idle
+                    </h3>
+                    <div className="grid grid-cols-4 gap-1.5 font-mono text-xs">
+                      {([
+                        { id: 0, label: 'Off' },
+                        { id: 5, label: '5 min' },
+                        { id: 15, label: '15 min' },
+                        { id: 30, label: '30 min' },
+                      ] as { id: IdleLockMinutes; label: string }[]).map((opt) => {
+                        const isSelected = settings.idleLockMinutes === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            onClick={() => updateSettings({ idleLockMinutes: opt.id })}
+                            className={cn(
+                              'py-2 px-1 text-center rounded-lg border transition-all',
+                              isSelected
+                                ? 'bg-[#B5482E] text-white border-[#B5482E] font-bold shadow-sm'
+                                : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]'
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-white">MGRS / Military Grid Reference</p>
+                      <p className="text-[10px] text-slate-400">Unlock MGRS option in Units tab</p>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ advancedCoordFormats: !settings.advancedCoordFormats })}
+                      className={cn(
+                        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                        settings.advancedCoordFormats ? 'bg-[#B5482E]' : 'bg-slate-700'
+                      )}
+                    >
+                      <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white transition', settings.advancedCoordFormats ? 'translate-x-4' : 'translate-x-0')} />
+                    </button>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10">
+                    <p className="text-xs font-semibold text-white">Change Password</p>
+                    {/* TODO(backend): POST /api/auth/change-password { currentPassword, newPassword } */}
+                    <p className="text-[9px] text-amber-400 font-mono mt-0.5">⚠ Requires backend auth endpoint (not yet live)</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Contact your INDRA system administrator to reset credentials.</p>
                   </div>
                 </div>
               )}
