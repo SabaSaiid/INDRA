@@ -94,18 +94,69 @@ export default function Sidebar({
     dutyStatusConfig[profile.duty_status as DutyStatus] ||
     dutyStatusConfig.ON_DUTY;
 
+  // Resolve localized label for any navigation item
+  const getNavItemLabel = (item: NavItem): string => {
+    const navKeyMap: Record<string, string> = {
+      'dashboard': 'nav.dashboard',
+      'live-map': 'nav.live_map',
+      'events': 'nav.incident_events',
+      'alerts': 'nav.early_warnings',
+      'reports': 'nav.field_reports',
+      'analytics': 'nav.analytics',
+      'datasets': 'nav.geospatial_feeds',
+      'teams': 'nav.teams_hub',
+      'profile': 'nav.operator_profile',
+      'admin': 'nav.admin_command',
+      'settings': 'nav.platform_settings',
+    };
+
+    const targetKey = navKeyMap[item.id] || `nav.${item.id.replace(/-/g, '_')}`;
+    const translated = t(targetKey);
+    if (translated && translated !== targetKey) {
+      return translated;
+    }
+
+    // Secondary fallback mappings
+    if (item.id === 'alerts') {
+      const fb = t('nav.official_warnings');
+      if (fb && fb !== 'nav.official_warnings') return fb;
+    }
+    if (item.id === 'teams') {
+      const fb = t('nav.response_teams');
+      if (fb && fb !== 'nav.response_teams') return fb;
+    }
+    if (item.id === 'profile') {
+      const fb = t('nav.operator');
+      if (fb && fb !== 'nav.operator') return fb;
+    }
+    if (item.id === 'admin') {
+      const fb = t('nav.admin_panel');
+      if (fb && fb !== 'nav.admin_panel') return fb;
+    }
+    if (item.id === 'settings') {
+      const fb = t('nav.system_settings');
+      if (fb && fb !== 'nav.system_settings') return fb;
+    }
+
+    return item.label;
+  };
+
   // ── Nav item renderer ───────────────────────────────────────────────────────
   const renderNavItem = (item: NavItem, isMobile = false) => {
     const isActive = isItemActive(item);
     const Icon = item.icon;
     const isCollapsedState = collapsed && !isMobile;
+    const navLabel = getNavItemLabel(item);
+    const badgeText = item.badge
+      ? (item.badge.text === 'LIVE' ? (t('kpis.live_label') || item.badge.text) : item.badge.text)
+      : null;
 
     return (
       <div key={item.id} className="relative group">
         <Link
           href={item.href}
           onClick={isMobile ? onMobileClose : undefined}
-          title={item.label}
+          title={navLabel}
           className={cn(
             'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 outline-none select-none',
             isCollapsedState ? 'justify-center px-2' : 'justify-between',
@@ -151,13 +202,13 @@ export default function Sidebar({
 
             {!isCollapsedState && (
               <span
-                title={t(`nav.${item.id}`) !== `nav.${item.id}` ? t(`nav.${item.id}`) : item.label}
+                title={navLabel}
                 className={cn(
                   'truncate block text-[13px] leading-normal py-0.5',
                   isActive ? 'font-semibold text-white' : 'font-medium text-slate-300 group-hover:text-white'
                 )}
               >
-                {t(`nav.${item.id}`) !== `nav.${item.id}` ? t(`nav.${item.id}`) : item.label}
+                {navLabel}
               </span>
             )}
           </div>
@@ -177,7 +228,7 @@ export default function Sidebar({
                   && 'bg-slate-700/60 text-slate-300 border-slate-600/50'
               )}
             >
-              {item.badge.text}
+              {badgeText}
             </span>
           )}
         </Link>
@@ -198,7 +249,7 @@ export default function Sidebar({
               <div className="relative z-10 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-[12px] text-white">
-                    {t(`nav.${item.id}`) !== `nav.${item.id}` ? t(`nav.${item.id}`) : item.label}
+                    {navLabel}
                   </span>
                   {item.badge && (
                     <span
@@ -210,7 +261,7 @@ export default function Sidebar({
                         item.badge.variant === 'neutral' && 'bg-slate-700 text-slate-300 border-slate-600'
                       )}
                     >
-                      {item.badge.text}
+                      {badgeText}
                     </span>
                   )}
                 </div>

@@ -56,6 +56,12 @@ export interface TranslationDict {
     notifications: string;
     telemetry_live: string;
     operator: string;
+    // Additional navigation items
+    geospatial_feeds?: string;
+    early_warnings?: string;
+    teams_hub?: string;
+    operator_profile?: string;
+    admin_command?: string;
   };
 
   kpis: {

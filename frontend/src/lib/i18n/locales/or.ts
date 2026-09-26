@@ -21,6 +21,11 @@ export const or: TranslationDict = {
     notifications: 'ବିଜ୍ଞପ୍ତି',
     telemetry_live: 'ଟେଲିମେଟ୍ରି ଲାଇଭ',
     operator: 'ଅପରେଟର',
+    geospatial_feeds: 'ଭୂ-ସ୍ଥାନିକ ଫିଡ୍',
+    early_warnings: 'ପ୍ରାରମ୍ଭିକ ଚେତାବନୀ',
+    teams_hub: 'ଟିମ୍ ହବ୍',
+    operator_profile: 'ଅପରେଟର ପ୍ରୋଫାଇଲ୍',
+    admin_command: 'ପ୍ରଶାସକ କମାଣ୍ଡ',
   },
   kpis: {
     active_events: 'ସକ୍ରିୟ ଘଟଣା',

@@ -21,6 +21,11 @@ export const ta: TranslationDict = {
     notifications: 'அறிவிப்புகள்',
     telemetry_live: 'டெலிமெட்ரி நேரடி',
     operator: 'இயக்குநர்',
+    geospatial_feeds: 'புவிசார் ஊட்டங்கள்',
+    early_warnings: 'முன்கூட்டிய எச்சரிக்கைகள்',
+    teams_hub: 'குழுக்கள் மையம்',
+    operator_profile: 'இயக்குநர் சுயவிவரம்',
+    admin_command: 'நிர்வாக கட்டளை',
   },
   kpis: {
     active_events: 'செயல்பாட்டு சம்பவங்கள்',

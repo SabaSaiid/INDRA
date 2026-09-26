@@ -22,6 +22,11 @@ export const en: TranslationDict = {
     notifications: 'Notifications',
     telemetry_live: 'Telemetry live',
     operator: 'Operator',
+    geospatial_feeds: 'Geospatial Feeds',
+    early_warnings: 'Early Warnings',
+    teams_hub: 'Teams Hub',
+    operator_profile: 'Operator Profile',
+    admin_command: 'Admin Command',
   },
   kpis: {
     active_events: 'Active Events',

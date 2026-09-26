@@ -21,6 +21,11 @@ export const bn: TranslationDict = {
     notifications: 'বিজ্ঞপ্তি',
     telemetry_live: 'টেলিমেট্রি লাইভ',
     operator: 'অপারেটর',
+    geospatial_feeds: 'ভূ-স্থানিক ফিড',
+    early_warnings: 'প্রাথমিক সতর্কতা',
+    teams_hub: 'টিম হাব',
+    operator_profile: 'অপারেটর প্রোফাইল',
+    admin_command: 'অ্যাডমিন কমান্ড',
   },
   kpis: {
     active_events: 'সক্রিয় ঘটনা',

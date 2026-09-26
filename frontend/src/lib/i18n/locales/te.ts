@@ -21,6 +21,11 @@ export const te: TranslationDict = {
     notifications: 'నోటిఫికేషన్లు',
     telemetry_live: 'టెలిమెట్రీ లైవ్',
     operator: 'ఆపరేటర్',
+    geospatial_feeds: 'జియోస్పేషియల్ ఫీడ్‌లు',
+    early_warnings: 'ముందస్తు హెచ్చరికలు',
+    teams_hub: 'టీమ్స్ హబ్',
+    operator_profile: 'ఆపరేటర్ ప్రొఫైల్',
+    admin_command: 'అడ్మిన్ కమాండ్',
   },
   kpis: {
     active_events: 'క్రియాశీల సంఘటనలు',

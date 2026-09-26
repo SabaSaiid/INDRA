@@ -21,6 +21,11 @@ export const pa: TranslationDict = {
     notifications: 'ਸੂਚਨਾਵਾਂ',
     telemetry_live: 'ਟੈਲੀਮੈਟ੍ਰੀ ਲਾਈਵ',
     operator: 'ਆਪਰੇਟਰ',
+    geospatial_feeds: 'ਭੂ-ਸਥਾਨਕ ਫੀਡ',
+    early_warnings: 'ਮੁੱਢਲੀਆਂ ਚੇਤਾਵਨੀਆਂ',
+    teams_hub: 'ਟੀਮ ਹੱਬ',
+    operator_profile: 'ਆਪਰੇਟਰ ਪ੍ਰੋਫਾਈਲ',
+    admin_command: 'ਐਡਮਿਨ ਕਮਾਂਡ',
   },
   kpis: {
     active_events: 'ਕਿਰਿਆਸ਼ੀਲ ਘਟਨਾਵਾਂ',

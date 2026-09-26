@@ -21,6 +21,11 @@ export const hi: TranslationDict = {
     notifications: 'सूचनाएँ',
     telemetry_live: 'टेलीमेट्री लाइव',
     operator: 'ऑपरेटर',
+    geospatial_feeds: 'भू-स्थानिक फ़ीड',
+    early_warnings: 'प्रारंभिक चेतावनियाँ',
+    teams_hub: 'टीम हब',
+    operator_profile: 'ऑपरेटर प्रोफ़ाइल',
+    admin_command: 'व्यवस्थापक कमांड',
   },
   kpis: {
     active_events: 'सक्रिय घटनाएँ',

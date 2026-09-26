@@ -21,6 +21,11 @@ export const kn: TranslationDict = {
     notifications: 'ಅಧಿಸೂಚನೆಗಳು',
     telemetry_live: 'ಟೆಲಿಮೆಟ್ರಿ ನೇರ',
     operator: 'ಆಪರೇಟರ್',
+    geospatial_feeds: 'ಜಿಯೋಸ್ಪೇಷಿಯಲ್ ಫೀಡ್‌ಗಳು',
+    early_warnings: 'ಮುಂಚಿನ ಎಚ್ಚರಿಕೆಗಳು',
+    teams_hub: 'ತಂಡಗಳ ಕೇಂದ್ರ',
+    operator_profile: 'ಆಪರೇಟರ್ ಪ್ರೊಫೈಲ್',
+    admin_command: 'ನಿರ್ವಾಹಕ ಕಮಾಂಡ್',
   },
   kpis: {
     active_events: 'ಸಕ್ರಿಯ ಘಟನೆಗಳು',

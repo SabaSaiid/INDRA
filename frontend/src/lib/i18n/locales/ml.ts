@@ -21,6 +21,11 @@ export const ml: TranslationDict = {
     notifications: 'അറിയിപ്പുകൾ',
     telemetry_live: 'ടെലിമെട്രി തത്സമയം',
     operator: 'ഓപ്പറേറ്റർ',
+    geospatial_feeds: 'ജിയോസ്പേഷ്യൽ ഫീഡുകൾ',
+    early_warnings: 'മുൻകൂർ മുന്നറിയിപ്പുകൾ',
+    teams_hub: 'ടീം ഹബ്',
+    operator_profile: 'ഓപ്പറേറ്റർ പ്രൊഫൈൽ',
+    admin_command: 'അഡ്മിൻ കമാൻഡ്',
   },
   kpis: {
     active_events: 'സജീവ സംഭവങ്ങൾ',

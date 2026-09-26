@@ -21,6 +21,11 @@ export const as: TranslationDict = {
     notifications: 'জাননী',
     telemetry_live: 'টেলিমেট্ৰি লাইভ',
     operator: 'অপাৰেটৰ',
+    geospatial_feeds: 'ভূ-স্থানিক ফিড',
+    early_warnings: 'আগতীয়া সতৰ্কবাণী',
+    teams_hub: 'দল কেন্দ্ৰ',
+    operator_profile: 'অপাৰেটৰ প্ৰফাইল',
+    admin_command: 'প্ৰশাসক কমাণ্ড',
   },
   kpis: {
     active_events: 'সক্ৰিয় ঘটনা',

@@ -21,6 +21,11 @@ export const gu: TranslationDict = {
     notifications: 'સૂચનાઓ',
     telemetry_live: 'ટેલિમેટ્રી લાઈવ',
     operator: 'ઓપરેટર',
+    geospatial_feeds: 'ભૂ-અવકાશીય ફીડ',
+    early_warnings: 'પ્રારંભિક ચેતવણીઓ',
+    teams_hub: 'ટીમ હબ',
+    operator_profile: 'ઓપરેટર પ્રોફાઇલ',
+    admin_command: 'વહીવટી આદેશ',
   },
   kpis: {
     active_events: 'સક્રિય ઘટનાઓ',
