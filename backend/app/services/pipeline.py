@@ -44,7 +44,7 @@ from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services import severity_rules
 from app.services.corroboration import effective_reporters
 from app.services.event_typing import decide_event_type
-from app.services.hazards import family_of
+from app.services.hazards import family_of, types_in_family
 from app.services.geo_clustering import GeoClusteringService, family_params
 from app.services.report_flags import CREDIBILITY_FLOOR, FLAGS
 from app.services.geocoding import reverse_geocode
@@ -783,7 +783,10 @@ async def _find_mergeable_event(
     hazard family, over that family's radius and window (a heatwave report
     never joins a flood event next door). An untagged cluster (family None)
     may join an event of any family, and any cluster may join an UNCLASSIFIED
-    event, which the merge then re-types by majority.
+    event, which the merge then re-types by majority. **An event a commander
+    re-typed** also takes clusters of the family its reports voted for (the
+    receipt's `override.machine_vote`): people keep calling it what they called
+    it, and splitting the incident in two would undo the correction on the map.
 
     The window is measured from `updated_at`, not `verified_at`. `verified_at`
     is an insert-time default that means "created", and merging into an event
@@ -805,7 +808,9 @@ async def _find_mergeable_event(
                   AND center_point IS NOT NULL
                   AND (CAST(:family AS text) IS NULL
                        OR hazard_family IS NULL
-                       OR hazard_family = CAST(:family AS text))
+                       OR hazard_family = CAST(:family AS text)
+                       OR verification_receipt->'event_type_basis'->'override'->>'machine_vote'
+                          = ANY(CAST(:family_types AS text[])))
                   AND ST_DWithin(
                         center_point::geography,
                         ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
@@ -825,6 +830,7 @@ async def _find_mergeable_event(
                 "lng": lng,
                 "eps": params.eps_km,
                 "family": family,
+                "family_types": types_in_family(family) if family else [],
             },
         )
     ).fetchone()
