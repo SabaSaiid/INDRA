@@ -537,6 +537,16 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, searchQuery, onClose, activeTab]);
 
+  // Lock body scroll while drawer is open to prevent background jitter
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
@@ -619,30 +629,27 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Backdrop — Directional vignette */}
-          <motion.div
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={onClose}
-            className="fixed inset-0 z-50"
-            style={{
-              background: 'radial-gradient(ellipse 70% 100% at 100% 50%, rgba(3, 7, 18, 0.85) 0%, rgba(0, 0, 0, 0.55) 100%)',
-              backdropFilter: 'blur(8px)',
-            }}
-          />
-
-          {/* Panel Container — Obsidian chassis */}
-          <motion.aside
-            variants={panelVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed right-0 top-0 h-screen z-50 flex flex-col overflow-hidden text-slate-200"
-            style={{
-              width: 'min(520px, 100vw)',
+        <motion.div
+          key="indra-settings-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
+          aria-hidden="true"
+        />
+      )}
+      {isOpen && (
+        <motion.aside
+          key="indra-settings-panel"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+          className="fixed right-0 top-0 h-screen z-50 flex flex-col overflow-hidden text-slate-200"
+          style={{
+            width: 'min(520px, 100vw)',
               background: 'linear-gradient(165deg, rgba(16, 24, 38, 0.98) 0%, rgba(10, 16, 26, 0.99) 100%)',
               borderLeft: '1px solid rgba(249, 115, 22, 0.22)',
               boxShadow: '-24px 0 64px rgba(0, 0, 0, 0.8), inset 1px 0 0 rgba(255, 255, 255, 0.06)',
@@ -1644,7 +1651,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             </footer>
 
           </motion.aside>
-        </>
       )}
     </AnimatePresence>
   );

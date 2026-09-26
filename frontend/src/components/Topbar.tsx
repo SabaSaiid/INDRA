@@ -100,12 +100,15 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
         e.preventDefault();
         setSettingsOpen((prev) => !prev);
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if (e.key === 'Escape' && settingsOpen) {
+        setSettingsOpen(false);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !settingsOpen) {
         e.preventDefault();
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) searchInput.focus();
       }
-      if (e.key === '/' && !isInput) {
+      if (e.key === '/' && !isInput && !settingsOpen) {
         e.preventDefault();
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) searchInput.focus();
@@ -113,7 +116,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [settingsOpen]);
 
   const handleDutyChange = async (newStatus: DutyStatus) => {
     updateDuty(newStatus);
