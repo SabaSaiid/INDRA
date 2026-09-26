@@ -154,7 +154,11 @@ def content_axis(event_type: Optional[str], metas: Sequence[Mapping[str, Any]]) 
         by_depth = {"severity": depth_severity(depth), "axis": "water_depth", "value": depth,
                     "phrase": depth_basis}
         by_rain = {"severity": rain_severity(rain), "axis": "water_rain", "value": rain, "phrase": rain_phrase}
-        if rain is not None and ORDER.index(by_rain["severity"]) > ORDER.index(by_depth["severity"]):
+        # The worse of the two; with no depth quoted at all, the rain reading is
+        # the measure the receipt shows, even when it grades ADVISORY.
+        if rain is not None and (
+            depth is None or ORDER.index(by_rain["severity"]) > ORDER.index(by_depth["severity"])
+        ):
             return by_rain
         return by_depth
 
