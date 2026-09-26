@@ -4,10 +4,10 @@
     "dev": {
       "by_language": {
         "en": {
-          "f1": 0.993,
+          "f1": 0.9965,
           "fn": 0,
-          "fp": 2,
-          "precision": 0.986,
+          "fp": 1,
+          "precision": 0.993,
           "recall": 1.0,
           "support": 141,
           "tp": 141
@@ -22,29 +22,29 @@
           "tp": 54
         },
         "hinglish": {
-          "f1": 0.975,
-          "fn": 2,
+          "f1": 1.0,
+          "fn": 0,
           "fp": 0,
           "precision": 1.0,
-          "recall": 0.9512,
+          "recall": 1.0,
           "support": 41,
-          "tp": 39
+          "tp": 41
         }
       },
-      "macro_f1": 0.9916,
+      "macro_f1": 0.9986,
       "macro_f1_over": 15,
       "micro": {
-        "f1": 0.9915,
-        "fn": 2,
-        "fp": 2,
-        "precision": 0.9915,
-        "recall": 0.9915,
+        "f1": 0.9979,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.9958,
+        "recall": 1.0,
         "support": 236,
-        "tp": 234
+        "tp": 236
       },
       "negatives": 36,
-      "negatives_tagged": 1,
-      "negatives_tagged_share": 0.0278,
+      "negatives_tagged": 0,
+      "negatives_tagged_share": 0.0,
       "per_hazard": {
         "CLOUDBURST": {
           "f1": 1.0,
@@ -56,13 +56,13 @@
           "tp": 14
         },
         "COLD_WAVE": {
-          "f1": 0.9091,
-          "fn": 2,
+          "f1": 1.0,
+          "fn": 0,
           "fp": 0,
           "precision": 1.0,
-          "recall": 0.8333,
+          "recall": 1.0,
           "support": 12,
-          "tp": 10
+          "tp": 12
         },
         "CYCLONE": {
           "f1": 1.0,
@@ -137,10 +137,10 @@
           "tp": 12
         },
         "RAINFALL": {
-          "f1": 0.9863,
+          "f1": 1.0,
           "fn": 0,
-          "fp": 1,
-          "precision": 0.973,
+          "fp": 0,
+          "precision": 1.0,
           "recall": 1.0,
           "support": 36,
           "tp": 36
@@ -182,14 +182,11 @@
           "tp": 23
         }
       },
-      "primary_accuracy": 0.9889,
+      "primary_accuracy": 1.0,
       "primary_rows": 180,
       "rows": 216,
       "rows_wrong": [
-        "h090",
-        "h274",
-        "h276",
-        "h311"
+        "h090"
       ],
       "tense_accuracy": 1.0,
       "tense_rows": 12
@@ -217,25 +214,25 @@
           "tp": 24
         },
         "hinglish": {
-          "f1": 0.9859,
-          "fn": 1,
+          "f1": 1.0,
+          "fn": 0,
           "fp": 0,
           "precision": 1.0,
-          "recall": 0.9722,
+          "recall": 1.0,
           "support": 36,
-          "tp": 35
+          "tp": 36
         }
       },
-      "macro_f1": 0.9913,
+      "macro_f1": 0.9952,
       "macro_f1_over": 15,
       "micro": {
-        "f1": 0.9902,
-        "fn": 1,
+        "f1": 0.9935,
+        "fn": 0,
         "fp": 2,
-        "precision": 0.9869,
-        "recall": 0.9934,
+        "precision": 0.987,
+        "recall": 1.0,
         "support": 152,
-        "tp": 151
+        "tp": 152
       },
       "negatives": 24,
       "negatives_tagged": 0,
@@ -305,13 +302,13 @@
           "tp": 9
         },
         "HEATWAVE": {
-          "f1": 0.9412,
-          "fn": 1,
+          "f1": 1.0,
+          "fn": 0,
           "fp": 0,
           "precision": 1.0,
-          "recall": 0.8889,
+          "recall": 1.0,
           "support": 9,
-          "tp": 8
+          "tp": 9
         },
         "LANDSLIDE": {
           "f1": 1.0,
@@ -377,13 +374,12 @@
           "tp": 13
         }
       },
-      "primary_accuracy": 0.9917,
+      "primary_accuracy": 1.0,
       "primary_rows": 120,
       "rows": 144,
       "rows_wrong": [
         "h089",
-        "h092",
-        "h254"
+        "h092"
       ],
       "tense_accuracy": 1.0,
       "tense_rows": 8
@@ -392,7 +388,7 @@
   "gate_on_test": {
     "macro_f1": {
       "pass": true,
-      "value": 0.9913
+      "value": 0.9952
     },
     "negatives_tagged": {
       "pass": true,
@@ -413,7 +409,7 @@
       "HEATWAVE": {
         "pass": true,
         "precision": 1.0,
-        "recall": 0.8889
+        "recall": 1.0
       },
       "RAINFALL": {
         "pass": true,

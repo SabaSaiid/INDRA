@@ -456,7 +456,8 @@ LEXICON: List[Cue] = [
         r"\b(?:heat|sun)[\s-]?strokes?\b",
     ),
     *_en("HEATWAVE", r"\bloo\b", kind="loo", basis="hinglish"),
-    *_hl("HEATWAVE", r"\b(?:bhee?shan|bhayankar|bhayanak|kadi|kadak|prachand|tapti)\s+garmi\b"),
+    # "bhishan" is how the plan's own lexicon spells it; "bheeshan" is common too.
+    *_hl("HEATWAVE", r"\b(?:bh(?:i|ee?)shan|bhayankar|bhayanak|kadi|kadak|prachand|tapti)\s+garmi\b"),
     *_hi("HEATWAVE", "भीषण गर्मी", "प्रचंड गर्मी", "तपती गर्मी", "झुलसाती गर्मी"),
     *_hi("HEATWAVE", "लू", kind="loo"),
 
@@ -472,9 +473,10 @@ LEXICON: List[Cue] = [
     ),
     *_hl(
         "COLD_WAVE",
-        r"\b(?:shee?t|seet|shit)\s?le?ha+r\w*",
+        # shitlahar, sheetlahar, sheet lehar: the vowel after the l is optional.
+        r"\b(?:shee?t|seet|shit)\s?l[ae]?ha+r\w*",
         r"\bkada+ke\s+ki\s+(?:thand|thandh|sardi)\b",
-        r"\b(?:bhee?shan|bhayankar|kadak|kadi|jabardast)\s+(?:thand|thandh|sardi)\b",
+        r"\b(?:bh(?:i|ee?)shan|bhayankar|kadak|kadi|jabardast)\s+(?:thand|thandh|sardi)\b",
         r"\bpaa?la\s+pad\w*",
     ),
     *_hi("COLD_WAVE", "शीतलहर*", "शीत लहर*", "कडाके की ठंड*", "कडाके की सर्दी", "भीषण ठंड*", "भीषण सर्दी", "पाला पड*"),
@@ -532,6 +534,9 @@ _HI_NEGATORS = frozenset({"nahi", "nahin", "nahii", "nhi", "bina", fold("नह�
 _NOT_A_DENIAL_NEXT = ("relief", "respite", "end", "letup", "let", "stopping", "break", "escape", "doubt",
                       "less", "seen", "saw", "experienced", "witnessed", "imagined", "only", "just",
                       fold("राहत"))
+# "Not a single drop of rain": the negator is too far back for the 3-token
+# window, so the phrase is matched whole.
+_NOT_A_DROP = (("not", "a", "single", "drop", "of"), ("not", "a", "drop", "of"), ("not", "one", "drop", "of"))
 # "rain isn't stopping": रुक नहीं रही, थमने का नाम नहीं, ruk nahi rahi.
 _CONTINUING = ("ruk", "tham", "naam", fold("रुक"), fold("थम"), fold("नाम"))
 _DID_NOT_HAPPEN_RE = re.compile(
@@ -844,6 +849,10 @@ def _denied(hit: _Hit, tokens: _Tokens) -> bool:
             return False
         return True
 
+    for phrase in _NOT_A_DROP:
+        start = hit.first - len(phrase)
+        if start >= 0 and tuple(words[start:hit.first]) == phrase:
+            return True
     before = range(max(0, hit.first - 3), hit.first)
     if any(is_negator(j, _EN_NEGATORS | _HI_NEGATORS) for j in before):
         return True
