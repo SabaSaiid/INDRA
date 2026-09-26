@@ -44,8 +44,10 @@ import {
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import { fetchTeams } from '@/lib/api';
 import { useSidebar } from '@/lib/useSidebar';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -232,7 +234,7 @@ export default function ProfilePage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-black text-text-primary tracking-tight">Operator Profile</h1>
+                <h1 className="text-2xl font-black text-text-primary tracking-tight">{t('nav.operator')}</h1>
                 {/* These read "Verified Identity" and a pulsing "Grid Synced". The
                     accounts are the four seeded demo operators. */}
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -260,7 +262,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Select Active Persona (RBAC Identity Testing)
+                  {t('common.switch_role')} (RBAC Identity)
                 </span>
               </div>
               <span className="text-[11px] text-slate-400 font-medium">

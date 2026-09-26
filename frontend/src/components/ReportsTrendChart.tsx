@@ -8,6 +8,7 @@ import { type TrendDataPoint } from '@/lib/ui-config';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { fetchReportsTrend } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   AreaChart,
   Area,
@@ -30,7 +31,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       <div className="bg-white rounded-lg shadow-lg border border-slate-100 px-3 py-2">
         <p className="text-xs font-medium text-text-primary">{label}</p>
         <p className="text-sm font-bold text-primary tabular-nums">
-          {payload[0].value} {payload[0].value === 1 ? 'report' : 'reports'}
+          {payload[0].value}
         </p>
       </div>
     );
@@ -46,9 +47,11 @@ interface ReportsTrendChartProps {
 
 export default function ReportsTrendChart({
   variant = 'card',
-  title = 'Reports Trend',
+  title,
   className,
 }: ReportsTrendChartProps = {}) {
+  const { t } = useTranslation();
+  const chartTitle = title ?? t('nav.field_reports');
   const [mounted, setMounted] = useState(false);
   const [dateRange, setDateRange] = useState('7d');
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
@@ -104,10 +107,10 @@ export default function ReportsTrendChart({
     <div className={className}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] text-text-secondary font-medium">
-          Reports per day
+          {t('nav.field_reports')}
           {loaded && !error && (
             <span className="ml-1.5 font-mono text-[#7A8599]">
-              · {total} in {days} days
+              · {total} / {days}d
             </span>
           )}
         </span>
@@ -131,8 +134,8 @@ export default function ReportsTrendChart({
         ) : loaded && (trendData.length === 0 || total === 0) ? (
           <div className="h-full flex items-center justify-center">
             <EmptyState
-              title={`No reports in the last ${days} days`}
-              hint="The trend fills in as reports are submitted."
+              title={t('dashboard.no_reports')}
+              hint={t('dashboard.welcome_subtitle')}
               compact
             />
           </div>
@@ -224,7 +227,7 @@ export default function ReportsTrendChart({
       className="h-full"
     >
       <Card hover={false} className="h-full flex flex-col p-3.5">
-        <CardHeader title={title} density="compact" className="p-0 pb-1 mb-0" />
+        <CardHeader title={chartTitle} density="compact" className="p-0 pb-1 mb-0" />
         {chartContent}
       </Card>
     </motion.div>

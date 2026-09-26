@@ -55,6 +55,7 @@ import {
 } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { safeEventState } from '@/lib/eventState';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 type Level = 'RED' | 'ORANGE' | 'YELLOW';
 
@@ -176,6 +177,7 @@ const LEVEL_STYLE: Record<Level, { border: string; strip: string; badge: string 
 };
 
 export default function AlertsPage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -273,14 +275,14 @@ export default function AlertsPage() {
                   className="text-xl font-bold tracking-wide"
                   style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                 >
-                  Warnings &amp; Severe Events
+                  {t('nav.official_warnings')}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-rose-100 border border-white/20">
-                  {officialCount} official in force
+                  {officialCount} {t('kpis.delta_in_force')}
                 </span>
                 {indraCount > 0 && (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-amber-100 border border-white/20">
-                    {indraCount} severe INDRA events
+                    {indraCount} {t('chart.events')}
                   </span>
                 )}
               </div>
@@ -324,10 +326,10 @@ export default function AlertsPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               {([
-                { id: 'ALL', label: `ALL (${cards.length})` },
-                { id: 'RED', label: `RED (${count('RED')})` },
-                { id: 'ORANGE', label: `ORANGE (${count('ORANGE')})` },
-                { id: 'YELLOW', label: `YELLOW (${count('YELLOW')})` },
+                { id: 'ALL', label: `${t('common.view_all')} (${cards.length})` },
+                { id: 'RED', label: `${t('severity.CRITICAL')} (${count('RED')})` },
+                { id: 'ORANGE', label: `${t('severity.HIGH')} (${count('ORANGE')})` },
+                { id: 'YELLOW', label: `${t('severity.MODERATE')} (${count('YELLOW')})` },
               ] as const).map((lvl) => (
                 <button
                   key={lvl.id}
@@ -349,7 +351,7 @@ export default function AlertsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter by district, agency or hazard..."
+                placeholder={t('nav.search_placeholder')}
                 className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white border border-[#E8E2D4] text-xs text-[#1B2432] placeholder-[#A0988A] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-2xs"
               />
             </div>
@@ -359,12 +361,12 @@ export default function AlertsPage() {
           {loading && cards.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-[#E8E2D4]">
               <Loader2 className="w-8 h-8 text-[#B5482E] animate-spin mb-3" />
-              <p className="text-sm font-medium text-[#7A8599]">Loading warnings from the backend...</p>
+              <p className="text-sm font-medium text-[#7A8599]">{t('common.loading')}...</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="p-8 text-center bg-white rounded-2xl border border-[#E8E2D4] text-[#7A8599] text-sm">
               {cards.length === 0
-                ? 'No official warnings are in force and no severe INDRA events are open.'
+                ? t('chart.no_warnings_force')
                 : 'Nothing matches this filter.'}
             </div>
           ) : (
@@ -382,15 +384,15 @@ export default function AlertsPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <span className={`text-xs font-black font-mono px-2.5 py-0.5 rounded-md ${style.badge}`}>
-                          {c.level}
+                          {t.severity(c.level)}
                         </span>
                         {c.kind === 'official' ? (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#1B2432] text-white">
-                            OFFICIAL WARNING
+                            {t('nav.official_warnings')}
                           </span>
                         ) : (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#F7F3EA] text-[#4A5568] border border-[#E8E2D4]">
-                            INDRA EVENT · not an official warning
+                            {t('nav.incident_events')}
                           </span>
                         )}
                         <span className="text-xs text-[#4A5568] font-semibold">{c.source}</span>
@@ -436,14 +438,14 @@ export default function AlertsPage() {
                       <div className="mt-3 pt-2 border-t border-[#F0EBE0] flex items-center justify-between">
                         <span className="text-[11px] font-mono text-[#7A8599] flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
-                          Confidence {Math.round((c.confidenceScore || 0) * 100)}%
+                          {t('receipt.confidence_label')} {Math.round((c.confidenceScore || 0) * 100)}%
                         </span>
                         <button
                           onClick={() => setVerificationEventId(c.eventId!)}
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#F7F3EA] hover:bg-[#F0EBE0] text-[#1B2432] text-xs font-medium border border-[#E8E2D4] transition-colors"
                         >
                           <ShieldCheck className="w-3.5 h-3.5 text-[#B5482E]" />
-                          Inspect Verification Receipt
+                          {t('receipt.title')}
                           <ChevronRight className="w-3.5 h-3.5 text-[#A0988A]" />
                         </button>
                       </div>

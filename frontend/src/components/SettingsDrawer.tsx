@@ -49,6 +49,8 @@ import {
   formatCoordinates,
 } from '@/lib/useSettings';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { SUPPORTED_LANGUAGES } from '@/lib/i18n/types';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -58,6 +60,7 @@ interface SettingsDrawerProps {
 type TabKey = 'map' | 'alerts' | 'units' | 'hud' | 'network' | 'system';
 
 export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
+  const { t, language: currentLang, setLanguage: changeLang } = useTranslation();
   const { settings, updateSettings, resetSettings, testAlarm } = useSettings();
   const [activeTab, setActiveTab] = useState<TabKey>('map');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -666,6 +669,34 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {/* TAB 4: COMMAND HUD */}
               {activeTab === 'hud' && (
                 <div className="space-y-4">
+                  {/* Interface Language */}
+                  <div>
+                    <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2 flex items-center gap-1.5">
+                      <Globe className="w-3 h-3 text-[#F97316]" />
+                      Interface Language / भाषा
+                    </h3>
+                    <div className="grid grid-cols-3 gap-1.5 max-h-44 overflow-y-auto pr-1 custom-scrollbar">
+                      {Object.entries(SUPPORTED_LANGUAGES).map(([code, meta]) => {
+                        const isSelected = currentLang === code;
+                        return (
+                          <button
+                            key={code}
+                            onClick={() => changeLang(code as any)}
+                            className={cn(
+                              'p-2 rounded-lg border text-left transition-all',
+                              isSelected
+                                ? 'bg-[#B5482E]/25 border-[#B5482E] text-white font-semibold'
+                                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
+                            )}
+                          >
+                            <p className="text-xs truncate" style={{ fontFamily: meta.fontFamily }}>{meta.nativeName}</p>
+                            <p className="text-[9px] text-slate-400 truncate">{meta.name}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div>
                     <h3 className="text-xs font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
                       HUD Interface Mode

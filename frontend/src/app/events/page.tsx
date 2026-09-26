@@ -23,6 +23,7 @@ import { fetchEvents, fetchSummaryCounts, formatPlace, type ApiEvent } from '@/l
 import { ErrorState } from '@/components/ui/empty-state';
 import { safeEventState } from '@/lib/eventState';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // Issue 3 fix: per-hazard plausible maximum impact radius (km).
 // If the raw value exceeds the ceiling, the display layer hides it rather than
@@ -120,6 +121,7 @@ function getRelativeTime(ts: string): string {
 }
 
 export default function EventsPage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -211,22 +213,21 @@ export default function EventsPage() {
               <div className="flex items-center gap-2 mb-1">
                 <CalendarClock className="w-5 h-5 text-amber-400" />
                 <h1 className="text-xl font-bold font-mono">
-                  INCIDENT EVENTS &amp; EMERGENCY LOG
+                  {t('nav.incident_events').toUpperCase()}
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {events.length} {events.length === 1 ? 'EVENT' : 'EVENTS'} · {RANGES.find((r) => r.key === range)?.label}
+                  {events.length} {t('chart.events').toUpperCase()} · {RANGES.find((r) => r.key === range)?.label}
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Events INDRA formed by clustering corroborating reports and scoring them against live
-                rainfall. Official warnings are on Early Warnings.
+                {t('dashboard.welcome_subtitle')}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
                 <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span className="text-slate-300 font-mono">LIVE API SYNCED</span>
+                <span className="text-slate-300 font-mono">{t('nav.telemetry_live').toUpperCase()}</span>
               </div>
             </div>
           </div>
@@ -239,7 +240,7 @@ export default function EventsPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter by city, event type, or event code..."
+                placeholder={t('nav.search_placeholder')}
                 className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
               />
             </div>
@@ -268,7 +269,7 @@ export default function EventsPage() {
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  {sev}
+                  {sev === 'ALL' ? t('common.view_all') : t.severity(sev)}
                 </button>
               ))}
             </div>
@@ -278,7 +279,7 @@ export default function EventsPage() {
           {loading ? (
             <div className="flex items-center justify-center py-24">
               <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-              <span className="ml-2 text-sm text-slate-500">Loading events from backend…</span>
+              <span className="ml-2 text-sm text-slate-500">{t('common.loading')}</span>
             </div>
           ) : loadError ? (
             <div className="bg-white rounded-2xl border border-slate-200">
@@ -337,14 +338,14 @@ export default function EventsPage() {
                             {ev.event_code}
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sevBadge}`}>
-                            {severityKey(ev.severity)}
+                            {t.severity(ev.severity)}
                           </span>
                           <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${reviewBadge.cls}`}>
-                            {reviewBadge.label}
+                            {t.status(eventState.reviewStatus)}
                           </span>
                         </div>
                         <h3 className="font-semibold text-slate-900 text-base">
-                          {ev.eventType} — {formatPlace(ev.city, ev.state, ev.place_precision)}
+                          {t.hazard(ev.eventType)} — {formatPlace(ev.city, ev.state, ev.place_precision)}
                         </h3>
                         {eventState.quadrant && (
                           <p className="text-[11px] text-slate-500 mt-0.5">{eventState.quadrant}</p>
@@ -352,7 +353,7 @@ export default function EventsPage() {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="text-lg font-bold font-mono text-[#B5482E]">{Math.round(ev.confidence_score * 100)}%</div>
-                        <div className="text-[10px] text-slate-400">confidence</div>
+                        <div className="text-[10px] text-slate-400">{t('receipt.confidence_label')}</div>
                       </div>
                     </div>
 

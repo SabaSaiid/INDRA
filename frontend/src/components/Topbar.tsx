@@ -29,6 +29,8 @@ import { useOperatorProfile, AVAILABLE_OPERATOR_PERSONAS } from '@/lib/useOperat
 import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
 import NotificationPopover from './NotificationPopover';
+import LanguagePicker from './LanguagePicker';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -46,6 +48,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     isUpdatingStatus,
     isAuthenticated,
   } = useOperatorProfile();
+  const { t } = useTranslation();
   const currentProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -147,7 +150,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search events, warnings, teams…"
+                  placeholder={t('nav.search_placeholder')}
                   className="w-full h-8 pl-9 pr-14 rounded-lg bg-[#F0EBE0]/80 border border-[#E8E2D4] text-xs sm:text-sm text-ink placeholder:text-[#7A8599] focus:outline-none focus:bg-[#FDFAF5] focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-inner"
                   aria-label="Search"
                 />
@@ -170,9 +173,15 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               id="report-incident-btn"
             >
               <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="hidden sm:inline">Report Incident</span>
+              <span className="hidden sm:inline">{t('nav.report_incident')}</span>
               <Plus className="w-3.5 h-3.5 sm:hidden" />
             </button>
+
+            {/* Divider */}
+            <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
+
+            {/* Language Picker */}
+            <LanguagePicker />
 
             {/* Divider */}
             <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
@@ -269,7 +278,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
                         <span className="flex items-center gap-1.5 font-medium text-[#7A8599]">
                           <Radio className="w-3.5 h-3.5" />
-                          Radio Designation
+                          {t('common.radio_designation')}
                         </span>
                         <span className="font-semibold text-ink tracking-wider font-mono">
                           {callsignDisplay}
@@ -286,7 +295,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       >
                         <Lock className="w-3 h-3 flex-shrink-0" style={{ color: isAuthenticated ? '#10B981' : '#7A8599' }} />
                         <span className="flex-1 font-medium">
-                          {isAuthenticated ? 'Secure Session (JWT HS256)' : 'Session inactive'}
+                          {isAuthenticated ? t('common.secure_session') : t('common.session_inactive')}
                         </span>
                         {isAuthenticated && (
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
@@ -298,7 +307,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     <div className="p-3">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599]">
-                          Operational Duty Status
+                          {t('nav.operator')} Status
                         </span>
                         {isUpdatingStatus && (
                           <span className="text-[10px] text-[#B5482E] animate-pulse font-medium">Syncing…</span>
@@ -308,6 +317,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                         {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
                           const cfg = dutyStatusConfig[st];
                           const isSelected = currentProfile.duty_status === st;
+                          const dutyLabel = st === 'ON_DUTY' ? t('common.duty_on') : st === 'OFF_DUTY' ? t('common.duty_off') : st === 'STANDBY' ? t('common.duty_standby') : t('common.duty_deployed');
                           return (
                             <button
                               key={st}
@@ -321,7 +331,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                             >
                               <span className="flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
-                                {cfg.label}
+                                {dutyLabel}
                               </span>
                               {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
                             </button>
@@ -335,7 +345,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599] flex items-center gap-1">
                           <Shield className="w-3 h-3 text-[#7A8599]" />
-                          Switch Role
+                          {t('common.switch_role')}
                         </span>
                         <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#FBF2E4] text-[#8A611E] border border-[#D4B87A]">
                           SIH RBAC DEMO
@@ -388,7 +398,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       >
                         <span className="flex items-center gap-2">
                           <Users className="w-3.5 h-3.5 text-[#7A8599]" />
-                          Disaster Response Units &amp; Teams
+                          {t('nav.response_teams')}
                         </span>
                         <ChevronDown className="w-3 h-3 -rotate-90 text-[#B0A898]" />
                       </Link>
@@ -413,7 +423,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       >
                         <span className="flex items-center gap-2">
                           <Settings className="w-3.5 h-3.5 text-[#7A8599]" />
-                          Platform Settings &amp; HUD Config
+                          {t('nav.platform_settings')}
                         </span>
                         <span
                           className="text-[9px] text-[#7A8599] bg-[#E8E2D4] px-1 py-0.2 rounded border border-[#D8D0C4] font-mono"

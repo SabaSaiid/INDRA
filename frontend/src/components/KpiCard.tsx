@@ -74,7 +74,7 @@ function Reading({ item, index }: ReadingProps) {
         >
           {formatNumber(animatedValue)}
         </p>
-        <p className="text-[10px] text-[#7A8599] leading-tight truncate">
+        <p className="text-[10px] text-[#7A8599] leading-normal truncate py-0.5">
           {item.label}
         </p>
       </div>
@@ -84,7 +84,7 @@ function Reading({ item, index }: ReadingProps) {
         {/* A figure with no comparison window shows its label alone, never "0%". */}
         {hasWindow && (
           <p
-            className="text-[9px] tabular-nums leading-none"
+            className="text-[9px] tabular-nums leading-normal"
             style={{ fontFamily: 'JetBrains Mono, monospace' }}
           >
             <span
@@ -103,7 +103,7 @@ function Reading({ item, index }: ReadingProps) {
         )}
         {/* Truncates before the reading's own label does: the label is the
             thing an operator reads. */}
-        <p className="text-[8px] text-[#B0A898] leading-none mt-0.5 whitespace-nowrap truncate max-w-[72px]" title={item.deltaLabel}>
+        <p className="text-[8px] text-[#B0A898] leading-normal mt-0.5 whitespace-nowrap truncate max-w-[95px]" title={item.deltaLabel}>
           {item.deltaLabel}
         </p>
       </div>

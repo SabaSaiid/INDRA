@@ -16,6 +16,7 @@ import { fetchDashboardSummary, fetchEvents, apiEventsToRecentEvents } from '@/l
 import { ErrorState } from '@/components/ui/empty-state';
 import EventVerificationModal from '@/components/EventVerificationModal';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   KpiCardSkeleton,
   MapCardSkeleton,
@@ -52,6 +53,25 @@ export default function Home() {
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>(undefined);
   const [verificationEventId, setVerificationEventId] = useState<string | null>(null);
   const { subscribe } = useIndraWebSocket();
+  const { t, language } = useTranslation();
+
+  // KPI label map: id → translation key in kpis namespace
+  const KPI_LABEL_MAP: Record<string, string> = {
+    'total-reports': t('kpis.total_reports'),
+    'verified-events': t('kpis.verified_events'),
+    'critical-events': t('kpis.critical_events'),
+    'citizen-reports': t('kpis.citizen_reports'),
+    'awaiting-review': t('kpis.awaiting_review'),
+    'active-alerts': t('kpis.active_alerts'),
+  };
+  const KPI_DELTA_MAP: Record<string, string> = {
+    'total-reports': t('kpis.delta_last_24h'),
+    'verified-events': t('kpis.delta_last_24h'),
+    'critical-events': t('kpis.delta_last_24h'),
+    'citizen-reports': t('kpis.delta_last_24h'),
+    'awaiting-review': t('kpis.delta_review_queue'),
+    'active-alerts': t('kpis.delta_in_force'),
+  };
 
   // ── View Mode (persisted across sessions) ──────────────────────────────────
   const [viewMode, setViewMode] = useState<ViewMode>('mission-control');
@@ -86,7 +106,13 @@ export default function Home() {
 
         if (!cancelled) {
           if (kpiResult.status === 'fulfilled') {
-            setLiveKpiData(kpiResult.value);
+            // Override labels with the current language using the translation map
+            const localized = kpiResult.value.map((kpi) => ({
+              ...kpi,
+              label: KPI_LABEL_MAP[kpi.id] ?? kpi.label,
+              deltaLabel: KPI_DELTA_MAP[kpi.id] ?? kpi.deltaLabel,
+            }));
+            setLiveKpiData(localized);
             setKpiError(null);
           } else {
             setKpiError(kpiResult.reason);
@@ -113,7 +139,7 @@ export default function Home() {
       }
     })();
     return () => { cancelled = true; };
-  }, [refreshTick]);
+  }, [refreshTick, language]); // re-fetch labels when language changes
 
   // The backend has broadcast VERIFIED_EVENT since Day 1 and nothing in the
   // frontend ever listened for it. NEW_REPORT moves the report counters, and
@@ -211,7 +237,15 @@ export default function Home() {
                     />
                   ) : (
                     liveKpiData.map((item, index) => (
-                      <KpiCard key={item.id} item={item} index={index} />
+                      <KpiCard
+                        key={item.id}
+                        item={{
+                          ...item,
+                          label: KPI_LABEL_MAP[item.id] ?? item.label,
+                          deltaLabel: KPI_DELTA_MAP[item.id] ?? item.deltaLabel,
+                        }}
+                        index={index}
+                      />
                     ))
                   )}
                 </div>

@@ -148,6 +148,8 @@ function RainfallPanel() {
   );
 }
 
+import { useTranslation } from '@/lib/i18n/useTranslation';
+
 const WARNING_COLOURS: Array<{ key: string; name: string; color: string }> = [
   { key: 'CRITICAL', name: 'Red', color: '#DC2626' },
   { key: 'HIGH', name: 'Orange', color: '#F97316' },
@@ -156,6 +158,7 @@ const WARNING_COLOURS: Array<{ key: string; name: string; color: string }> = [
 ];
 
 function WarningsPanel() {
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState<AgencyAlert[] | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -186,7 +189,7 @@ function WarningsPanel() {
       <div className="flex items-start justify-between gap-2 mb-1">
         <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <Radio className="w-4 h-4 text-orange-600" />
-          Official warnings in force
+          {t('chart.warnings')}
         </h2>
         <span className="text-[10px] font-mono text-slate-400 text-right">SACHET CAP · every 5 min</span>
       </div>
@@ -196,7 +199,7 @@ function WarningsPanel() {
       {error && !alerts ? (
         <ErrorState label="official warnings" error={error} compact />
       ) : alerts && alerts.length === 0 ? (
-        <EmptyState title="No official warning in force" compact />
+        <EmptyState title={t('chart.no_warnings_force')} compact />
       ) : !alerts ? (
         <div className="h-40 animate-pulse bg-slate-50 rounded-xl" />
       ) : (
@@ -205,7 +208,7 @@ function WarningsPanel() {
             {byColour.map((c) => (
               <div key={c.key} className="rounded-xl border border-slate-100 p-2 text-center">
                 <div className="text-lg font-bold font-mono" style={{ color: c.color }}>{c.n}</div>
-                <div className="text-[10px] text-slate-500">{c.name}</div>
+                <div className="text-[10px] text-slate-500">{t.severity(c.key)}</div>
               </div>
             ))}
           </div>
@@ -227,6 +230,7 @@ function WarningsPanel() {
 }
 
 export default function AnalyticsPage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -281,7 +285,7 @@ export default function AnalyticsPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <BarChart3 className="w-5 h-5 text-cyan-400" />
-                <h1 className="text-xl font-bold font-mono">ANALYTICS</h1>
+                <h1 className="text-xl font-bold font-mono">{t('nav.analytics')}</h1>
               </div>
               <p className="text-xs text-slate-400">
                 Reports, events, official warnings and rainfall, counted from the live database.
@@ -302,25 +306,25 @@ export default function AnalyticsPage() {
           {/* Figures from GET /api/dashboard/summary */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Figure
-              label="Reports stored"
+              label={t('kpis.total_reports')}
               value={show(summary?.total_reports)}
               note={summary ? `${summary.total_reports_delta_pct >= 0 ? '+' : ''}${summary.total_reports_delta_pct}% in the last 24 h` : 'all sources'}
               icon={Activity}
             />
             <Figure
-              label="Verified events"
+              label={t('kpis.verified_events')}
               value={show(summary?.verified_events)}
               note="Auto-published or approved by an operator"
               icon={TrendingUp}
             />
             <Figure
-              label="Awaiting review"
+              label={t('kpis.awaiting_review')}
               value={show(summary?.awaiting_review)}
               note="Escalated or quarantined"
               icon={Layers}
             />
             <Figure
-              label="Official warnings in force"
+              label={t('kpis.active_alerts')}
               value={show(summary?.active_alerts)}
               note="IMD, CWC and SDMA CAP alerts via SACHET"
               icon={ShieldAlert}
@@ -332,7 +336,7 @@ export default function AnalyticsPage() {
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
               <h2 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-blue-600" />
-                Reports per day
+                {t('kpis.reports_24h')}
               </h2>
               <ReportsTrendChart variant="embedded" />
             </div>
@@ -340,7 +344,7 @@ export default function AnalyticsPage() {
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
               <h2 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600" />
-                Events and warnings by hazard and severity
+                {t('dashboard.event_distribution')}
               </h2>
               <EventDistributionChart variant="embedded" />
             </div>

@@ -20,6 +20,7 @@ import type { MapLayer } from '@/lib/ui-config';
 import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   Globe,
   Map as MapIcon,
@@ -320,6 +321,7 @@ export default function GlobeEventMap({
   const autoOrbitAnimRef = useRef<number | null>(null);
   const renderProminentPinsRef = useRef<() => void>(() => {});
 
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [webGLSupported, setWebGLSupported] = useState(true);
   const [isGlobe, setIsGlobe] = useState(true);
@@ -1471,7 +1473,7 @@ export default function GlobeEventMap({
           <div className="flex items-center gap-2 min-w-0">
             <span className="flex-shrink-0 h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-sm font-semibold text-slate-800 truncate">
-              {variant === 'preview' ? 'Tactical Geospatial Grid' : '3D Weather Intelligence Grid'}
+              {t('map.title')}
             </span>
             {/* Issue 8: clarify this is a severity filter, not a total count */}
             {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length > 0 && (
@@ -1549,7 +1551,7 @@ export default function GlobeEventMap({
                 className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-primary hover:bg-primary-hover text-white transition-all"
                 title="Open Live Tactical Map"
               >
-                <span className="hidden sm:inline">Live Map</span>
+                <span className="hidden sm:inline">{t('map.title')}</span>
                 <ChevronRight className="w-3 h-3" />
               </Link>
             ) : (
