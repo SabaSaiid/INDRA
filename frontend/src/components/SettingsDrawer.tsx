@@ -537,15 +537,38 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, searchQuery, onClose, activeTab]);
 
-  // Lock body scroll while drawer is open to prevent background jitter
+  const drawerRef = useRef<HTMLElement>(null);
+
+  // Outside click listener: close drawer cleanly when clicking outside the panel
   useEffect(() => {
     if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
+
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // Don't close if clicking inside the drawer panel
+      if (drawerRef.current && drawerRef.current.contains(target)) {
+        return;
+      }
+
+      // Don't close if clicking the topbar settings toggle button (let Topbar toggle it)
+      if (target.closest('[aria-label="Platform Settings"]')) {
+        return;
+      }
+
+      onClose();
     };
-  }, [isOpen]);
+
+    const timer = setTimeout(() => {
+      document.addEventListener('pointerdown', handlePointerDown);
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isOpen, onClose]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -629,19 +652,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          key="indra-settings-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          onClick={onClose}
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
-          aria-hidden="true"
-        />
-      )}
-      {isOpen && (
         <motion.aside
+          ref={drawerRef}
           key="indra-settings-panel"
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
@@ -649,12 +661,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
           transition={{ type: 'spring', damping: 28, stiffness: 280 }}
           className="fixed right-0 top-0 h-screen z-50 flex flex-col overflow-hidden text-slate-200"
           style={{
-            width: 'min(520px, 100vw)',
-              background: 'linear-gradient(165deg, rgba(16, 24, 38, 0.98) 0%, rgba(10, 16, 26, 0.99) 100%)',
-              borderLeft: '1px solid rgba(249, 115, 22, 0.22)',
-              boxShadow: '-24px 0 64px rgba(0, 0, 0, 0.8), inset 1px 0 0 rgba(255, 255, 255, 0.06)',
-            }}
-          >
+            width: 'min(480px, 100vw)',
+            background: 'linear-gradient(165deg, rgba(16, 24, 38, 0.98) 0%, rgba(10, 16, 26, 0.99) 100%)',
+            borderLeft: '1px solid rgba(249, 115, 22, 0.22)',
+            boxShadow: '-16px 0 45px rgba(0, 0, 0, 0.5), inset 1px 0 0 rgba(255, 255, 255, 0.06)',
+          }}
+        >
             {/* ── UNIFIED FULL-WIDTH HEADER (Tactical font) ──────────── */}
             <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-black/45">
               <div className="flex items-center gap-2.5 min-w-0">
