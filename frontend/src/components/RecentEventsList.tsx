@@ -39,6 +39,7 @@ const WARNING_STYLE: Record<string, { label: string; color: string }> = {
  * warnings issued by IMD, CWC and state SDMAs, never as INDRA events.
  */
 function WarningsInForce() {
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState<AgencyAlert[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -59,10 +60,10 @@ function WarningsInForce() {
     <div className="flex-1 min-h-0 flex flex-col border-t border-[#F0EBE0] pt-1.5">
       <div className="flex items-center justify-between px-1 pb-1 flex-shrink-0">
         <span className="text-[9px] font-mono font-semibold uppercase tracking-wider text-[#7A8599]">
-          Official warnings in force
+          {t('nav.official_warnings')}
         </span>
         <Link href="/alerts" className="text-[9px] font-medium text-[#7A8599] hover:text-ink">
-          Early Warnings →
+          {t('nav.official_warnings')} →
         </Link>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-0.5 space-y-0.5">
@@ -78,11 +79,11 @@ function WarningsInForce() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1.5">
                   <p className="text-xs font-medium text-ink truncate" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-                    {a.event || 'Official warning'}
+                    {a.event ? t.hazard(a.event) : t('nav.official_warnings')}
                     {a.location_label ? ` · ${a.location_label}` : ''}
                   </p>
                   <span className="text-[9px] font-semibold flex-shrink-0" style={{ color: style.color }}>
-                    {style.label}
+                    {t.severity(a.severity)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -209,7 +210,7 @@ export default function RecentEventsList({
           <div className="flex-1 min-h-0 flex flex-col">
             <div className="flex-shrink-0 flex items-center justify-center">
               <EmptyState
-                title="No INDRA events in the last 7 days"
+                title={t('chart.no_events_range')}
                 hint="An event forms once two nearby reports corroborate each other."
                 compact
                 className="py-3"
@@ -275,17 +276,17 @@ export default function RecentEventsList({
                         className="text-[9px] font-medium flex-shrink-0"
                         style={{ color: verification.color }}
                       >
-                        {verification.label}
+                        {t.status(event.verification)}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[9px] text-[#7A8599] truncate font-medium">{event.eventType}</span>
+                      <span className="text-[9px] text-[#7A8599] truncate font-medium">{t.hazard(event.eventType)}</span>
                       <span
                         className="text-[9px] font-semibold flex-shrink-0"
                         style={{ color: severity.color }}
                       >
-                        {severity.label}
+                        {t.severity(event.severity)}
                       </span>
                       <span
                         className="text-[9px] text-[#B0A898] flex-shrink-0"
@@ -305,17 +306,16 @@ export default function RecentEventsList({
         <div className="mt-auto pt-1.5 pb-0.5 border-t border-[#F0EBE0] flex items-center justify-between text-[10px] text-[#7A8599] font-mono flex-shrink-0">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{events.length} {events.length === 1 ? 'event' : 'events'} · 7 days</span>
+            <span>{events.length} {t('chart.events')} · 7d</span>
           </span>
           <span className="text-[9px] uppercase tracking-wider text-[#A0988A] flex items-center gap-1">
             {events.length > 4 ? (
               <>
-                <span>Scroll for more</span>
+                <span>{t('chart.scroll_more')}</span>
                 <span className="text-[10px]">↓</span>
               </>
             ) : (
-              // This read 'IMD • NDRF Synced': INDRA has no link to either.
-              'Live from the INDRA API'
+              t('chart.live_from_api')
             )}
           </span>
         </div>

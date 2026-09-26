@@ -13,6 +13,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { fetchAgencyAlerts, type AgencyAlert } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 type SeverityKey = 'EXTREME' | 'SEVERE' | 'MODERATE' | 'MINOR' | 'ADVISORY' | 'UNKNOWN';
 
@@ -43,6 +44,7 @@ function relativeTime(iso: string | null): string {
 }
 
 export default function NotificationPopover({ className = '' }: { className?: string }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [alerts, setAlerts] = useState<AgencyAlert[]>([]);
   const [loading, setLoading] = useState(false);
@@ -112,7 +114,7 @@ export default function NotificationPopover({ className = '' }: { className?: st
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#E8E2D4]" style={{ background: '#F7F3EA' }}>
               <div className="flex items-center gap-2">
                 <Radio className="w-3.5 h-3.5 text-[#7A8599]" />
-                <span className="text-[11px] font-bold tracking-wider uppercase text-[#4A5568]">Operational Bulletins</span>
+                <span className="text-[11px] font-bold tracking-wider uppercase text-[#4A5568]">{t('nav.notifications')}</span>
                 {hasAlerts && (
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#B5482E]/10 text-[#B5482E] border border-[#B5482E]/20">
                     {alerts.length} active
@@ -142,9 +144,8 @@ export default function NotificationPopover({ className = '' }: { className?: st
               {!loading && fetchError && (
                 <div className="flex flex-col items-center justify-center py-10 px-6 gap-2 text-center">
                   <AlertTriangle className="w-7 h-7 text-[#B5482E]/60" />
-                  <p className="text-sm font-medium text-[#4A5568]">Could not load bulletins</p>
-                  <p className="text-xs text-[#7A8599]">Grid connectivity issue. Check server status.</p>
-                  <button onClick={loadAlerts} className="mt-2 text-xs font-semibold text-[#B5482E] hover:underline">Retry</button>
+                  <p className="text-sm font-medium text-[#4A5568]">{t('common.error')}</p>
+                  <button onClick={loadAlerts} className="mt-2 text-xs font-semibold text-[#B5482E] hover:underline">{t('common.retry')}</button>
                 </div>
               )}
 
@@ -167,11 +168,11 @@ export default function NotificationPopover({ className = '' }: { className?: st
                     <span className="w-2 h-2 rounded-full flex-shrink-0 mt-[5px]" style={{ backgroundColor: cfg.dotColor }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-[#1E2A3B] leading-snug line-clamp-2">
-                        {alert.headline || alert.event || 'Agency Bulletin'}
+                        {alert.headline || (alert.event ? t.hazard(alert.event) : t('nav.official_warnings'))}
                       </p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border leading-none" style={{ background: cfg.pillBg, color: cfg.pillText, borderColor: cfg.pillBorder }}>
-                          {cfg.label}
+                          {t.severity(alert.severity)}
                         </span>
                         {alert.sender && <span className="text-[10px] text-[#7A8599] truncate max-w-[140px]">{alert.sender}</span>}
                         {alert.location_label && <span className="text-[10px] text-[#7A8599] truncate max-w-[120px]">· {alert.location_label}</span>}
@@ -185,10 +186,10 @@ export default function NotificationPopover({ className = '' }: { className?: st
 
             <div className="px-4 py-2.5 border-t border-[#E8E2D4] flex items-center justify-between" style={{ background: '#F7F3EA' }}>
               <span className="text-[10px] text-[#B0A898]">
-                {hasAlerts ? `${alerts.length} active bulletin${alerts.length !== 1 ? 's' : ''}` : 'SACHET · IMD · CWC · State SDMAs'}
+                {hasAlerts ? `${alerts.length} active` : 'SACHET · IMD · CWC · State SDMAs'}
               </span>
               <Link href="/alerts" onClick={() => setIsOpen(false)} className="flex items-center gap-1 text-[11px] font-semibold text-[#B5482E] hover:text-[#8C3420] transition-colors group">
-                Open Alert Console
+                {t('nav.official_warnings')}
                 <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>

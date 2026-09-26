@@ -270,7 +270,7 @@ export default function Sidebar({
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)] animate-pulse inline-block" />
                     <p className="text-[10px] font-medium text-emerald-400/90">
-                      Telemetry live
+                      {t('nav.telemetry_live')}
                     </p>
                   </div>
                 </motion.div>

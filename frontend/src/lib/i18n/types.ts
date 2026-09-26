@@ -69,6 +69,29 @@ export interface TranslationDict {
     system_healthy: string;
     live_label: string;
     updated_label: string;
+    // KPI tile labels matching api.ts fetchDashboardSummary IDs
+    total_reports: string;
+    verified_events: string;
+    critical_events: string;
+    citizen_reports: string;
+    awaiting_review: string;
+    active_alerts: string;
+    // KPI delta labels
+    delta_last_24h: string;
+    delta_review_queue: string;
+    delta_in_force: string;
+  };
+
+  chart: {
+    by_hazard: string;
+    by_severity: string;
+    events: string;
+    warnings: string;
+    in_force_now: string;
+    no_events_range: string;
+    no_warnings_force: string;
+    scroll_more: string;
+    live_from_api: string;
   };
 
   hazards: {

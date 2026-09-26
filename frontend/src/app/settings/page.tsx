@@ -59,8 +59,11 @@ import {
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { fetchHealth, type HealthReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/lib/i18n/types';
 
 export default function SettingsPage() {
+  const { t, language, setLanguage } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -173,7 +176,7 @@ export default function SettingsPage() {
                   className="text-lg lg:text-xl font-bold tracking-tight text-white"
                   style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                 >
-                  Mission Preferences &amp; Platform Configuration
+                  {t('nav.system_settings')}
                 </h1>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-white/10 text-slate-300 border border-white/15">
                   SIH26069 • SIXTH SENSE
@@ -718,6 +721,44 @@ export default function SettingsPage() {
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
                     APPEARANCE
                   </span>
+                </div>
+
+                {/* Interface Language & Script */}
+                <div>
+                  <label className="text-xs font-semibold text-[#1E2A3B] flex items-center gap-1.5 mb-1.5">
+                    <Globe className="w-3.5 h-3.5 text-[#B5482E]" />
+                    Interface Language / बहुभाषी प्रणाली (12 Languages)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {(Object.entries(SUPPORTED_LANGUAGES) as [SupportedLanguage, typeof SUPPORTED_LANGUAGES[SupportedLanguage]][]).map(([code, meta]) => {
+                      const isSelected = language === code;
+                      return (
+                        <button
+                          key={code}
+                          onClick={() => {
+                            setLanguage(code);
+                            showToast(`Language switched to ${meta.name} (${meta.nativeName})`);
+                          }}
+                          className={cn(
+                            'p-2.5 rounded-xl border text-left flex items-center justify-between transition-all',
+                            isSelected
+                              ? 'bg-[#182235] text-white border-[#182235] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold truncate" style={{ fontFamily: meta.fontFamily }}>
+                              {meta.nativeName}
+                            </p>
+                            <p className={cn('text-[10px] truncate', isSelected ? 'text-slate-300' : 'text-[#7A8599]')}>
+                              {meta.name}
+                            </p>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Theme Mode */}

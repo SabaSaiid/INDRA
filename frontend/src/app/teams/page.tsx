@@ -43,8 +43,10 @@ import {
 } from '@/lib/api';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 function TeamsContent() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'hackathon' ? 'hackathon' : 'operations';
 
@@ -220,7 +222,7 @@ function TeamsContent() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-text-primary">Teams &amp; Response Units</h1>
+                <h1 className="text-2xl font-bold text-text-primary">{t('nav.response_teams')}</h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                   Command Hub
                 </span>
@@ -241,7 +243,7 @@ function TeamsContent() {
                 }`}
               >
                 <Shield className="w-3.5 h-3.5" />
-                Disaster Response Units ({teams.length})
+                {t('nav.response_teams')} ({teams.length})
               </button>
               <button
                 onClick={() => setActiveTab('hackathon')}
@@ -317,7 +319,7 @@ function TeamsContent() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by team, lead officer, or city..."
+                    placeholder={t('nav.search_placeholder')}
                     className="w-full h-10 pl-10 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-text-primary placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   />
                 </div>
@@ -336,7 +338,7 @@ function TeamsContent() {
                             : 'text-slate-600 hover:text-text-primary'
                         }`}
                       >
-                        {ag}
+                        {ag === 'ALL' ? t('common.view_all') : ag}
                       </button>
                     ))}
                   </div>
@@ -353,7 +355,13 @@ function TeamsContent() {
                             : 'text-slate-600 hover:text-text-primary'
                         }`}
                       >
-                        {st === 'ALL' ? 'All' : st.charAt(0) + st.slice(1).toLowerCase()}
+                        {st === 'ALL'
+                          ? t('common.view_all')
+                          : st === 'DEPLOYED'
+                          ? t('common.duty_deployed')
+                          : st === 'STANDBY'
+                          ? t('common.duty_standby')
+                          : t('common.duty_on')}
                       </button>
                     ))}
                   </div>

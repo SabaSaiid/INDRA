@@ -22,6 +22,7 @@ import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { useSidebar } from '@/lib/useSidebar';
 import { fadeIn, staggerContainer } from '@/lib/motion';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   fetchHealth,
   fetchSummaryCounts,
@@ -102,6 +103,7 @@ const NOT_CONNECTED = [
 ];
 
 export default function DatasetsPage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -222,7 +224,7 @@ export default function DatasetsPage() {
           <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 shadow-md">
             <div className="flex items-center gap-2 mb-1">
               <Database className="w-5 h-5 text-indigo-400" />
-              <h1 className="text-xl font-bold font-mono">DATA SOURCES</h1>
+              <h1 className="text-xl font-bold font-mono">{t('nav.platform_settings')}</h1>
               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                 {sources.length} connected
               </span>
