@@ -81,7 +81,7 @@ export const hi: TranslationDict = {
     HIGH: 'गंभीर',
     MODERATE: 'मध्यम',
     LOW: 'सामान्य',
-    ADVISORY: 'सलाहकार',
+    ADVISORY: 'परामर्श',
   },
   status: {
     AUTO_VERIFIED: 'स्वतः सत्यापित',
