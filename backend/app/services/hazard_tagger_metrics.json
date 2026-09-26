@@ -1,0 +1,452 @@
+{
+  "fixture": {
+    "caveat": "written by the same person and session as the rules, just before them; the split was frozen first. A check across three languages and the named traps, not an independent accuracy estimate. Quote the real-post figure.",
+    "dev": {
+      "by_language": {
+        "en": {
+          "f1": 0.993,
+          "fn": 0,
+          "fp": 2,
+          "precision": 0.986,
+          "recall": 1.0,
+          "support": 141,
+          "tp": 141
+        },
+        "hi": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 54,
+          "tp": 54
+        },
+        "hinglish": {
+          "f1": 0.975,
+          "fn": 2,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9512,
+          "support": 41,
+          "tp": 39
+        }
+      },
+      "macro_f1": 0.9916,
+      "macro_f1_over": 15,
+      "micro": {
+        "f1": 0.9915,
+        "fn": 2,
+        "fp": 2,
+        "precision": 0.9915,
+        "recall": 0.9915,
+        "support": 236,
+        "tp": 234
+      },
+      "negatives": 36,
+      "negatives_tagged": 1,
+      "negatives_tagged_share": 0.0278,
+      "per_hazard": {
+        "CLOUDBURST": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 14,
+          "tp": 14
+        },
+        "COLD_WAVE": {
+          "f1": 0.9091,
+          "fn": 2,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.8333,
+          "support": 12,
+          "tp": 10
+        },
+        "CYCLONE": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 16,
+          "tp": 16
+        },
+        "CYCLONE_INUNDATION": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 12,
+          "tp": 12
+        },
+        "DUST_STORM": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 13,
+          "tp": 13
+        },
+        "FOG": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 13,
+          "tp": 13
+        },
+        "HAILSTORM": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 13,
+          "tp": 13
+        },
+        "HEATWAVE": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 13,
+          "tp": 13
+        },
+        "LANDSLIDE": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 12,
+          "tp": 12
+        },
+        "LIGHTNING": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 12,
+          "tp": 12
+        },
+        "RAINFALL": {
+          "f1": 0.9863,
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.973,
+          "recall": 1.0,
+          "support": 36,
+          "tp": 36
+        },
+        "RIVER_BREACH": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 12,
+          "tp": 12
+        },
+        "STRONG_WIND": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 20,
+          "tp": 20
+        },
+        "THUNDERSTORM": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 15,
+          "tp": 15
+        },
+        "URBAN_FLOOD": {
+          "f1": 0.9787,
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.9583,
+          "recall": 1.0,
+          "support": 23,
+          "tp": 23
+        }
+      },
+      "primary_accuracy": 0.9889,
+      "primary_rows": 180,
+      "rows": 216,
+      "rows_wrong": [
+        "h090",
+        "h274",
+        "h276",
+        "h311"
+      ],
+      "tense_accuracy": 1.0,
+      "tense_rows": 12
+    },
+    "file": "backend/tests/fixtures/hazards_v1.csv",
+    "file_sha256": "abb6ee12b38afe1828eda358b1f788531da1d470a4273e1a0d0865ad4be3fc6e",
+    "test": {
+      "by_language": {
+        "en": {
+          "f1": 0.9892,
+          "fn": 0,
+          "fp": 2,
+          "precision": 0.9787,
+          "recall": 1.0,
+          "support": 92,
+          "tp": 92
+        },
+        "hi": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 24,
+          "tp": 24
+        },
+        "hinglish": {
+          "f1": 0.9859,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9722,
+          "support": 36,
+          "tp": 35
+        }
+      },
+      "macro_f1": 0.9913,
+      "macro_f1_over": 15,
+      "micro": {
+        "f1": 0.9902,
+        "fn": 1,
+        "fp": 2,
+        "precision": 0.9869,
+        "recall": 0.9934,
+        "support": 152,
+        "tp": 151
+      },
+      "negatives": 24,
+      "negatives_tagged": 0,
+      "negatives_tagged_share": 0.0,
+      "per_hazard": {
+        "CLOUDBURST": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 8,
+          "tp": 8
+        },
+        "COLD_WAVE": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 9,
+          "tp": 9
+        },
+        "CYCLONE": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 11,
+          "tp": 11
+        },
+        "CYCLONE_INUNDATION": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 8,
+          "tp": 8
+        },
+        "DUST_STORM": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 8,
+          "tp": 8
+        },
+        "FOG": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 9,
+          "tp": 9
+        },
+        "HAILSTORM": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 9,
+          "tp": 9
+        },
+        "HEATWAVE": {
+          "f1": 0.9412,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.8889,
+          "support": 9,
+          "tp": 8
+        },
+        "LANDSLIDE": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 8,
+          "tp": 8
+        },
+        "LIGHTNING": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 9,
+          "tp": 9
+        },
+        "RAINFALL": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 19,
+          "tp": 19
+        },
+        "RIVER_BREACH": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 8,
+          "tp": 8
+        },
+        "STRONG_WIND": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 14,
+          "tp": 14
+        },
+        "THUNDERSTORM": {
+          "f1": 1.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 10,
+          "tp": 10
+        },
+        "URBAN_FLOOD": {
+          "f1": 0.9286,
+          "fn": 0,
+          "fp": 2,
+          "precision": 0.8667,
+          "recall": 1.0,
+          "support": 13,
+          "tp": 13
+        }
+      },
+      "primary_accuracy": 0.9917,
+      "primary_rows": 120,
+      "rows": 144,
+      "rows_wrong": [
+        "h089",
+        "h092",
+        "h254"
+      ],
+      "tense_accuracy": 1.0,
+      "tense_rows": 8
+    }
+  },
+  "gate_on_test": {
+    "macro_f1": {
+      "pass": true,
+      "value": 0.9913
+    },
+    "negatives_tagged": {
+      "pass": true,
+      "value": 0.0
+    },
+    "pass": true,
+    "ps_seven": {
+      "DUST_STORM": {
+        "pass": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "FOG": {
+        "pass": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "HEATWAVE": {
+        "pass": true,
+        "precision": 1.0,
+        "recall": 0.8889
+      },
+      "RAINFALL": {
+        "pass": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "STRONG_WIND": {
+        "pass": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "THUNDERSTORM": {
+        "pass": true,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "URBAN_FLOOD": {
+        "pass": true,
+        "precision": 0.8667,
+        "recall": 1.0
+      }
+    },
+    "thresholds": {
+      "macro_f1": 0.8,
+      "negatives_tagged_max": 0.1,
+      "precision": 0.85,
+      "recall": 0.8
+    }
+  },
+  "real_posts": {
+    "note": "run scripts/sample_real_posts.py on the server, then label it",
+    "status": "not drawn yet"
+  },
+  "reference_year": 2026,
+  "tagger": "app/services/hazard_tagger.py (rules and dictionaries; no model)"
+}
