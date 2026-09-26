@@ -33,6 +33,8 @@ import {
   Activity,
   Compass,
   Zap,
+  Clock,
+  Radio,
 } from 'lucide-react';
 import {
   useSettings,
@@ -61,7 +63,7 @@ interface SettingsDrawerProps {
   onClose: () => void;
 }
 
-export type TabKey = 'map' | 'alerts' | 'units' | 'hud' | 'notifications' | 'security' | 'network' | 'system';
+export type TabKey = 'general' | 'map' | 'alerts' | 'units' | 'hud' | 'notifications' | 'security' | 'network' | 'system';
 
 interface TabItem {
   key: TabKey;
@@ -73,31 +75,37 @@ interface TabItem {
 
 const TAB_GROUPS: { groupLabel: string; tabs: TabItem[] }[] = [
   {
+    groupLabel: 'Core',
+    tabs: [
+      { key: 'general', label: 'General Settings', shortLabel: 'General', icon: Sliders, hotkey: '1' },
+    ],
+  },
+  {
     groupLabel: 'GIS & Environment',
     tabs: [
-      { key: 'map', label: 'Map & GIS', shortLabel: 'Map', icon: Globe, hotkey: '1' },
-      { key: 'alerts', label: 'Audio Alarms', shortLabel: 'Audio', icon: Volume2, hotkey: '2' },
-      { key: 'units', label: 'Units & Metrics', shortLabel: 'Units', icon: Gauge, hotkey: '3' },
-      { key: 'hud', label: 'HUD & Style', shortLabel: 'Style', icon: Sliders, hotkey: '4' },
+      { key: 'map', label: 'Map & GIS', shortLabel: 'Map', icon: Globe, hotkey: '2' },
+      { key: 'alerts', label: 'Audio Alarms', shortLabel: 'Audio', icon: Volume2, hotkey: '3' },
+      { key: 'units', label: 'Units & Metrics', shortLabel: 'Units', icon: Gauge, hotkey: '4' },
+      { key: 'hud', label: 'HUD & Style', shortLabel: 'Style', icon: Layers, hotkey: '5' },
     ],
   },
   {
     groupLabel: 'Ops & Comms',
     tabs: [
-      { key: 'notifications', label: 'Alert Delivery', shortLabel: 'Alerts', icon: Bell, hotkey: '5' },
-      { key: 'security', label: 'Security & Access', shortLabel: 'Access', icon: Lock, hotkey: '6' },
-      { key: 'network', label: 'Live Network', shortLabel: 'Net', icon: Wifi, hotkey: '7' },
+      { key: 'notifications', label: 'Alert Delivery', shortLabel: 'Alerts', icon: Bell, hotkey: '6' },
+      { key: 'security', label: 'Security & Access', shortLabel: 'Access', icon: Lock, hotkey: '7' },
+      { key: 'network', label: 'Live Network', shortLabel: 'Net', icon: Wifi, hotkey: '8' },
     ],
   },
   {
     groupLabel: 'System',
     tabs: [
-      { key: 'system', label: 'Backup & Reset', shortLabel: 'Backup', icon: Shield, hotkey: '8' },
+      { key: 'system', label: 'Backup & Reset', shortLabel: 'Backup', icon: Shield, hotkey: '9' },
     ],
   },
 ];
 
-const ALL_TABS: TabKey[] = ['map', 'alerts', 'units', 'hud', 'notifications', 'security', 'network', 'system'];
+const ALL_TABS: TabKey[] = ['general', 'map', 'alerts', 'units', 'hud', 'notifications', 'security', 'network', 'system'];
 
 interface SearchableSetting {
   id: string;
@@ -109,6 +117,12 @@ interface SearchableSetting {
 }
 
 const SEARCHABLE_CATALOG: SearchableSetting[] = [
+  { id: 'station-profile', tab: 'general', label: 'Station Identification & Node', desc: 'INDRA National Node-01 HQ New Delhi operational status', category: 'General', keywords: ['general', 'station', 'node', 'indra', 'hq', 'profile', 'delhi', 'operational'] },
+  { id: 'general-lang', tab: 'general', label: 'Interface Language / भाषा', desc: 'Select from 11 Indian regional languages and English', category: 'General', keywords: ['language', 'hindi', 'bengali', 'tamil', 'marathi', 'telugu', 'gujarati', 'urdu', 'kannada', 'malayalam', 'i18n', 'translate'] },
+  { id: 'general-theme', tab: 'general', label: 'Interface Theme', desc: 'Dark Tactical Ops, Light Parchment, High Contrast', category: 'General', keywords: ['theme', 'dark', 'light', 'high contrast', 'contrast', 'color'] },
+  { id: 'general-refresh', tab: 'general', label: 'Telemetry Polling Rate', desc: '5s, 15s, 30s or manual refresh rate', category: 'General', keywords: ['refresh', 'rate', 'poll', 'interval', 'speed', 'seconds'] },
+  { id: 'general-timezone', tab: 'general', label: 'Station Timezone Mode', desc: 'Indian Standard Time (IST UTC+5:30) vs UTC Zulu', category: 'General', keywords: ['timezone', 'ist', 'utc', 'zulu', 'time', 'clock', 'new delhi'] },
+  { id: 'general-audio', tab: 'general', label: 'Master Emergency Siren', desc: 'Synthesizer warning tones for high-threat events', category: 'General', keywords: ['sound', 'audio', 'siren', 'alarm', 'tone'] },
   { id: 'projection', tab: 'map', label: 'Default Map Projection', desc: '3D Spherical Globe vs 2D Flat Mercator', category: 'GIS & Map', keywords: ['3d', 'globe', 'mercator', 'projection', '2d', 'map'] },
   { id: 'basemap', tab: 'map', label: 'Basemap Style', desc: 'Satellite, Dark Tactical, Topographic, Street Vector', category: 'GIS & Map', keywords: ['esri', 'satellite', 'dark', 'carto', 'topo', 'terrain', 'vector', 'street'] },
   { id: 'globe-orbit', tab: 'map', label: 'Globe Ambient Orbit', desc: 'Slow auto-rotation when idle', category: 'GIS & Map', keywords: ['rotate', 'spin', 'orbit', 'idle', 'ambient'] },
@@ -116,14 +130,10 @@ const SEARCHABLE_CATALOG: SearchableSetting[] = [
   { id: 'alert-volume', tab: 'alerts', label: 'Alert Volume & Decibel Level', desc: 'Volume level from quiet ops desk to 90dB maximum emergency warning', category: 'Audio & Alarms', keywords: ['volume', 'decibel', 'db', 'loud', 'quiet', 'sound'] },
   { id: 'siren-pattern', tab: 'alerts', label: 'Siren Pitch Pattern', desc: 'Tactical Warble, Continuous Siren, Pulsed Beacon, Operational Chime', category: 'Audio & Alarms', keywords: ['warble', 'continuous', 'beacon', 'chime', 'pitch', 'frequency'] },
   { id: 'alert-threshold', tab: 'alerts', label: 'Minimum Severity Threshold', desc: 'All Incidents, Moderate+, High+, Critical Only', category: 'Audio & Alarms', keywords: ['severity', 'threshold', 'critical', 'high', 'moderate', 'filter'] },
-  { id: 'polling-rate', tab: 'alerts', label: 'Telemetry Polling Interval', desc: '5s, 15s, 30s or manual refresh rate', category: 'Audio & Alarms', keywords: ['refresh', 'rate', 'poll', 'interval', 'speed', 'seconds'] },
   { id: 'temp-unit', tab: 'units', label: 'Temperature Scale', desc: 'Celsius (°C - IMD standard) vs Fahrenheit (°F)', category: 'Units & Metrics', keywords: ['temp', 'celsius', 'fahrenheit', 'imd', 'degrees', 'weather'] },
   { id: 'wind-unit', tab: 'units', label: 'Wind Velocity Unit', desc: 'km/h (Civilian), Knots (Maritime), m/s (Scientific)', category: 'Units & Metrics', keywords: ['wind', 'speed', 'velocity', 'knots', 'kmh', 'ms', 'cyclone'] },
   { id: 'rain-unit', tab: 'units', label: 'Rainfall Measurement', desc: 'Millimeters (mm) vs Inches (in)', category: 'Units & Metrics', keywords: ['rain', 'rainfall', 'precipitation', 'mm', 'inches', 'monsoon'] },
   { id: 'coord-format', tab: 'units', label: 'Coordinate Reference Format', desc: 'Decimal Degrees (DD), Degrees Minutes Seconds (DMS), Military Grid (MGRS)', category: 'Units & Metrics', keywords: ['coord', 'coordinates', 'dd', 'dms', 'mgrs', 'military', 'grid', 'gps', 'lat', 'lon'] },
-  { id: 'timezone', tab: 'units', label: 'Station Timezone Mode', desc: 'Indian Standard Time (IST UTC+5:30) vs UTC Zulu', category: 'Units & Metrics', keywords: ['timezone', 'ist', 'utc', 'zulu', 'time', 'clock', 'new delhi'] },
-  { id: 'language', tab: 'hud', label: 'Interface Language / भाषा', desc: 'Select from 10 Indian regional languages + English', category: 'HUD & Style', keywords: ['language', 'hindi', 'bengali', 'tamil', 'marathi', 'telugu', 'gujarati', 'urdu', 'kannada', 'malayalam', 'i18n', 'translate'] },
-  { id: 'theme-mode', tab: 'hud', label: 'Color Theme Mode', desc: 'Dark Tactical Ops, Light Parchment, High Contrast', category: 'HUD & Style', keywords: ['theme', 'dark', 'light', 'high contrast', 'contrast', 'color'] },
   { id: 'ui-density', tab: 'hud', label: 'Display Density', desc: 'Standard comfortable spacing vs Compact high-density data matrix', category: 'HUD & Style', keywords: ['density', 'compact', 'standard', 'spacing', 'padding'] },
   { id: 'glassmorphism', tab: 'hud', label: 'Glassmorphism & Backdrop Blur', desc: 'Translucent frosted glass cards and glow highlights', category: 'HUD & Style', keywords: ['glass', 'blur', 'glow', 'translucent', 'backdrop'] },
   { id: 'reduced-motion', tab: 'hud', label: 'Reduced Motion', desc: 'Disable heavy animations for low-spec field terminals', category: 'HUD & Style', keywords: ['motion', 'animation', 'performance', 'speed', 'gpu'] },
@@ -132,7 +142,6 @@ const SEARCHABLE_CATALOG: SearchableSetting[] = [
   { id: 'notify-phone', tab: 'notifications', label: 'SMS & WhatsApp Broadcast', desc: 'Priority SMS gateway notification for field personnel', category: 'Alert Delivery', keywords: ['sms', 'whatsapp', 'phone', 'mobile', 'text'] },
   { id: 'idle-lock', tab: 'security', label: 'Inactivity Screen Lock', desc: 'Lock the tactical terminal after 5, 15, or 30 minutes of idle time', category: 'Security & Access', keywords: ['lock', 'idle', 'timeout', 'inactivity', 'screensaver', 'security'] },
   { id: 'mgrs-unlock', tab: 'security', label: 'Military Grid Reference (MGRS)', desc: 'Grant authorization to use NATO/MGRS coordinate targeting in HUD', category: 'Security & Access', keywords: ['mgrs', 'military', 'nato', 'security', 'grid', 'classification'] },
-  { id: 'change-password', tab: 'security', label: 'Operator Password & Credentials', desc: 'Update operator credentials (contact system administrator)', category: 'Security & Access', keywords: ['password', 'auth', 'credentials', 'account', 'login'] },
   { id: 'network-status', tab: 'network', label: 'Live Backend & WebSocket Telemetry', desc: 'Real-time WebSocket data stream status and node connectivity', category: 'Live Network', keywords: ['network', 'websocket', 'stream', 'api', 'backend', 'status'] },
   { id: 'export-config', tab: 'system', label: 'Export Preferences JSON', desc: 'Backup active GIS presets, audio volumes, and HUD layouts', category: 'Backup & System', keywords: ['export', 'json', 'backup', 'download', 'save'] },
   { id: 'import-config', tab: 'system', label: 'Import Preferences JSON', desc: 'Restore configuration from an exported INDRA JSON profile', category: 'Backup & System', keywords: ['import', 'restore', 'upload', 'load'] },
@@ -155,7 +164,7 @@ const panelVariants = {
 
 const navRailVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.03, delayChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.025, delayChildren: 0.08 } },
 };
 
 const navItemVariants = {
@@ -455,19 +464,20 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   const { language: currentLang, setLanguage: changeLang } = useTranslation();
   const { settings, updateSettings, resetSettings, testAlarm } = useSettings();
 
-  const [activeTab, setActiveTab] = useState<TabKey>('map');
+  // DEFAULT TAB IS NOW 'general'
+  const [activeTab, setActiveTab] = useState<TabKey>('general');
   const [direction, setDirection] = useState(1);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Search & Filter state (Phase 3)
+  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Rail tooltip hover state
   const [hoveredTab, setHoveredTab] = useState<TabKey | null>(null);
 
-  // Reset confirmation safety state (Phase 6)
+  // Reset confirmation safety state
   const [resetConfirming, setResetConfirming] = useState(false);
 
   // Live Station Clocks
@@ -492,12 +502,11 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     setSearchQuery('');
   };
 
-  // Keyboard Shortcuts (Phase 6)
+  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
-      // Escape key: clear search or close
       if (e.key === 'Escape') {
         if (searchQuery) {
           setSearchQuery('');
@@ -507,15 +516,13 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
         return;
       }
 
-      // / key: focus search input if not typing in an input
       if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') {
         e.preventDefault();
         searchInputRef.current?.focus();
         return;
       }
 
-      // Numbers 1-8: switch tabs if not in an input
-      if (document.activeElement?.tagName !== 'INPUT' && e.key >= '1' && e.key <= '8') {
+      if (document.activeElement?.tagName !== 'INPUT' && e.key >= '1' && e.key <= '9') {
         const tabIdx = parseInt(e.key, 10) - 1;
         if (ALL_TABS[tabIdx]) {
           handleTabChange(ALL_TABS[tabIdx]);
@@ -589,7 +596,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
   // Volume calculations for visual gauge
   const volumePct = Math.round(settings.alertVolume * 100);
-  const volumeDb = Math.round(45 + settings.alertVolume * 45); // 45 to 90 dB
+  const volumeDb = Math.round(45 + settings.alertVolume * 45);
   const VolumeIcon = !settings.audioAlertsEnabled || settings.alertVolume === 0
     ? VolumeX
     : settings.alertVolume < 0.5
@@ -628,7 +635,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               boxShadow: '-20px 0 60px rgba(0, 0, 0, 0.75), inset 1px 0 0 rgba(255, 255, 255, 0.05)',
             }}
           >
-            {/* ── UNIFIED FULL-WIDTH HEADER (Phase 2) ────────────────── */}
+            {/* ── UNIFIED FULL-WIDTH HEADER ──────────────────────────── */}
             <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-black/40">
               <div className="flex items-center gap-2.5 min-w-0">
                 <motion.div
@@ -674,7 +681,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               </div>
             </header>
 
-            {/* ── SEARCH & FILTER BAR (Phase 3) ─────────────────────── */}
+            {/* ── SEARCH & FILTER BAR ───────────────────────────────── */}
             <div className="shrink-0 px-4 py-2 border-b border-white/[0.06] bg-black/25 flex items-center gap-2">
               <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <input
@@ -720,7 +727,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             {/* ── MAIN BODY: LEFT RAIL + RIGHT CONTENT ──────────────── */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
 
-              {/* ── LEFT TACTICAL NAVIGATION RAIL (Phase 1 & 5) ──────── */}
+              {/* ── LEFT TACTICAL NAVIGATION RAIL ─────────────────────── */}
               <motion.nav
                 variants={navRailVariants}
                 initial="hidden"
@@ -794,7 +801,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               {/* ── RIGHT SCROLLABLE CONTENT AREA ────────────────────── */}
               <div className="flex-1 overflow-y-auto p-4 drawer-scroll">
 
-                {/* SEARCH RESULTS VIEW (Phase 3) */}
+                {/* SEARCH RESULTS VIEW */}
                 {searchQuery.trim().length > 0 ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-xs font-mono text-slate-400 pb-2 border-b border-white/[0.08]">
@@ -842,7 +849,182 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   </div>
                 ) : (
                   <>
-                    {/* ── TAB 1: MAP & GIS ──────────────────────────── */}
+                    {/* ── TAB 1: GENERAL SETTINGS (DEFAULT) ─────────── */}
+                    {activeTab === 'general' && (
+                      <TabContent tabKey="general" direction={direction}>
+                        {/* Station Profile Banner */}
+                        <div className="p-3.5 rounded-xl border border-white/10 bg-white/[0.03] space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wide">
+                                INDRA Station Node-01
+                              </h4>
+                            </div>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+                              OPERATIONAL
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            Disaster Early Warning & Decision Support HUD &middot; SIH 2026 Sixth Sense
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/[0.06] text-[10px] font-mono text-slate-400">
+                            <div>Station: <span className="text-white font-semibold">New Delhi HQ</span></div>
+                            <div>Telemetry: <span className="text-emerald-400 font-semibold">Live Ingestion</span></div>
+                          </div>
+                        </div>
+
+                        {/* Interface Language */}
+                        <div>
+                          <SectionHeader icon={Globe} label="Interface Language / भाषा" badge="11 Languages" />
+                          <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1 drawer-scroll">
+                            {Object.entries(SUPPORTED_LANGUAGES).map(([code, meta]) => {
+                              const isSel = currentLang === code;
+                              return (
+                                <SelectCard
+                                  key={code}
+                                  isSelected={isSel}
+                                  onClick={() => changeLang(code as any)}
+                                  className="p-2"
+                                >
+                                  <p className="text-xs truncate font-medium" style={{ fontFamily: meta.fontFamily }}>
+                                    {meta.nativeName}
+                                  </p>
+                                  <p className="text-[9px] text-slate-400 truncate">{meta.name}</p>
+                                </SelectCard>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Interface Theme */}
+                        <div>
+                          <SectionHeader icon={Sliders} label="Interface Theme" />
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'dark', label: 'Dark Ops', desc: 'Tactical command' },
+                              { id: 'light', label: 'Light', desc: 'Day parchment' },
+                              { id: 'high_contrast', label: 'Contrast', desc: 'Sunlight visibility' },
+                            ].map((m) => {
+                              const isSel = settings.themeMode === m.id;
+                              return (
+                                <SelectCard
+                                  key={m.id}
+                                  isSelected={isSel}
+                                  onClick={() => updateSettings({ themeMode: m.id as ThemeMode })}
+                                  className="text-center"
+                                >
+                                  <p className="text-xs font-semibold text-white">{m.label}</p>
+                                  <p className="text-[9px] text-slate-400 mt-0.5">{m.desc}</p>
+                                </SelectCard>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Refresh Rate & Timezone */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <div>
+                            <SectionHeader icon={Zap} label="Refresh Rate" />
+                            <div className="grid grid-cols-2 gap-1 font-mono">
+                              {[
+                                { id: 5, label: '5s Live' },
+                                { id: 15, label: '15s Normal' },
+                                { id: 30, label: '30s Eco' },
+                                { id: 0, label: 'Manual' },
+                              ].map((rate) => {
+                                const isSel = settings.autoRefreshInterval === rate.id;
+                                return (
+                                  <motion.button
+                                    key={rate.id}
+                                    whileHover={{ y: -1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => updateSettings({ autoRefreshInterval: rate.id as RefreshInterval })}
+                                    className={cn(
+                                      'py-1.5 px-1 text-center rounded-lg border text-[10px] font-mono transition-all',
+                                      isSel
+                                        ? 'bg-[#B5482E] text-white border-[#B5482E] font-bold shadow-md'
+                                        : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]',
+                                    )}
+                                  >
+                                    {rate.label}
+                                  </motion.button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div>
+                            <SectionHeader icon={Clock} label="Timezone" />
+                            <div className="space-y-1">
+                              {[
+                                { id: 'ist', label: 'IST (+05:30)', desc: 'New Delhi HQ' },
+                                { id: 'utc', label: 'UTC Zulu', desc: 'Aviation Standard' },
+                              ].map((tz) => {
+                                const isSel = settings.timezone === tz.id;
+                                return (
+                                  <SelectCard
+                                    key={tz.id}
+                                    isSelected={isSel}
+                                    onClick={() => updateSettings({ timezone: tz.id as TimezoneMode })}
+                                    className="py-1 px-2"
+                                  >
+                                    <p className="text-xs font-semibold text-white">{tz.label}</p>
+                                    <p className="text-[9px] text-slate-400">{tz.desc}</p>
+                                  </SelectCard>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Master Siren Audio Quick Toggle */}
+                        <div className="p-3 rounded-xl border border-[#B5482E]/35 bg-[#B5482E]/10 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <Volume2 className="w-4 h-4 text-[#F97316]" />
+                            <div>
+                              <p className="text-xs font-semibold text-white">Emergency Siren Audio</p>
+                              <p className="text-[10px] text-slate-400">Master sound toggle for disaster alerts</p>
+                            </div>
+                          </div>
+                          <SpringToggle
+                            value={settings.audioAlertsEnabled}
+                            onChange={() => updateSettings({ audioAlertsEnabled: !settings.audioAlertsEnabled })}
+                          />
+                        </div>
+
+                        {/* Display & Performance */}
+                        <div>
+                          <SectionHeader icon={Sliders} label="Display & Performance" />
+                          <div className="rounded-xl border border-white/[0.08] divide-y divide-white/[0.06] bg-white/[0.03]">
+                            <div className="px-3 py-2.5 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-medium text-white">Compact Data Density</p>
+                                <p className="text-[10px] text-slate-400">Tight spacing for multi-monitor operations</p>
+                              </div>
+                              <SpringToggle
+                                value={settings.uiDensity === 'compact'}
+                                onChange={() => updateSettings({ uiDensity: settings.uiDensity === 'compact' ? 'standard' : 'compact' })}
+                              />
+                            </div>
+                            <ToggleRow
+                              label="Glassmorphism & Glow"
+                              desc="Frosted blur panels and edge lighting"
+                              value={settings.glassmorphismEffects}
+                              onChange={() => updateSettings({ glassmorphismEffects: !settings.glassmorphismEffects })}
+                            />
+                            <ToggleRow
+                              label="Reduced Motion"
+                              desc="Optimize performance on field hardware"
+                              value={settings.reducedMotion}
+                              onChange={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
+                            />
+                          </div>
+                        </div>
+                      </TabContent>
+                    )}
+
+                    {/* ── TAB 2: MAP & GIS ──────────────────────────── */}
                     {activeTab === 'map' && (
                       <TabContent tabKey="map" direction={direction}>
                         <div>
@@ -913,7 +1095,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </TabContent>
                     )}
 
-                    {/* ── TAB 2: AUDIO ALARMS (Phase 4) ─────────────── */}
+                    {/* ── TAB 3: AUDIO ALARMS ───────────────────────── */}
                     {activeTab === 'alerts' && (
                       <TabContent tabKey="alerts" direction={direction}>
                         <div
@@ -935,7 +1117,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             />
                           </div>
 
-                          {/* Live Equalizer Visualizer & Volume Meter */}
                           <div className="pt-2 border-t border-white/10 space-y-2">
                             <div className="flex items-center justify-between text-[11px] font-mono">
                               <span className="text-slate-300">Volume Output</span>
@@ -1032,50 +1213,18 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             })}
                           </div>
                         </div>
-
-                        <div>
-                          <SectionHeader icon={Zap} label="Telemetry Auto-Refresh" />
-                          <div className="grid grid-cols-4 gap-1.5 font-mono text-xs">
-                            {[
-                              { id: 5, label: '5s' },
-                              { id: 15, label: '15s' },
-                              { id: 30, label: '30s' },
-                              { id: 0, label: 'Manual' },
-                            ].map((rate) => {
-                              const isSel = settings.autoRefreshInterval === rate.id;
-                              return (
-                                <motion.button
-                                  key={rate.id}
-                                  whileHover={{ y: -1 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={() => updateSettings({ autoRefreshInterval: rate.id as RefreshInterval })}
-                                  className={cn(
-                                    'py-2 px-1 text-center rounded-lg border transition-all',
-                                    isSel
-                                      ? 'bg-[#B5482E] text-white border-[#B5482E] font-bold shadow-md'
-                                      : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]',
-                                  )}
-                                >
-                                  {rate.label}
-                                </motion.button>
-                              );
-                            })}
-                          </div>
-                        </div>
                       </TabContent>
                     )}
 
-                    {/* ── TAB 3: UNITS & METRICS (Phase 4) ──────────── */}
+                    {/* ── TAB 4: UNITS & METRICS ─────────────────────── */}
                     {activeTab === 'units' && (
                       <TabContent tabKey="units" direction={direction}>
-                        {/* 3-Way Coordinate Matrix Card */}
                         <CoordinateMatrixCard
                           format={settings.coordFormat}
                           mgrsUnlocked={settings.advancedCoordFormats}
                           onCopy={(txt) => showToast(`Copied ${txt} to clipboard`)}
                         />
 
-                        {/* Live Weather Sample */}
                         <div className="p-3.5 rounded-xl border border-white/10 bg-white/[0.03]">
                           <p className="text-[10px] font-mono uppercase text-[#F97316] font-bold mb-2">
                             Weather Telemetry Output Sample
@@ -1169,32 +1318,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             )}
                           </div>
                         </div>
-
-                        <div>
-                          <SectionHeader icon={Gauge} label="Station Timezone" />
-                          <div className="grid grid-cols-2 gap-2">
-                            {[
-                              { id: 'ist', label: 'IST (UTC +05:30)', desc: 'New Delhi HQ' },
-                              { id: 'utc', label: 'UTC Zulu', desc: 'Aviation / Global' },
-                            ].map((tz) => {
-                              const isSel = settings.timezone === tz.id;
-                              return (
-                                <SelectCard
-                                  key={tz.id}
-                                  isSelected={isSel}
-                                  onClick={() => updateSettings({ timezone: tz.id as TimezoneMode })}
-                                >
-                                  <p className="text-xs font-semibold text-white">{tz.label}</p>
-                                  <p className="text-[10px] text-slate-400">{tz.desc}</p>
-                                </SelectCard>
-                              );
-                            })}
-                          </div>
-                        </div>
                       </TabContent>
                     )}
 
-                    {/* ── TAB 4: HUD & STYLE ────────────────────────── */}
+                    {/* ── TAB 5: HUD & STYLE ────────────────────────── */}
                     {activeTab === 'hud' && (
                       <TabContent tabKey="hud" direction={direction}>
                         <div>
@@ -1285,7 +1412,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </TabContent>
                     )}
 
-                    {/* ── TAB 5: ALERT DELIVERY ─────────────────────── */}
+                    {/* ── TAB 6: ALERT DELIVERY ─────────────────────── */}
                     {activeTab === 'notifications' && (
                       <TabContent tabKey="notifications" direction={direction}>
                         <div>
@@ -1356,7 +1483,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </TabContent>
                     )}
 
-                    {/* ── TAB 6: SECURITY & ACCESS ──────────────────── */}
+                    {/* ── TAB 7: SECURITY & ACCESS ──────────────────── */}
                     {activeTab === 'security' && (
                       <TabContent tabKey="security" direction={direction}>
                         <div>
@@ -1414,7 +1541,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </TabContent>
                     )}
 
-                    {/* ── TAB 7: LIVE NETWORK ───────────────────────── */}
+                    {/* ── TAB 8: LIVE NETWORK ───────────────────────── */}
                     {activeTab === 'network' && (
                       <TabContent tabKey="network" direction={direction}>
                         <div className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] space-y-3">
@@ -1436,7 +1563,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       </TabContent>
                     )}
 
-                    {/* ── TAB 8: BACKUP & SYSTEM ────────────────────── */}
+                    {/* ── TAB 9: BACKUP & SYSTEM ────────────────────── */}
                     {activeTab === 'system' && (
                       <TabContent tabKey="system" direction={direction}>
                         <div className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] space-y-3">
@@ -1462,7 +1589,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           </div>
                         </div>
 
-                        {/* 2-Step Factory Reset Guard (Phase 6) */}
                         <div className="p-4 rounded-xl border border-[#8C2F26]/40 bg-[#8C2F26]/10 space-y-2.5">
                           <div className="flex items-center gap-2 text-rose-400 text-xs font-bold font-mono">
                             <AlertTriangle className="w-4 h-4" />
@@ -1518,7 +1644,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
             </div>{/* end body flex */}
 
-            {/* ── TACTICAL FOOTER (Phase 2 & 5) ──────────────────────── */}
+            {/* ── TACTICAL FOOTER ────────────────────────────────────── */}
             <footer className="shrink-0 px-4 py-3 flex items-center justify-between border-t border-white/[0.08] bg-black/45 text-[10px] font-mono">
               <div className="flex items-center gap-3 text-slate-400">
                 <span className="flex items-center gap-1 text-emerald-400 font-semibold">
