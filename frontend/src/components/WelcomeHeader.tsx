@@ -79,7 +79,7 @@ export default function WelcomeHeader({ viewMode = 'mission-control', onViewMode
           <span className="status-dot w-1.5 h-1.5" />
         </span>
         <span
-          className="text-base font-semibold text-ink leading-none tracking-tight"
+          className="text-base font-semibold text-ink leading-normal py-0.5"
           style={{ fontFamily: 'Fraunces, Georgia, serif' }}
         >
           {t('dashboard.welcome_title')}

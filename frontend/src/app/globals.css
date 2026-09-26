@@ -78,6 +78,42 @@
     color: var(--ink);
     font-family: 'Public Sans', system-ui, sans-serif;
   }
+
+  /* ── Indic Script Support & Vertical Headroom ─────────── */
+  html:lang(hi), html:lang(mr) {
+    font-family: 'Noto Sans Devanagari', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(bn), html:lang(as) {
+    font-family: 'Noto Sans Bengali', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(te) {
+    font-family: 'Noto Sans Telugu', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(ta) {
+    font-family: 'Noto Sans Tamil', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(gu) {
+    font-family: 'Noto Sans Gujarati', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(kn) {
+    font-family: 'Noto Sans Kannada', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(ml) {
+    font-family: 'Noto Sans Malayalam', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(pa) {
+    font-family: 'Noto Sans Gurmukhi', 'Public Sans', system-ui, sans-serif;
+  }
+  html:lang(or) {
+    font-family: 'Noto Sans Oriya', 'Public Sans', system-ui, sans-serif;
+  }
+
+  /* Prevent tight line-heights from slicing top matras / diacritics */
+  html:not([lang="en"]) button,
+  html:not([lang="en"]) input,
+  html:not([lang="en"]) select {
+    line-height: normal;
+  }
 }
 
 @layer components {

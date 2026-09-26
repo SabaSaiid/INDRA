@@ -48,7 +48,7 @@ export default function LanguagePicker() {
       >
         <Globe className="w-3.5 h-3.5 flex-shrink-0" />
         <span
-          className="hidden sm:inline max-w-[72px] truncate leading-none"
+          className="hidden sm:inline whitespace-nowrap leading-normal pt-0.5"
           style={{ fontFamily: activeLang.fontFamily }}
         >
           {activeLang.nativeName}
@@ -92,12 +92,12 @@ export default function LanguagePicker() {
                     >
                       <div className="flex flex-col min-w-0">
                         <span
-                          className={cn('text-sm leading-snug truncate', isActive && 'font-semibold')}
+                          className={cn('text-sm leading-normal py-0.5 truncate', isActive && 'font-semibold')}
                           style={{ fontFamily: meta.fontFamily }}
                         >
                           {meta.nativeName}
                         </span>
-                        <span className="text-[10px] text-[#7A8599] font-medium">{meta.name}</span>
+                        <span className="text-[10px] text-[#7A8599] font-medium leading-normal">{meta.name}</span>
                       </div>
                       {isActive && <Check className="w-3.5 h-3.5 text-[#B5482E] flex-shrink-0" />}
                     </button>

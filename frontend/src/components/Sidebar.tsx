@@ -153,7 +153,7 @@ export default function Sidebar({
               <span
                 title={t(`nav.${item.id}`) !== `nav.${item.id}` ? t(`nav.${item.id}`) : item.label}
                 className={cn(
-                  'truncate block text-[13px]',
+                  'truncate block text-[13px] leading-normal py-0.5',
                   isActive ? 'font-semibold text-white' : 'font-medium text-slate-300 group-hover:text-white'
                 )}
               >
@@ -166,7 +166,7 @@ export default function Sidebar({
           {!isCollapsedState && item.badge && (
             <span
               className={cn(
-                'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-none border flex-shrink-0 ml-auto z-10',
+                'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-normal border flex-shrink-0 ml-auto z-10',
                 item.badge.variant === 'live'
                   && 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_6px_rgba(16,185,129,0.15)]',
                 item.badge.variant === 'critical'
@@ -203,7 +203,7 @@ export default function Sidebar({
                   {item.badge && (
                     <span
                       className={cn(
-                        'text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-none',
+                        'text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-normal',
                         item.badge.variant === 'live' && 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
                         item.badge.variant === 'critical' && 'bg-rose-500/25 text-rose-300 border-rose-500/40',
                         item.badge.variant === 'warning' && 'bg-amber-500/20 text-amber-300 border-amber-500/30',
