@@ -507,8 +507,12 @@ function AlertEngineSection() {
   }, [loadAlerts]);
 
   const handleAction = async (alertId: string, action: 'ack' | 'res') => {
-    if (action === 'ack') await acknowledgeEngineAlert(alertId);
-    if (action === 'res') await resolveEngineAlert(alertId);
+    let result;
+    if (action === 'ack') result = await acknowledgeEngineAlert(alertId);
+    if (action === 'res') result = await resolveEngineAlert(alertId, "Resolved by operator");
+    if (result && !result.success) {
+      alert(`Action failed: ${result.error}`);
+    }
     loadAlerts();
   };
 

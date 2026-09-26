@@ -126,8 +126,9 @@ class IndraEvent:
 
     @property
     def is_actionable(self) -> bool:
-        """Events that are not REJECTED and not NOISE."""
-        return self.review_status != "REJECTED" and self.quadrant != "Noise"
+        """Events that are verified and approved."""
+        unactionable = {"REJECTED", "PENDING_HUMAN_REVIEW", "QUARANTINED"}
+        return self.review_status not in unactionable and self.quadrant != "Noise"
 
     @classmethod
     def from_api_response(cls, data: Dict[str, Any]) -> "IndraEvent":
@@ -233,6 +234,9 @@ class Alert:
     status: AlertStatus
     escalation_level: EscalationLevel
 
+    # Human-readable rule name (for display)
+    rule_name: str
+
     # Human-readable
     title: str
     message: str
@@ -276,10 +280,13 @@ class Alert:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for API response and storage."""
         return {
+            # `id` is an alias for alert_id so the frontend can use alert.id consistently
+            "id": self.alert_id,
             "alert_id": self.alert_id,
             "event_id": self.event_id,
             "event_code": self.event_code,
             "rule_id": self.rule_id,
+            "rule_name": self.rule_name,
             "rule_version": self.rule_version,
             "alert_type": self.alert_type,
             "event_type": self.event_type,

@@ -1081,7 +1081,7 @@ export interface EngineAlert {
  */
 export async function fetchEngineAlerts(): Promise<EngineAlert[]> {
   try {
-    const res = await fetch(`${ALERT_ENGINE_BASE}/alerts`, { cache: 'no-store' });
+    const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts`, { cache: 'no-store' });
     if (!res.ok) return [];
     return await res.json();
   } catch (err) {
@@ -1096,7 +1096,7 @@ export async function fetchEngineAlerts(): Promise<EngineAlert[]> {
 export async function acknowledgeEngineAlert(alertId: string, operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
   try {
     const authHeaders = await getAuthHeaders(operatorUsername);
-    const res = await fetch(`${ALERT_ENGINE_BASE}/alerts/${alertId}/acknowledge`, {
+    const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/acknowledge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ acknowledged_by: operatorUsername }) // We still send it, but engine should verify via token
@@ -1114,13 +1114,13 @@ export async function acknowledgeEngineAlert(alertId: string, operatorUsername: 
 /**
  * Resolve an active Alert Engine alert.
  */
-export async function resolveEngineAlert(alertId: string, operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
+export async function resolveEngineAlert(alertId: string, reason: string = "Resolved by operator", operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
   try {
     const authHeaders = await getAuthHeaders(operatorUsername);
-    const res = await fetch(`${ALERT_ENGINE_BASE}/alerts/${alertId}/resolve`, {
+    const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ resolved_by: operatorUsername })
+      body: JSON.stringify({ resolved_by: operatorUsername, reason: reason })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));

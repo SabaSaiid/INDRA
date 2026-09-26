@@ -31,6 +31,7 @@ class PersistentStore:
                     event_id TEXT NOT NULL,
                     event_code TEXT NOT NULL,
                     rule_id TEXT NOT NULL,
+                    rule_name TEXT,
                     rule_version TEXT,
                     alert_type TEXT,
                     event_type TEXT,
@@ -86,34 +87,73 @@ class PersistentStore:
             logger.info(f"Initialized SQLite store at {self.db_path}")
 
     async def save_alert(self, alert: Alert):
-        """Insert or replace an alert."""
+        """
+        Upsert an alert.
+        
+        INSERT for new alerts (preserves created_at).
+        UPDATE for existing alerts (never overwrites created_at to prevent history loss).
+        """
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                INSERT OR REPLACE INTO alerts (
-                    alert_id, event_id, event_code, rule_id, rule_version,
-                    alert_type, event_type, severity, status, escalation_level,
-                    title, message, confidence, source_count, evidence,
-                    affected_area, lat, lng, impact_radius_km, mode,
-                    created_at, updated_at, triggered_at, resolved_at, expires_at,
-                    acknowledgement_status, acknowledged_by, acknowledged_at,
-                    notification_status, delivery_attempts, fingerprint
-                ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-                )
-            """, (
-                alert.alert_id, alert.event_id, alert.event_code, alert.rule_id, alert.rule_version,
-                alert.alert_type, alert.event_type, alert.severity, alert.status.value, alert.escalation_level.value,
-                alert.title, alert.message, alert.confidence, alert.source_count, json.dumps(alert.evidence),
-                alert.affected_area, alert.lat, alert.lng, alert.impact_radius_km, alert.mode,
-                alert.created_at.isoformat(), alert.updated_at.isoformat(),
-                alert.triggered_at.isoformat() if alert.triggered_at else None,
-                alert.resolved_at.isoformat() if alert.resolved_at else None,
-                alert.expires_at.isoformat() if alert.expires_at else None,
-                alert.acknowledgement_status, alert.acknowledged_by,
-                alert.acknowledged_at.isoformat() if alert.acknowledged_at else None,
-                alert.notification_status, alert.delivery_attempts, alert.fingerprint
-            ))
+            # Check if alert already exists
+            async with db.execute(
+                "SELECT alert_id FROM alerts WHERE alert_id = ?", (alert.alert_id,)
+            ) as cursor:
+                existing = await cursor.fetchone()
+            
+            if existing:
+                # UPDATE — never touch created_at
+                await db.execute("""
+                    UPDATE alerts SET
+                        event_id=?, event_code=?, rule_id=?, rule_name=?, rule_version=?,
+                        alert_type=?, event_type=?, severity=?, status=?, escalation_level=?,
+                        title=?, message=?, confidence=?, source_count=?, evidence=?,
+                        affected_area=?, lat=?, lng=?, impact_radius_km=?, mode=?,
+                        updated_at=?, triggered_at=?, resolved_at=?, expires_at=?,
+                        acknowledgement_status=?, acknowledged_by=?, acknowledged_at=?,
+                        notification_status=?, delivery_attempts=?, fingerprint=?
+                    WHERE alert_id=?
+                """, (
+                    alert.event_id, alert.event_code, alert.rule_id, alert.rule_name, alert.rule_version,
+                    alert.alert_type, alert.event_type, alert.severity, alert.status.value, alert.escalation_level.value,
+                    alert.title, alert.message, alert.confidence, alert.source_count, json.dumps(alert.evidence),
+                    alert.affected_area, alert.lat, alert.lng, alert.impact_radius_km, alert.mode,
+                    alert.updated_at.isoformat(),
+                    alert.triggered_at.isoformat() if alert.triggered_at else None,
+                    alert.resolved_at.isoformat() if alert.resolved_at else None,
+                    alert.expires_at.isoformat() if alert.expires_at else None,
+                    alert.acknowledgement_status, alert.acknowledged_by,
+                    alert.acknowledged_at.isoformat() if alert.acknowledged_at else None,
+                    alert.notification_status, alert.delivery_attempts, alert.fingerprint,
+                    alert.alert_id,
+                ))
+            else:
+                # INSERT — record created_at
+                await db.execute("""
+                    INSERT INTO alerts (
+                        alert_id, event_id, event_code, rule_id, rule_name, rule_version,
+                        alert_type, event_type, severity, status, escalation_level,
+                        title, message, confidence, source_count, evidence,
+                        affected_area, lat, lng, impact_radius_km, mode,
+                        created_at, updated_at, triggered_at, resolved_at, expires_at,
+                        acknowledgement_status, acknowledged_by, acknowledged_at,
+                        notification_status, delivery_attempts, fingerprint
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    )
+                """, (
+                    alert.alert_id, alert.event_id, alert.event_code, alert.rule_id, alert.rule_name, alert.rule_version,
+                    alert.alert_type, alert.event_type, alert.severity, alert.status.value, alert.escalation_level.value,
+                    alert.title, alert.message, alert.confidence, alert.source_count, json.dumps(alert.evidence),
+                    alert.affected_area, alert.lat, alert.lng, alert.impact_radius_km, alert.mode,
+                    alert.created_at.isoformat(), alert.updated_at.isoformat(),
+                    alert.triggered_at.isoformat() if alert.triggered_at else None,
+                    alert.resolved_at.isoformat() if alert.resolved_at else None,
+                    alert.expires_at.isoformat() if alert.expires_at else None,
+                    alert.acknowledgement_status, alert.acknowledged_by,
+                    alert.acknowledged_at.isoformat() if alert.acknowledged_at else None,
+                    alert.notification_status, alert.delivery_attempts, alert.fingerprint
+                ))
             await db.commit()
 
     async def save_history(self, history: AlertHistory):
@@ -139,6 +179,15 @@ class PersistentStore:
                     return self._row_to_alert(row)
         return None
         
+    async def get_alert(self, alert_id: str) -> Optional[Alert]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return self._row_to_alert(row)
+        return None
+
     async def get_active_alert_for_event(self, event_code: str) -> Optional[Alert]:
         """Gets the most recent active/escalated alert for an event code."""
         async with aiosqlite.connect(self.db_path) as db:
@@ -228,6 +277,7 @@ class PersistentStore:
             event_id=row["event_id"],
             event_code=row["event_code"],
             rule_id=row["rule_id"],
+            rule_name=row["rule_name"] or "",
             rule_version=row["rule_version"],
             alert_type=row["alert_type"],
             event_type=row["event_type"],
