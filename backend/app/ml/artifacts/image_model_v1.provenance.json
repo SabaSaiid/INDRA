@@ -1,0 +1,52 @@
+{
+  "architecture_version": "scratch-cnn-v2-dual-pool",
+  "artifact_name": "image_model_v1.pt",
+  "artifact_sha256": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+  "dataset_hash": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+  "development_status": "DEVELOPMENT_ONLY",
+  "external_weights_used": false,
+  "feature_version": "image-pixel-features-v1",
+  "framework_version": "2.11.0+cpu",
+  "initialization": "SCRATCH_INITIALIZED",
+  "label_mapping": {
+    "FLOODED_SCENE": 0,
+    "HEAVY_RAIN_VISUAL": 1,
+    "NORMAL_SCENE": 4,
+    "STANDING_WATER": 2,
+    "STORM_DAMAGE": 3
+  },
+  "model_version": "image-model-v1-synthetic-development",
+  "policy_status": "COMPLIANT",
+  "preprocessing_version": "image-preprocessing-v2-64x64",
+  "pretrained_weights_used": false,
+  "project_controlled_dataset": true,
+  "random_seed": 220022,
+  "source": "PROJECT_TRAINED",
+  "training_config": {
+    "annotation_schema_version": "image-annotations-v1",
+    "augmentations": [
+      "deterministic_horizontal_flip",
+      "deterministic_random_resized_crop",
+      "deterministic_brightness",
+      "deterministic_contrast",
+      "deterministic_gaussian_blur",
+      "deterministic_sensor_noise"
+    ],
+    "batch_size": 256,
+    "class_distribution": {
+      "FLOODED_SCENE": 23332,
+      "HEAVY_RAIN_VISUAL": 23332,
+      "NORMAL_SCENE": 17502,
+      "STANDING_WATER": 34999,
+      "STORM_DAMAGE": 17499
+    },
+    "dataset_version": "1.0.0",
+    "epochs": 10,
+    "learning_rate": 0.0015,
+    "optimizer": "Adam",
+    "scheduler": "CosineAnnealingLR",
+    "training_timestamp": "2026-09-24T07:00:00Z",
+    "validation_dataset_hash": "670dca2c55ade99cc4524fff59899775735f5afdaddb9699669a3c70d6c51d02",
+    "weight_initialization": "LOCAL_RANDOM_KAIMING_XAVIER"
+  }
+}

@@ -1,0 +1,450 @@
+{
+  "ablation_results": {
+    "DUPLICATE": {
+      "feature_count": 6,
+      "feature_families": [
+        "DUPLICATE"
+      ],
+      "fit_seconds": 0.0274691,
+      "metrics": {
+        "accuracy": 0.6384210526,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 540,
+            "MISLEADING": 2252,
+            "UNCERTAIN": 0
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 4312,
+            "UNCERTAIN": 0
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 496,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.8065902579,
+        "macro_f1": 0.3608278345,
+        "misleading_precision": 0.6107648725,
+        "misleading_recall": 1.0,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.3241296519,
+            "precision": 1.0,
+            "recall": 0.1934097421,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.7583538516,
+            "precision": 0.6107648725,
+            "recall": 1.0,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    },
+    "EVENT": {
+      "feature_count": 2,
+      "feature_families": [
+        "EVENT"
+      ],
+      "fit_seconds": 0.009992,
+      "metrics": {
+        "accuracy": 0.5021052632,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 2208,
+            "UNCERTAIN": 584
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 3816,
+            "UNCERTAIN": 496
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 496,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.1150278293,
+        "false_positive_rate": 0.7908309456,
+        "macro_f1": 0.234859675,
+        "misleading_precision": 0.5852760736,
+        "misleading_recall": 0.8849721707,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.7045790251,
+            "precision": 0.5852760736,
+            "recall": 0.8849721707,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    },
+    "FULL": {
+      "feature_count": 34,
+      "feature_families": [
+        "TEXT",
+        "METADATA",
+        "DUPLICATE",
+        "EVENT",
+        "SOURCE"
+      ],
+      "fit_seconds": 0.1588023,
+      "metrics": {
+        "accuracy": 0.94,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 2792,
+            "MISLEADING": 0,
+            "UNCERTAIN": 0
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 4312,
+            "UNCERTAIN": 0
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 416,
+            "MISLEADING": 40,
+            "UNCERTAIN": 40
+          }
+        },
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.0,
+        "macro_f1": 0.6917678643,
+        "misleading_precision": 0.9908088235,
+        "misleading_recall": 1.0,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.9306666667,
+            "precision": 0.8703241895,
+            "recall": 1.0,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.9953831948,
+            "precision": 0.9908088235,
+            "recall": 1.0,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.1492537313,
+            "precision": 1.0,
+            "recall": 0.0806451613,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    },
+    "METADATA": {
+      "feature_count": 9,
+      "feature_families": [
+        "METADATA"
+      ],
+      "fit_seconds": 0.0433421,
+      "metrics": {
+        "accuracy": 0.4373684211,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 548,
+            "MISLEADING": 564,
+            "UNCERTAIN": 1680
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 2776,
+            "UNCERTAIN": 1536
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 496,
+            "MISLEADING": 0,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.3562152134,
+        "false_positive_rate": 0.2020057307,
+        "macro_f1": 0.3370920768,
+        "misleading_precision": 0.8311377246,
+        "misleading_recall": 0.6437847866,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.2857142857,
+            "precision": 0.5249042146,
+            "recall": 0.1962750716,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.7255619446,
+            "precision": 0.8311377246,
+            "recall": 0.6437847866,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    },
+    "SOURCE": {
+      "feature_count": 4,
+      "feature_families": [
+        "SOURCE"
+      ],
+      "fit_seconds": 0.015718,
+      "metrics": {
+        "accuracy": 0.5668421053,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 1688,
+            "MISLEADING": 1104,
+            "UNCERTAIN": 0
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 1692,
+            "MISLEADING": 2620,
+            "UNCERTAIN": 0
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 496,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.392393321,
+        "false_positive_rate": 0.3954154728,
+        "macro_f1": 0.3870482841,
+        "misleading_precision": 0.6208530806,
+        "misleading_recall": 0.607606679,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.5469863901,
+            "precision": 0.499408284,
+            "recall": 0.6045845272,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.6141584623,
+            "precision": 0.6208530806,
+            "recall": 0.607606679,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    },
+    "TEXT": {
+      "feature_count": 13,
+      "feature_families": [
+        "TEXT"
+      ],
+      "fit_seconds": 0.0549252,
+      "metrics": {
+        "accuracy": 0.4602631579,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 1107,
+            "MISLEADING": 556,
+            "UNCERTAIN": 1129
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 879,
+            "MISLEADING": 2391,
+            "UNCERTAIN": 1042
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 180,
+            "MISLEADING": 316,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.4455009276,
+        "false_positive_rate": 0.1991404011,
+        "macro_f1": 0.3592793858,
+        "misleading_precision": 0.7327612626,
+        "misleading_recall": 0.5544990724,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.4465510286,
+            "precision": 0.5110803324,
+            "recall": 0.3964899713,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.6312871287,
+            "precision": 0.7327612626,
+            "recall": 0.5544990724,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    },
+    "TEXT + DUPLICATE + EVENT": {
+      "feature_count": 21,
+      "feature_families": [
+        "TEXT",
+        "DUPLICATE",
+        "EVENT"
+      ],
+      "fit_seconds": 0.1160288,
+      "metrics": {
+        "accuracy": 0.5867105263,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 1463,
+            "MISLEADING": 908,
+            "UNCERTAIN": 421
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 324,
+            "MISLEADING": 2996,
+            "UNCERTAIN": 992
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 0,
+            "MISLEADING": 496,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.3051948052,
+        "false_positive_rate": 0.3252148997,
+        "macro_f1": 0.4422637033,
+        "misleading_precision": 0.6809090909,
+        "misleading_recall": 0.6948051948,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.6390041494,
+            "precision": 0.8186905428,
+            "recall": 0.5239971347,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.6877869605,
+            "precision": 0.6809090909,
+            "recall": 0.6948051948,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    },
+    "TEXT + METADATA": {
+      "feature_count": 22,
+      "feature_families": [
+        "TEXT",
+        "METADATA"
+      ],
+      "fit_seconds": 0.1300515,
+      "metrics": {
+        "accuracy": 0.7942105263,
+        "confusion_matrix": {
+          "AUTHENTIC": {
+            "AUTHENTIC": 2208,
+            "MISLEADING": 212,
+            "UNCERTAIN": 372
+          },
+          "MISLEADING": {
+            "AUTHENTIC": 316,
+            "MISLEADING": 3828,
+            "UNCERTAIN": 168
+          },
+          "UNCERTAIN": {
+            "AUTHENTIC": 496,
+            "MISLEADING": 0,
+            "UNCERTAIN": 0
+          }
+        },
+        "false_negative_rate": 0.112244898,
+        "false_positive_rate": 0.0759312321,
+        "macro_f1": 0.558824654,
+        "misleading_precision": 0.9475247525,
+        "misleading_recall": 0.887755102,
+        "per_label": {
+          "AUTHENTIC": {
+            "f1": 0.7598072953,
+            "precision": 0.7311258278,
+            "recall": 0.7908309456,
+            "support": 2792
+          },
+          "MISLEADING": {
+            "f1": 0.9166666667,
+            "precision": 0.9475247525,
+            "recall": 0.887755102,
+            "support": 4312
+          },
+          "UNCERTAIN": {
+            "f1": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "support": 496
+          }
+        },
+        "row_count": 7600
+      }
+    }
+  },
+  "evaluation_partition": "validation:model_selection",
+  "evaluation_scope": "VALIDATION_ONLY",
+  "fixed_abstention_thresholds": {
+    "authentic_max_probability": 0.4,
+    "misleading_min_probability": 0.6
+  },
+  "production_validation": "NOT_VALIDATED",
+  "schema_version": "1.0",
+  "selected_model_hyperparameters_reused": {
+    "class_weight": "NONE",
+    "configuration_id": "LOGREG_C10_0_NONE",
+    "regularization_c": 10.0,
+    "tie_rank": 4
+  },
+  "test_rows_accessed": false
+}

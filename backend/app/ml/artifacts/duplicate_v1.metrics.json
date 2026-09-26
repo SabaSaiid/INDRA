@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "phase": "19 — DUPLICATE VALIDATION",
+  "evaluation_label": "FINAL_SYNTHETIC_HOLDOUT_EVALUATION",
+  "evaluation_split": "test",
+  "evaluation_invocation_count": 1,
+  "configuration_frozen_before_test": true,
+  "configuration_changed_after_freeze": false,
+  "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+  "test_split_sha256": "29a391c08c15d149c8e1a76fd31f8b4a6bb7f2ba92ec1feedbe21700d44c49ef",
+  "artifact_sha256": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+  "feature_state_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+  "selected_configuration": {
+    "text_threshold": 0.6,
+    "combined_threshold": 0.65,
+    "geographic_gate_km": 5.0,
+    "temporal_gate_minutes": 30.0
+  },
+  "metrics": {
+    "evaluated_rows": 13500,
+    "duplicate_prevalence": 0.5,
+    "precision": 0.9851116625310173,
+    "recall": 0.9998518518518519,
+    "f1": 0.9924270274244541,
+    "false_positive_rate": 0.015111111111111112,
+    "false_negative_rate": 0.00014814814814814815,
+    "confusion_matrix": {
+      "true_duplicate": 6749,
+      "false_duplicate": 102,
+      "true_non_duplicate": 6648,
+      "missed_duplicate": 1
+    },
+    "pr_auc_average_precision": 0.9999032950918539,
+    "uncertain_rows_excluded": 1500,
+    "configuration": {
+      "text_threshold": 0.6,
+      "combined_threshold": 0.65,
+      "geographic_gate_km": 5.0,
+      "temporal_gate_minutes": 30.0
+    },
+    "score_interpretation": "SIMILARITY_EVIDENCE_NOT_PROBABILITY"
+  },
+  "multilingual_results": {
+    "en": {
+      "rows": 4504,
+      "evaluated_rows": 4504,
+      "duplicate_prevalence": 0.49955595026642985,
+      "precision": 0.9991115059973346,
+      "recall": 0.9995555555555555,
+      "f1": 0.9993334814485669,
+      "false_positive_rate": 0.0008873114463176575,
+      "false_negative_rate": 0.00044444444444444447,
+      "confusion_matrix": {
+        "true_duplicate": 2249,
+        "false_duplicate": 2,
+        "true_non_duplicate": 2252,
+        "missed_duplicate": 1
+      },
+      "pr_auc_average_precision": 1.0
+    },
+    "hi": {
+      "rows": 4499,
+      "evaluated_rows": 4499,
+      "duplicate_prevalence": 0.5001111358079573,
+      "precision": 0.9574468085106383,
+      "recall": 1.0,
+      "f1": 0.9782608695652174,
+      "false_positive_rate": 0.044464206313917294,
+      "false_negative_rate": 0.0,
+      "confusion_matrix": {
+        "true_duplicate": 2250,
+        "false_duplicate": 100,
+        "true_non_duplicate": 2149,
+        "missed_duplicate": 0
+      },
+      "pr_auc_average_precision": 1.0
+    },
+    "hinglish": {
+      "rows": 4497,
+      "evaluated_rows": 4497,
+      "duplicate_prevalence": 0.5003335557038026,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0,
+      "confusion_matrix": {
+        "true_duplicate": 2250,
+        "false_duplicate": 0,
+        "true_non_duplicate": 2247,
+        "missed_duplicate": 0
+      },
+      "pr_auc_average_precision": 1.0
+    }
+  },
+  "calibration": {
+    "selected_for_artifact": true,
+    "calibration_version": "duplicate-score-platt-v1",
+    "production_calibration": "NOT_VALIDATED",
+    "synthetic_test_probability_metrics": {
+      "log_loss": 0.07339312011073211,
+      "brier_score": 0.0190036757139728,
+      "expected_calibration_error_10_bins": 0.05092519780626649
+    }
+  },
+  "signal_timing_observation": {
+    "feature_transformation_seconds": 5.434744200024397,
+    "similarity_computation_seconds": 6.5938390999294825,
+    "scope": "LOCAL_ENGINEERING_ONLY"
+  },
+  "production_validation": "NOT_VALIDATED",
+  "limitations": [
+    "The held-out set is project-generated synthetic development data.",
+    "Metrics do not estimate field, deployment, or population performance."
+  ]
+}

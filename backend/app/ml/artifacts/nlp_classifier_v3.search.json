@@ -1,0 +1,803 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "nlp-v3-synthetic-development-v1",
+  "search_scope": "TRAIN_AND_VALIDATION_ONLY",
+  "configuration_count": 11,
+  "configurations": [
+    {
+      "configuration": {
+        "configuration_id": "A_EQUAL_NONE_C1",
+        "feature_space_id": "A",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 0
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        11
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33039,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8878,
+          "macro_precision": 0.8983337986881763,
+          "macro_recall": 0.8878,
+          "macro_f1": 0.8872234513608847,
+          "macro_f1_present_classes": 0.8872234513608847,
+          "not_relevant_recall": 0.9095,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.9095,
+        "hard_negative_accuracy": 0.563,
+        "hard_negative_macro_f1": 0.5233345877423121,
+        "language_macro_f1": {
+          "English": 0.9221188414087175,
+          "Hindi": 0.826631020668491,
+          "Hinglish": 0.9102653663163351
+        },
+        "minimum_language_macro_f1": 0.826631020668491
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "A_EQUAL_BALANCED_C1",
+        "feature_space_id": "A",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "BALANCED",
+        "deterministic_tie_rank": 1
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        11
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33039,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8878,
+          "macro_precision": 0.8983337986881763,
+          "macro_recall": 0.8878,
+          "macro_f1": 0.8872234513608847,
+          "macro_f1_present_classes": 0.8872234513608847,
+          "not_relevant_recall": 0.9095,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.9095,
+        "hard_negative_accuracy": 0.563,
+        "hard_negative_macro_f1": 0.5233345877423121,
+        "language_macro_f1": {
+          "English": 0.9221188414087175,
+          "Hindi": 0.826631020668491,
+          "Hinglish": 0.9102653663163351
+        },
+        "minimum_language_macro_f1": 0.826631020668491
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "A_CHAR125_NONE_C1",
+        "feature_space_id": "A",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.25,
+        "word_weight": 0.75,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 2
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        15
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33039,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.876,
+          "macro_precision": 0.887583367567923,
+          "macro_recall": 0.876,
+          "macro_f1": 0.8745977082957828,
+          "macro_f1_present_classes": 0.8745977082957828,
+          "not_relevant_recall": 0.887,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.887,
+        "hard_negative_accuracy": 0.4925,
+        "hard_negative_macro_f1": 0.4177883575965053,
+        "language_macro_f1": {
+          "English": 0.9163918942350356,
+          "Hindi": 0.8174650228669046,
+          "Hinglish": 0.8887512436316929
+        },
+        "minimum_language_macro_f1": 0.8174650228669046
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "A_CHAR150_NONE_C1",
+        "feature_space_id": "A",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.5,
+        "word_weight": 0.5,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 3
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        12
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33039,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8716,
+          "macro_precision": 0.8862676353347105,
+          "macro_recall": 0.8716000000000002,
+          "macro_f1": 0.8708228057100758,
+          "macro_f1_present_classes": 0.8708228057100758,
+          "not_relevant_recall": 0.8685,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.8685,
+        "hard_negative_accuracy": 0.475,
+        "hard_negative_macro_f1": 0.4032308996418698,
+        "language_macro_f1": {
+          "English": 0.9069590224539381,
+          "Hindi": 0.8149053330904783,
+          "Hinglish": 0.8887550858026309
+        },
+        "minimum_language_macro_f1": 0.8149053330904783
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "A_EQUAL_NONE_C0_25",
+        "feature_space_id": "A",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 0.25,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 4
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        14
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33039,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8887,
+          "macro_precision": 0.8961146147255274,
+          "macro_recall": 0.8887,
+          "macro_f1": 0.8873133833938919,
+          "macro_f1_present_classes": 0.8873133833938919,
+          "not_relevant_recall": 0.915,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.915,
+        "hard_negative_accuracy": 0.548,
+        "hard_negative_macro_f1": 0.49120871299438174,
+        "language_macro_f1": {
+          "English": 0.9238984615837289,
+          "Hindi": 0.8328423455464856,
+          "Hinglish": 0.9046337431995071
+        },
+        "minimum_language_macro_f1": 0.8328423455464856
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "A_EQUAL_NONE_C0_5",
+        "feature_space_id": "A",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 0.5,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 5
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        10
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33039,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8862,
+          "macro_precision": 0.8975687884330755,
+          "macro_recall": 0.8862,
+          "macro_f1": 0.8855963340477582,
+          "macro_f1_present_classes": 0.8855963340477582,
+          "not_relevant_recall": 0.9165,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.9165,
+        "hard_negative_accuracy": 0.569,
+        "hard_negative_macro_f1": 0.5308421498065081,
+        "language_macro_f1": {
+          "English": 0.9219439074629833,
+          "Hindi": 0.8193107203828731,
+          "Hinglish": 0.9120431341516891
+        },
+        "minimum_language_macro_f1": 0.8193107203828731
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "A_EQUAL_NONE_C2",
+        "feature_space_id": "A",
+        "char_ngram_range": [
+          3,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 2.0,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 6
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        15
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33039,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8815,
+          "macro_precision": 0.8919501258223747,
+          "macro_recall": 0.8815,
+          "macro_f1": 0.8797173200188804,
+          "macro_f1_present_classes": 0.8797173200188804,
+          "not_relevant_recall": 0.918,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.918,
+        "hard_negative_accuracy": 0.542,
+        "hard_negative_macro_f1": 0.4783829315668016,
+        "language_macro_f1": {
+          "English": 0.9238195421813946,
+          "Hindi": 0.8104672734794635,
+          "Hinglish": 0.9020245563024991
+        },
+        "minimum_language_macro_f1": 0.8104672734794635
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "B_EQUAL_NONE_C1",
+        "feature_space_id": "B",
+        "char_ngram_range": [
+          2,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 7
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        11
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33917,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.893,
+          "macro_precision": 0.9015925832225902,
+          "macro_recall": 0.893,
+          "macro_f1": 0.8925588427176322,
+          "macro_f1_present_classes": 0.8925588427176322,
+          "not_relevant_recall": 0.915,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.915,
+        "hard_negative_accuracy": 0.5815,
+        "hard_negative_macro_f1": 0.5477122048906475,
+        "language_macro_f1": {
+          "English": 0.9254648387562895,
+          "Hindi": 0.8353235361547398,
+          "Hinglish": 0.9148434708048072
+        },
+        "minimum_language_macro_f1": 0.8353235361547398
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "B_EQUAL_BALANCED_C1",
+        "feature_space_id": "B",
+        "char_ngram_range": [
+          2,
+          5
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "BALANCED",
+        "deterministic_tie_rank": 8
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        11
+      ],
+      "convergence_warnings": [],
+      "feature_count": 33917,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.893,
+          "macro_precision": 0.9015925832225902,
+          "macro_recall": 0.893,
+          "macro_f1": 0.8925588427176322,
+          "macro_f1_present_classes": 0.8925588427176322,
+          "not_relevant_recall": 0.915,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.915,
+        "hard_negative_accuracy": 0.5815,
+        "hard_negative_macro_f1": 0.5477122048906475,
+        "language_macro_f1": {
+          "English": 0.9254648387562895,
+          "Hindi": 0.8353235361547398,
+          "Hinglish": 0.9148434708048072
+        },
+        "minimum_language_macro_f1": 0.8353235361547398
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "C_EQUAL_NONE_C1",
+        "feature_space_id": "C",
+        "char_ngram_range": [
+          3,
+          6
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "NONE",
+        "deterministic_tie_rank": 9
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        11
+      ],
+      "convergence_warnings": [],
+      "feature_count": 57897,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8844,
+          "macro_precision": 0.8956756680878873,
+          "macro_recall": 0.8844,
+          "macro_f1": 0.8839792662641341,
+          "macro_f1_present_classes": 0.8839792662641341,
+          "not_relevant_recall": 0.899,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.899,
+        "hard_negative_accuracy": 0.5645,
+        "hard_negative_macro_f1": 0.5309204206864071,
+        "language_macro_f1": {
+          "English": 0.9217470352191965,
+          "Hindi": 0.8143302433355585,
+          "Hinglish": 0.9121606607063732
+        },
+        "minimum_language_macro_f1": 0.8143302433355585
+      }
+    },
+    {
+      "configuration": {
+        "configuration_id": "C_EQUAL_BALANCED_C1",
+        "feature_space_id": "C",
+        "char_ngram_range": [
+          3,
+          6
+        ],
+        "word_ngram_range": [
+          1,
+          2
+        ],
+        "character_weight": 1.0,
+        "word_weight": 1.0,
+        "classifier": "LOGISTIC_REGRESSION",
+        "regularization_c": 1.0,
+        "class_weight": "BALANCED",
+        "deterministic_tie_rank": 10
+      },
+      "training_status": "CONVERGED",
+      "classifier_iterations": [
+        11
+      ],
+      "convergence_warnings": [],
+      "feature_count": 57897,
+      "feature_fit_scope": "TRAIN_ONLY",
+      "validation_operation": "TRANSFORM_ONLY",
+      "validation": {
+        "overall": {
+          "status": "DATA_AVAILABLE",
+          "sample_count": 10000,
+          "accuracy": 0.8844,
+          "macro_precision": 0.8956756680878873,
+          "macro_recall": 0.8844,
+          "macro_f1": 0.8839792662641341,
+          "macro_f1_present_classes": 0.8839792662641341,
+          "not_relevant_recall": 0.899,
+          "per_class_metrics": {},
+          "confusion_matrix": []
+        },
+        "not_relevant_recall": 0.899,
+        "hard_negative_accuracy": 0.5645,
+        "hard_negative_macro_f1": 0.5309204206864071,
+        "language_macro_f1": {
+          "English": 0.9217470352191965,
+          "Hindi": 0.8143302433355585,
+          "Hinglish": 0.9121606607063732
+        },
+        "minimum_language_macro_f1": 0.8143302433355585
+      }
+    }
+  ],
+  "selection_rule": {
+    "rule_version": "nlp-v3-validation-selection-v1",
+    "evaluation_split": "validation",
+    "validation_row_count": 10000,
+    "primary_optimization": "maximize macro F1",
+    "constraint": {
+      "metric": "NOT_RELEVANT recall",
+      "minimum": 0.8,
+      "threshold_altered_after_results": false
+    },
+    "ordered_tie_breaks": [
+      "higher NOT_RELEVANT recall",
+      "higher hard-negative macro F1",
+      "higher minimum English/Hindi/Hinglish macro F1",
+      "lower frozen deterministic complexity rank",
+      "lexicographically smaller configuration ID"
+    ],
+    "selection_path": "NOT_RELEVANT_FLOOR_SATISFIED",
+    "eligible_configuration_ids": [
+      "B_EQUAL_NONE_C1",
+      "B_EQUAL_BALANCED_C1",
+      "A_EQUAL_NONE_C0_25",
+      "A_EQUAL_NONE_C1",
+      "A_EQUAL_BALANCED_C1",
+      "A_EQUAL_NONE_C0_5",
+      "C_EQUAL_NONE_C1",
+      "C_EQUAL_BALANCED_C1",
+      "A_EQUAL_NONE_C2",
+      "A_CHAR125_NONE_C1",
+      "A_CHAR150_NONE_C1"
+    ],
+    "selected_configuration_id": "B_EQUAL_NONE_C1",
+    "test_set_used": false,
+    "test_rows_available_to_function": false
+  },
+  "selected_result": {
+    "configuration": {
+      "configuration_id": "B_EQUAL_NONE_C1",
+      "feature_space_id": "B",
+      "char_ngram_range": [
+        2,
+        5
+      ],
+      "word_ngram_range": [
+        1,
+        2
+      ],
+      "character_weight": 1.0,
+      "word_weight": 1.0,
+      "classifier": "LOGISTIC_REGRESSION",
+      "regularization_c": 1.0,
+      "class_weight": "NONE",
+      "deterministic_tie_rank": 7
+    },
+    "training_status": "CONVERGED",
+    "classifier_iterations": [
+      11
+    ],
+    "convergence_warnings": [],
+    "feature_count": 33917,
+    "feature_fit_scope": "TRAIN_ONLY",
+    "validation_operation": "TRANSFORM_ONLY",
+    "validation": {
+      "overall": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 10000,
+        "accuracy": 0.893,
+        "macro_precision": 0.9015925832225902,
+        "macro_recall": 0.893,
+        "macro_f1": 0.8925588427176322,
+        "macro_f1_present_classes": 0.8925588427176322,
+        "not_relevant_recall": 0.915,
+        "per_class_metrics": {},
+        "confusion_matrix": []
+      },
+      "not_relevant_recall": 0.915,
+      "hard_negative_accuracy": 0.5815,
+      "hard_negative_macro_f1": 0.5477122048906475,
+      "language_macro_f1": {
+        "English": 0.9254648387562895,
+        "Hindi": 0.8353235361547398,
+        "Hinglish": 0.9148434708048072
+      },
+      "minimum_language_macro_f1": 0.8353235361547398
+    }
+  },
+  "comparisons": {
+    "class_weight": {
+      "best_none": {
+        "status": "EVALUATED",
+        "configuration_id": "B_EQUAL_NONE_C1",
+        "validation": {
+          "overall": {
+            "status": "DATA_AVAILABLE",
+            "sample_count": 10000,
+            "accuracy": 0.893,
+            "macro_precision": 0.9015925832225902,
+            "macro_recall": 0.893,
+            "macro_f1": 0.8925588427176322,
+            "macro_f1_present_classes": 0.8925588427176322,
+            "not_relevant_recall": 0.915,
+            "per_class_metrics": {},
+            "confusion_matrix": []
+          },
+          "not_relevant_recall": 0.915,
+          "hard_negative_accuracy": 0.5815,
+          "hard_negative_macro_f1": 0.5477122048906475,
+          "language_macro_f1": {
+            "English": 0.9254648387562895,
+            "Hindi": 0.8353235361547398,
+            "Hinglish": 0.9148434708048072
+          },
+          "minimum_language_macro_f1": 0.8353235361547398
+        }
+      },
+      "best_balanced": {
+        "status": "EVALUATED",
+        "configuration_id": "B_EQUAL_BALANCED_C1",
+        "validation": {
+          "overall": {
+            "status": "DATA_AVAILABLE",
+            "sample_count": 10000,
+            "accuracy": 0.893,
+            "macro_precision": 0.9015925832225902,
+            "macro_recall": 0.893,
+            "macro_f1": 0.8925588427176322,
+            "macro_f1_present_classes": 0.8925588427176322,
+            "not_relevant_recall": 0.915,
+            "per_class_metrics": {},
+            "confusion_matrix": []
+          },
+          "not_relevant_recall": 0.915,
+          "hard_negative_accuracy": 0.5815,
+          "hard_negative_macro_f1": 0.5477122048906475,
+          "language_macro_f1": {
+            "English": 0.9254648387562895,
+            "Hindi": 0.8353235361547398,
+            "Hinglish": 0.9148434708048072
+          },
+          "minimum_language_macro_f1": 0.8353235361547398
+        }
+      },
+      "selected_class_weight": "NONE",
+      "automatic_preference_for_balanced": false,
+      "conclusion": "NO_MEASURED_VALIDATION_BENEFIT_FROM_BALANCED"
+    },
+    "feature_weighting": {
+      "equal_1_0_1_0": {
+        "status": "EVALUATED",
+        "configuration_id": "B_EQUAL_NONE_C1",
+        "validation": {
+          "overall": {
+            "status": "DATA_AVAILABLE",
+            "sample_count": 10000,
+            "accuracy": 0.893,
+            "macro_precision": 0.9015925832225902,
+            "macro_recall": 0.893,
+            "macro_f1": 0.8925588427176322,
+            "macro_f1_present_classes": 0.8925588427176322,
+            "not_relevant_recall": 0.915,
+            "per_class_metrics": {},
+            "confusion_matrix": []
+          },
+          "not_relevant_recall": 0.915,
+          "hard_negative_accuracy": 0.5815,
+          "hard_negative_macro_f1": 0.5477122048906475,
+          "language_macro_f1": {
+            "English": 0.9254648387562895,
+            "Hindi": 0.8353235361547398,
+            "Hinglish": 0.9148434708048072
+          },
+          "minimum_language_macro_f1": 0.8353235361547398
+        }
+      },
+      "character_1_25_word_0_75": {
+        "status": "EVALUATED",
+        "configuration_id": "A_CHAR125_NONE_C1",
+        "validation": {
+          "overall": {
+            "status": "DATA_AVAILABLE",
+            "sample_count": 10000,
+            "accuracy": 0.876,
+            "macro_precision": 0.887583367567923,
+            "macro_recall": 0.876,
+            "macro_f1": 0.8745977082957828,
+            "macro_f1_present_classes": 0.8745977082957828,
+            "not_relevant_recall": 0.887,
+            "per_class_metrics": {},
+            "confusion_matrix": []
+          },
+          "not_relevant_recall": 0.887,
+          "hard_negative_accuracy": 0.4925,
+          "hard_negative_macro_f1": 0.4177883575965053,
+          "language_macro_f1": {
+            "English": 0.9163918942350356,
+            "Hindi": 0.8174650228669046,
+            "Hinglish": 0.8887512436316929
+          },
+          "minimum_language_macro_f1": 0.8174650228669046
+        }
+      },
+      "character_1_5_word_0_5": {
+        "status": "EVALUATED",
+        "configuration_id": "A_CHAR150_NONE_C1",
+        "validation": {
+          "overall": {
+            "status": "DATA_AVAILABLE",
+            "sample_count": 10000,
+            "accuracy": 0.8716,
+            "macro_precision": 0.8862676353347105,
+            "macro_recall": 0.8716000000000002,
+            "macro_f1": 0.8708228057100758,
+            "macro_f1_present_classes": 0.8708228057100758,
+            "not_relevant_recall": 0.8685,
+            "per_class_metrics": {},
+            "confusion_matrix": []
+          },
+          "not_relevant_recall": 0.8685,
+          "hard_negative_accuracy": 0.475,
+          "hard_negative_macro_f1": 0.4032308996418698,
+          "language_macro_f1": {
+            "English": 0.9069590224539381,
+            "Hindi": 0.8149053330904783,
+            "Hinglish": 0.8887550858026309
+          },
+          "minimum_language_macro_f1": 0.8149053330904783
+        }
+      }
+    }
+  },
+  "feature_vocabulary_fit_split": "train",
+  "validation_operation": "transform_only",
+  "test_accessed": false,
+  "search_space_generated_as_large_grid": false
+}

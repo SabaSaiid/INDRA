@@ -1,0 +1,31 @@
+{
+  "calibration_version": "credibility-v1-validation-temperature-v1",
+  "fit_partition": "validation:calibration",
+  "fit_rows": 3400,
+  "fit_source": "VALIDATION_ONLY",
+  "limitations": [
+    "Calibration uses project-authored synthetic validation labels only.",
+    "The probability estimates misleading-risk evidence, never factual truth."
+  ],
+  "method": "SCALAR_TEMPERATURE_GRID_SEARCH",
+  "post_calibration": {
+    "brier_score": 0.0,
+    "expected_calibration_error_10_bins": 2.14e-08,
+    "log_loss": 2.14e-08
+  },
+  "pre_calibration": {
+    "brier_score": 2.13e-08,
+    "expected_calibration_error_10_bins": 6.44917e-05,
+    "log_loss": 6.45024e-05
+  },
+  "production_calibration": "NOT_VALIDATED",
+  "schema_version": "1.0",
+  "selected_temperature": 0.5,
+  "selection_rule": "log_loss, then Brier score, then distance from 1, then temperature",
+  "temperature_candidates": [
+    0.5,
+    3.0,
+    0.025
+  ],
+  "test_rows_accessed": false
+}

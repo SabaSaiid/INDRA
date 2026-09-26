@@ -1,0 +1,47 @@
+{
+  "PHASE_20_VALIDATION_STATUS": "REVALIDATION_REQUIRED",
+  "evidence_classification": "REVALIDATION_REQUIRED",
+  "evidence_files": {
+    "backend/app/ml/artifacts/event_grouping_v1.development_manifest.json": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+    "backend/app/ml/artifacts/event_grouping_v1_final_test_receipt.json": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+    "backend/app/ml/data/synthetic_event/generator.py": "9172db59c08e008746bb55c69c673058325878e428e3dc86c83b0926afe3d0dd",
+    "data/labelled/events/synthetic_v1/synthetic_event_dataset_manifest.json": "8ddbfa05c5a773fc7323976b7c9fda4e3f88ecfdcb4f09fd64705ccb97eea712",
+    "data/labelled/events/synthetic_v1/synthetic_event_quality_report.json": "a99d60e56d7b0383015cfe80bb3d36786a4c2ceb28c8cc7a207c8c528ce6cb1a"
+  },
+  "future_remediation": {
+    "designation": "PHASE_20R",
+    "new_protected_test_required": true,
+    "old_dataset_or_receipt_must_change": false,
+    "regenerate": [
+      "A new dataset with explicit template and parameter-family IDs recorded at generation time.",
+      "A family-disjoint split manifest and leakage audit with dataset/file hashes.",
+      "A new, untouched protected test and new one-shot receipt."
+    ],
+    "same_configuration_may_be_preserved": "Yes, if preregistered before any new protected-test access, hash-bound to the unchanged Phase 20 configuration, and no test-guided tuning occurs."
+  },
+  "missing_evidence": [
+    "No per-example template-family identifier bound into original split provenance.",
+    "No per-example parameter-family identifier bound into original split provenance.",
+    "No audited train/validation/test disjointness counts for template and parameter families.",
+    "No original receipt binding a family-separated protected test to the frozen configuration."
+  ],
+  "old_phase20_benchmark_immutable": true,
+  "phase": 25,
+  "protected_test_rows_or_labels_read_by_phase25": false,
+  "verified_existing_evidence": {
+    "canonical_event_cross_split": 0,
+    "configuration_frozen_before_test": true,
+    "dataset_sha256": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+    "generator_version": "synthetic-event-generator-v1",
+    "ground_truth_isolation": true,
+    "holdout_strategy": "CANONICAL_EVENT_ID",
+    "incident_cross_split": 0,
+    "report_cross_split": 0,
+    "scenario_version": "synthetic-event-scenarios-v1",
+    "split_sha256": "5ba383c9565739486a67e79ad6ae9a651261a11c00c4ac9dd7ec7c6c67d555e6",
+    "template_version": "synthetic-event-templates-v1",
+    "test_evaluation_invocation_count": 1,
+    "test_used_for_tuning": false
+  },
+  "why_insufficient": "The quality report proves canonical-event, incident, and report isolation only. The generator iterates the same scenario-plan logic over all three splits; split-specific places and time origins do not prove template or parameter-family separation. Neither provenance manifests nor the one-shot receipt record those IDs."
+}

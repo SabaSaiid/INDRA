@@ -1,7 +1,8 @@
 # INDRA — Setup
 
-**What this is:** how to get the stack running from a fresh clone. Verified end to end on
-21 Sep 2026; migration head, health gate and test counts re-checked 22 Sep.
+**What this is:** how to get the stack running from a fresh clone. The original setup was verified
+21–22 Sep 2026. The merged branch includes newer migrations and the frozen local AI/ML adapter;
+re-run its test suite rather than relying on pre-merge counts.
 
 If you only want to *run the demo*, this page plus [`demo-runbook.md`](demo-runbook.md) is
 everything.
@@ -91,7 +92,7 @@ S3 API listens on `127.0.0.1:8333` only.
 cd backend
 python3 -m venv .venv                     # if it does not exist
 .venv/bin/pip install -r requirements.txt
-.venv/bin/alembic upgrade head            # → 0014_event_filter_indexes (head)
+.venv/bin/alembic upgrade head            # → 0016_station_observations (current head)
 ```
 
 **Read the output of `alembic upgrade head`.** A silently failed migration leaves a database with
@@ -116,12 +117,13 @@ open http://localhost:8000/docs                 # interactive API docs
 
 | `/healthz` | HTTP | Meaning |
 |---|---|---|
-| `healthy` | 200 | all four dependencies up |
-| `degraded` | 200 | Redis or Open-Meteo down — **fine**, neither is load-bearing |
-| `unhealthy` | 503 | Postgres or Kafka down — a report would be lost |
+| `healthy` | 200 | critical services and optional checks up |
+| `degraded` | 200 | Redis, Open-Meteo, object store, or delayed outbox — reports remain stored |
+| `unhealthy` | 503 | Postgres or Kafka down; Kafka-bound reports wait in the transactional outbox |
 
-First start loads the MiniLM embedding model (~13 s). It is warmed on a background thread, so the
-API answers immediately; wait for `✓ Embedding model warm` before timing anything.
+First start authorizes the frozen local duplicate artifact on a background thread. No MiniLM,
+remote checkpoint, or network-based ML warm-up is performed. Kafka's process producer and outbox
+relay also start during lifespan; a broker outage does not discard a stored report.
 
 ---
 
@@ -129,13 +131,15 @@ API answers immediately; wait for `✓ Embedding model warm` before timing anyth
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                        # 948 passed, 2 skipped
+.venv/bin/pytest -q                                        # verify current merged-branch result
 .venv/bin/pytest -q -m "not integration"                   # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```
 
-The suite runs against its own **`indra_test`** database and cannot touch your development data.
-It creates it if missing.
+The suite runs against a dedicated **`indra_test`** database, not development or production data.
+On Windows, a disposable native PostgreSQL/PostGIS and Redis-compatible test stack can satisfy
+the same configuration without Docker. Set a test-only `TEST_DATABASE_URL` to the isolated
+database, apply Alembic migrations there, and never point tests at a production database.
 
 ---
 

@@ -1,5 +1,12 @@
 # INDRA — Bug Register
 
+> Historical backend defect record. MiniLM and "vision/anomaly missing" findings below describe
+> the state when discovered, not the current frozen six-component AI/ML subsystem. The newer
+> `origin/main` backend fixes and additions remain recorded here. For current AI/ML claims and
+> merged-branch verification, use [ML architecture](ML_ARCHITECTURE.md) and
+> [ML validation](ML_VALIDATION_REPORT.md); do not treat old cold-MiniLM measurements as a live
+> runtime dependency.
+
 **What this is:** every defect found in the backend (layers 1, 2, 3, 5, 6, 7, 8a) since the
 16 Sep 2026 sprint began, through Phase 1 (23 Sep) and the 24 Sep triage of the frontend team's
 backend report, what was done about it, and — for the ones still open — the honest sentence

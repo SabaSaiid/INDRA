@@ -1,0 +1,195 @@
+{
+  "report_version": "dataset-validation-report-v1",
+  "schema_version": "1.0",
+  "generated_at": "2026-09-23T00:00:00Z",
+  "dataset_id": "indra-duplicate-project-synthetic-v1",
+  "dataset_version": "synthetic-duplicate-100k-v1",
+  "component": "DUPLICATE",
+  "local_path": "../../../../../data/labelled/duplicates/synthetic_v1/synthetic_duplicate_pairs.jsonl",
+  "format": "JSONL",
+  "registered_content_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+  "content_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+  "hash_matches_registry": true,
+  "valid": true,
+  "validation_status": "VALID",
+  "checks": [
+    {
+      "code": "FILE_INTEGRITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "CONTENT_HASH",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "ENCODING_AND_UNICODE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "SCHEMA_AND_REQUIRED_FIELDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "NULL_AND_REQUIRED_VALUES",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_RECORDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_IMAGES",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "CONTRADICTORY_LABELS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "COORDINATE_VALIDITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "TIMESTAMP_VALIDITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "GROUP_IDENTIFIERS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "LABEL_DISTRIBUTION",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    }
+  ],
+  "leakage": {
+    "exact_duplicate_leakage": {
+      "code": "EXACT_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "near_duplicate_leakage": {
+      "code": "NEAR_DUPLICATE_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "near-duplicate detection is not supported for this schema"
+      ]
+    },
+    "group_leakage": {
+      "code": "GROUP_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "temporal_leakage": {
+      "code": "TEMPORAL_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "temporal ordering is not a required split rule for this component"
+      ]
+    },
+    "label_leakage": {
+      "code": "LABEL_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "cross_split_overlap": {
+      "code": "CROSS_SPLIT_OVERLAP",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "overall_status": "PASS"
+  },
+  "errors": [],
+  "warnings": [],
+  "row_or_image_count": 100000,
+  "label_count": 100000,
+  "label_distribution": {
+    "DUPLICATE": 45000,
+    "NOT_DUPLICATE": 45000,
+    "UNCERTAIN": 10000
+  },
+  "split_counts": {
+    "train": 70000,
+    "validation": 15000,
+    "test": 15000
+  },
+  "split_label_counts": {
+    "train": {
+      "DUPLICATE": 31500,
+      "NOT_DUPLICATE": 31500,
+      "UNCERTAIN": 7000
+    },
+    "validation": {
+      "DUPLICATE": 6750,
+      "NOT_DUPLICATE": 6750,
+      "UNCERTAIN": 1500
+    },
+    "test": {
+      "DUPLICATE": 6750,
+      "NOT_DUPLICATE": 6750,
+      "UNCERTAIN": 1500
+    }
+  },
+  "grouping_coverage": 1.0,
+  "component_readiness": {
+    "pair_count": 100000,
+    "label_counts": {
+      "DUPLICATE": 45000,
+      "NOT_DUPLICATE": 45000,
+      "UNCERTAIN": 10000
+    },
+    "duplicate_count": 45000,
+    "non_duplicate_count": 45000,
+    "uncertain_count": 10000,
+    "event_or_incident_grouping_coverage": 1.0,
+    "reversed_pair_conflicts": [],
+    "contradictory_pair_keys": []
+  },
+  "approval_blockers": {
+    "TRAINING": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "MODEL_GENERATED_LABELS_PROHIBITED"
+    ],
+    "VALIDATION": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "MODEL_GENERATED_LABELS_PROHIBITED"
+    ],
+    "TEST": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "MODEL_GENERATED_LABELS_PROHIBITED"
+    ]
+  }
+}

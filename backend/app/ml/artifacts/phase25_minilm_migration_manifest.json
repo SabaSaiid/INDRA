@@ -1,0 +1,819 @@
+{
+  "anomaly_provenance": {
+    "detector_visible_fields_used": [
+      "rainfall_mm",
+      "river_level_m",
+      "timestamps"
+    ],
+    "direct_scenario_features": 34,
+    "extractor_source_sha256": "38f3c90bfc393bf59a621b5556c321683894e2d25cee9bab6dbdfef774b3c412",
+    "feature_count": 62,
+    "feature_origin_checks": {
+      "frozen_all_split_family_audit_passed": true,
+      "no_future_window_leakage": true,
+      "no_generator_parameter_id_feature": true,
+      "no_ground_truth_label_feature": true,
+      "no_hidden_scenario_id_feature": true,
+      "no_hidden_synthetic_metadata_feature": true,
+      "no_post_window_aggregation": true,
+      "no_train_validation_split_family_leakage": true
+    },
+    "limitation": "Source/provenance audit only; HIGH synthetic dependence remains a field-generalization risk.",
+    "no_training_or_retuning": true,
+    "phase24_recorded_extractor_source_sha256": "38f3c90bfc393bf59a621b5556c321683894e2d25cee9bab6dbdfef774b3c412",
+    "protected_test_labels_read_by_phase25": false,
+    "source_unchanged_since_phase24": true,
+    "status": "PASS",
+    "synthetic_generator_dependence": "HIGH"
+  },
+  "code_sha256": {
+    "backend/app/core/config.py": "e4efe6cfb9a51f80fd247bd4ac5ba63fd2b8b9babc99bfd785e063b945a2e03d",
+    "backend/app/main.py": "8c6b92cf8d2bf6c11cbda39b5513132f7e6084111adc417469a796eaa9b4a68d",
+    "backend/app/ml/final_freeze.py": "fdb81d5bfd12f2ba77cbb0136aa61f8e32b07eb57f1683736cedeb01e8f14441",
+    "backend/app/services/dedup.py": "fb775df0feb4773fe2305641a4e8144ece3293cc63213b2095118d18bf53d258",
+    "backend/app/services/pipeline.py": "74bbbe840093448cb5467a5ac59a39cfdcbb428e43314934e2f7e889532f06d2",
+    "backend/requirements.txt": "c7f282bcdeea793ed44b0d44ae623e682ee8096464f391c3a68b962ed19d7486",
+    "scripts/phase25_audit.py": "9da5668edffaa597035809c9831846d3b199bfc0f3faf2ba458d1319536231f3"
+  },
+  "external_inference_apis": [],
+  "frozen_artifacts": {
+    "artifacts_changed": 0,
+    "components": {
+      "ANOMALY": {
+        "artifact_name": "anomaly_model_v1.json",
+        "artifact_sha256": "3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+          "component_spec": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+          "dataset_manifest": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+          "quality_report": null
+        },
+        "dataset_manifest_sha256": "1fb7947e87153905495a3ca15395bc9c1f884cbaec8ea267e266030e2ff79a96",
+        "dataset_sha256": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+        "development_manifest": "anomaly_model_v1.development_manifest.json",
+        "development_manifest_sha256": "c279a61df78ab551354a1f0c75cce71ccba973ce8190be07aa4d6b6b27fd37db",
+        "quality_report_sha256": "96c49a9e9fede30f64fe96b2af31efc26d5469c6d7e0db2cbcba644991eb95b0",
+        "receipt_name": "anomaly_model_v1_final_test_receipt.json",
+        "receipt_sha256": "8facd1be74825e86f79ccf3f72aef2f1c116176c406dbc96015f97b05685004a",
+        "status": "PASS"
+      },
+      "CREDIBILITY": {
+        "artifact_name": "credibility_v1.json",
+        "artifact_sha256": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+          "component_spec": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+          "dataset_manifest": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+          "quality_report": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87"
+        },
+        "dataset_manifest_sha256": "0da1161bb3b7aef33e901be5678bef16d78f78b2982cc9728b26145b55ed8cf5",
+        "dataset_sha256": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+        "development_manifest": "credibility_v1.development_manifest.json",
+        "development_manifest_sha256": "2638a79d775cd6289be68775cbdc42ea2485e6dbf66ccb15e47ebd5b81fd644e",
+        "quality_report_sha256": "5d3fd3052f57e1868ad44efe67444c0cf7384027c424677c667006f382d53c45",
+        "receipt_name": "credibility_v1_final_test_receipt.json",
+        "receipt_sha256": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+        "status": "PASS"
+      },
+      "DUPLICATE": {
+        "artifact_name": "duplicate_matcher_v1.json",
+        "artifact_sha256": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {
+          "duplicate_feature_state_v2.json": {
+            "actual_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+            "expected_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+            "status": "PASS"
+          }
+        },
+        "dataset_hash_sources": {
+          "artifact_manifest": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+          "component_spec": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+          "dataset_manifest": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+          "quality_report": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231"
+        },
+        "dataset_manifest_sha256": "63cce0ce56919a735e4d0e594f1e1a2bd4f7f406e98720ac5dc0652c83169400",
+        "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+        "development_manifest": "duplicate_v1.development_manifest.json",
+        "development_manifest_sha256": "6d13de9d2f85dbb5cb0c129fbf03c1317a3bd17edbe1526dc141242127528c39",
+        "quality_report_sha256": "ae81eb09ae5e7e1322588b8224dbdd0e0d699a4b918455633753690e6c39f60d",
+        "receipt_name": "duplicate_v1_final_test_receipt.json",
+        "receipt_sha256": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+        "status": "PASS"
+      },
+      "EVENT": {
+        "artifact_name": "event_grouping_v1.json",
+        "artifact_sha256": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+          "component_spec": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+          "dataset_manifest": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+          "quality_report": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f"
+        },
+        "dataset_manifest_sha256": "8ddbfa05c5a773fc7323976b7c9fda4e3f88ecfdcb4f09fd64705ccb97eea712",
+        "dataset_sha256": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+        "development_manifest": "event_grouping_v1.development_manifest.json",
+        "development_manifest_sha256": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+        "quality_report_sha256": "a99d60e56d7b0383015cfe80bb3d36786a4c2ceb28c8cc7a207c8c528ce6cb1a",
+        "receipt_name": "event_grouping_v1_final_test_receipt.json",
+        "receipt_sha256": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+        "status": "PASS"
+      },
+      "IMAGE": {
+        "artifact_name": "image_model_v1.pt",
+        "artifact_sha256": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+          "component_spec": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+          "dataset_manifest": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+          "quality_report": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba"
+        },
+        "dataset_manifest_sha256": "d222faf83b6f621707dfcc6791e2ccdd7337a46c44173dd197cf5e915fe1853f",
+        "dataset_sha256": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+        "development_manifest": "image_model_v1.development_manifest.json",
+        "development_manifest_sha256": "6d683a9e23053b0a8a6ea447362c50f67cec95ea870b040518350caf7fc2e9a8",
+        "quality_report_sha256": "cc30aba51868439a1ab8105efd3b809c41cf130e0890b31318c99c6d47b90c59",
+        "receipt_name": "image_model_v1_final_test_receipt.json",
+        "receipt_sha256": "4627f84a82282090caa22b75acbfdbd585b92720fe1a1ff7824dbf830e3385ad",
+        "status": "PASS"
+      },
+      "NLP": {
+        "artifact_name": "nlp_classifier_v3.json",
+        "artifact_sha256": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+          "component_spec": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+          "dataset_manifest": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+          "quality_report": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76"
+        },
+        "dataset_manifest_sha256": "aae4dc14efbdf50dedd25fb6803c1865f78afe14278864e4fd05bb9bbf66061e",
+        "dataset_sha256": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+        "development_manifest": "nlp_classifier_v3.development_manifest.json",
+        "development_manifest_sha256": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+        "quality_report_sha256": "e38bb32164bce82c9b42986810586da63d09af5acf3291573bed46c2e18a2416",
+        "receipt_name": "nlp_classifier_v3.final_test_receipt.json",
+        "receipt_sha256": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+        "status": "PASS"
+      }
+    },
+    "phase24_manifest_sha256": "f800014d825d5a20b3eaae8856efa03eb14abf0bc3872ac6fc6471c2b074219d",
+    "phase24_manifest_unchanged": true,
+    "status": "PASS"
+  },
+  "generated_at": "2026-09-24T20:02:20.015781+00:00",
+  "known_limitations": [
+    "Full FastAPI startup and pre-existing backend tests remain unverified: pytest-asyncio and asyncpg are absent; dependency installation was rejected by auto-review under the offline/no-download constraint.",
+    "The Phase 25 child-process probe isolates backend package initializers, so it is not full backend integration.",
+    "Phase 20 needs a new family-separated dataset and protected test; the frozen old benchmark remains immutable.",
+    "Anomaly generator dependence remains HIGH (34/62 directly discriminative synthetic features).",
+    "Historical Phase 24 and Phase 11 manifests/gates still record pre-migration status and are not rewritten; Phase 27 must refresh the release gate.",
+    "Synthetic development evidence is not production accuracy; production validation is NOT_VALIDATED."
+  ],
+  "legacy_classifier_status": "backend/app/ml/event_classifier.py remains quarantined dead code; no production importer",
+  "live_minilm_paths_found_in_phase24": [
+    "backend/app/main.py startup embedding warmup",
+    "backend/app/services/pipeline.py dedup invocation",
+    "backend/app/services/dedup.py lazy SentenceTransformer loader and similarity"
+  ],
+  "live_minilm_paths_removed_or_replaced": [
+    "Startup warmup now hash-authorizes the frozen local Phase 19 matcher.",
+    "DedupService now maps ordered backend tuples to local candidate reports and preserves first-match index.",
+    "Pipeline retains duplicate_of semantics and calls only the local adapter.",
+    "Runtime sentence-transformers requirement removed; inert compatibility symbol cannot load weights."
+  ],
+  "local_artifact_load_and_deterministic_probe": {
+    "components": {
+      "ANOMALY": {
+        "component": "ANOMALY",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "70cccda34ccb393d921ef93d5c6dfb47de613af08f7d05edfed38576d33dd3b2",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "artifact_version": "anomaly-model-v1-synthetic-development",
+          "baseline_name": "STATISTICAL_ANOMALY_BASELINE",
+          "calibration": "NONE_VALIDATION_THRESHOLDS_ONLY",
+          "feature_version": "anomaly-window-features-v1-synthetic-development",
+          "heads": [
+            "DATA_QUALITY_ANOMALY",
+            "WEATHER_BEHAVIOR_ANOMALY"
+          ],
+          "model_family": "LOCAL_SCRATCH_DUAL_LOGISTIC",
+          "preprocessing_version": "anomaly-window-preprocessing-v1"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "CREDIBILITY": {
+        "component": "CREDIBILITY",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "6b7bfb20e610f77a48b317a33feaaba2057206418412afbeff30e182948c711b",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "artifact_kind": "INTERPRETABLE_LOCAL_LOGISTIC_REGRESSION",
+          "artifact_version": "credibility-v1-synthetic-development",
+          "feature_version": "credibility-risk-features-v1",
+          "output_labels": [
+            "AUTHENTIC",
+            "MISLEADING",
+            "UNCERTAIN"
+          ],
+          "preprocessing_version": "credibility-v1-feature-standardization-v1",
+          "prohibited_interpretation": "TRUTH_PROBABILITY"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "DUPLICATE": {
+        "component": "DUPLICATE",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "66abf64b028b3f3bd332548cee92be4b5e0da548a0feb37f5ea418ae70f124ac",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [
+          "duplicate_feature_state_v2.json"
+        ],
+        "metadata": {
+          "artifact_version": "duplicate-matcher-v1-synthetic-development",
+          "feature_version": "duplicate-features-v2-synthetic-development",
+          "preprocessing_version": "duplicate-text-normalization-v1",
+          "score_interpretation": "SIMILARITY_EVIDENCE_NOT_PROBABILITY",
+          "threshold_version": "duplicate-thresholds-v1-synthetic-validation"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "EVENT": {
+        "component": "EVENT",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "a79a828dee9ecd1c5bd2d30d115dd090ed27845270a5cde0515145eb3708cb3c",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "algorithm_version": "event-grouping-v2",
+          "artifact_kind": "DETERMINISTIC_CONFIGURATION_NOT_LEARNED_MODEL",
+          "artifact_version": "event-grouping-v1-synthetic-development",
+          "cluster_constraint": "COMPLETE_LINK_ALL_MEMBER_PAIRS",
+          "feature_version": "event-features-v1",
+          "single_report_semantics": "CANDIDATE_NOT_CONFIRMED"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "IMAGE": {
+        "component": "IMAGE",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "562a28cbab3ebde700bdf3a59b4b4facdc5c67cbabb30ecf737e2d3f7023eaf8",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "architecture_version": "scratch-cnn-v2-dual-pool",
+          "artifact_version": "image-model-v1-synthetic-development",
+          "feature_version": "image-pixel-features-v1",
+          "initialization": "SCRATCH_INITIALIZED",
+          "preprocessing_version": "image-preprocessing-v2-64x64",
+          "task_type": "MULTI_LABEL"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "NLP": {
+        "component": "NLP",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "47c8dc5468de0ccc3fc527bae5dc4bd93f184a5e11c71fc58bfdd00c577a5555",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "class_mapping": [
+            "CLOUDBURST",
+            "CYCLONE_INUNDATION",
+            "NOT_RELEVANT",
+            "RIVER_BREACH",
+            "URBAN_FLOOD"
+          ],
+          "feature_count": 33917,
+          "feature_version": "nlp-features-v3-synthetic",
+          "model_version": "nlp-classifier-v3-synthetic-development",
+          "preprocessing_version": "nlp-text-normalization-v1"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      }
+    },
+    "protected_test_data_used": false,
+    "status": "PASS"
+  },
+  "minilm_inventory": {
+    "classification_counts": {
+      "DEAD_CODE": 13,
+      "DOCUMENTATION_ONLY": 318,
+      "LIVE_PRODUCTION_PATH": 2,
+      "MIGRATION_TARGET": 73,
+      "TEST_ONLY": 64
+    },
+    "current_live_reference_files": [],
+    "file": "phase25_minilm_inventory.json",
+    "file_count": 100,
+    "live_local_warmup_reference_files": [
+      "backend/app/main.py"
+    ],
+    "occurrence_count": 470
+  },
+  "network_isolation": {
+    "LEGITIMATE_NON_INFERENCE_NETWORK_USAGE": [
+      "backend/app/services/health.py",
+      "backend/app/services/weather.py",
+      "backend/app/workers/sachet_poller.py",
+      "backend/app/workers/station_poller.py"
+    ],
+    "ML_RUNTIME_NETWORK_DEPENDENCY": "NONE",
+    "boundary_note": "Backend HTTP/API/feed code is not an ML inference dependency. The live duplicate adapter and frozen ML sources have no network/model-download imports or calls.",
+    "ml_runtime_ast_violations": [],
+    "phase24_current_audit_status": "PASS",
+    "repository_references_by_file": {
+      "backend/app/ml/artifacts/ai_ml_final_freeze_manifest.json": [
+        "httpx",
+        "model-serving",
+        "model_download",
+        "requests",
+        "urllib"
+      ],
+      "backend/app/ml/config.py": [
+        "model download"
+      ],
+      "backend/app/ml/docs/CREDIBILITY_V1_SYNTHETIC_VALIDATION.md": [
+        "embedding service"
+      ],
+      "backend/app/ml/docs/DUPLICATE_V1_SYNTHETIC_VALIDATION.md": [
+        "model download"
+      ],
+      "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md": [
+        "embedding service"
+      ],
+      "backend/app/ml/docs/NLP_DATASET_WORKFLOW.md": [
+        "embedding service"
+      ],
+      "backend/app/ml/docs/NLP_V3_SYNTHETIC_DEVELOPMENT.md": [
+        "requests"
+      ],
+      "backend/app/ml/final_freeze.py": [
+        "model-serving",
+        "model_download",
+        "requests"
+      ],
+      "backend/app/ml/inference/engine.py": [
+        "model download"
+      ],
+      "backend/app/ml/release_gate.py": [
+        "huggingface",
+        "requests",
+        "urllib",
+        "urllib3"
+      ],
+      "backend/app/ml/tests/phase25_adapter_probe.py": [
+        "huggingface"
+      ],
+      "backend/app/ml/tests/test_anomaly_detection.py": [
+        "anthropic",
+        "from_pretrained",
+        "hf_hub_download",
+        "httpx",
+        "load_state_dict_from_url",
+        "openai",
+        "requests",
+        "snapshot_download",
+        "urllib"
+      ],
+      "backend/app/ml/tests/test_artifact_policy.py": [
+        "aiohttp",
+        "anthropic",
+        "boto3",
+        "from_pretrained",
+        "google.generativeai",
+        "hf_hub_download",
+        "httpx",
+        "huggingface",
+        "openai",
+        "requests",
+        "snapshot_download",
+        "urllib",
+        "urllib3"
+      ],
+      "backend/app/ml/tests/test_dataset_readiness.py": [
+        "urllib"
+      ],
+      "backend/app/ml/tests/test_image_analysis.py": [
+        "anthropic",
+        "from_pretrained",
+        "httpx",
+        "load_state_dict_from_url",
+        "openai",
+        "requests",
+        "urllib"
+      ],
+      "backend/app/ml/tests/test_phase20_event_validation.py": [
+        "httpx",
+        "requests",
+        "urllib"
+      ],
+      "backend/app/ml/tests/test_phase21_credibility_validation.py": [
+        "from_pretrained",
+        "httpx",
+        "requests",
+        "urllib"
+      ],
+      "backend/app/ml/tests/test_phase22_image_validation.py": [
+        "anthropic",
+        "from_pretrained",
+        "httpx",
+        "load_state_dict_from_url",
+        "openai",
+        "requests",
+        "urllib"
+      ],
+      "backend/app/ml/tests/test_phase23_anomaly_validation.py": [
+        "from_pretrained",
+        "hf_hub_download",
+        "httpx",
+        "load_state_dict_from_url",
+        "requests",
+        "urllib",
+        "urllib3"
+      ],
+      "backend/app/ml/tests/test_phase25_minilm_migration.py": [
+        "from_pretrained",
+        "hf_hub_download",
+        "huggingface",
+        "snapshot_download"
+      ],
+      "backend/app/services/health.py": [
+        "httpx"
+      ],
+      "backend/app/services/weather.py": [
+        "httpx"
+      ],
+      "backend/app/workers/sachet_poller.py": [
+        "httpx"
+      ],
+      "backend/app/workers/station_poller.py": [
+        "httpx"
+      ],
+      "backend/requirements.txt": [
+        "httpx"
+      ],
+      "backend/tests/conftest.py": [
+        "httpx"
+      ],
+      "backend/tests/test_api_honesty.py": [
+        "httpx"
+      ],
+      "backend/tests/test_dashboard_kpis.py": [
+        "httpx"
+      ],
+      "backend/tests/test_demo_mode.py": [
+        "httpx"
+      ],
+      "backend/tests/test_events_api.py": [
+        "httpx"
+      ],
+      "backend/tests/test_geo_heatmap.py": [
+        "httpx"
+      ],
+      "backend/tests/test_map_layers_api.py": [
+        "httpx"
+      ],
+      "backend/tests/test_reports_api.py": [
+        "httpx"
+      ],
+      "backend/tests/test_review_api.py": [
+        "httpx"
+      ],
+      "backend/tests/test_sachet_poller.py": [
+        "httpx"
+      ],
+      "backend/tests/test_station_poller.py": [
+        "httpx"
+      ],
+      "backend/tests/test_weather.py": [
+        "httpx"
+      ],
+      "docs/bug-register.md": [
+        "httpx",
+        "requests"
+      ],
+      "frontend/package-lock.json": [
+        "requests"
+      ],
+      "scripts/build_gazetteer.py": [
+        "httpx"
+      ],
+      "scripts/burst_reports.py": [
+        "httpx",
+        "urllib"
+      ],
+      "scripts/phase25_audit.py": [
+        "aiohttp",
+        "anthropic",
+        "boto3",
+        "from_pretrained",
+        "hf_hub_download",
+        "httpx",
+        "huggingface",
+        "load_state_dict_from_url",
+        "model-download",
+        "openai",
+        "requests",
+        "snapshot_download",
+        "urllib",
+        "urllib3"
+      ],
+      "scripts/run_patna_demo.py": [
+        "urllib"
+      ]
+    },
+    "repository_scan_method": "ripgrep --json --hidden --no-ignore -i plus AST of live ML source",
+    "repository_text_reference_file_count": 43,
+    "repository_text_reference_occurrence_count": 234
+  },
+  "open_weight_models": [],
+  "phase": "25 — LEGACY MINILM REPLACEMENT + FREEZE-BLOCKER REMEDIATION",
+  "phase20_event_evidence": {
+    "file": "phase25_event_evidence_report.json",
+    "status": "REVALIDATION_REQUIRED"
+  },
+  "pretrained_models": [],
+  "production_validation": "NOT_VALIDATED",
+  "protected_receipts": {
+    "components": {
+      "ANOMALY": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "anomaly_model_v1_final_test_receipt.json",
+        "receipt_sha256": "8facd1be74825e86f79ccf3f72aef2f1c116176c406dbc96015f97b05685004a",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_calibration": false,
+          "test_used_for_model_selection": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "CREDIBILITY": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "credibility_v1_final_test_receipt.json",
+        "receipt_sha256": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_calibration": false,
+          "test_used_for_model_selection": false,
+          "test_used_for_preprocessing_fit": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "DUPLICATE": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "duplicate_v1_final_test_receipt.json",
+        "receipt_sha256": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_feature_fit": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "EVENT": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "event_grouping_v1_final_test_receipt.json",
+        "receipt_sha256": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "test_used_for_tuning": false
+        },
+        "status": "PASS"
+      },
+      "IMAGE": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "image_model_v1_final_test_receipt.json",
+        "receipt_sha256": "4627f84a82282090caa22b75acbfdbd585b92720fe1a1ff7824dbf830e3385ad",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_calibration": false,
+          "test_used_for_model_selection": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "NLP": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "nlp_classifier_v3.final_test_receipt.json",
+        "receipt_sha256": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+        "receipt_status": "COMPLETED_AND_FROZEN",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "retrained_after_evaluation": false,
+          "test_examples_available_to_configuration_selection": false,
+          "test_used_for_calibration": false
+        },
+        "status": "PASS"
+      }
+    },
+    "status": "PASS",
+    "tests_rerun_for_metrics": false
+  },
+  "replacement_implementation": {
+    "anomaly": "Phase 23 anomaly_model_v1 preserved",
+    "credibility": "Phase 21 frozen credibility artifact preserved; no new live backend integration",
+    "duplicate": "Phase 19 frozen DuplicateMatcher plus duplicate_feature_state_v2.json; backend 1km/15min eligibility gates retained",
+    "event": "Phase 20 frozen event grouping artifact preserved; no Phase 26 backend integration",
+    "image": "Phase 22 image_model_v1 preserved",
+    "nlp": "Phase 18 frozen local NLP artifact remains opt-in; no live legacy NLP classifier importer"
+  },
+  "repository_head": "dc99a76ca66136208bedf659ffdf93024ffa38e7",
+  "socket_denial": {
+    "artifact_loaded": true,
+    "missing_inference_fail_closed": true,
+    "ordered_first_match": true,
+    "socket_denial": "PASS"
+  },
+  "status": "BLOCKED",
+  "tests": {
+    "ai_ml": {
+      "errors": 0,
+      "failures": 0,
+      "pre_existing_warnings": [
+        "Unknown config option: asyncio_default_fixture_loop_scope",
+        "Unknown config option: asyncio_default_test_loop_scope",
+        "Unknown config option: asyncio_mode"
+      ],
+      "report": "backend/.phase25-ml-junit.xml",
+      "skipped": 0,
+      "status": "PASS",
+      "tests": 340
+    },
+    "backend_relevant": {
+      "errors": 0,
+      "failures": 0,
+      "reason": "Collection blocked: pytest_asyncio is not installed; backend import also requires asyncpg.",
+      "report": null,
+      "skipped": 0,
+      "status": "BLOCKED",
+      "tests": 0
+    }
+  }
+}

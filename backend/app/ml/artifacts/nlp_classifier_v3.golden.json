@@ -1,0 +1,261 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS",
+  "suite_version": "golden-suite-v1",
+  "executed_at": "2026-09-23T12:48:08.844328+00:00",
+  "artifact_sha256": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+  "model_version": "nlp-classifier-v3-synthetic-development",
+  "scenario_count": 10,
+  "scenarios": [
+    {
+      "scenario_id": "SCENARIO_01_SINGLE_ORDINARY_REPORT",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": false,
+      "report_count": 1,
+      "baseline_semantic_sha256": "cb5c56ebd1f92d04c498731f5397b5ed4a95a17228033bea0e95818655418614",
+      "semantic_sha256": "ecb608b9bb152b8c803654d7282f53eb1eadee6b975d1f91f123f1088ff14b68",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001201": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_02_MULTIPLE_RELATED_REPORTS",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": false,
+      "report_count": 3,
+      "baseline_semantic_sha256": "b5af2049b3789019b6d4611d8e2b1fe7580d905495f34e241ade287fdbdeacad",
+      "semantic_sha256": "a155e8330f82addc158586ac64d03fd3708ff7b2c4cb98fb9c16b02068db423c",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001211": "AVAILABLE",
+        "00000000-0000-0000-0000-000000001212": "AVAILABLE",
+        "00000000-0000-0000-0000-000000001213": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_03_DISTINCT_EVENTS",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": true,
+      "report_count": 3,
+      "baseline_semantic_sha256": "0326d66a100da33abf37046600c7ca8926799637ffe8cd06fce21a7d4a6f9183",
+      "semantic_sha256": "063032f0c89de016b6e218001ceb72c974b170f44756a2acef0e2ba2669e3d1a",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001221": "AVAILABLE",
+        "00000000-0000-0000-0000-000000001222": "AVAILABLE",
+        "00000000-0000-0000-0000-000000001223": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_04_UNION_FIND_BRIDGE",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": false,
+      "report_count": 3,
+      "baseline_semantic_sha256": "919aa825f2a2011db6d8f7763bc308dfa2b432728b5cdf7670c2ea8da804b26a",
+      "semantic_sha256": "6812463b532fa1eb9c74e1616a2d0b1a8085f5adcdd5549e2212bf39a64f57b5",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001231": "AVAILABLE",
+        "00000000-0000-0000-0000-000000001232": "AVAILABLE",
+        "00000000-0000-0000-0000-000000001233": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_05_DUPLICATE_FLOOD_REPORTS",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": false,
+      "report_count": 2,
+      "baseline_semantic_sha256": "7453e7efeaa4c9ef93a0f5d0466a9260f5b9453afa8e2300919554f74dd34ee5",
+      "semantic_sha256": "f8a1e62098b8bb5f73635e4e4127f6b724d815079893726daa4ffcbb95041ffc",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001241": "AVAILABLE",
+        "00000000-0000-0000-0000-000000001242": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_06_CONTRADICTORY_REPORT",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": true,
+      "report_count": 1,
+      "baseline_semantic_sha256": "3ab6431e72370dda8085614b545b434dd6c40cc6895b0ea527c4fccf5a69e5af",
+      "semantic_sha256": "5e50dc07d05fcbc6657264d2ef29224c797f71df69e31b22e8466c458fb9e557",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001251": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_07_IMAGE_ABSENT",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": true,
+      "report_count": 1,
+      "baseline_semantic_sha256": "2d438252a7ffc70c9e80ae00c5c132b628093a02219803253a42a9dbe53fd16b",
+      "semantic_sha256": "926bcc566a0a8d1b66eebdeceda69f38daa9095554d22ed5539cbff8d3700d51",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001261": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_08_ANOMALY_HISTORY_INSUFFICIENT",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": true,
+      "report_count": 1,
+      "baseline_semantic_sha256": "5783c4fff16fc4bd54c29cd143a5e956c7bcb605e35b1fb1f59f279277296772",
+      "semantic_sha256": "e29f7287c9fba72fb6c86222f1e1b1b4d8fab58bbeaa5fc73e23d0d4a0229749",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001271": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_09_VALID_ANOMALOUS_WEATHER_SERIES",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": true,
+      "report_count": 1,
+      "baseline_semantic_sha256": "32fad149ccfebbe5e65c0d6d7225c18f535b89a6ab50e79583d92cc824397f0b",
+      "semantic_sha256": "8c28f5ac5277aaeb8c94568c44994312718879156d51afe031ceeb62a528fcc6",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001281": "AVAILABLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_10_MISSING_INVALID_WEATHER_DATA",
+      "status": "PASS",
+      "existing_v1_golden_snapshot": "PASS",
+      "v3_contract_regression": "PASS",
+      "strict_v1_model_dependent_snapshot_match": true,
+      "report_count": 1,
+      "baseline_semantic_sha256": "da8026d86aaeaf90d17060c8b7e52759df00fb6ad91748dd2f868425f1108e04",
+      "semantic_sha256": "cce26e11101cf5ef920d5d66cd84183e018af93456df518734ee9ab91a4acdbb",
+      "invariant_checks": {
+        "DUPLICATE_NE_FAKE": true,
+        "ANOMALY_NE_FALSE_REPORT": true,
+        "EVENT_NE_NLP_CLASSIFICATION": true,
+        "RISK_SCORE_NE_PROBABILITY": true,
+        "HEURISTIC_CONFIDENCE_NE_CALIBRATED_PROBABILITY": true,
+        "MISSING_INFERENCE_NE_ZERO_SCORE": true,
+        "IMAGE_EVIDENCE_NE_AUTHENTICITY_PROOF": true,
+        "SINGLE_REPORT_NE_CONFIRMED_EVENT": true
+      },
+      "nlp_statuses": {
+        "00000000-0000-0000-0000-000000001291": "AVAILABLE"
+      }
+    }
+  ],
+  "existing_v1_golden_suite": "PASS",
+  "v3_existing_fixture_contract_suite": "PASS",
+  "strict_v1_snapshot_mismatch_count": 4,
+  "snapshot_interpretation": "Exact v1 label/event snapshots are model-dependent; differences are recorded, while component statuses, schemas, serialization, lifecycle safety, and cross-component invariants remain mandatory.",
+  "unified_ml_result_schema_unchanged": true,
+  "status_semantics_unchanged": true,
+  "serialization_round_trip": "PASS",
+  "determinism": "PASS",
+  "cross_component_invariants": "PASS",
+  "network_access": false,
+  "live_backend_modified": false,
+  "default_configuration_modified": false,
+  "evidence_scope": "ENGINEERING_REGRESSION_NOT_PRODUCTION_VALIDATION"
+}

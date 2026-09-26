@@ -1,0 +1,3797 @@
+{
+  "anomaly_feature_separability_audit": {
+    "SYNTHETIC_GENERATOR_DEPENDENCE_RISK": "HIGH",
+    "audit_scope": [
+      "train",
+      "validation"
+    ],
+    "direct_discrimination_auc_threshold": 0.995,
+    "direct_scenario_features": [
+      "rainfall_availability_ratio",
+      "rainfall_missing_ratio",
+      "rainfall_last_value",
+      "rainfall_mean",
+      "rainfall_median",
+      "rainfall_mad",
+      "rainfall_lower_quantile",
+      "rainfall_upper_quantile",
+      "rainfall_robust_scale",
+      "rainfall_minimum",
+      "rainfall_latest_delta",
+      "rainfall_latest_rate_per_hour",
+      "rainfall_longest_identical_run_ratio",
+      "rainfall_jump_reversal_score",
+      "rainfall_negative_value_ratio",
+      "river_level_last_value",
+      "river_level_mean",
+      "river_level_median",
+      "river_level_standard_deviation",
+      "river_level_lower_quantile",
+      "river_level_upper_quantile",
+      "river_level_minimum",
+      "river_level_maximum",
+      "river_level_range",
+      "river_level_latest_delta",
+      "river_level_maximum_absolute_delta",
+      "river_level_latest_rate_per_hour",
+      "river_level_maximum_absolute_rate_per_hour",
+      "irregular_interval_ratio",
+      "minimum_interval_ratio",
+      "all_measurements_missing_ratio",
+      "maximum_missing_run_ratio",
+      "rain_river_value_correlation",
+      "rain_river_delta_correlation"
+    ],
+    "direct_target_features": [],
+    "feature_count": 62,
+    "feature_origin_audit": {
+      "allowed_measurement_window_fields": [
+        "rainfall_mm",
+        "river_level_m",
+        "timestamps"
+      ],
+      "checks": {
+        "frozen_all_split_family_audit_passed": true,
+        "no_future_window_leakage": true,
+        "no_generator_parameter_id_feature": true,
+        "no_ground_truth_label_feature": true,
+        "no_hidden_scenario_id_feature": true,
+        "no_hidden_synthetic_metadata_feature": true,
+        "no_post_window_aggregation": true,
+        "no_train_validation_split_family_leakage": true
+      },
+      "evidence": "The extractor accepts only the strict detector-visible record and uses timestamps/rainfall/river-level values from that current 24-observation window. It performs no joins, file reads, lookahead, or post-window query. Hidden metadata is loaded only by this audit to compare synthetic scenario labels against already-derived features.",
+      "extractor_record_fields_used": [
+        "rainfall_mm",
+        "river_level_m",
+        "timestamps"
+      ],
+      "extractor_source_sha256": "38f3c90bfc393bf59a621b5556c321683894e2d25cee9bab6dbdfef774b3c412",
+      "forbidden_hidden_or_identifier_fields_used": []
+    },
+    "feature_results": [
+      {
+        "feature": "rainfall_availability_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "MISSINGNESS_BURST",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "LOWER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.5833037,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.58333333,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.5833037
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_missing_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "MISSINGNESS_BURST",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.5833037,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.58333333,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.5833037
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_last_value",
+        "maximum_scenario_discrimination": {
+          "category": "COMBINED_DATA_QUALITY_FAILURE",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "LOWER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.89456782,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.89459495,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.89456782
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_mean",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.78641897,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.78641897,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.78835906
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_median",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.73490678,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.73563043,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.73490678
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_standard_deviation",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_DISCONTINUITY",
+          "cross_split_min_auc": 0.95227734,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.96312325,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.95227734
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.66895832,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.66895832,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.68005485
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_mad",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 0.99999813,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.99999813,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99999909
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.74819753,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.74819753,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.75060898
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_lower_quantile",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.72707599,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.72772479,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.72707599
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_upper_quantile",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.74544187,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.74559427,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.74544187
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_robust_scale",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 0.99961615,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.99974673,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99961615
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.7458367,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.7458367,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.75286354
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_minimum",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.74646629,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.74646629,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.74653527
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_maximum",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 0.95889533,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.96711359,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.95889533
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.70585271,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.70585271,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.708345
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_range",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_DISCONTINUITY",
+          "cross_split_min_auc": 0.98882024,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.9962242,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.98882024
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.70825407,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.70825407,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.7184577
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_latest_robust_z",
+        "maximum_scenario_discrimination": {
+          "category": "RAINFALL_VALUE_OUTLIER",
+          "cross_split_min_auc": 0.96854798,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.96854798,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.96951651
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.78616162,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.78616162,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.7984215
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_maximum_robust_z",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_DISCONTINUITY",
+          "cross_split_min_auc": 0.94536364,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.9494808,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.94536364
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.74334739,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.74334739,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.75087244
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_latest_delta",
+        "maximum_scenario_discrimination": {
+          "category": "RAINFALL_VALUE_OUTLIER",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.76649273,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.77075977,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.76649273
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_maximum_absolute_delta",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_DISCONTINUITY",
+          "cross_split_min_auc": 0.99146158,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.9980179,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99146158
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.71901513,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.71901513,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.72622391
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_latest_rate_per_hour",
+        "maximum_scenario_discrimination": {
+          "category": "COMBINED_DATA_QUALITY_FAILURE",
+          "cross_split_min_auc": 0.9996947,
+          "direction_consistent": true,
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.99982532,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.9996947
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.76705351,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.77114608,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.76705351
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_maximum_absolute_rate_per_hour",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_DISCONTINUITY",
+          "cross_split_min_auc": 0.96730789,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.96747976,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.96730789
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.72736045,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.72736045,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.72959858
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_tail_mean_robust_z",
+        "maximum_scenario_discrimination": {
+          "category": "PERSISTENT_RAINFALL_DEVIATION",
+          "cross_split_min_auc": 0.94076982,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.94076982,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.94489663
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.76751416,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.76751416,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.7700736
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_tail_outlier_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "PERSISTENT_RAINFALL_DEVIATION",
+          "cross_split_min_auc": 0.93425544,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.94236952,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.93425544
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.67545925,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.67545925,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.67776254
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_longest_identical_run_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_STUCK",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.60002286,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.60002286,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.60008536
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_jump_reversal_score",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_DISCONTINUITY",
+          "cross_split_min_auc": 0.99656727,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.99656727,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99690568
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.58406688,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.58406688,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.59491502
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_linear_slope",
+        "maximum_scenario_discrimination": {
+          "category": "PERSISTENT_RAINFALL_DEVIATION",
+          "cross_split_min_auc": 0.97027343,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.97027343,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.97660013
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.76549764,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.76549764,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.76615231
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rainfall_negative_value_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "COMBINED_DATA_QUALITY_FAILURE",
+          "cross_split_min_auc": 0.99993905,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.99993905,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99996445
+        },
+        "maximum_target_label_discrimination": {
+          "category": "DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.60008536,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.60018286,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.60008536
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_availability_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "MISSINGNESS_BURST",
+          "cross_split_min_auc": 0.8540096,
+          "direction_consistent": true,
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.85416476,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.8540096
+        },
+        "maximum_target_label_discrimination": {
+          "category": "DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.60113273,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.60113273,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.60115282
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_missing_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "MISSINGNESS_BURST",
+          "cross_split_min_auc": 0.8540096,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.85416476,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.8540096
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.60113273,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.60113273,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.60115282
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_last_value",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_RIVER_LEVEL_EXTREME",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.7458262,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.74683578,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.7458262
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_mean",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_RIVER_LEVEL_EXTREME",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.73603379,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.73834733,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.73603379
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_median",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_RIVER_LEVEL_EXTREME",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.7272142,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.73010035,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.7272142
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_standard_deviation",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.74096405,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.74096405,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.74519292
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_mad",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 0.98781652,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.98918394,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.98781652
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.73523203,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.73610415,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.73523203
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_lower_quantile",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_RIVER_LEVEL_EXTREME",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.72193663,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.72347924,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.72193663
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_upper_quantile",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_RIVER_LEVEL_EXTREME",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.73513474,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.73771488,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.73513474
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_robust_scale",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_EXTREME_RAINFALL",
+          "cross_split_min_auc": 0.94685379,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.94685379,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.9510941
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.75474572,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.75474572,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.75753741
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_minimum",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_RIVER_LEVEL_EXTREME",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.71548792,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.71686341,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.71548792
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_maximum",
+        "maximum_scenario_discrimination": {
+          "category": "LEGITIMATE_RIVER_LEVEL_EXTREME",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.73427412,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.73445514,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.73427412
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_range",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.74999081,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.74999081,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.75442242
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_latest_robust_z",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 0.99321517,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.99372499,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99321517
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.66887651,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.67150371,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.66887651
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_maximum_robust_z",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 0.99321517,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.99372499,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99321517
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.67597833,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.6832356,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.67597833
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_latest_delta",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.65705328,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.65705328,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.68047565
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_maximum_absolute_delta",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.75283561,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.75361016,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.75283561
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_latest_rate_per_hour",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.65408557,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.65408557,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.67795201
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_maximum_absolute_rate_per_hour",
+        "maximum_scenario_discrimination": {
+          "category": "RIVER_LEVEL_CHANGE_ANOMALY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.68531064,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.68531064,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.69091858
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_tail_mean_robust_z",
+        "maximum_scenario_discrimination": {
+          "category": "ABRUPT_LEGITIMATE_WEATHER_TRANSITION",
+          "cross_split_min_auc": 0.9717872,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.97362454,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.9717872
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.74220602,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.75407784,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.74220602
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_tail_outlier_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "ABRUPT_LEGITIMATE_WEATHER_TRANSITION",
+          "cross_split_min_auc": 0.90133684,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.92718476,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.90133684
+        },
+        "maximum_target_label_discrimination": {
+          "category": "DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.65458453,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.65831721,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.65458453
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_longest_identical_run_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_STUCK",
+          "cross_split_min_auc": 0.77035658,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.7707819,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.77035658
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.57270116,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.57276623,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.57270116
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_jump_reversal_score",
+        "maximum_scenario_discrimination": {
+          "category": "NORMAL_HEAVY_RAIN_SEQUENCE",
+          "cross_split_min_auc": 0.85179294,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.87116392,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.85179294
+        },
+        "maximum_target_label_discrimination": {
+          "category": "OVERALL_ANOMALY",
+          "cross_split_min_auc": 0.59880537,
+          "direction_consistent": true,
+          "target": "OVERALL_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.60677046,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.59880537
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_linear_slope",
+        "maximum_scenario_discrimination": {
+          "category": "ABRUPT_LEGITIMATE_WEATHER_TRANSITION",
+          "cross_split_min_auc": 0.97616562,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.97616562,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.97675
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.76311555,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.77140902,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.76311555
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "river_level_negative_value_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "TIMESTAMP_IRREGULARITY",
+          "cross_split_min_auc": 0.5,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.5,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.5
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.5,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.5,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.5
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "interval_median_hours",
+        "maximum_scenario_discrimination": {
+          "category": "TIMESTAMP_IRREGULARITY",
+          "cross_split_min_auc": 0.51459,
+          "direction_consistent": true,
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.51459,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.51541444
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.50294381,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.50625286,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.50294381
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "interval_scale_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "TIMESTAMP_IRREGULARITY",
+          "cross_split_min_auc": 0.50762304,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.51459,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.50762304
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.50138603,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.50625286,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.50138603
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "irregular_interval_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "TIMESTAMP_IRREGULARITY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.69995732,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.7,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.69995732
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "minimum_interval_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "TIMESTAMP_IRREGULARITY",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "LOWER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.59374714,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.59374714,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.62338916
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "maximum_interval_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "COMBINED_DATA_QUALITY_FAILURE",
+          "cross_split_min_auc": 0.97083333,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.97083333,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.97084996
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.7,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.7,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.70003005
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "observation_density_per_hour",
+        "maximum_scenario_discrimination": {
+          "category": "COMBINED_DATA_QUALITY_FAILURE",
+          "cross_split_min_auc": 0.63545003,
+          "direction_consistent": true,
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.63545003,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.65026166
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.55001144,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.55001144,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.55329388
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "all_measurements_missing_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "MISSINGNESS_BURST",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.5833037,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.58333333,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.5833037
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "maximum_missing_run_ratio",
+        "maximum_scenario_discrimination": {
+          "category": "MISSINGNESS_BURST",
+          "cross_split_min_auc": 1.0,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 1.0
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.5833037,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.58333333,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.5833037
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rain_river_value_correlation",
+        "maximum_scenario_discrimination": {
+          "category": "ABRUPT_LEGITIMATE_WEATHER_TRANSITION",
+          "cross_split_min_auc": 0.99988112,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.99988112,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99994286
+        },
+        "maximum_target_label_discrimination": {
+          "category": "DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.59505118,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.59505118,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.60299043
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "rain_river_delta_correlation",
+        "maximum_scenario_discrimination": {
+          "category": "ABRUPT_LEGITIMATE_WEATHER_TRANSITION",
+          "cross_split_min_auc": 0.99999909,
+          "direction_consistent": true,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 1.0,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.99999909
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.62751214,
+          "direction_consistent": true,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.62751214,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.65955678
+        },
+        "unusually_direct_scenario_discrimination": true,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "start_hour_sine",
+        "maximum_scenario_discrimination": {
+          "category": "SENSOR_DISCONTINUITY",
+          "cross_split_min_auc": 0.50628951,
+          "direction_consistent": false,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.50628951,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.50696155
+        },
+        "maximum_target_label_discrimination": {
+          "category": "NOT_DATA_QUALITY_ANOMALY",
+          "cross_split_min_auc": 0.50449614,
+          "direction_consistent": false,
+          "target": "DATA_QUALITY_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.50461202,
+          "validation_direction": "HIGHER",
+          "validation_directionless_auc": 0.50449614
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      },
+      {
+        "feature": "start_hour_cosine",
+        "maximum_scenario_discrimination": {
+          "category": "TIMESTAMP_IRREGULARITY",
+          "cross_split_min_auc": 0.50543624,
+          "direction_consistent": false,
+          "train_direction": "HIGHER",
+          "train_directionless_auc": 0.507024,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.50543624
+        },
+        "maximum_target_label_discrimination": {
+          "category": "WEATHER_BEHAVIOR_ANOMALY",
+          "cross_split_min_auc": 0.50201594,
+          "direction_consistent": true,
+          "target": "WEATHER_BEHAVIOR_ANOMALY",
+          "train_direction": "LOWER",
+          "train_directionless_auc": 0.50222557,
+          "validation_direction": "LOWER",
+          "validation_directionless_auc": 0.50201594
+        },
+        "unusually_direct_scenario_discrimination": false,
+        "unusually_direct_target_discrimination": false
+      }
+    ],
+    "feature_version": "anomaly-window-features-v1-synthetic-development",
+    "maximum_cross_split_directionless_auc": 1.0,
+    "model_modified": false,
+    "protected_test_labels_read": false,
+    "protected_test_model_inputs_read": false,
+    "protected_test_rows_read": 0,
+    "risk_rule": "HIGH when any feature has same-direction one-vs-rest scenario AUC >=0.995 on both train and validation, or at least three features have same-direction target AUC >=0.995 with frozen validation F1 >=0.99; MODERATE for max AUC >=0.95 or F1 >=0.98; otherwise LOW.",
+    "split_family_audit": {
+      "frozen_quality_report_all_split_leakage_checks": {
+        "grouped_split": true,
+        "naive_row_random_split": false,
+        "parameter_combination_cross_split": 0,
+        "parameter_family_cross_split": 0,
+        "station_family_cross_split": 0,
+        "status": "PASS",
+        "temporal_pattern_family_cross_split": 0,
+        "trajectory_hash_cross_split": 0,
+        "window_hash_cross_split": 0
+      },
+      "scenario_family_overlap_is_expected_target_taxonomy": 16,
+      "train_validation_intersection_counts": {
+        "anomaly_parameter_family": 0,
+        "parameter_combination_id": 0,
+        "station_family": 0,
+        "temporal_pattern_family": 0,
+        "trajectory_sha256": 0,
+        "window_id": 0,
+        "window_sha256": 0
+      }
+    },
+    "split_integrity": {
+      "train": {
+        "checks": {
+          "feature_count": true,
+          "finite_features": true,
+          "hidden_metadata_sha256": true,
+          "model_input_sha256": true,
+          "one_to_one_alignment": true,
+          "row_count": true
+        },
+        "hidden_metadata_sha256": "858f947b5f097ad7a22e4bf36003ae7aa9fd09ec1c7fa90fd4ad2102f8791be3",
+        "model_input_sha256": "6a969724c4d258349d0bc0a2eeceeda96fc1bfe17f04f0b2880d5e359c90293b",
+        "row_count": 70000
+      },
+      "validation": {
+        "checks": {
+          "feature_count": true,
+          "finite_features": true,
+          "hidden_metadata_sha256": true,
+          "model_input_sha256": true,
+          "one_to_one_alignment": true,
+          "row_count": true
+        },
+        "hidden_metadata_sha256": "71151a53864d2baf99526559a8ccee1965ee85729abd2ec6ffb8cef20acee895",
+        "model_input_sha256": "ca749680460a5444e94c0dbff5f9902e802b92afcb6088622920297d181c0fc5",
+        "row_count": 15000
+      }
+    },
+    "status": "PASS",
+    "thresholds_modified": false,
+    "training_invoked": false,
+    "validation_minimum_f1_from_frozen_development_manifest": 0.9998667555
+  },
+  "artifact_hash_audit": {
+    "components": {
+      "ANOMALY": {
+        "artifact_name": "anomaly_model_v1.json",
+        "artifact_sha256": "3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+          "component_spec": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+          "dataset_manifest": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+          "quality_report": null
+        },
+        "dataset_manifest_sha256": "1fb7947e87153905495a3ca15395bc9c1f884cbaec8ea267e266030e2ff79a96",
+        "dataset_sha256": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+        "development_manifest": "anomaly_model_v1.development_manifest.json",
+        "development_manifest_sha256": "c279a61df78ab551354a1f0c75cce71ccba973ce8190be07aa4d6b6b27fd37db",
+        "quality_report_sha256": "96c49a9e9fede30f64fe96b2af31efc26d5469c6d7e0db2cbcba644991eb95b0",
+        "receipt_name": "anomaly_model_v1_final_test_receipt.json",
+        "receipt_sha256": "8facd1be74825e86f79ccf3f72aef2f1c116176c406dbc96015f97b05685004a",
+        "status": "PASS"
+      },
+      "CREDIBILITY": {
+        "artifact_name": "credibility_v1.json",
+        "artifact_sha256": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+          "component_spec": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+          "dataset_manifest": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+          "quality_report": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87"
+        },
+        "dataset_manifest_sha256": "0da1161bb3b7aef33e901be5678bef16d78f78b2982cc9728b26145b55ed8cf5",
+        "dataset_sha256": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+        "development_manifest": "credibility_v1.development_manifest.json",
+        "development_manifest_sha256": "2638a79d775cd6289be68775cbdc42ea2485e6dbf66ccb15e47ebd5b81fd644e",
+        "quality_report_sha256": "5d3fd3052f57e1868ad44efe67444c0cf7384027c424677c667006f382d53c45",
+        "receipt_name": "credibility_v1_final_test_receipt.json",
+        "receipt_sha256": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+        "status": "PASS"
+      },
+      "DUPLICATE": {
+        "artifact_name": "duplicate_matcher_v1.json",
+        "artifact_sha256": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {
+          "duplicate_feature_state_v2.json": {
+            "actual_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+            "expected_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+            "status": "PASS"
+          }
+        },
+        "dataset_hash_sources": {
+          "artifact_manifest": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+          "component_spec": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+          "dataset_manifest": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+          "quality_report": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231"
+        },
+        "dataset_manifest_sha256": "63cce0ce56919a735e4d0e594f1e1a2bd4f7f406e98720ac5dc0652c83169400",
+        "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+        "development_manifest": "duplicate_v1.development_manifest.json",
+        "development_manifest_sha256": "6d13de9d2f85dbb5cb0c129fbf03c1317a3bd17edbe1526dc141242127528c39",
+        "quality_report_sha256": "ae81eb09ae5e7e1322588b8224dbdd0e0d699a4b918455633753690e6c39f60d",
+        "receipt_name": "duplicate_v1_final_test_receipt.json",
+        "receipt_sha256": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+        "status": "PASS"
+      },
+      "EVENT": {
+        "artifact_name": "event_grouping_v1.json",
+        "artifact_sha256": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+          "component_spec": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+          "dataset_manifest": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+          "quality_report": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f"
+        },
+        "dataset_manifest_sha256": "8ddbfa05c5a773fc7323976b7c9fda4e3f88ecfdcb4f09fd64705ccb97eea712",
+        "dataset_sha256": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+        "development_manifest": "event_grouping_v1.development_manifest.json",
+        "development_manifest_sha256": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+        "quality_report_sha256": "a99d60e56d7b0383015cfe80bb3d36786a4c2ceb28c8cc7a207c8c528ce6cb1a",
+        "receipt_name": "event_grouping_v1_final_test_receipt.json",
+        "receipt_sha256": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+        "status": "PASS"
+      },
+      "IMAGE": {
+        "artifact_name": "image_model_v1.pt",
+        "artifact_sha256": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+          "component_spec": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+          "dataset_manifest": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+          "quality_report": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba"
+        },
+        "dataset_manifest_sha256": "d222faf83b6f621707dfcc6791e2ccdd7337a46c44173dd197cf5e915fe1853f",
+        "dataset_sha256": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+        "development_manifest": "image_model_v1.development_manifest.json",
+        "development_manifest_sha256": "6d683a9e23053b0a8a6ea447362c50f67cec95ea870b040518350caf7fc2e9a8",
+        "quality_report_sha256": "cc30aba51868439a1ab8105efd3b809c41cf130e0890b31318c99c6d47b90c59",
+        "receipt_name": "image_model_v1_final_test_receipt.json",
+        "receipt_sha256": "4627f84a82282090caa22b75acbfdbd585b92720fe1a1ff7824dbf830e3385ad",
+        "status": "PASS"
+      },
+      "NLP": {
+        "artifact_name": "nlp_classifier_v3.json",
+        "artifact_sha256": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+        "checks": {
+          "artifact_hash": true,
+          "companion_artifacts": true,
+          "dataset_hash_cross_evidence": true,
+          "development_manifest_present": true,
+          "quality_report_valid": true,
+          "receipt_hash": true,
+          "shared_manifest_entry": true
+        },
+        "companion_artifacts": {},
+        "dataset_hash_sources": {
+          "artifact_manifest": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+          "component_spec": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+          "dataset_manifest": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+          "quality_report": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76"
+        },
+        "dataset_manifest_sha256": "aae4dc14efbdf50dedd25fb6803c1865f78afe14278864e4fd05bb9bbf66061e",
+        "dataset_sha256": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+        "development_manifest": "nlp_classifier_v3.development_manifest.json",
+        "development_manifest_sha256": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+        "quality_report_sha256": "e38bb32164bce82c9b42986810586da63d09af5acf3291573bed46c2e18a2416",
+        "receipt_name": "nlp_classifier_v3.final_test_receipt.json",
+        "receipt_sha256": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+        "status": "PASS"
+      }
+    },
+    "shared_artifact_manifest_sha256": "f19b7b62db6eadc84d80b3f034f7ec664ce6f1e75feb5a16a4aa79ecb347871d",
+    "shared_artifact_manifest_unchanged": true,
+    "status": "PASS"
+  },
+  "artifact_reproducibility_audit": {
+    "active_socket_guard": true,
+    "components": {
+      "ANOMALY": {
+        "component": "ANOMALY",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "70cccda34ccb393d921ef93d5c6dfb47de613af08f7d05edfed38576d33dd3b2",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "artifact_version": "anomaly-model-v1-synthetic-development",
+          "baseline_name": "STATISTICAL_ANOMALY_BASELINE",
+          "calibration": "NONE_VALIDATION_THRESHOLDS_ONLY",
+          "feature_version": "anomaly-window-features-v1-synthetic-development",
+          "heads": [
+            "DATA_QUALITY_ANOMALY",
+            "WEATHER_BEHAVIOR_ANOMALY"
+          ],
+          "model_family": "LOCAL_SCRATCH_DUAL_LOGISTIC",
+          "preprocessing_version": "anomaly-window-preprocessing-v1"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "CREDIBILITY": {
+        "component": "CREDIBILITY",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "6b7bfb20e610f77a48b317a33feaaba2057206418412afbeff30e182948c711b",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "artifact_kind": "INTERPRETABLE_LOCAL_LOGISTIC_REGRESSION",
+          "artifact_version": "credibility-v1-synthetic-development",
+          "feature_version": "credibility-risk-features-v1",
+          "output_labels": [
+            "AUTHENTIC",
+            "MISLEADING",
+            "UNCERTAIN"
+          ],
+          "preprocessing_version": "credibility-v1-feature-standardization-v1",
+          "prohibited_interpretation": "TRUTH_PROBABILITY"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "DUPLICATE": {
+        "component": "DUPLICATE",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "66abf64b028b3f3bd332548cee92be4b5e0da548a0feb37f5ea418ae70f124ac",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [
+          "duplicate_feature_state_v2.json"
+        ],
+        "metadata": {
+          "artifact_version": "duplicate-matcher-v1-synthetic-development",
+          "feature_version": "duplicate-features-v2-synthetic-development",
+          "preprocessing_version": "duplicate-text-normalization-v1",
+          "score_interpretation": "SIMILARITY_EVIDENCE_NOT_PROBABILITY",
+          "threshold_version": "duplicate-thresholds-v1-synthetic-validation"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "EVENT": {
+        "component": "EVENT",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "a79a828dee9ecd1c5bd2d30d115dd090ed27845270a5cde0515145eb3708cb3c",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "algorithm_version": "event-grouping-v2",
+          "artifact_kind": "DETERMINISTIC_CONFIGURATION_NOT_LEARNED_MODEL",
+          "artifact_version": "event-grouping-v1-synthetic-development",
+          "cluster_constraint": "COMPLETE_LINK_ALL_MEMBER_PAIRS",
+          "feature_version": "event-features-v1",
+          "single_report_semantics": "CANDIDATE_NOT_CONFIRMED"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "IMAGE": {
+        "component": "IMAGE",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "562a28cbab3ebde700bdf3a59b4b4facdc5c67cbabb30ecf737e2d3f7023eaf8",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "architecture_version": "scratch-cnn-v2-dual-pool",
+          "artifact_version": "image-model-v1-synthetic-development",
+          "feature_version": "image-pixel-features-v1",
+          "initialization": "SCRATCH_INITIALIZED",
+          "preprocessing_version": "image-preprocessing-v2-64x64",
+          "task_type": "MULTI_LABEL"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "semantic_invariants_status": "PASS",
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      },
+      "NLP": {
+        "component": "NLP",
+        "configuration_sufficient_for_inference": true,
+        "deterministic_inference_status": "PASS",
+        "external_model_files": [],
+        "inference_sha256": "47c8dc5468de0ccc3fc527bae5dc4bd93f184a5e11c71fc58bfdd00c577a5555",
+        "load_status": "PASS",
+        "local_hash_bound_companion_files": [],
+        "metadata": {
+          "class_mapping": [
+            "CLOUDBURST",
+            "CYCLONE_INUNDATION",
+            "NOT_RELEVANT",
+            "RIVER_BREACH",
+            "URBAN_FLOOD"
+          ],
+          "feature_count": 33917,
+          "feature_version": "nlp-features-v3-synthetic",
+          "model_version": "nlp-classifier-v3-synthetic-development",
+          "preprocessing_version": "nlp-text-normalization-v1"
+        },
+        "network_guard_active": true,
+        "network_required": false,
+        "required_metadata_status": "PASS",
+        "runtime_downloads": false,
+        "stable_sha256_status": "PASS",
+        "status": "PASS"
+      }
+    },
+    "protected_test_data_used": false,
+    "status": "PASS"
+  },
+  "boundary_independence_audit": {
+    "boundaries": [
+      "PostgreSQL",
+      "PostGIS",
+      "Kafka",
+      "Redis",
+      "FastAPI",
+      "authentication",
+      "frontend",
+      "remote URLs",
+      "external model-serving systems"
+    ],
+    "excluded_legacy_file": "backend/app/ml/event_classifier.py",
+    "files_scanned": 91,
+    "status": "PASS",
+    "violations": []
+  },
+  "component_count": 6,
+  "components": {
+    "ANOMALY": {
+      "artifact_name": "anomaly_model_v1.json",
+      "artifact_sha256": "3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb",
+      "code_and_configuration_hashes": {
+        "configuration_hash_origin": "PHASE_23_CONFIGURATION_SHA256",
+        "configuration_sha256": "17c29a891bc3ab83b79736b4f667736ad9474bd42ebb9ecc0bebcf4b050f0833",
+        "development_manifest_sha256": "c279a61df78ab551354a1f0c75cce71ccba973ce8190be07aa4d6b6b27fd37db",
+        "source_hashes_where_available": {
+          "backend/app/ml/anomaly_artifacts.py": "52fc3b5e8be61b52a7d1e3f92ecc82257c233b50403162d5ddede93a7364c99c",
+          "backend/app/ml/components/anomaly_detection.py": "e55e85368fe671743e10b3a2b8d1dc0e6a28ea9e9ab9d159890957034546a434",
+          "backend/app/ml/components/anomaly_features.py": "3f53d63e9ddb00ccbcd020d4634a2ccae0dd47e0d2bb86bf964661a0180376d6",
+          "backend/app/ml/data/synthetic_anomaly/generator.py": "3761ef77d3d3a5bc465d8ce4302398d90dedcaf11f8b2a81634ddfeac517a2b7",
+          "backend/app/ml/models/anomaly_window_model.py": "8b5682d4de47f0278468ca50f22efd1a33c1637aa279729dbf7f52e6d348b69a",
+          "backend/app/ml/training/anomaly_synthetic_validation.py": "4e8767c8a718b6e106f5c6e694119ef2d024a382912abdbb6fdbd6220b8a3179"
+        }
+      },
+      "companion_artifacts": {},
+      "component_version": "anomaly-model-v1-synthetic-development",
+      "dataset_manifest_sha256": "1fb7947e87153905495a3ca15395bc9c1f884cbaec8ea267e266030e2ff79a96",
+      "dataset_sha256": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+      "development_manifest": "anomaly_model_v1.development_manifest.json",
+      "development_manifest_sha256": "c279a61df78ab551354a1f0c75cce71ccba973ce8190be07aa4d6b6b27fd37db",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Synthetic feature separability does not establish field anomaly performance.",
+        "DATA_QUALITY_ANOMALY and WEATHER_BEHAVIOR_ANOMALY scores are separate development scores, not field probabilities.",
+        "The learned artifact is opt-in; the live framework retains the statistical baseline."
+      ],
+      "production_validation": "NOT_VALIDATED",
+      "protected_test_receipt": "anomaly_model_v1_final_test_receipt.json",
+      "protected_test_receipt_sha256": "8facd1be74825e86f79ccf3f72aef2f1c116176c406dbc96015f97b05685004a",
+      "quality_report_sha256": "96c49a9e9fede30f64fe96b2af31efc26d5469c6d7e0db2cbcba644991eb95b0",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    "CREDIBILITY": {
+      "artifact_name": "credibility_v1.json",
+      "artifact_sha256": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+      "code_and_configuration_hashes": {
+        "configuration_hash_origin": "PHASE_24_CANONICAL_HASH_OF_FROZEN_PHASE_21_CONFIGURATION",
+        "configuration_sha256": "cff855e2670f5721a908a565f2767d98a78bf024b6bdc3f8fc5e01aab8819c73",
+        "development_manifest_sha256": "2638a79d775cd6289be68775cbdc42ea2485e6dbf66ccb15e47ebd5b81fd644e",
+        "source_hashes_where_available": {}
+      },
+      "companion_artifacts": {},
+      "component_version": "credibility-v1-synthetic-development",
+      "dataset_manifest_sha256": "0da1161bb3b7aef33e901be5678bef16d78f78b2982cc9728b26145b55ed8cf5",
+      "dataset_sha256": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+      "development_manifest": "credibility_v1.development_manifest.json",
+      "development_manifest_sha256": "2638a79d775cd6289be68775cbdc42ea2485e6dbf66ccb15e47ebd5b81fd644e",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "AUTHENTIC, MISLEADING, and UNCERTAIN are modeled evidence states, not ground truth about a report.",
+        "Perfect synthetic holdout performance does not establish universal misinformation detection.",
+        "No field-labelled credibility validation exists."
+      ],
+      "production_validation": "NOT_VALIDATED",
+      "protected_test_receipt": "credibility_v1_final_test_receipt.json",
+      "protected_test_receipt_sha256": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+      "quality_report_sha256": "5d3fd3052f57e1868ad44efe67444c0cf7384027c424677c667006f382d53c45",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    "DUPLICATE": {
+      "artifact_name": "duplicate_matcher_v1.json",
+      "artifact_sha256": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+      "code_and_configuration_hashes": {
+        "configuration_hash_origin": "PHASE_24_CANONICAL_HASH_OF_FROZEN_PHASE_19_CONFIGURATION",
+        "configuration_sha256": "95e61fbd7c15c03d725014ca3b841549cf48936212f638ec082da515d40efedd",
+        "development_manifest_sha256": "6d13de9d2f85dbb5cb0c129fbf03c1317a3bd17edbe1526dc141242127528c39",
+        "source_hashes_where_available": {}
+      },
+      "companion_artifacts": {
+        "duplicate_feature_state_v2.json": {
+          "actual_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+          "expected_sha256": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+          "status": "PASS"
+        }
+      },
+      "component_version": "duplicate-matcher-v1-synthetic-development",
+      "dataset_manifest_sha256": "63cce0ce56919a735e4d0e594f1e1a2bd4f7f406e98720ac5dc0652c83169400",
+      "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+      "development_manifest": "duplicate_v1.development_manifest.json",
+      "development_manifest_sha256": "6d13de9d2f85dbb5cb0c129fbf03c1317a3bd17edbe1526dc141242127528c39",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Similarity evidence is not a calibrated field probability.",
+        "Synthetic pairs do not establish deployment-population precision or recall.",
+        "The live backend still uses a separate legacy embedding deduplicator."
+      ],
+      "production_validation": "NOT_VALIDATED",
+      "protected_test_receipt": "duplicate_v1_final_test_receipt.json",
+      "protected_test_receipt_sha256": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+      "quality_report_sha256": "ae81eb09ae5e7e1322588b8224dbdd0e0d699a4b918455633753690e6c39f60d",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    "EVENT": {
+      "artifact_name": "event_grouping_v1.json",
+      "artifact_sha256": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+      "code_and_configuration_hashes": {
+        "configuration_hash_origin": "PHASE_24_CANONICAL_HASH_OF_FROZEN_PHASE_20_CONFIGURATION",
+        "configuration_sha256": "11f673e71fa955f74c9afce9a091935eca75ef4efd97febad950d40df08b36b2",
+        "development_manifest_sha256": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+        "source_hashes_where_available": {
+          "event_grouping_v1.ablation.json": "40f330b4a93d789b3f20da245ec530feaaba121c0a2080f2f4e5bd6feb1c860f",
+          "event_grouping_v1.golden.json": "d60e3434f1dc884fb5f8adc7a1693056855eaa77d596ad49f533338537673a84",
+          "event_grouping_v1.json": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+          "event_grouping_v1.performance.json": "bc963d8e38b13b229c683f0eb2f4525afcab9d660400edbe8b663eb035fa30f3",
+          "event_grouping_v1.threshold_search.json": "9ec769463e20692348f76e93794162e445db503c721f5105d5739800c6ba1888",
+          "event_grouping_v1.validation_errors.json": "e0823439a49b041333d2646ec3562a6fd6d8e6df4e88ab33c3c8476a711db1d4",
+          "event_grouping_v1.validation_metrics.json": "da4eef4c34b901af73d176d0455db6fdb9262a14ac8ee9c189b0cbe0a3cf85de"
+        }
+      },
+      "companion_artifacts": {},
+      "component_version": "event-grouping-v1-synthetic-development",
+      "dataset_manifest_sha256": "8ddbfa05c5a773fc7323976b7c9fda4e3f88ecfdcb4f09fd64705ccb97eea712",
+      "dataset_sha256": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+      "development_manifest": "event_grouping_v1.development_manifest.json",
+      "development_manifest_sha256": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+      "implementation_status": "FROZEN_HEURISTIC_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Event grouping remains heuristic and its evidence score is not a probability.",
+        "Phase 20 held out canonical event identities but did not establish template or parameter-family separation.",
+        "A single report creates only a CANDIDATE and cannot confirm an event."
+      ],
+      "production_validation": "NOT_VALIDATED",
+      "protected_test_receipt": "event_grouping_v1_final_test_receipt.json",
+      "protected_test_receipt_sha256": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+      "quality_report_sha256": "a99d60e56d7b0383015cfe80bb3d36786a4c2ceb28c8cc7a207c8c528ce6cb1a",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    "IMAGE": {
+      "artifact_name": "image_model_v1.pt",
+      "artifact_sha256": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+      "code_and_configuration_hashes": {
+        "configuration_hash_origin": "PHASE_24_CANONICAL_HASH_OF_FROZEN_PHASE_22_CONFIGURATION",
+        "configuration_sha256": "66481203e51eabf497241d2a1aefc6465d63e78172c6d1178d43c45c2eae97a1",
+        "development_manifest_sha256": "6d683a9e23053b0a8a6ea447362c50f67cec95ea870b040518350caf7fc2e9a8",
+        "source_hashes_where_available": {
+          "backend/app/ml/components/image_processing.py": "a063509aebd63d65003315a6df46d6f2a9dcc2540bbfab77d062b5809ed7498f",
+          "backend/app/ml/data/synthetic_image/generator.py": "895cbf9a2265bc05abf0e496e3fcd3f04d8bf48c4b393536644c72f90d2706be",
+          "backend/app/ml/image_artifacts.py": "1f1aab1d435213b7ff12101db3c1ba8e7e857ae5e890f44d5aabff4e3e16f7bc",
+          "backend/app/ml/models/custom_cnn.py": "4da1140012e2018b5d7f08c4077735ee2840ea1bf68266e4a1bad7ce0a1a6871",
+          "backend/app/ml/training/image_synthetic_validation.py": "c1434ecfe75cffa588f8cffa08d1c4bf8cf97b25ccf574de01a1d60ff278b5fa"
+        }
+      },
+      "companion_artifacts": {},
+      "component_version": "image-model-v1-synthetic-development",
+      "dataset_manifest_sha256": "d222faf83b6f621707dfcc6791e2ccdd7337a46c44173dd197cf5e915fe1853f",
+      "dataset_sha256": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+      "development_manifest": "image_model_v1.development_manifest.json",
+      "development_manifest_sha256": "6d683a9e23053b0a8a6ea447362c50f67cec95ea870b040518350caf7fc2e9a8",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Multi-label synthetic-render performance does not establish real-photograph generalization.",
+        "Validation temperature scaling is not field calibration.",
+        "The scratch CNN is opt-in and is not integrated into the live backend."
+      ],
+      "production_validation": "NOT_VALIDATED",
+      "protected_test_receipt": "image_model_v1_final_test_receipt.json",
+      "protected_test_receipt_sha256": "4627f84a82282090caa22b75acbfdbd585b92720fe1a1ff7824dbf830e3385ad",
+      "quality_report_sha256": "cc30aba51868439a1ab8105efd3b809c41cf130e0890b31318c99c6d47b90c59",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    "NLP": {
+      "artifact_name": "nlp_classifier_v3.json",
+      "artifact_sha256": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+      "code_and_configuration_hashes": {
+        "configuration_hash_origin": "PHASE_18_FROZEN_CONFIGURATION_SHA256",
+        "configuration_sha256": "57af7a08092fad8a5c6efee3e41b8ce315b56ca0a25408d675c223ddb51ebe9b",
+        "development_manifest_sha256": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+        "source_hashes_where_available": {}
+      },
+      "companion_artifacts": {},
+      "component_version": "nlp-classifier-v3-synthetic-development",
+      "dataset_manifest_sha256": "aae4dc14efbdf50dedd25fb6803c1865f78afe14278864e4fd05bb9bbf66061e",
+      "dataset_sha256": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+      "development_manifest": "nlp_classifier_v3.development_manifest.json",
+      "development_manifest_sha256": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Synthetic multilingual templates do not establish field-language performance.",
+        "Validation calibration is not field calibration.",
+        "The Phase 18 artifact is opt-in and is not integrated into the live backend."
+      ],
+      "production_validation": "NOT_VALIDATED",
+      "protected_test_receipt": "nlp_classifier_v3.final_test_receipt.json",
+      "protected_test_receipt_sha256": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+      "quality_report_sha256": "e38bb32164bce82c9b42986810586da63d09af5acf3291573bed46c2e18a2416",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    }
+  },
+  "critical_limitation": "Synthetic benchmark performance must not be interpreted as field or production accuracy.",
+  "freeze_date": "2026-09-24",
+  "freeze_version": "ai-ml-final-freeze-v1",
+  "frozen_at": "2026-09-24T19:29:51.410288Z",
+  "global_data_leakage_audit": {
+    "components": {
+      "ANOMALY": {
+        "calibration_leakage": {
+          "evidence": "No probability calibration was fitted; validation-only thresholds remain explicit.",
+          "status": "PASS"
+        },
+        "family_leakage": {
+          "evidence": "Station families do not cross splits.",
+          "status": "PASS"
+        },
+        "label_derivation_leakage": {
+          "evidence": "Hidden scenario metadata is separate and labels do not derive from detector output.",
+          "status": "PASS"
+        },
+        "overall_status": "PASS",
+        "parameter_leakage": {
+          "evidence": "Anomaly parameter families and combinations do not cross splits.",
+          "status": "PASS"
+        },
+        "preprocessing_leakage": {
+          "evidence": "Scaling and model fitting used train; test records were not loaded for selection.",
+          "status": "PASS"
+        },
+        "protected_test_contamination": {
+          "evidence": "One-shot anomaly receipt records no post-freeze change.",
+          "status": "PASS"
+        },
+        "template_scenario_leakage": {
+          "evidence": "Temporal-pattern families do not cross splits; scenario class names are target categories, not shared trajectory identities.",
+          "status": "PASS"
+        },
+        "threshold_selection_leakage": {
+          "evidence": "The receipt excludes protected-test threshold selection.",
+          "status": "PASS"
+        },
+        "train_test_overlap": {
+          "evidence": "Window and trajectory hashes do not cross splits.",
+          "status": "PASS"
+        }
+      },
+      "CREDIBILITY": {
+        "calibration_leakage": {
+          "evidence": "Calibration uses its validation partition only.",
+          "status": "PASS"
+        },
+        "family_leakage": {
+          "evidence": "Report-family cross-split count is zero.",
+          "status": "PASS"
+        },
+        "label_derivation_leakage": {
+          "evidence": "Scenario identity supplies isolated labels; forbidden detector-input fields are absent.",
+          "status": "PASS"
+        },
+        "overall_status": "PASS",
+        "parameter_leakage": {
+          "evidence": "Parameter-combination cross-split count is zero.",
+          "status": "PASS"
+        },
+        "preprocessing_leakage": {
+          "evidence": "The receipt excludes protected-test preprocessing fit.",
+          "status": "PASS"
+        },
+        "protected_test_contamination": {
+          "evidence": "One-shot receipt records no test reuse or post-freeze change.",
+          "status": "PASS"
+        },
+        "template_scenario_leakage": {
+          "evidence": "Template cross-split count is zero.",
+          "status": "PASS"
+        },
+        "threshold_selection_leakage": {
+          "evidence": "Threshold selection uses its validation partition only.",
+          "status": "PASS"
+        },
+        "train_test_overlap": {
+          "evidence": "Normalized text and canonical-event cross-split counts are zero.",
+          "status": "PASS"
+        }
+      },
+      "DUPLICATE": {
+        "calibration_leakage": {
+          "evidence": "Platt score mapping was selected on validation only and does not change the duplicate decision.",
+          "status": "PASS"
+        },
+        "family_leakage": {
+          "evidence": "Incident and report families do not cross splits.",
+          "status": "PASS"
+        },
+        "label_derivation_leakage": {
+          "evidence": "Scenario identity supplies labels and the matcher was not used for labels.",
+          "status": "PASS"
+        },
+        "overall_status": "PASS",
+        "parameter_leakage": {
+          "evidence": "Generator parameter-combination cross-split count is zero.",
+          "status": "PASS"
+        },
+        "preprocessing_leakage": {
+          "evidence": "Feature state was fit before test and the receipt excludes test feature fitting.",
+          "status": "PASS"
+        },
+        "protected_test_contamination": {
+          "evidence": "One-shot receipt records no post-freeze configuration change.",
+          "status": "PASS"
+        },
+        "template_scenario_leakage": {
+          "evidence": "Scenario-family cross-split count is zero.",
+          "status": "PASS"
+        },
+        "threshold_selection_leakage": {
+          "evidence": "Thresholds are validation-selected; the receipt excludes test threshold selection.",
+          "status": "PASS"
+        },
+        "train_test_overlap": {
+          "evidence": "Exact text, report identity, and incident cross-split counts are zero.",
+          "status": "PASS"
+        }
+      },
+      "EVENT": {
+        "calibration_leakage": {
+          "evidence": "NOT_APPLICABLE: event evidence scores are explicitly heuristic and uncalibrated.",
+          "status": "PASS"
+        },
+        "family_leakage": {
+          "evidence": "Canonical event and incident families do not cross splits.",
+          "status": "PASS"
+        },
+        "label_derivation_leakage": {
+          "evidence": "Canonical truth is defined before detection and hidden from detector inputs.",
+          "status": "PASS"
+        },
+        "overall_status": "FAIL",
+        "parameter_leakage": {
+          "evidence": "FAIL_CLOSED: Phase 20 evidence contains no parameter-family or parameter-combination identity and therefore cannot prove parameter holdout.",
+          "status": "FAIL"
+        },
+        "preprocessing_leakage": {
+          "evidence": "The deterministic normalizer/configuration freeze did not access test rows.",
+          "status": "PASS"
+        },
+        "protected_test_contamination": {
+          "evidence": "One-shot receipt binds the frozen event configuration.",
+          "status": "PASS"
+        },
+        "template_scenario_leakage": {
+          "evidence": "FAIL_CLOSED: Phase 20 reused the eleven scenario templates across splits and recorded no template-identity leakage check; holdout strategy is canonical event ID only.",
+          "status": "FAIL"
+        },
+        "threshold_selection_leakage": {
+          "evidence": "Configuration selection used validation and the receipt excludes test tuning.",
+          "status": "PASS"
+        },
+        "train_test_overlap": {
+          "evidence": "Canonical event, incident, and report identities do not cross splits.",
+          "status": "PASS"
+        }
+      },
+      "IMAGE": {
+        "calibration_leakage": {
+          "evidence": "Per-label temperatures use validation only.",
+          "status": "PASS"
+        },
+        "family_leakage": {
+          "evidence": "Background families are held out and do not cross splits.",
+          "status": "PASS"
+        },
+        "label_derivation_leakage": {
+          "evidence": "Hidden scene metadata is physically separate and never reaches the CNN.",
+          "status": "PASS"
+        },
+        "overall_status": "PASS",
+        "parameter_leakage": {
+          "evidence": "Parameter families and combinations do not cross splits.",
+          "status": "PASS"
+        },
+        "preprocessing_leakage": {
+          "evidence": "Protected images were not accessed during training/preprocessing selection.",
+          "status": "PASS"
+        },
+        "protected_test_contamination": {
+          "evidence": "One-shot image receipt records no post-freeze change.",
+          "status": "PASS"
+        },
+        "template_scenario_leakage": {
+          "evidence": "Direct-template and scene-family cross-split counts are zero.",
+          "status": "PASS"
+        },
+        "threshold_selection_leakage": {
+          "evidence": "The receipt excludes protected-test threshold selection.",
+          "status": "PASS"
+        },
+        "train_test_overlap": {
+          "evidence": "Image-byte and exact-identity cross-split counts are zero.",
+          "status": "PASS"
+        }
+      },
+      "NLP": {
+        "calibration_leakage": {
+          "evidence": "Temperature scaling is validation-only and the receipt excludes test calibration.",
+          "status": "PASS"
+        },
+        "family_leakage": {
+          "evidence": "Generator-level template, location, lexicon, and time families are split-specific.",
+          "status": "PASS"
+        },
+        "label_derivation_leakage": {
+          "evidence": "Labels come from the project generator scenario specification; scenario binding failures are zero.",
+          "status": "PASS"
+        },
+        "overall_status": "PASS",
+        "parameter_leakage": {
+          "evidence": "Parameter-combination leakage count is zero.",
+          "status": "PASS"
+        },
+        "preprocessing_leakage": {
+          "evidence": "TF-IDF feature fitting is bound to train; validation and test are transform-only.",
+          "status": "PASS"
+        },
+        "protected_test_contamination": {
+          "evidence": "One-shot receipt is complete, immutable, and records no post-freeze change.",
+          "status": "PASS"
+        },
+        "template_scenario_leakage": {
+          "evidence": "Template and scenario leakage counts are zero.",
+          "status": "PASS"
+        },
+        "threshold_selection_leakage": {
+          "evidence": "The test examples were unavailable to configuration selection.",
+          "status": "PASS"
+        },
+        "train_test_overlap": {
+          "evidence": "Exact, normalized, and near-duplicate cross-split counts are zero.",
+          "status": "PASS"
+        }
+      }
+    },
+    "failed_checks": {
+      "EVENT": [
+        "template_scenario_leakage",
+        "parameter_leakage"
+      ]
+    },
+    "protected_test_evaluations_invoked_by_phase_24": 0,
+    "status": "FAIL"
+  },
+  "global_final_status": {
+    "AI_ML_STATUS": "AUDIT_COMPLETE",
+    "EXTERNAL_APIS": "NONE",
+    "LIVE_BACKEND_MODIFIED": "NO",
+    "NETWORK_ACCESS": "NONE",
+    "OPEN_WEIGHT_MODELS": "NONE",
+    "PRETRAINED_MODELS": "NONE",
+    "PRODUCTION_VALIDATION": "NOT_VALIDATED",
+    "VALIDATION_STATUS": "SYNTHETIC_DEVELOPMENT_VALIDATED",
+    "scope_note": "NETWORK_ACCESS NONE describes the frozen six-component subsystem. The repository-wide runtime network-isolation audit is FAIL because the separately scoped live legacy MiniLM path can attempt remote model resolution when uncached."
+  },
+  "legacy_minilm_audit": {
+    "classification_counts": {
+      "DEAD_CODE": 5,
+      "DOCUMENTATION_ONLY": 18,
+      "LIVE_PRODUCTION_PATH": 10,
+      "MIGRATION_TARGET": 10,
+      "TEST_ONLY": 14
+    },
+    "dead_legacy_classifier_importers": [],
+    "live_backend_depends_on_embedding_model": true,
+    "live_call_chain": [
+      "backend/app/main.py lifespan warmup",
+      "backend/app/services/pipeline.py DedupService.find_duplicate",
+      "backend/app/services/dedup.py _get_embedding_model"
+    ],
+    "live_reference_files": [
+      "backend/app/main.py",
+      "backend/app/services/dedup.py",
+      "backend/app/services/pipeline.py",
+      "backend/requirements.txt"
+    ],
+    "model_identifier": "sentence-transformers/all-MiniLM-L6-v2",
+    "new_six_component_subsystem_depends_on_embedding_model": false,
+    "references": [
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "# MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.",
+        "file": "backend/app/main.py",
+        "line": 49
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "# prompt_name in sentence-transformers 6.x, so passing True there",
+        "file": "backend/app/main.py",
+        "line": 69
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"sentence_transformers\": [],",
+        "file": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+        "line": 64
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"minilm_modified\": false,",
+        "file": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+        "line": 68
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"sentence_transformers\": [],",
+        "file": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+        "line": 163
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"minilm_modified\": false,",
+        "file": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+        "line": 167
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"minilm_modified\": false,",
+        "file": "backend/app/ml/artifacts/duplicate_v1_final_test_receipt.json",
+        "line": 53
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"embedding_model\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+        "file": "backend/app/ml/artifacts/event_classifier_v1.metrics.json",
+        "line": 3
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "MiniLM path is excluded from the compliant subsystem and remains visibly",
+        "file": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+        "line": 301
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "10. A separately approved, regression-tested, rollback-capable legacy MiniLM",
+        "file": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+        "line": 338
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "The former MiniLM-based implementation remains legacy and is excluded from the",
+        "file": "backend/app/ml/docs/ARCHITECTURE.md",
+        "line": 32
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "HTTP, or load the legacy MiniLM implementation.",
+        "file": "backend/app/ml/docs/ARCHITECTURE.md",
+        "line": 94
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "NLP v3 hashes are unchanged. `backend/app/services/dedup.py`, MiniLM, Kafka,",
+        "file": "backend/app/ml/docs/DUPLICATE_V1_SYNTHETIC_VALIDATION.md",
+        "line": 173
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "-> sentence-transformers/all-MiniLM-L6-v2 when available",
+        "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+        "line": 13
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "`backend/requirements.txt` declares `sentence-transformers`. These live files",
+        "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+        "line": 19
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "MiniLM warm-up task and its shutdown handling from `backend/app/main.py`.",
+        "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+        "line": 102
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "Remove `sentence-transformers`, the legacy model loader, and legacy-only model",
+        "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+        "line": 108
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "API, pipeline, Kafka, database, frontend, or legacy MiniLM path. No network,",
+        "file": "backend/app/ml/docs/NLP_DATASET_WORKFLOW.md",
+        "line": 8
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "`backend/requirements.txt` still declares `sentence-transformers`, and the",
+        "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+        "line": 127
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses",
+        "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+        "line": 129
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "and event behavior, uncalibrated credibility risk, and the live legacy MiniLM",
+        "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+        "line": 218
+      },
+      {
+        "classification": "DEAD_CODE",
+        "excerpt": "features   all-MiniLM-L6-v2 sentence embeddings (normalised, CPU), the same",
+        "file": "backend/app/ml/event_classifier.py",
+        "line": 7
+      },
+      {
+        "classification": "DEAD_CODE",
+        "excerpt": "model instance dedup loads, so the process holds MiniLM once",
+        "file": "backend/app/ml/event_classifier.py",
+        "line": 8
+      },
+      {
+        "classification": "DEAD_CODE",
+        "excerpt": "EMBEDDING_MODEL = \"sentence-transformers/all-MiniLM-L6-v2\"",
+        "file": "backend/app/ml/event_classifier.py",
+        "line": 40
+      },
+      {
+        "classification": "DEAD_CODE",
+        "excerpt": "\"\"\"Normalised MiniLM embeddings, float32, shape (n, 384). None if the model is unavailable.\"\"\"",
+        "file": "backend/app/ml/event_classifier.py",
+        "line": 61
+      },
+      {
+        "classification": "DEAD_CODE",
+        "excerpt": "raise RuntimeError(\"MiniLM is unavailable; cannot train the event classifier\")",
+        "file": "backend/app/ml/event_classifier.py",
+        "line": 161
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"model_identifier\": \"sentence-\" + \"transformers/all-\" + \"MiniLM-L6-v2\",",
+        "file": "backend/app/ml/final_freeze.py",
+        "line": 539
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"the separately scoped live legacy MiniLM path can attempt remote \"",
+        "file": "backend/app/ml/final_freeze.py",
+        "line": 2070
+      },
+      {
+        "classification": "DOCUMENTATION_ONLY",
+        "excerpt": "\"legacy_minilm_audit\": legacy,",
+        "file": "backend/app/ml/final_freeze.py",
+        "line": 2114
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "\"all\" + \"-minilm\",",
+        "file": "backend/app/ml/release_gate.py",
+        "line": 524
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "legacy_minilm_status: Literal[\"LEGACY_BACKEND_VIOLATION\"] = (",
+        "file": "backend/app/ml/release_gate.py",
+        "line": 692
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "\"LEGACY_BACKEND_VIOLATION: MiniLM migration is specified but not implemented.\",",
+        "file": "backend/app/ml/release_gate.py",
+        "line": 1304
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "\"LEGACY_BACKEND_VIOLATION: live MiniLM deduplication migration is pending\",",
+        "file": "backend/app/ml/release_gate.py",
+        "line": 1336
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "\"sentence_transformers\",",
+        "file": "backend/app/ml/tests/test_anomaly_detection.py",
+        "line": 784
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "The legacy MiniLM module is intentionally excluded and documented as legacy.",
+        "file": "backend/app/ml/tests/test_artifact_policy.py",
+        "line": 3
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "checkpoint = \"all\" + \"-\" + \"MiniLM\" + \"-\" + \"L6-v2\"",
+        "file": "backend/app/ml/tests/test_artifact_policy.py",
+        "line": 49
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "def test_sentence_transformer_dependency_is_legacy_not_new_subsystem_usage():",
+        "file": "backend/app/ml/tests/test_artifact_policy.py",
+        "line": 152
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "assert \"sentence-transformers\" in requirements.read_text(encoding=\"utf-8\")",
+        "file": "backend/app/ml/tests/test_artifact_policy.py",
+        "line": 154
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "if \"sentence_transformers\" in source or \"sentence-transformers\" in source:",
+        "file": "backend/app/ml/tests/test_artifact_policy.py",
+        "line": 158
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "r\"^\\s*(?:from|import)\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\b\",",
+        "file": "backend/app/ml/tests/test_phase20_event_validation.py",
+        "line": 262
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "r\"^\\s*(?:from|import)\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\b\",",
+        "file": "backend/app/ml/tests/test_phase21_credibility_validation.py",
+        "line": 322
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "def test_minilm_references_are_classified_and_live_dependency_is_explicit():",
+        "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+        "line": 112
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "\"minilm_modified\": False,",
+        "file": "backend/app/ml/training/duplicate_validation.py",
+        "line": 1845
+      },
+      {
+        "classification": "MIGRATION_TARGET",
+        "excerpt": "\"minilm_modified\": False,",
+        "file": "backend/app/ml/training/duplicate_validation.py",
+        "line": 2223
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "1. Cosine similarity via sentence-transformers (primary)",
+        "file": "backend/app/services/dedup.py",
+        "line": 4
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "\"\"\"Load sentence-transformers model lazily. Returns None if unavailable.\"\"\"",
+        "file": "backend/app/services/dedup.py",
+        "line": 54
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "from sentence_transformers import SentenceTransformer",
+        "file": "backend/app/services/dedup.py",
+        "line": 61
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "_model = SentenceTransformer(\"sentence-transformers/all-MiniLM-L6-v2\", device=\"cpu\")",
+        "file": "backend/app/services/dedup.py",
+        "line": 64
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "logger.info(\"✓ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup\")",
+        "file": "backend/app/services/dedup.py",
+        "line": 65
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "logger.warning(f\"⚠ Could not load sentence-transformers: {e}. Using Levenshtein fallback.\")",
+        "file": "backend/app/services/dedup.py",
+        "line": 69
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "# find_duplicate is synchronous and MiniLM's encode() is blocking,",
+        "file": "backend/app/services/pipeline.py",
+        "line": 739
+      },
+      {
+        "classification": "LIVE_PRODUCTION_PATH",
+        "excerpt": "sentence-transformers>=2.5.1",
+        "file": "backend/requirements.txt",
+        "line": 13
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "True when sentence-transformers loaded successfully.",
+        "file": "backend/tests/conftest.py",
+        "line": 137
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "reason=\"sentence-transformers model unavailable — dedup is on the Levenshtein fallback\",",
+        "file": "backend/tests/conftest.py",
+        "line": 148
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "sentence-transformers loaded, Levenshtein ≥ 0.75 on the fallback — so the one",
+        "file": "backend/tests/test_dedup.py",
+        "line": 9
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "Unit level (no database). Tests that embed text need MiniLM and are skipped",
+        "file": "backend/tests/test_event_classifier.py",
+        "line": 5
+      },
+      {
+        "classification": "TEST_ONLY",
+        "excerpt": "Unit level (no database). The leakage check needs the MiniLM model and is",
+        "file": "backend/tests/test_labelled_dataset.py",
+        "line": 4
+      }
+    ],
+    "runtime_behavior": "LIVE_LAZY_LOAD_AND_STARTUP_WARMUP; remote resolution may be attempted when the model is not cached; failure falls back to Levenshtein",
+    "status": "LEGACY_BACKEND_VIOLATION"
+  },
+  "manifest_schema_version": "1.0",
+  "network_isolation_audit": {
+    "boundary_independence": {
+      "boundaries": [
+        "PostgreSQL",
+        "PostGIS",
+        "Kafka",
+        "Redis",
+        "FastAPI",
+        "authentication",
+        "frontend",
+        "remote URLs",
+        "external model-serving systems"
+      ],
+      "excluded_legacy_file": "backend/app/ml/event_classifier.py",
+      "files_scanned": 91,
+      "status": "PASS",
+      "violations": []
+    },
+    "component_artifact_policy": {
+      "components": {
+        "ANOMALY": {
+          "checks": {
+            "external_apis_none": true,
+            "live_backend_not_modified": true,
+            "network_access_disabled": true,
+            "open_weight_models_none": true,
+            "pretrained_models_none": true,
+            "runtime_downloads_disabled": true
+          },
+          "policy_evidence": {
+            "external_apis": [],
+            "live_backend_modified": false,
+            "network_access": false,
+            "open_weight_models": [],
+            "pretrained_models": [],
+            "runtime_downloads": false
+          },
+          "status": "PASS"
+        },
+        "CREDIBILITY": {
+          "checks": {
+            "external_apis_none": true,
+            "live_backend_not_modified": true,
+            "network_access_disabled": true,
+            "open_weight_models_none": true,
+            "pretrained_models_none": true,
+            "runtime_downloads_disabled": true
+          },
+          "policy_evidence": {
+            "duplicate_matcher_v1_modified": false,
+            "event_grouping_v1_modified": false,
+            "external_apis": [],
+            "future_human_review_features": false,
+            "live_backend_modified": false,
+            "network_access": false,
+            "nlp_v3_modified": false,
+            "open_weight_models": [],
+            "pretrained_models": []
+          },
+          "status": "PASS"
+        },
+        "DUPLICATE": {
+          "checks": {
+            "external_apis_none": true,
+            "live_backend_not_modified": true,
+            "network_access_disabled": true,
+            "open_weight_models_none": true,
+            "pretrained_models_none": true,
+            "runtime_downloads_disabled": true
+          },
+          "policy_evidence": {
+            "default_duplicate_configuration_modified": false,
+            "embeddings": [],
+            "external_apis": [],
+            "live_backend_modified": false,
+            "minilm_modified": false,
+            "network_access": false,
+            "nlp_v3_modified": false,
+            "open_weight_models": [],
+            "pretrained_models": [],
+            "sentence_transformers": []
+          },
+          "status": "PASS"
+        },
+        "EVENT": {
+          "checks": {
+            "external_apis_none": true,
+            "live_backend_not_modified": true,
+            "network_access_disabled": true,
+            "open_weight_models_none": true,
+            "pretrained_models_none": true,
+            "runtime_downloads_disabled": true
+          },
+          "policy_evidence": {
+            "duplicate_model_modified": false,
+            "external_apis": [],
+            "learned_model_created": false,
+            "live_backend_modified": false,
+            "network_access": false,
+            "nlp_model_modified": false,
+            "open_weight_models": [],
+            "pretrained_models": [],
+            "runtime_downloads": false
+          },
+          "status": "PASS"
+        },
+        "IMAGE": {
+          "checks": {
+            "external_apis_none": true,
+            "live_backend_not_modified": true,
+            "network_access_disabled": true,
+            "open_weight_models_none": true,
+            "pretrained_models_none": true,
+            "runtime_downloads_disabled": true
+          },
+          "policy_evidence": {
+            "development_only": true,
+            "external_apis": [],
+            "live_backend_modified": false,
+            "network_access": false,
+            "open_weight_models": [],
+            "pretrained_models": [],
+            "project_trained": true,
+            "runtime_downloads": false,
+            "scratch_initialized": true
+          },
+          "status": "PASS"
+        },
+        "NLP": {
+          "checks": {
+            "external_apis_none": true,
+            "live_backend_not_modified": true,
+            "network_access_disabled": true,
+            "open_weight_models_none": true,
+            "pretrained_models_none": true,
+            "runtime_downloads_disabled": true
+          },
+          "policy_evidence": {
+            "allowed_libraries": [
+              "standard_python",
+              "numpy",
+              "scipy",
+              "scikit_learn"
+            ],
+            "default_nlp_configuration_modified": false,
+            "external_apis": [],
+            "live_backend_modified": false,
+            "network_access": false,
+            "open_weight_models": [],
+            "pretrained_models": [],
+            "runtime_downloads": false,
+            "transfer_learning": false
+          },
+          "status": "PASS"
+        }
+      },
+      "status": "PASS"
+    },
+    "distinguished_non_inference_symbols": "AST-based scanning evaluates imports, calls, checkpoint identifiers, and remote URL literals in production ML source; comments and ordinary standard-library symbols are not treated as network inference.",
+    "failure_scope": "LIVE_LEGACY_BACKEND_OUTSIDE_FROZEN_SIX_COMPONENT_SUBSYSTEM",
+    "frozen_subsystem_network_access": "NONE",
+    "legacy_embedding_runtime": {
+      "classification_counts": {
+        "DEAD_CODE": 5,
+        "DOCUMENTATION_ONLY": 18,
+        "LIVE_PRODUCTION_PATH": 10,
+        "MIGRATION_TARGET": 10,
+        "TEST_ONLY": 14
+      },
+      "dead_legacy_classifier_importers": [],
+      "live_backend_depends_on_embedding_model": true,
+      "live_call_chain": [
+        "backend/app/main.py lifespan warmup",
+        "backend/app/services/pipeline.py DedupService.find_duplicate",
+        "backend/app/services/dedup.py _get_embedding_model"
+      ],
+      "live_reference_files": [
+        "backend/app/main.py",
+        "backend/app/services/dedup.py",
+        "backend/app/services/pipeline.py",
+        "backend/requirements.txt"
+      ],
+      "model_identifier": "sentence-transformers/all-MiniLM-L6-v2",
+      "new_six_component_subsystem_depends_on_embedding_model": false,
+      "references": [
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "# MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.",
+          "file": "backend/app/main.py",
+          "line": 49
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "# prompt_name in sentence-transformers 6.x, so passing True there",
+          "file": "backend/app/main.py",
+          "line": 69
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"sentence_transformers\": [],",
+          "file": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+          "line": 64
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"minilm_modified\": false,",
+          "file": "backend/app/ml/artifacts/duplicate_matcher_v1.json",
+          "line": 68
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"sentence_transformers\": [],",
+          "file": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+          "line": 163
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"minilm_modified\": false,",
+          "file": "backend/app/ml/artifacts/duplicate_v1.development_manifest.json",
+          "line": 167
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"minilm_modified\": false,",
+          "file": "backend/app/ml/artifacts/duplicate_v1_final_test_receipt.json",
+          "line": 53
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"embedding_model\": \"sentence-transformers/all-MiniLM-L6-v2\",",
+          "file": "backend/app/ml/artifacts/event_classifier_v1.metrics.json",
+          "line": 3
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "MiniLM path is excluded from the compliant subsystem and remains visibly",
+          "file": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+          "line": 301
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "10. A separately approved, regression-tested, rollback-capable legacy MiniLM",
+          "file": "backend/app/ml/docs/AI_ML_RELEASE_READINESS.md",
+          "line": 338
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "The former MiniLM-based implementation remains legacy and is excluded from the",
+          "file": "backend/app/ml/docs/ARCHITECTURE.md",
+          "line": 32
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "HTTP, or load the legacy MiniLM implementation.",
+          "file": "backend/app/ml/docs/ARCHITECTURE.md",
+          "line": 94
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "NLP v3 hashes are unchanged. `backend/app/services/dedup.py`, MiniLM, Kafka,",
+          "file": "backend/app/ml/docs/DUPLICATE_V1_SYNTHETIC_VALIDATION.md",
+          "line": 173
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "-> sentence-transformers/all-MiniLM-L6-v2 when available",
+          "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+          "line": 13
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "`backend/requirements.txt` declares `sentence-transformers`. These live files",
+          "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+          "line": 19
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "MiniLM warm-up task and its shutdown handling from `backend/app/main.py`.",
+          "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+          "line": 102
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "Remove `sentence-transformers`, the legacy model loader, and legacy-only model",
+          "file": "backend/app/ml/docs/LEGACY_DEDUP_MIGRATION.md",
+          "line": 108
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "API, pipeline, Kafka, database, frontend, or legacy MiniLM path. No network,",
+          "file": "backend/app/ml/docs/NLP_DATASET_WORKFLOW.md",
+          "line": 8
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "`backend/requirements.txt` still declares `sentence-transformers`, and the",
+          "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+          "line": 127
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "`sentence-transformers/all-MiniLM-L6-v2`. The live application warms and uses",
+          "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+          "line": 129
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "and event behavior, uncalibrated credibility risk, and the live legacy MiniLM",
+          "file": "backend/app/ml/docs/PHASE_10_AUDIT.md",
+          "line": 218
+        },
+        {
+          "classification": "DEAD_CODE",
+          "excerpt": "features   all-MiniLM-L6-v2 sentence embeddings (normalised, CPU), the same",
+          "file": "backend/app/ml/event_classifier.py",
+          "line": 7
+        },
+        {
+          "classification": "DEAD_CODE",
+          "excerpt": "model instance dedup loads, so the process holds MiniLM once",
+          "file": "backend/app/ml/event_classifier.py",
+          "line": 8
+        },
+        {
+          "classification": "DEAD_CODE",
+          "excerpt": "EMBEDDING_MODEL = \"sentence-transformers/all-MiniLM-L6-v2\"",
+          "file": "backend/app/ml/event_classifier.py",
+          "line": 40
+        },
+        {
+          "classification": "DEAD_CODE",
+          "excerpt": "\"\"\"Normalised MiniLM embeddings, float32, shape (n, 384). None if the model is unavailable.\"\"\"",
+          "file": "backend/app/ml/event_classifier.py",
+          "line": 61
+        },
+        {
+          "classification": "DEAD_CODE",
+          "excerpt": "raise RuntimeError(\"MiniLM is unavailable; cannot train the event classifier\")",
+          "file": "backend/app/ml/event_classifier.py",
+          "line": 161
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"model_identifier\": \"sentence-\" + \"transformers/all-\" + \"MiniLM-L6-v2\",",
+          "file": "backend/app/ml/final_freeze.py",
+          "line": 539
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"the separately scoped live legacy MiniLM path can attempt remote \"",
+          "file": "backend/app/ml/final_freeze.py",
+          "line": 2070
+        },
+        {
+          "classification": "DOCUMENTATION_ONLY",
+          "excerpt": "\"legacy_minilm_audit\": legacy,",
+          "file": "backend/app/ml/final_freeze.py",
+          "line": 2114
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "\"all\" + \"-minilm\",",
+          "file": "backend/app/ml/release_gate.py",
+          "line": 524
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "legacy_minilm_status: Literal[\"LEGACY_BACKEND_VIOLATION\"] = (",
+          "file": "backend/app/ml/release_gate.py",
+          "line": 692
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "\"LEGACY_BACKEND_VIOLATION: MiniLM migration is specified but not implemented.\",",
+          "file": "backend/app/ml/release_gate.py",
+          "line": 1304
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "\"LEGACY_BACKEND_VIOLATION: live MiniLM deduplication migration is pending\",",
+          "file": "backend/app/ml/release_gate.py",
+          "line": 1336
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "\"sentence_transformers\",",
+          "file": "backend/app/ml/tests/test_anomaly_detection.py",
+          "line": 784
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "The legacy MiniLM module is intentionally excluded and documented as legacy.",
+          "file": "backend/app/ml/tests/test_artifact_policy.py",
+          "line": 3
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "checkpoint = \"all\" + \"-\" + \"MiniLM\" + \"-\" + \"L6-v2\"",
+          "file": "backend/app/ml/tests/test_artifact_policy.py",
+          "line": 49
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "def test_sentence_transformer_dependency_is_legacy_not_new_subsystem_usage():",
+          "file": "backend/app/ml/tests/test_artifact_policy.py",
+          "line": 152
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "assert \"sentence-transformers\" in requirements.read_text(encoding=\"utf-8\")",
+          "file": "backend/app/ml/tests/test_artifact_policy.py",
+          "line": 154
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "if \"sentence_transformers\" in source or \"sentence-transformers\" in source:",
+          "file": "backend/app/ml/tests/test_artifact_policy.py",
+          "line": 158
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "r\"^\\s*(?:from|import)\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\b\",",
+          "file": "backend/app/ml/tests/test_phase20_event_validation.py",
+          "line": 262
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "r\"^\\s*(?:from|import)\\s+(?:requests|httpx|urllib|transformers|torch|sentence_transformers|tensorflow)\\b\",",
+          "file": "backend/app/ml/tests/test_phase21_credibility_validation.py",
+          "line": 322
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "def test_minilm_references_are_classified_and_live_dependency_is_explicit():",
+          "file": "backend/app/ml/tests/test_phase24_final_freeze.py",
+          "line": 112
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "\"minilm_modified\": False,",
+          "file": "backend/app/ml/training/duplicate_validation.py",
+          "line": 1845
+        },
+        {
+          "classification": "MIGRATION_TARGET",
+          "excerpt": "\"minilm_modified\": False,",
+          "file": "backend/app/ml/training/duplicate_validation.py",
+          "line": 2223
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "1. Cosine similarity via sentence-transformers (primary)",
+          "file": "backend/app/services/dedup.py",
+          "line": 4
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "\"\"\"Load sentence-transformers model lazily. Returns None if unavailable.\"\"\"",
+          "file": "backend/app/services/dedup.py",
+          "line": 54
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "from sentence_transformers import SentenceTransformer",
+          "file": "backend/app/services/dedup.py",
+          "line": 61
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "_model = SentenceTransformer(\"sentence-transformers/all-MiniLM-L6-v2\", device=\"cpu\")",
+          "file": "backend/app/services/dedup.py",
+          "line": 64
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "logger.info(\"✓ Loaded sentence-transformers/all-MiniLM-L6-v2 for dedup\")",
+          "file": "backend/app/services/dedup.py",
+          "line": 65
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "logger.warning(f\"⚠ Could not load sentence-transformers: {e}. Using Levenshtein fallback.\")",
+          "file": "backend/app/services/dedup.py",
+          "line": 69
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "# find_duplicate is synchronous and MiniLM's encode() is blocking,",
+          "file": "backend/app/services/pipeline.py",
+          "line": 739
+        },
+        {
+          "classification": "LIVE_PRODUCTION_PATH",
+          "excerpt": "sentence-transformers>=2.5.1",
+          "file": "backend/requirements.txt",
+          "line": 13
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "True when sentence-transformers loaded successfully.",
+          "file": "backend/tests/conftest.py",
+          "line": 137
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "reason=\"sentence-transformers model unavailable — dedup is on the Levenshtein fallback\",",
+          "file": "backend/tests/conftest.py",
+          "line": 148
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "sentence-transformers loaded, Levenshtein ≥ 0.75 on the fallback — so the one",
+          "file": "backend/tests/test_dedup.py",
+          "line": 9
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "Unit level (no database). Tests that embed text need MiniLM and are skipped",
+          "file": "backend/tests/test_event_classifier.py",
+          "line": 5
+        },
+        {
+          "classification": "TEST_ONLY",
+          "excerpt": "Unit level (no database). The leakage check needs the MiniLM model and is",
+          "file": "backend/tests/test_labelled_dataset.py",
+          "line": 4
+        }
+      ],
+      "runtime_behavior": "LIVE_LAZY_LOAD_AND_STARTUP_WARMUP; remote resolution may be attempted when the model is not cached; failure falls back to Levenshtein",
+      "status": "LEGACY_BACKEND_VIOLATION"
+    },
+    "prohibited_runtime_capabilities": {
+      "api_sdk_inference": "ABSENT_IN_FROZEN_SUBSYSTEM",
+      "cloud_inference": "ABSENT_IN_FROZEN_SUBSYSTEM",
+      "http_model_client": "ABSENT_IN_FROZEN_SUBSYSTEM",
+      "hugging_face_model_download": "ABSENT_IN_FROZEN_SUBSYSTEM",
+      "remote_checkpoint_retrieval": "ABSENT_IN_FROZEN_SUBSYSTEM",
+      "requests": "ABSENT_IN_FROZEN_SUBSYSTEM",
+      "runtime_model_download": "ABSENT_IN_FROZEN_SUBSYSTEM",
+      "urllib_inference": "ABSENT_IN_FROZEN_SUBSYSTEM"
+    },
+    "repository_live_runtime_status": "FAIL",
+    "six_component_frozen_subsystem_status": "PASS",
+    "static_policy_scan": {
+      "compliant": true,
+      "files_scanned": 91,
+      "legacy_status": "LEGACY_BACKEND_VIOLATION",
+      "violations": []
+    },
+    "status": "FAIL"
+  },
+  "phase": "24 — SIX-COMPONENT FINAL AI/ML FREEZE",
+  "phase_24_mutations": {
+    "architectures_modified": false,
+    "live_backend_modified": false,
+    "protected_final_tests_rerun": false,
+    "protected_test_sets_regenerated": false,
+    "rebalanced": false,
+    "retrained": false,
+    "retuned": false,
+    "thresholds_modified": false
+  },
+  "production_readiness_matrix": [
+    {
+      "artifact_hash": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+      "backend_integration_status": "NOT_INTEGRATED_DEVELOPMENT_ONLY",
+      "component": "NLP",
+      "dataset_hash": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+      "dataset_type": "PROJECT_AUTHORED_SYNTHETIC_DEVELOPMENT_ONLY",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Synthetic multilingual templates do not establish field-language performance.",
+        "Validation calibration is not field calibration.",
+        "The Phase 18 artifact is opt-in and is not integrated into the live backend."
+      ],
+      "model_type": "LOCAL_CHARACTER_WORD_TFIDF_LOGISTIC_REGRESSION",
+      "network_required": false,
+      "open_weight_model_used": false,
+      "pretrained_model_used": false,
+      "production_validation_status": "NOT_VALIDATED",
+      "protected_test_status": "FROZEN_ONE_SHOT_RECEIPT_VERIFIED",
+      "training_source": "PROJECT_AUTHORED_SYNTHETIC",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    {
+      "artifact_hash": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+      "backend_integration_status": "NOT_INTEGRATED_DEVELOPMENT_ONLY",
+      "component": "DUPLICATE",
+      "dataset_hash": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+      "dataset_type": "PROJECT_AUTHORED_SYNTHETIC_DEVELOPMENT_ONLY",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Similarity evidence is not a calibrated field probability.",
+        "Synthetic pairs do not establish deployment-population precision or recall.",
+        "The live backend still uses a separate legacy embedding deduplicator."
+      ],
+      "model_type": "DETERMINISTIC_WEIGHTED_SIMILARITY_MATCHER",
+      "network_required": false,
+      "open_weight_model_used": false,
+      "pretrained_model_used": false,
+      "production_validation_status": "NOT_VALIDATED",
+      "protected_test_status": "FROZEN_ONE_SHOT_RECEIPT_VERIFIED",
+      "training_source": "PROJECT_AUTHORED_SYNTHETIC_FEATURE_FIT",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    {
+      "artifact_hash": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+      "backend_integration_status": "NOT_INTEGRATED_DEVELOPMENT_ONLY",
+      "component": "EVENT",
+      "dataset_hash": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+      "dataset_type": "PROJECT_AUTHORED_SYNTHETIC_DEVELOPMENT_ONLY",
+      "implementation_status": "FROZEN_HEURISTIC_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Event grouping remains heuristic and its evidence score is not a probability.",
+        "Phase 20 held out canonical event identities but did not establish template or parameter-family separation.",
+        "A single report creates only a CANDIDATE and cannot confirm an event."
+      ],
+      "model_type": "DETERMINISTIC_HEURISTIC_EVENT_GROUPING_CONFIGURATION",
+      "network_required": false,
+      "open_weight_model_used": false,
+      "pretrained_model_used": false,
+      "production_validation_status": "NOT_VALIDATED",
+      "protected_test_status": "FROZEN_ONE_SHOT_RECEIPT_VERIFIED",
+      "training_source": "NO_LEARNED_MODEL_VALIDATION_SELECTED_CONFIGURATION",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    {
+      "artifact_hash": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+      "backend_integration_status": "NOT_INTEGRATED_DEVELOPMENT_ONLY",
+      "component": "CREDIBILITY",
+      "dataset_hash": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+      "dataset_type": "PROJECT_AUTHORED_SYNTHETIC_DEVELOPMENT_ONLY",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "AUTHENTIC, MISLEADING, and UNCERTAIN are modeled evidence states, not ground truth about a report.",
+        "Perfect synthetic holdout performance does not establish universal misinformation detection.",
+        "No field-labelled credibility validation exists."
+      ],
+      "model_type": "INTERPRETABLE_LOCAL_LOGISTIC_REGRESSION_WITH_ABSTENTION",
+      "network_required": false,
+      "open_weight_model_used": false,
+      "pretrained_model_used": false,
+      "production_validation_status": "NOT_VALIDATED",
+      "protected_test_status": "FROZEN_ONE_SHOT_RECEIPT_VERIFIED",
+      "training_source": "PROJECT_AUTHORED_SYNTHETIC",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    {
+      "artifact_hash": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+      "backend_integration_status": "NOT_INTEGRATED_DEVELOPMENT_ONLY",
+      "component": "IMAGE",
+      "dataset_hash": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+      "dataset_type": "PROJECT_AUTHORED_SYNTHETIC_RENDERED_DEVELOPMENT_ONLY",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Multi-label synthetic-render performance does not establish real-photograph generalization.",
+        "Validation temperature scaling is not field calibration.",
+        "The scratch CNN is opt-in and is not integrated into the live backend."
+      ],
+      "model_type": "SCRATCH_CNN_V2_MULTI_LABEL",
+      "network_required": false,
+      "open_weight_model_used": false,
+      "pretrained_model_used": false,
+      "production_validation_status": "NOT_VALIDATED",
+      "protected_test_status": "FROZEN_ONE_SHOT_RECEIPT_VERIFIED",
+      "training_source": "PROJECT_AUTHORED_SYNTHETIC_SCRATCH_INITIALIZED",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    },
+    {
+      "artifact_hash": "3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb",
+      "backend_integration_status": "NOT_INTEGRATED_DEVELOPMENT_ONLY",
+      "component": "ANOMALY",
+      "dataset_hash": "818b82a3c91a2e263e3e2dd684c434f7072a8415135411f982b027d80f9f0546",
+      "dataset_type": "PROJECT_AUTHORED_SYNTHETIC_TEMPORAL_WINDOWS_DEVELOPMENT_ONLY",
+      "implementation_status": "FROZEN_DEVELOPMENT_IMPLEMENTATION",
+      "known_limitations": [
+        "Synthetic feature separability does not establish field anomaly performance.",
+        "DATA_QUALITY_ANOMALY and WEATHER_BEHAVIOR_ANOMALY scores are separate development scores, not field probabilities.",
+        "The learned artifact is opt-in; the live framework retains the statistical baseline."
+      ],
+      "model_type": "STATISTICAL_BASELINE_PLUS_LOCAL_SCRATCH_DUAL_LOGISTIC",
+      "network_required": false,
+      "open_weight_model_used": false,
+      "pretrained_model_used": false,
+      "production_validation_status": "NOT_VALIDATED",
+      "protected_test_status": "FROZEN_ONE_SHOT_RECEIPT_VERIFIED",
+      "training_source": "PROJECT_AUTHORED_SYNTHETIC",
+      "validation_status": "SYNTHETIC_DEVELOPMENT_VALIDATED"
+    }
+  ],
+  "production_readiness_matrix_columns": [
+    "component",
+    "implementation_status",
+    "model_type",
+    "training_source",
+    "dataset_type",
+    "dataset_hash",
+    "validation_status",
+    "protected_test_status",
+    "production_validation_status",
+    "pretrained_model_used",
+    "open_weight_model_used",
+    "network_required",
+    "backend_integration_status",
+    "artifact_hash",
+    "known_limitations"
+  ],
+  "protected_evidence_immutability": {
+    "after": {
+      "backend/app/ml/artifacts/anomaly_model_v1.development_manifest.json": "c279a61df78ab551354a1f0c75cce71ccba973ce8190be07aa4d6b6b27fd37db",
+      "backend/app/ml/artifacts/anomaly_model_v1.json": "3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb",
+      "backend/app/ml/artifacts/anomaly_model_v1_final_test_receipt.json": "8facd1be74825e86f79ccf3f72aef2f1c116176c406dbc96015f97b05685004a",
+      "backend/app/ml/artifacts/credibility_v1.development_manifest.json": "2638a79d775cd6289be68775cbdc42ea2485e6dbf66ccb15e47ebd5b81fd644e",
+      "backend/app/ml/artifacts/credibility_v1.json": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+      "backend/app/ml/artifacts/credibility_v1_final_test_receipt.json": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+      "backend/app/ml/artifacts/duplicate_feature_state_v2.json": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+      "backend/app/ml/artifacts/duplicate_matcher_v1.json": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+      "backend/app/ml/artifacts/duplicate_v1.development_manifest.json": "6d13de9d2f85dbb5cb0c129fbf03c1317a3bd17edbe1526dc141242127528c39",
+      "backend/app/ml/artifacts/duplicate_v1_final_test_receipt.json": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+      "backend/app/ml/artifacts/event_grouping_v1.development_manifest.json": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+      "backend/app/ml/artifacts/event_grouping_v1.json": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+      "backend/app/ml/artifacts/event_grouping_v1_final_test_receipt.json": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+      "backend/app/ml/artifacts/image_model_v1.development_manifest.json": "6d683a9e23053b0a8a6ea447362c50f67cec95ea870b040518350caf7fc2e9a8",
+      "backend/app/ml/artifacts/image_model_v1.pt": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+      "backend/app/ml/artifacts/image_model_v1_final_test_receipt.json": "4627f84a82282090caa22b75acbfdbd585b92720fe1a1ff7824dbf830e3385ad",
+      "backend/app/ml/artifacts/manifest.json": "f19b7b62db6eadc84d80b3f034f7ec664ce6f1e75feb5a16a4aa79ecb347871d",
+      "backend/app/ml/artifacts/nlp_classifier_v3.development_manifest.json": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+      "backend/app/ml/artifacts/nlp_classifier_v3.final_test_receipt.json": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+      "backend/app/ml/artifacts/nlp_classifier_v3.json": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+      "data/labelled/anomaly/synthetic_v1/manifest.json": "1fb7947e87153905495a3ca15395bc9c1f884cbaec8ea267e266030e2ff79a96",
+      "data/labelled/anomaly/synthetic_v1/quality_report.json": "96c49a9e9fede30f64fe96b2af31efc26d5469c6d7e0db2cbcba644991eb95b0",
+      "data/labelled/credibility/synthetic_v1/synthetic_credibility_dataset_manifest.json": "0da1161bb3b7aef33e901be5678bef16d78f78b2982cc9728b26145b55ed8cf5",
+      "data/labelled/credibility/synthetic_v1/synthetic_credibility_quality_report.json": "5d3fd3052f57e1868ad44efe67444c0cf7384027c424677c667006f382d53c45",
+      "data/labelled/duplicates/synthetic_v1/synthetic_duplicate_dataset_manifest.json": "63cce0ce56919a735e4d0e594f1e1a2bd4f7f406e98720ac5dc0652c83169400",
+      "data/labelled/duplicates/synthetic_v1/synthetic_duplicate_quality_report.json": "ae81eb09ae5e7e1322588b8224dbdd0e0d699a4b918455633753690e6c39f60d",
+      "data/labelled/events/synthetic_v1/synthetic_event_dataset_manifest.json": "8ddbfa05c5a773fc7323976b7c9fda4e3f88ecfdcb4f09fd64705ccb97eea712",
+      "data/labelled/events/synthetic_v1/synthetic_event_quality_report.json": "a99d60e56d7b0383015cfe80bb3d36786a4c2ceb28c8cc7a207c8c528ce6cb1a",
+      "data/labelled/image/synthetic_v1/manifest.json": "d222faf83b6f621707dfcc6791e2ccdd7337a46c44173dd197cf5e915fe1853f",
+      "data/labelled/image/synthetic_v1/quality_report.json": "cc30aba51868439a1ab8105efd3b809c41cf130e0890b31318c99c6d47b90c59",
+      "data/labelled/nlp/synthetic_v1/synthetic_nlp_dataset_manifest.json": "aae4dc14efbdf50dedd25fb6803c1865f78afe14278864e4fd05bb9bbf66061e",
+      "data/labelled/nlp/synthetic_v1/synthetic_nlp_dataset_report.json": "e38bb32164bce82c9b42986810586da63d09af5acf3291573bed46c2e18a2416"
+    },
+    "all_hashes_unchanged_during_phase_24_audit": true,
+    "before": {
+      "backend/app/ml/artifacts/anomaly_model_v1.development_manifest.json": "c279a61df78ab551354a1f0c75cce71ccba973ce8190be07aa4d6b6b27fd37db",
+      "backend/app/ml/artifacts/anomaly_model_v1.json": "3fdc354af80224bfe11dc23b6c5fccd629f44daf45efb9220a4cd9406004eceb",
+      "backend/app/ml/artifacts/anomaly_model_v1_final_test_receipt.json": "8facd1be74825e86f79ccf3f72aef2f1c116176c406dbc96015f97b05685004a",
+      "backend/app/ml/artifacts/credibility_v1.development_manifest.json": "2638a79d775cd6289be68775cbdc42ea2485e6dbf66ccb15e47ebd5b81fd644e",
+      "backend/app/ml/artifacts/credibility_v1.json": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+      "backend/app/ml/artifacts/credibility_v1_final_test_receipt.json": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+      "backend/app/ml/artifacts/duplicate_feature_state_v2.json": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+      "backend/app/ml/artifacts/duplicate_matcher_v1.json": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+      "backend/app/ml/artifacts/duplicate_v1.development_manifest.json": "6d13de9d2f85dbb5cb0c129fbf03c1317a3bd17edbe1526dc141242127528c39",
+      "backend/app/ml/artifacts/duplicate_v1_final_test_receipt.json": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+      "backend/app/ml/artifacts/event_grouping_v1.development_manifest.json": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+      "backend/app/ml/artifacts/event_grouping_v1.json": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+      "backend/app/ml/artifacts/event_grouping_v1_final_test_receipt.json": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+      "backend/app/ml/artifacts/image_model_v1.development_manifest.json": "6d683a9e23053b0a8a6ea447362c50f67cec95ea870b040518350caf7fc2e9a8",
+      "backend/app/ml/artifacts/image_model_v1.pt": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+      "backend/app/ml/artifacts/image_model_v1_final_test_receipt.json": "4627f84a82282090caa22b75acbfdbd585b92720fe1a1ff7824dbf830e3385ad",
+      "backend/app/ml/artifacts/manifest.json": "f19b7b62db6eadc84d80b3f034f7ec664ce6f1e75feb5a16a4aa79ecb347871d",
+      "backend/app/ml/artifacts/nlp_classifier_v3.development_manifest.json": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+      "backend/app/ml/artifacts/nlp_classifier_v3.final_test_receipt.json": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+      "backend/app/ml/artifacts/nlp_classifier_v3.json": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+      "data/labelled/anomaly/synthetic_v1/manifest.json": "1fb7947e87153905495a3ca15395bc9c1f884cbaec8ea267e266030e2ff79a96",
+      "data/labelled/anomaly/synthetic_v1/quality_report.json": "96c49a9e9fede30f64fe96b2af31efc26d5469c6d7e0db2cbcba644991eb95b0",
+      "data/labelled/credibility/synthetic_v1/synthetic_credibility_dataset_manifest.json": "0da1161bb3b7aef33e901be5678bef16d78f78b2982cc9728b26145b55ed8cf5",
+      "data/labelled/credibility/synthetic_v1/synthetic_credibility_quality_report.json": "5d3fd3052f57e1868ad44efe67444c0cf7384027c424677c667006f382d53c45",
+      "data/labelled/duplicates/synthetic_v1/synthetic_duplicate_dataset_manifest.json": "63cce0ce56919a735e4d0e594f1e1a2bd4f7f406e98720ac5dc0652c83169400",
+      "data/labelled/duplicates/synthetic_v1/synthetic_duplicate_quality_report.json": "ae81eb09ae5e7e1322588b8224dbdd0e0d699a4b918455633753690e6c39f60d",
+      "data/labelled/events/synthetic_v1/synthetic_event_dataset_manifest.json": "8ddbfa05c5a773fc7323976b7c9fda4e3f88ecfdcb4f09fd64705ccb97eea712",
+      "data/labelled/events/synthetic_v1/synthetic_event_quality_report.json": "a99d60e56d7b0383015cfe80bb3d36786a4c2ceb28c8cc7a207c8c528ce6cb1a",
+      "data/labelled/image/synthetic_v1/manifest.json": "d222faf83b6f621707dfcc6791e2ccdd7337a46c44173dd197cf5e915fe1853f",
+      "data/labelled/image/synthetic_v1/quality_report.json": "cc30aba51868439a1ab8105efd3b809c41cf130e0890b31318c99c6d47b90c59",
+      "data/labelled/nlp/synthetic_v1/synthetic_nlp_dataset_manifest.json": "aae4dc14efbdf50dedd25fb6803c1865f78afe14278864e4fd05bb9bbf66061e",
+      "data/labelled/nlp/synthetic_v1/synthetic_nlp_dataset_report.json": "e38bb32164bce82c9b42986810586da63d09af5acf3291573bed46c2e18a2416"
+    },
+    "protected_test_evaluations_rerun": false,
+    "status": "PASS"
+  },
+  "protected_test_receipt_audit": {
+    "components": {
+      "ANOMALY": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "anomaly_model_v1_final_test_receipt.json",
+        "receipt_sha256": "8facd1be74825e86f79ccf3f72aef2f1c116176c406dbc96015f97b05685004a",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_calibration": false,
+          "test_used_for_model_selection": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "CREDIBILITY": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "credibility_v1_final_test_receipt.json",
+        "receipt_sha256": "d9f3dc044bf57722180ee70fd459f7208233c3e3cd12bac5b35abe557e4c39dc",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_calibration": false,
+          "test_used_for_model_selection": false,
+          "test_used_for_preprocessing_fit": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "DUPLICATE": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "duplicate_v1_final_test_receipt.json",
+        "receipt_sha256": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_feature_fit": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "EVENT": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "event_grouping_v1_final_test_receipt.json",
+        "receipt_sha256": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "test_used_for_tuning": false
+        },
+        "status": "PASS"
+      },
+      "IMAGE": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "image_model_v1_final_test_receipt.json",
+        "receipt_sha256": "4627f84a82282090caa22b75acbfdbd585b92720fe1a1ff7824dbf830e3385ad",
+        "receipt_status": "FINAL_EVALUATION_COMPLETE",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "test_used_for_calibration": false,
+          "test_used_for_model_selection": false,
+          "test_used_for_threshold_selection": false
+        },
+        "status": "PASS"
+      },
+      "NLP": {
+        "checks": {
+          "artifact_binding": true,
+          "invoked_exactly_once": true,
+          "production_not_validated": true,
+          "receipt_hash": true,
+          "rerun_prohibited": true,
+          "test_not_used_for_selection_or_retuning": true
+        },
+        "evaluation_invocation_count": 1,
+        "receipt_file": "nlp_classifier_v3.final_test_receipt.json",
+        "receipt_sha256": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+        "receipt_status": "COMPLETED_AND_FROZEN",
+        "rerun_permitted": false,
+        "selection_and_retuning_flags": {
+          "configuration_changed_after_freeze": false,
+          "retrained_after_evaluation": false,
+          "test_examples_available_to_configuration_selection": false,
+          "test_used_for_calibration": false
+        },
+        "status": "PASS"
+      }
+    },
+    "protected_test_evaluations_invoked_by_phase_24": 0,
+    "status": "PASS"
+  },
+  "semantic_freeze": {
+    "ANOMALY": {
+      "learned_model": "LOCAL_SCRATCH_DUAL_LOGISTIC",
+      "separate_heads": [
+        "DATA_QUALITY_ANOMALY",
+        "WEATHER_BEHAVIOR_ANOMALY"
+      ],
+      "statistical_baseline_preserved": true,
+      "validation": "SYNTHETIC_DEVELOPMENT_ONLY"
+    },
+    "CREDIBILITY": {
+      "development_status": "SYNTHETIC_DEVELOPMENT_ONLY",
+      "model_output_is_ground_truth": false,
+      "output_labels": [
+        "AUTHENTIC",
+        "MISLEADING",
+        "UNCERTAIN"
+      ],
+      "universal_misinformation_detection_claimed": false
+    },
+    "EVENT": {
+      "automatic_single_report_confirmation": false,
+      "cluster_safeguard": "COMPLETE_LINK_ALL_MEMBER_PAIRS",
+      "modeling_status": "DETERMINISTIC_HEURISTIC_CONFIGURATION",
+      "single_report_is_confirmed_event": false,
+      "single_report_lifecycle": "CANDIDATE",
+      "transitive_bridge_merge_permitted": false
+    },
+    "IMAGE": {
+      "model": "SCRATCH_CNN_V2",
+      "real_photograph_generalization_claimed": false,
+      "task_semantics": "MULTI_LABEL",
+      "validation": "SYNTHETIC_DEVELOPMENT_ONLY"
+    }
+  },
+  "synthetic_dependence_risks": {
+    "ANOMALY": {
+      "SYNTHETIC_GENERATOR_DEPENDENCE_RISK": "HIGH",
+      "evidence": "34 of 62 frozen features show unusually direct scenario discrimination on both train and validation; feature-origin and split-family checks nevertheless pass."
+    },
+    "CREDIBILITY": {
+      "SYNTHETIC_GENERATOR_DEPENDENCE_RISK": "HIGH",
+      "evidence": "Synthetic-only scenario labels and perfect synthetic holdout results do not establish general misinformation detection."
+    },
+    "DUPLICATE": {
+      "SYNTHETIC_GENERATOR_DEPENDENCE_RISK": "MODERATE",
+      "evidence": "Synthetic-only pair construction with incident, scenario-family, parameter-combination, and text overlap controls; no field-pair validation."
+    },
+    "EVENT": {
+      "SYNTHETIC_GENERATOR_DEPENDENCE_RISK": "HIGH",
+      "evidence": "Phase 20 held out canonical event identities but reused scenario templates and did not record parameter-family holdout evidence."
+    },
+    "IMAGE": {
+      "SYNTHETIC_GENERATOR_DEPENDENCE_RISK": "HIGH",
+      "evidence": "The scratch CNN was developed exclusively on project-rendered synthetic images; no real-photograph generalization evidence exists."
+    },
+    "NLP": {
+      "SYNTHETIC_GENERATOR_DEPENDENCE_RISK": "MODERATE",
+      "evidence": "Synthetic-only multilingual templates with documented split-level template, location, lexicon, and time holdouts; no field corpus validation."
+    }
+  },
+  "test_regression": {
+    "command": "python -m pytest app/ml/tests -q --basetemp .pytest-phase24-run",
+    "duration_seconds": 55.89,
+    "failed": 0,
+    "passed": 338,
+    "protected_final_test_evaluations_rerun": false,
+    "scope": "COMPLETE_AI_ML_TEST_SUITE",
+    "skipped": 0,
+    "status": "PASS",
+    "warnings": 3
+  }
+}

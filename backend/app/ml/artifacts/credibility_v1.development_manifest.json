@@ -1,0 +1,240 @@
+{
+  "artifact_manifest": {
+    "path": "D:\\INDRA\\backend\\app\\ml\\artifacts\\manifest.json",
+    "sha256": "7dc9d20f1c0b5baf4aad70de2e2fe10181fae331ecef76161bc483e15d8627f0"
+  },
+  "calibration": {
+    "report_sha256": "1ea9d257d328953d5787fe3be2a87ecd497dfafe358ea1b1f752302e93205b07",
+    "split": "validation:calibration",
+    "temperature": 0.5,
+    "test_rows_accessed": false
+  },
+  "counts": {
+    "labels": {
+      "AUTHENTIC": 36000,
+      "MISLEADING": 57600,
+      "UNCERTAIN": 7200
+    },
+    "languages": {
+      "English": 33600,
+      "Hindi": 33600,
+      "Hinglish": 33600
+    },
+    "scenarios": {
+      "AUTHENTIC_CONSISTENT": 7200,
+      "AUTHENTIC_EXTREME_BUT_PLAUSIBLE": 7200,
+      "AUTHENTIC_WITH_INCOMPLETE_METADATA": 7200,
+      "CONTRADICTORY_EVENT_CONTEXT": 7200,
+      "CONTRADICTORY_LOCATION": 7200,
+      "CONTRADICTORY_TIME": 7200,
+      "IMPOSSIBLE_METADATA": 7200,
+      "LEGITIMATE_DUPLICATE": 7200,
+      "LEGITIMATE_EVENT_CONFLICT": 7200,
+      "MISLEADING_CONTEXT": 7200,
+      "MISLEADING_OMISSION": 7200,
+      "REPEATED_COPYING": 7200,
+      "SOURCE_BEHAVIOR_ANOMALY": 7200,
+      "UNCERTAIN_AMBIGUOUS": 7200
+    },
+    "splits": {
+      "test": 15120,
+      "train": 70560,
+      "validation": 15120
+    },
+    "total": 100800
+  },
+  "dataset": {
+    "classification": "DEVELOPMENT_ONLY",
+    "dataset_id": "indra-credibility-project-synthetic-v1",
+    "dataset_sha256": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+    "dataset_version": "synthetic-credibility-100800-v1",
+    "kind": "SYNTHETIC",
+    "manifest_sha256": "0da1161bb3b7aef33e901be5678bef16d78f78b2982cc9728b26145b55ed8cf5",
+    "production_validation": "NOT_VALIDATED",
+    "quality_report_sha256": "5d3fd3052f57e1868ad44efe67444c0cf7384027c424677c667006f382d53c45",
+    "registered_validation_sha256": "39fd91421901bf118e1b1235914ff3de951b8ba464d7ed5cca90c0f9b886607d",
+    "semantic_target": "MISLEADING_RISK_EVIDENCE",
+    "source": "PROJECT_AUTHORED",
+    "split_sha256": "7142901293a1ac0c0cf5fbc6972168025def9cbdcde8fb27d5ffb46cf352b742",
+    "truth_probability": false
+  },
+  "dataset_decision": {
+    "human_adjudicated_approved_dataset_count": 0,
+    "production_validation": "NOT_VALIDATED",
+    "selected_source": "PROJECT_AUTHORED_SYNTHETIC_FALLBACK",
+    "synthetic_fallback_registered": true
+  },
+  "frozen_at": "2026-09-24T04:00:00+00:00",
+  "gates": {
+    "development_performance_gate": {
+      "checks": {
+        "duplicate_not_equated_with_misleading": true,
+        "extreme_not_equated_with_misleading": true,
+        "false_positive_rate_at_most_0_15": true,
+        "macro_f1_at_least_0_75": true,
+        "misleading_precision_at_least_0_80": true,
+        "misleading_recall_at_least_0_80": true
+      },
+      "passed": true,
+      "production_validation": "NOT_VALIDATED",
+      "scope": "SYNTHETIC_DEVELOPMENT_ONLY"
+    },
+    "production_training_gate": {
+      "allowed": false,
+      "dataset_id": "indra-credibility-project-synthetic-v1",
+      "dataset_version": "synthetic-credibility-100800-v1",
+      "details": [
+        "dataset classification=DEVELOPMENT_ONLY",
+        "DEVELOPMENT_ONLY_DATASET",
+        "HUMAN_ADJUDICATION_REQUIRED",
+        "LEAKAGE_INSUFFICIENT_EVIDENCE"
+      ],
+      "expected_component": "CREDIBILITY",
+      "reason_codes": [
+        "DATASET_CLASSIFICATION_BLOCKED",
+        "LEAKAGE_INSUFFICIENT_EVIDENCE",
+        "APPROVAL_MISSING:TRAINING",
+        "APPROVAL_MISSING:VALIDATION",
+        "APPROVAL_MISSING:TEST"
+      ],
+      "resolved_path": "D:\\INDRA\\data\\labelled\\credibility\\synthetic_v1\\synthetic_credibility_annotations.jsonl"
+    },
+    "synthetic_development_gate": {
+      "allowed": true,
+      "blockers": [],
+      "gate": "PHASE21_PROJECT_SYNTHETIC_DEVELOPMENT_GATE",
+      "production_gate_allowed": false,
+      "production_gate_overridden": false,
+      "production_gate_reason_codes": [
+        "DATASET_CLASSIFICATION_BLOCKED",
+        "LEAKAGE_INSUFFICIENT_EVIDENCE",
+        "APPROVAL_MISSING:TRAINING",
+        "APPROVAL_MISSING:VALIDATION",
+        "APPROVAL_MISSING:TEST"
+      ],
+      "requires_custom_grouped_leakage_pass": true,
+      "requires_detector_input_isolation": true,
+      "requires_project_authored_provenance": true,
+      "requires_registered_valid_bytes": true,
+      "requires_scenario_identity_ground_truth": true,
+      "scope": "DEVELOPMENT_ONLY_SYNTHETIC"
+    }
+  },
+  "model_selection": {
+    "selected_configuration": {
+      "class_weight": "NONE",
+      "configuration_id": "LOGREG_C10_0_NONE",
+      "regularization_c": 10.0,
+      "tie_rank": 4
+    },
+    "split": "validation:model_selection",
+    "test_rows_accessed": false
+  },
+  "outputs": {
+    "ablation": {
+      "file": "credibility_v1.ablation.json",
+      "sha256": "58e5c527efcda91b3b6e2f3cc50783e6ce06f86f3e34f3ec87c3770bfb229888"
+    },
+    "artifact": {
+      "file": "credibility_v1.json",
+      "sha256": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052"
+    },
+    "baseline_validation": {
+      "file": "credibility_v1.baseline_validation.json",
+      "sha256": "c0c89263572983fcf029d6f858e5fb8fb524ae9c2f224b65f285241dacfd98df"
+    },
+    "calibration": {
+      "file": "credibility_v1.calibration.json",
+      "sha256": "1ea9d257d328953d5787fe3be2a87ecd497dfafe358ea1b1f752302e93205b07"
+    },
+    "golden": {
+      "file": "credibility_v1.golden.json",
+      "sha256": "95fcfc87a3256b2f7ffc1341eacdaa09a085d232071b87b8020edf8a188d7ce3"
+    },
+    "performance": {
+      "file": "credibility_v1.performance.json",
+      "sha256": "9fda82ba9914d1a9df2c2aa1d686f067a1a2ab97ea0dc8f224dbf831693daa4e"
+    },
+    "search": {
+      "file": "credibility_v1.search.json",
+      "sha256": "6e77d4656fed3ab016323f0ba2d39d054e496c2c2b50b3c77e15edd854fc56f7"
+    },
+    "validation_errors": {
+      "file": "credibility_v1.validation_errors.json",
+      "sha256": "b9acadd68800ed91ab5af7d184c400f0bd1652390e5bf54b1cd8ddfb00338678"
+    },
+    "validation_metrics": {
+      "file": "credibility_v1.validation_metrics.json",
+      "sha256": "7b2822445538d2735340a7011cc93a88bcb87a3a1d34ea906381733b16148d9a"
+    }
+  },
+  "phase": "21 — CREDIBILITY VALIDATION",
+  "policy": {
+    "duplicate_matcher_v1_modified": false,
+    "event_grouping_v1_modified": false,
+    "external_apis": [],
+    "future_human_review_features": false,
+    "live_backend_modified": false,
+    "network_access": false,
+    "nlp_v3_modified": false,
+    "open_weight_models": [],
+    "pretrained_models": []
+  },
+  "production_validation": "NOT_VALIDATED",
+  "protected_artifacts": {
+    "duplicate_feature_state_v2.json": "d2074a87c93fffb30b9be752d7c6208fc363fe41092625f5e55565e7a28aa731",
+    "duplicate_matcher_v1.json": "85c9e77419f09ddfa340e69fa4249ce3ddc43509920356aa2ba03df73cbe745b",
+    "duplicate_v1.ablation.json": "e50f00028b0dc3b464f265138dd88365de38c25b65df78cd6b96ed1f257a6f84",
+    "duplicate_v1.calibration.json": "507d1a7af6c8e80ea7c83882c891b8cce46664d8bcc6ebf3a828bded9a0698ae",
+    "duplicate_v1.development_manifest.json": "6d13de9d2f85dbb5cb0c129fbf03c1317a3bd17edbe1526dc141242127528c39",
+    "duplicate_v1.error_report.json": "9c1c2eb0607eb3842e122f9f6075926914b6c277e70b8e3c6e81f30b1bacd4b0",
+    "duplicate_v1.golden.json": "5ccececebf7bb4d85d8f169bffd6f9a1478144a39056171a9bd2579fe2e1139a",
+    "duplicate_v1.metrics.json": "e424243151f83ac1e0eb840615ff0de7d1111b57feb4657d3ead5427e403a877",
+    "duplicate_v1.performance.json": "2492b60cd1a57b254c714a2fe4a51a9cb1d4170c0ef3e088977868fcec202330",
+    "duplicate_v1.threshold_search.json": "7e96d96af20cd526cbf49e0597286d12c0116c132fa6ff24fd50d068e4db433e",
+    "duplicate_v1.threshold_stability.json": "464e0afbcfd0d1dc3e7eb3dc46ccd3021d5256c361b911bc70b55641baf4255a",
+    "duplicate_v1.validation_errors.json": "1662b4efb58c57868605b4ce9aeef3c99c6af06c8bbf9f79fbca8efad6a23427",
+    "duplicate_v1.validation_metrics.json": "cbb4c1fd706fa352fa27aa84882e8248c77182fda7622b6ee1c8ad543d534a02",
+    "duplicate_v1_final_test_receipt.json": "4b97fa5b617c0bf2c93383a8d031be5a9fd6dcd5c08c9b2c229cec9d57ead405",
+    "event_grouping_v1.ablation.json": "40f330b4a93d789b3f20da245ec530feaaba121c0a2080f2f4e5bd6feb1c860f",
+    "event_grouping_v1.development_manifest.json": "fa9e10c0f471c9b1807e71458ddd3193415deaa0f7af8039de3dc0465edcb3bd",
+    "event_grouping_v1.error_report.json": "debfedc8584c0f85889fc480a705c5151dfc4c02eec5c3fa8bf9b9ef2fba7f15",
+    "event_grouping_v1.golden.json": "d60e3434f1dc884fb5f8adc7a1693056855eaa77d596ad49f533338537673a84",
+    "event_grouping_v1.json": "10c8fcb331d65333bb67c567d9821ca0c96cdbe376c7cf6dfc840abd19b6f973",
+    "event_grouping_v1.metrics.json": "6331c0a1afe6b10fe17710b5368f0e4e998441442538939792ca3b0b4c8621e7",
+    "event_grouping_v1.performance.json": "bc963d8e38b13b229c683f0eb2f4525afcab9d660400edbe8b663eb035fa30f3",
+    "event_grouping_v1.threshold_search.json": "9ec769463e20692348f76e93794162e445db503c721f5105d5739800c6ba1888",
+    "event_grouping_v1.validation_errors.json": "e0823439a49b041333d2646ec3562a6fd6d8e6df4e88ab33c3c8476a711db1d4",
+    "event_grouping_v1.validation_metrics.json": "da4eef4c34b901af73d176d0455db6fdb9262a14ac8ee9c189b0cbe0a3cf85de",
+    "event_grouping_v1_final_test_receipt.json": "c6ae828fc435275f031175f47500beccada675fb5ad7bd5559c6de8c58e1d913",
+    "nlp_classifier_v3.calibration.json": "03ecb7bf36e33f585f9a6fb42b7f26ff28467ddb4b6f5548c7bafc29c124062b",
+    "nlp_classifier_v3.development_manifest.json": "4d8f580b2c6cc4a446ce7c8b3e2bb7018806480171d7ef30b2c551d5e12b7392",
+    "nlp_classifier_v3.error_report.json": "a3d8d7c76deffcf7d273414edb2898fb35c855f6514bd3f248e9996f54896121",
+    "nlp_classifier_v3.final_test_receipt.json": "ec76d9276f790a266bb04aee362d01f0709df50bb4e36467dccf2bb964d2072b",
+    "nlp_classifier_v3.golden.json": "511c3ccf155bd46c57059b8efd5dbf11c360295c2dc2061948dd488f059ac333",
+    "nlp_classifier_v3.json": "7e1d8e6eacf45826100595fd880efc5e92b08fd157a00d95ac3e391d5035bbca",
+    "nlp_classifier_v3.metrics.json": "033db50927e45a583f7bcdd9fc6e5ec6577093fc955a2d79d6c65dd7923c3394",
+    "nlp_classifier_v3.search.json": "2a64be2fd6045c0db28c7bc0afb4f60aa933a3313a92032d1c0e030ab3579109"
+  },
+  "protected_final_test": {
+    "configuration_changes_permitted_after_freeze": false,
+    "content_accessed_for_selection": false,
+    "detector_input_sha256": "e1f15638b76bcc5c3bd74d7dd260177c5b4ce745f3db1d3569efaaf5f20a48dd",
+    "evaluation_invocation_count": 0,
+    "evaluation_invocation_limit": 1,
+    "ground_truth_sha256": "fad14f89a0b69b17d3f328ef7ab71c693a84ca99deb48fdf1751856b8b8d2ea3",
+    "integrity_hash_verified": true,
+    "row_count": 15120,
+    "split": "test"
+  },
+  "schema_version": "1.0",
+  "status": "CONFIGURATION_FROZEN_TEST_NOT_ACCESSED",
+  "thresholds": {
+    "split": "validation:threshold_selection",
+    "test_rows_accessed": false,
+    "values": {
+      "authentic_max_probability": 1e-07,
+      "misleading_min_probability": 0.7
+    }
+  }
+}

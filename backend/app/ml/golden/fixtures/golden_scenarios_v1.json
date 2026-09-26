@@ -1,0 +1,367 @@
+{
+  "suite_version": "golden-suite-v1",
+  "schema_version": "1.0",
+  "fixture_status": "TEST_FIXTURE_ONLY",
+  "data_origin": "SYNTHETIC",
+  "validation_scope": "ENGINEERING_REGRESSION_NOT_PRODUCTION_VALIDATION",
+  "scenarios": [
+    {
+      "scenario_id": "SCENARIO_01_SINGLE_ORDINARY_REPORT",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "b81cb98cade661444fabec100ba9717a0c27e4ef52151ad42dcec0b889e293c9",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "One ordinary synthetic flood report with no duplicate candidates or image and too little station history.",
+      "input": {
+        "reports": [
+          {
+            "report_id": "00000000-0000-0000-0000-000000001201",
+            "text": "Street water is rising after heavy rain in Patna",
+            "occurred_at": "2026-09-22T10:00:00Z",
+            "latitude": 25.5941,
+            "longitude": 85.1376,
+            "source_type": "TEST_FIXTURE",
+            "station_observations": [
+              {
+                "station_id": "fixture-station-1",
+                "observed_at": "2026-09-22T09:55:00Z",
+                "measurements": {"rainfall_mm": 5.0}
+              }
+            ]
+          }
+        ],
+        "event_batch_report_ids": ["00000000-0000-0000-0000-000000001201"]
+      },
+      "expected_component_statuses": {
+        "00000000-0000-0000-0000-000000001201": {
+          "NLP": "AVAILABLE",
+          "DUPLICATE": "NOT_APPLICABLE",
+          "EVENT": "HEURISTIC_ONLY",
+          "CREDIBILITY": "AVAILABLE",
+          "IMAGE": "NOT_APPLICABLE",
+          "ANOMALY": "INSUFFICIENT_DATA"
+        }
+      },
+      "expected_structural_properties": {"unified_result_count": 1},
+      "expected_reason_codes": {
+        "report:00000000-0000-0000-0000-000000001201:duplicate": {"match": "EXACT", "codes": ["NO_CANDIDATES"]},
+        "report:00000000-0000-0000-0000-000000001201:event": {"match": "EXACT", "codes": ["SINGLE_REPORT_EVENT_CANDIDATE", "NOT_CONFIRMED_EVENT"]},
+        "report:00000000-0000-0000-0000-000000001201:anomaly": {"match": "CONTAINS", "codes": ["INSUFFICIENT_REFERENCE_HISTORY"]}
+      },
+      "expected_event_structure": {
+        "detection_status": "AVAILABLE",
+        "candidate_count": 1,
+        "group_sizes": [1],
+        "independent_report_counts": [1],
+        "lifecycle_states": ["UNCERTAIN"]
+      },
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": null
+    },
+    {
+      "scenario_id": "SCENARIO_02_MULTIPLE_RELATED_REPORTS",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "71dd6e3b096d9528863e211461ae955fc22a5fc9e82711de23537b235e354696",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "Three nearby synthetic flood reports, including one exact duplicate, for upstream propagation and independent evidence counting.",
+      "input": {
+        "reports": [
+          {
+            "report_id": "00000000-0000-0000-0000-000000001211",
+            "text": "Heavy rain flooded Main Road near Patna station",
+            "occurred_at": "2026-09-22T11:00:00Z",
+            "latitude": 25.5941,
+            "longitude": 85.1376,
+            "source_type": "TEST_FIXTURE_A"
+          },
+          {
+            "report_id": "00000000-0000-0000-0000-000000001212",
+            "text": "Heavy rain flooded Main Road near Patna station",
+            "occurred_at": "2026-09-22T11:05:00Z",
+            "latitude": 25.5942,
+            "longitude": 85.1377,
+            "source_type": "TEST_FIXTURE_B",
+            "candidate_reports": [
+              {
+                "report_id": "00000000-0000-0000-0000-000000001211",
+                "text": "Heavy rain flooded Main Road near Patna station",
+                "occurred_at": "2026-09-22T11:00:00Z",
+                "latitude": 25.5941,
+                "longitude": 85.1376,
+                "source_type": "TEST_FIXTURE_A"
+              }
+            ]
+          },
+          {
+            "report_id": "00000000-0000-0000-0000-000000001213",
+            "text": "Shops nearby report knee deep water after the same rain",
+            "occurred_at": "2026-09-22T11:10:00Z",
+            "latitude": 25.5944,
+            "longitude": 85.1379,
+            "source_type": "TEST_FIXTURE_C"
+          }
+        ],
+        "event_batch_report_ids": [
+          "00000000-0000-0000-0000-000000001211",
+          "00000000-0000-0000-0000-000000001212",
+          "00000000-0000-0000-0000-000000001213"
+        ]
+      },
+      "expected_component_statuses": {
+        "00000000-0000-0000-0000-000000001211": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"},
+        "00000000-0000-0000-0000-000000001212": {"NLP": "AVAILABLE", "DUPLICATE": "AVAILABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"},
+        "00000000-0000-0000-0000-000000001213": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}
+      },
+      "expected_structural_properties": {"unified_result_count": 3},
+      "expected_reason_codes": {
+        "report:00000000-0000-0000-0000-000000001212:duplicate": {"match": "CONTAINS", "codes": ["MATCH_ABOVE_PROVISIONAL_THRESHOLD"]},
+        "report:00000000-0000-0000-0000-000000001212:credibility": {"match": "CONTAINS", "codes": ["REPEATED_TEXT"]}
+      },
+      "expected_event_structure": {"detection_status": "AVAILABLE", "candidate_count": 1, "group_sizes": [3], "independent_report_counts": [2], "lifecycle_states": ["UNCERTAIN"]},
+      "expected_duplicate_relationship": {"report_id": "00000000-0000-0000-0000-000000001212", "is_duplicate": true, "matched_report_id": "00000000-0000-0000-0000-000000001211"},
+      "expected_anomaly_outcome": null
+    },
+    {
+      "scenario_id": "SCENARIO_03_DISTINCT_EVENTS",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "1fd6259fff11cf0f97668b5da9398ecefbfcbb91a1ac5f62d27b9e7827bfd24a",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "Three synthetic reports separated by geography and time to ensure distinct event candidates.",
+      "input": {
+        "reports": [
+          {"report_id": "00000000-0000-0000-0000-000000001221", "text": "Roads flooded after heavy rain in Patna", "occurred_at": "2026-09-22T08:00:00Z", "latitude": 25.5941, "longitude": 85.1376, "source_type": "TEST_FIXTURE_A"},
+          {"report_id": "00000000-0000-0000-0000-000000001222", "text": "River water entered villages near Guwahati", "occurred_at": "2026-09-22T14:00:00Z", "latitude": 26.1445, "longitude": 91.7362, "source_type": "TEST_FIXTURE_B"},
+          {"report_id": "00000000-0000-0000-0000-000000001223", "text": "Cloudburst caused flash flooding in Dehradun hills", "occurred_at": "2026-09-23T02:00:00Z", "latitude": 30.3165, "longitude": 78.0322, "source_type": "TEST_FIXTURE_C"}
+        ],
+        "event_batch_report_ids": ["00000000-0000-0000-0000-000000001221", "00000000-0000-0000-0000-000000001222", "00000000-0000-0000-0000-000000001223"]
+      },
+      "expected_component_statuses": {
+        "00000000-0000-0000-0000-000000001221": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"},
+        "00000000-0000-0000-0000-000000001222": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"},
+        "00000000-0000-0000-0000-000000001223": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}
+      },
+      "expected_structural_properties": {"unified_result_count": 3},
+      "expected_reason_codes": {},
+      "expected_event_structure": {"detection_status": "AVAILABLE", "candidate_count": 3, "group_sizes": [1, 1, 1], "independent_report_counts": [1, 1, 1], "lifecycle_states": ["UNCERTAIN", "CANDIDATE", "CANDIDATE"]},
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": null
+    },
+    {
+      "scenario_id": "SCENARIO_04_UNION_FIND_BRIDGE",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "bb9869fa8ee36570a1c96438014d4339c92bb4ab299559bd53695d577b3be7ea",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "A-B and B-C are spatially close while A-C exceeds the complete-link radius.",
+      "input": {
+        "reports": [
+          {"report_id": "00000000-0000-0000-0000-000000001231", "text": "Urban road flooded after heavy rain", "occurred_at": "2026-09-22T12:00:00Z", "latitude": 25.0, "longitude": 80.0, "source_type": "TEST_FIXTURE_A"},
+          {"report_id": "00000000-0000-0000-0000-000000001232", "text": "Urban road flooded after heavy rain", "occurred_at": "2026-09-22T12:05:00Z", "latitude": 25.0, "longitude": 80.04, "source_type": "TEST_FIXTURE_B"},
+          {"report_id": "00000000-0000-0000-0000-000000001233", "text": "Urban road flooded after heavy rain", "occurred_at": "2026-09-22T12:10:00Z", "latitude": 25.0, "longitude": 80.08, "source_type": "TEST_FIXTURE_C"}
+        ],
+        "event_batch_report_ids": ["00000000-0000-0000-0000-000000001231", "00000000-0000-0000-0000-000000001232", "00000000-0000-0000-0000-000000001233"]
+      },
+      "expected_component_statuses": {
+        "00000000-0000-0000-0000-000000001231": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"},
+        "00000000-0000-0000-0000-000000001232": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"},
+        "00000000-0000-0000-0000-000000001233": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}
+      },
+      "expected_structural_properties": {"unified_result_count": 3},
+      "expected_reason_codes": {},
+      "expected_event_structure": {"detection_status": "AVAILABLE", "candidate_count": 2, "group_sizes": [1, 2], "independent_report_counts": [1, 2], "lifecycle_states": ["UNCERTAIN", "UNCERTAIN"]},
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": null
+    },
+    {
+      "scenario_id": "SCENARIO_05_DUPLICATE_FLOOD_REPORTS",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "da7f358d5266a9f010a59a52e2e710c2476a6b3a683ed6a4fa1ff6474338a154",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "An original and near-identical colocated report verify deterministic matching and independent evidence de-duplication.",
+      "input": {
+        "reports": [
+          {"report_id": "00000000-0000-0000-0000-000000001241", "text": "Knee deep water blocks Market Road after rain", "occurred_at": "2026-09-22T15:00:00Z", "latitude": 22.5726, "longitude": 88.3639, "source_type": "TEST_FIXTURE_A"},
+          {
+            "report_id": "00000000-0000-0000-0000-000000001242",
+            "text": "Knee deep water blocks Market Road after rain",
+            "occurred_at": "2026-09-22T15:03:00Z",
+            "latitude": 22.5726,
+            "longitude": 88.3639,
+            "source_type": "TEST_FIXTURE_B",
+            "candidate_reports": [
+              {"report_id": "00000000-0000-0000-0000-000000001241", "text": "Knee deep water blocks Market Road after rain", "occurred_at": "2026-09-22T15:00:00Z", "latitude": 22.5726, "longitude": 88.3639, "source_type": "TEST_FIXTURE_A"}
+            ]
+          }
+        ],
+        "event_batch_report_ids": ["00000000-0000-0000-0000-000000001241", "00000000-0000-0000-0000-000000001242"]
+      },
+      "expected_component_statuses": {
+        "00000000-0000-0000-0000-000000001241": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"},
+        "00000000-0000-0000-0000-000000001242": {"NLP": "AVAILABLE", "DUPLICATE": "AVAILABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}
+      },
+      "expected_structural_properties": {"unified_result_count": 2},
+      "expected_reason_codes": {"report:00000000-0000-0000-0000-000000001242:duplicate": {"match": "CONTAINS", "codes": ["MATCH_ABOVE_PROVISIONAL_THRESHOLD"]}},
+      "expected_event_structure": {"detection_status": "AVAILABLE", "candidate_count": 1, "group_sizes": [2], "independent_report_counts": [1], "lifecycle_states": ["UNCERTAIN"]},
+      "expected_duplicate_relationship": {"report_id": "00000000-0000-0000-0000-000000001242", "is_duplicate": true, "matched_report_id": "00000000-0000-0000-0000-000000001241"},
+      "expected_anomaly_outcome": null
+    },
+    {
+      "scenario_id": "SCENARIO_06_CONTRADICTORY_REPORT",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "787a512f636c07c4bd57950e1b777d29dad86ef6c93146e9a694dd405edb476b",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "Synthetic contradictory metadata exercises inspectable credibility signals without a factual-falsity claim.",
+      "input": {
+        "reports": [
+          {
+            "report_id": "00000000-0000-0000-0000-000000001251",
+            "text": "URGENT!!! flood flood flood definitely confirmed!!! www.example.test www.example.test www.example.test",
+            "occurred_at": "2026-09-22T18:00:00Z",
+            "latitude": 19.076,
+            "longitude": 72.8777,
+            "source_type": "TEST_FIXTURE",
+            "source_metadata": {
+              "submitted_at": "2026-09-22T16:00:00Z",
+              "reported_latitude": 999,
+              "reported_longitude": 999,
+              "location_consistency": false,
+              "event_type_consistency": false,
+              "media_text_consistency": false,
+              "source_recent_report_count": 20,
+              "source_recent_duplicate_count": 15,
+              "phone_count": 5
+            }
+          }
+        ]
+      },
+      "expected_component_statuses": {
+        "00000000-0000-0000-0000-000000001251": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}
+      },
+      "expected_structural_properties": {"unified_result_count": 1},
+      "expected_reason_codes": {
+        "report:00000000-0000-0000-0000-000000001251:credibility": {"match": "CONTAINS", "codes": ["INVALID_COORDINATES", "CONTRADICTORY_TIMESTAMP", "GEOGRAPHIC_INCONSISTENCY", "EVENT_TYPE_INCONSISTENCY"]}
+      },
+      "expected_event_structure": null,
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": null
+    },
+    {
+      "scenario_id": "SCENARIO_07_IMAGE_ABSENT",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "ba3af185c13d011a953aec2ef0d2a94a6959957532a7c9a35d2bdbefad370b03",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "No image bytes are supplied and no learned image artifact may be loaded or fabricated.",
+      "input": {"reports": [{"report_id": "00000000-0000-0000-0000-000000001261", "text": "Waterlogging reported near the bus stand", "occurred_at": "2026-09-22T19:00:00Z", "latitude": 13.0827, "longitude": 80.2707, "source_type": "TEST_FIXTURE"}]},
+      "expected_component_statuses": {"00000000-0000-0000-0000-000000001261": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}},
+      "expected_structural_properties": {"unified_result_count": 1},
+      "expected_reason_codes": {"report:00000000-0000-0000-0000-000000001261:image": {"match": "EXACT", "codes": ["IMAGE_NOT_SUPPLIED"]}},
+      "expected_event_structure": null,
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": null
+    },
+    {
+      "scenario_id": "SCENARIO_08_ANOMALY_HISTORY_INSUFFICIENT",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "b65c982bb4d784ad35d02620233c6826f75a348a9604e86b379e53a2b407c20e",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "Two synthetic station observations are insufficient for statistical anomaly scoring.",
+      "input": {
+        "reports": [{"report_id": "00000000-0000-0000-0000-000000001271", "text": "Rain continues near the station", "occurred_at": "2026-09-22T20:00:00Z", "latitude": 18.5204, "longitude": 73.8567, "source_type": "TEST_FIXTURE", "station_observations": [{"station_id": "fixture-station-8", "observed_at": "2026-09-22T18:00:00Z", "measurements": {"rainfall_mm": 1.0}}, {"station_id": "fixture-station-8", "observed_at": "2026-09-22T19:00:00Z", "measurements": {"rainfall_mm": 1.2}}]}],
+        "anomaly_window": {"station_id": "fixture-station-8", "observations": [{"observation_id": "s8-1", "station_id": "fixture-station-8", "observed_at": "2026-09-22T18:00:00Z", "rainfall_mm": 1.0}, {"observation_id": "s8-2", "station_id": "fixture-station-8", "observed_at": "2026-09-22T19:00:00Z", "rainfall_mm": 1.2}]}
+      },
+      "expected_component_statuses": {"00000000-0000-0000-0000-000000001271": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "INSUFFICIENT_DATA"}},
+      "expected_structural_properties": {"unified_result_count": 1},
+      "expected_reason_codes": {"anomaly_prediction": {"match": "CONTAINS", "codes": ["INSUFFICIENT_REFERENCE_HISTORY"]}},
+      "expected_event_structure": null,
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": {"status": "INSUFFICIENT_DATA", "anomaly_domain": null, "is_anomaly": null, "score_present": false}
+    },
+    {
+      "scenario_id": "SCENARIO_09_VALID_ANOMALOUS_WEATHER_SERIES",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "1d29d006c7a2b3d30f81129772723f3bf98543f8d02dba6d2026de422df0f160",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "A deliberately constructed synthetic rainfall jump exercises the statistical baseline as engineering regression data.",
+      "input": {
+        "reports": [{"report_id": "00000000-0000-0000-0000-000000001281", "text": "Station reports a sharp rainfall increase", "occurred_at": "2026-09-22T21:00:00Z", "latitude": 12.9716, "longitude": 77.5946, "source_type": "TEST_FIXTURE"}],
+        "anomaly_window": {"station_id": "fixture-station-9", "observations": [
+          {"observation_id": "s9-1", "station_id": "fixture-station-9", "observed_at": "2026-09-22T14:00:00Z", "rainfall_mm": 1.0},
+          {"observation_id": "s9-2", "station_id": "fixture-station-9", "observed_at": "2026-09-22T15:00:00Z", "rainfall_mm": 1.1},
+          {"observation_id": "s9-3", "station_id": "fixture-station-9", "observed_at": "2026-09-22T16:00:00Z", "rainfall_mm": 0.9},
+          {"observation_id": "s9-4", "station_id": "fixture-station-9", "observed_at": "2026-09-22T17:00:00Z", "rainfall_mm": 1.0},
+          {"observation_id": "s9-5", "station_id": "fixture-station-9", "observed_at": "2026-09-22T18:00:00Z", "rainfall_mm": 1.2},
+          {"observation_id": "s9-6", "station_id": "fixture-station-9", "observed_at": "2026-09-22T19:00:00Z", "rainfall_mm": 1.1},
+          {"observation_id": "s9-7", "station_id": "fixture-station-9", "observed_at": "2026-09-22T20:00:00Z", "rainfall_mm": 40.0}
+        ]}
+      },
+      "expected_component_statuses": {"00000000-0000-0000-0000-000000001281": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}},
+      "expected_structural_properties": {"unified_result_count": 1},
+      "expected_reason_codes": {"anomaly_prediction": {"match": "CONTAINS", "codes": ["VALUE_OUTLIER"]}},
+      "expected_event_structure": null,
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": {"status": "HEURISTIC_ONLY", "anomaly_domain": "WEATHER_BEHAVIOR_ANOMALY", "is_anomaly": true, "score_present": true}
+    },
+    {
+      "scenario_id": "SCENARIO_10_MISSING_INVALID_WEATHER_DATA",
+      "scenario_version": "golden-scenario-v1",
+      "schema_version": "1.0",
+      "creation_timestamp": "2026-09-22T00:00:00Z",
+      "fixture_hash": "b8efa62812d705d1a9a2058537d2980210f4dbf0d09107612bed60649e56eacf",
+      "fixture_status": "TEST_FIXTURE_ONLY",
+      "data_origin": "SYNTHETIC",
+      "validation_scope": "NOT_PRODUCTION_DATA",
+      "description": "Missing timestamps, non-finite rainfall, and impossible negative rainfall are explicit synthetic data-quality failures.",
+      "input": {
+        "reports": [{"report_id": "00000000-0000-0000-0000-000000001291", "text": "Station data requires quality review", "occurred_at": "2026-09-22T22:00:00Z", "latitude": 17.385, "longitude": 78.4867, "source_type": "TEST_FIXTURE"}],
+        "anomaly_window": {"station_id": "fixture-station-10", "observations": [
+          {"observation_id": "s10-missing-time", "station_id": "fixture-station-10", "observed_at": null, "rainfall_mm": 1.0},
+          {"observation_id": "s10-nonfinite", "station_id": "fixture-station-10", "observed_at": "2026-09-22T20:00:00Z", "rainfall_mm": "NON_FINITE_NAN"},
+          {"observation_id": "s10-negative", "station_id": "fixture-station-10", "observed_at": "2026-09-22T21:00:00Z", "rainfall_mm": -1.0}
+        ]}
+      },
+      "expected_component_statuses": {"00000000-0000-0000-0000-000000001291": {"NLP": "AVAILABLE", "DUPLICATE": "NOT_APPLICABLE", "EVENT": "HEURISTIC_ONLY", "CREDIBILITY": "AVAILABLE", "IMAGE": "NOT_APPLICABLE", "ANOMALY": "NOT_APPLICABLE"}},
+      "expected_structural_properties": {"unified_result_count": 1},
+      "expected_reason_codes": {
+        "anomaly_validation": {"match": "CONTAINS", "codes": ["MISSING_TIMESTAMP", "NONFINITE_MEASUREMENT", "IMPOSSIBLE_NEGATIVE_RAINFALL"]},
+        "anomaly_prediction": {"match": "CONTAINS", "codes": ["MISSING_TIMESTAMP"]}
+      },
+      "expected_event_structure": null,
+      "expected_duplicate_relationship": null,
+      "expected_anomaly_outcome": {"status": "ERROR", "anomaly_domain": null, "is_anomaly": null, "score_present": false}
+    }
+  ]
+}

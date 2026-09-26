@@ -1,0 +1,217 @@
+{
+  "report_version": "dataset-validation-report-v1",
+  "schema_version": "1.0",
+  "generated_at": "2026-09-22T00:00:00Z",
+  "dataset_id": "indra-nlp-reports-v1-synthetic",
+  "dataset_version": "reports-v1-development-synthetic",
+  "component": "NLP",
+  "local_path": "../../../../../data/labelled/reports_v1.csv",
+  "format": "CSV",
+  "registered_content_sha256": "3178b8d980d9ea8d5bea9089d0535aeaeebfc80a4cbca9349d27d2fa1bab031d",
+  "content_sha256": "3178b8d980d9ea8d5bea9089d0535aeaeebfc80a4cbca9349d27d2fa1bab031d",
+  "hash_matches_registry": true,
+  "valid": true,
+  "validation_status": "VALID",
+  "checks": [
+    {
+      "code": "FILE_INTEGRITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "CONTENT_HASH",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "ENCODING_AND_UNICODE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "SCHEMA_AND_REQUIRED_FIELDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "NULL_AND_REQUIRED_VALUES",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_RECORDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_IMAGES",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "CONTRADICTORY_LABELS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "COORDINATE_VALIDITY",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "TIMESTAMP_VALIDITY",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "GROUP_IDENTIFIERS",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": true,
+      "details": [
+        "complete registered grouping identifiers are unavailable"
+      ]
+    },
+    {
+      "code": "LABEL_DISTRIBUTION",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    }
+  ],
+  "leakage": {
+    "exact_duplicate_leakage": {
+      "code": "EXACT_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "near_duplicate_leakage": {
+      "code": "NEAR_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "group_leakage": {
+      "code": "GROUP_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": true,
+      "details": [
+        "grouping_field is not registered"
+      ]
+    },
+    "temporal_leakage": {
+      "code": "TEMPORAL_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "temporal ordering is not a required split rule for this component"
+      ]
+    },
+    "label_leakage": {
+      "code": "LABEL_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "cross_split_overlap": {
+      "code": "CROSS_SPLIT_OVERLAP",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "overall_status": "INSUFFICIENT_EVIDENCE"
+  },
+  "errors": [],
+  "warnings": [],
+  "row_or_image_count": 300,
+  "label_count": 300,
+  "label_distribution": {
+    "CLOUDBURST": 60,
+    "CYCLONE_INUNDATION": 60,
+    "NOT_RELEVANT": 60,
+    "RIVER_BREACH": 60,
+    "URBAN_FLOOD": 60
+  },
+  "split_counts": {
+    "train": 210,
+    "validation": 0,
+    "test": 90
+  },
+  "split_label_counts": {
+    "train": {
+      "CLOUDBURST": 42,
+      "CYCLONE_INUNDATION": 42,
+      "NOT_RELEVANT": 42,
+      "RIVER_BREACH": 42,
+      "URBAN_FLOOD": 42
+    },
+    "validation": {},
+    "test": {
+      "CLOUDBURST": 18,
+      "CYCLONE_INUNDATION": 18,
+      "NOT_RELEVANT": 18,
+      "RIVER_BREACH": 18,
+      "URBAN_FLOOD": 18
+    }
+  },
+  "grouping_coverage": null,
+  "component_readiness": {
+    "class_counts": {
+      "CLOUDBURST": 60,
+      "CYCLONE_INUNDATION": 60,
+      "NOT_RELEVANT": 60,
+      "RIVER_BREACH": 60,
+      "URBAN_FLOOD": 60
+    },
+    "language_counts": {
+      "en": 201,
+      "hi": 41,
+      "hinglish": 58
+    },
+    "train_validation_test_counts": {
+      "test": 90,
+      "train": 210
+    },
+    "subgroup_sizes": {
+      "test::en": 67,
+      "test::hi": 8,
+      "test::hinglish": 15,
+      "train::en": 134,
+      "train::hi": 33,
+      "train::hinglish": 43
+    },
+    "duplicate_texts": [],
+    "label_conflicts": []
+  },
+  "approval_blockers": {
+    "TRAINING": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "GROUPING_METADATA_INCOMPLETE",
+      "INDEPENDENT_VALIDATION_AND_TEST_REQUIRED",
+      "LEAKAGE_INSUFFICIENT_EVIDENCE"
+    ],
+    "VALIDATION": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "GROUPING_METADATA_INCOMPLETE",
+      "INSUFFICIENT_LABELS",
+      "LEAKAGE_INSUFFICIENT_EVIDENCE",
+      "MULTILINGUAL_COVERAGE_INSUFFICIENT",
+      "VALIDATION_SPLIT_MISSING"
+    ],
+    "TEST": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "GROUPING_METADATA_INCOMPLETE",
+      "LEAKAGE_INSUFFICIENT_EVIDENCE"
+    ]
+  }
+}

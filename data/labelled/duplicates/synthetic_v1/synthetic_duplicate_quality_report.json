@@ -1,0 +1,91 @@
+{
+  "report_version": "synthetic-duplicate-quality-report-v1",
+  "valid": true,
+  "generated_at": "2026-09-23T00:00:00Z",
+  "expected_pair_count": 100000,
+  "actual_pair_count": 100000,
+  "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+  "generator_version": "synthetic-duplicate-generator-v1",
+  "scenario_version": "synthetic-duplicate-scenarios-v1",
+  "split_version": "synthetic-duplicate-generator-splits-v1",
+  "seed": 190019,
+  "label_counts": {
+    "DUPLICATE": 45000,
+    "NOT_DUPLICATE": 45000,
+    "UNCERTAIN": 10000
+  },
+  "split_counts": {
+    "train": 70000,
+    "validation": 15000,
+    "test": 15000
+  },
+  "split_label_counts": {
+    "train": {
+      "DUPLICATE": 31500,
+      "NOT_DUPLICATE": 31500,
+      "UNCERTAIN": 7000
+    },
+    "validation": {
+      "DUPLICATE": 6750,
+      "NOT_DUPLICATE": 6750,
+      "UNCERTAIN": 1500
+    },
+    "test": {
+      "DUPLICATE": 6750,
+      "NOT_DUPLICATE": 6750,
+      "UNCERTAIN": 1500
+    }
+  },
+  "scenario_counts": {
+    "AMBIGUOUS_PARTIAL_CONTEXT": 5000,
+    "CONFLICTING_TIME_LOCATION_BOUNDARY": 5000,
+    "EASY_DUPLICATE": 7500,
+    "LOCATION_VARIATION_DUPLICATE_WHEN_VALID": 7500,
+    "MINOR_TYPO_DUPLICATE": 7500,
+    "NEAR_DUPLICATE": 7500,
+    "PARAPHRASED_DUPLICATE": 7500,
+    "SAME_EVENT_TYPE_DIFFERENT_EVENT": 6428,
+    "SAME_LOCATION_DIFFERENT_TIME": 6430,
+    "SAME_SOURCE_DIFFERENT_EVENT": 6428,
+    "SAME_TEXT_DIFFERENT_EVENT": 6428,
+    "SAME_WEATHER_DIFFERENT_EVENT": 6430,
+    "SPATIALLY_NEAR_TEMPORALLY_FAR": 6428,
+    "TEMPORALLY_NEAR_SPATIALLY_FAR": 6428,
+    "TIME_VARIATION_DUPLICATE": 7500
+  },
+  "language_counts": {
+    "en": 33342,
+    "hi": 33332,
+    "hinglish": 33326
+  },
+  "leakage_checks": {
+    "report_cross_split": 0,
+    "incident_cross_split": 0,
+    "scenario_family_cross_split": 0,
+    "exact_text_cross_split": 0,
+    "parameter_combination_cross_split": 0,
+    "reversed_or_duplicate_pairs": 0,
+    "status": "PASS"
+  },
+  "invariant_checks": {
+    "labels_come_from_scenario_identity": true,
+    "all_required_scenarios_present": true,
+    "all_required_languages_present": true,
+    "no_report_reuse_across_splits": true,
+    "no_reversed_pairs": true,
+    "no_incident_leakage": true,
+    "no_scenario_family_leakage": true,
+    "no_exact_text_leakage": true,
+    "test_has_held_out_combinations": true,
+    "matcher_not_used_for_labels": true
+  },
+  "held_out_combination_count": 15000,
+  "errors": [],
+  "warnings": [
+    "Synthetic scenario performance is not field or production evidence."
+  ],
+  "classification": "DEVELOPMENT_ONLY",
+  "provenance": "PROJECT_AUTHORED",
+  "data_kind": "SYNTHETIC",
+  "production_validation": "NOT_VALIDATED"
+}

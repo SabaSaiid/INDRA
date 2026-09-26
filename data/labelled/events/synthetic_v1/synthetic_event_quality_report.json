@@ -1,0 +1,99 @@
+{
+  "report_version": "synthetic-event-quality-report-v1",
+  "valid": true,
+  "generated_at": "2026-09-23T20:00:00Z",
+  "dataset_sha256": "127a506f8deba172140dd33b71a14b84b629ce325c959ba8b9d4c04635f48f0f",
+  "split_sha256": "5ba383c9565739486a67e79ad6ae9a651261a11c00c4ac9dd7ec7c6c67d555e6",
+  "file_hashes": {
+    "detector_inputs_test": "e8c3da217d720c323ecc8acca27053f3b53d7248915aedca3ace9de39788b36f",
+    "detector_inputs_train": "d0fe7059bc74e4c0ab298aa7d6cd8752d1cf71086af6d0040c463c661eb4c98d",
+    "detector_inputs_validation": "06330f204b83f6f486ad6748af348a722b05b923015dec25fc2da6f7c7664787",
+    "event_pairs": "f4e01fc4d6db67d8db6d40789f903e0fd1168814491b3e399b813ee428b05ed6",
+    "ground_truth_test": "55cd27d392bea4893154abbb92ca43f5c2a200248e620c3c88a08fba3d1e24e7",
+    "ground_truth_train": "1cc05a6846cb66f787600586843689e3b358b4c7120de23076ebd45dca0adfb2",
+    "ground_truth_validation": "a4502648ccfb85f1492dc652afdbc200bba734ca98659ea93c6cde5490b897b6"
+  },
+  "generator_version": "synthetic-event-generator-v1",
+  "scenario_version": "synthetic-event-scenarios-v1",
+  "split_version": "synthetic-event-canonical-splits-v1",
+  "seed": 200020,
+  "report_count": 110000,
+  "canonical_event_count": 17000,
+  "pair_count": 55000,
+  "split_report_counts": {
+    "train": 77000,
+    "validation": 16500,
+    "test": 16500
+  },
+  "split_event_counts": {
+    "train": 11900,
+    "validation": 2550,
+    "test": 2550
+  },
+  "split_pair_counts": {
+    "train": 38500,
+    "validation": 8250,
+    "test": 8250
+  },
+  "scenario_counts": {
+    "A_SINGLE_EVENT_MULTIPLE_REPORTS": 10000,
+    "B_TWO_SPATIALLY_SEPARATE_EVENTS": 10000,
+    "C_TWO_TEMPORALLY_SEPARATE_EVENTS": 10000,
+    "D_SAME_WEATHER_TYPE_DIFFERENT_EVENTS": 10000,
+    "E_DUPLICATE_REPORTS_WITHIN_EVENT": 10000,
+    "F_EVENT_REPORT_NOISE": 10000,
+    "G_PARTIALLY_OVERLAPPING_EVENTS": 10000,
+    "H_CHAIN_BRIDGE": 10000,
+    "I_EVENT_TYPE_CONFLICT": 10000,
+    "J_SINGLE_REPORT_EVENT_CANDIDATE": 10000,
+    "K_LEGITIMATE_ELONGATED_EVENT": 10000
+  },
+  "event_type_counts": {
+    "CLOUDBURST": 28758,
+    "CYCLONE_INUNDATION": 26237,
+    "RIVER_BREACH": 26262,
+    "URBAN_FLOOD": 28743
+  },
+  "pair_label_counts": {
+    "EVENT_MATCH": 42000,
+    "EVENT_NOT_MATCH": 11000,
+    "UNCERTAIN": 2000
+  },
+  "language_counts": {
+    "en": 36667,
+    "hi": 36667,
+    "hinglish": 36666
+  },
+  "duplicate_report_count": 3999,
+  "leakage_checks": {
+    "canonical_event_cross_split": 0,
+    "incident_cross_split": 0,
+    "report_cross_split": 0,
+    "duplicate_cross_event": 0,
+    "ground_truth_isolation": true,
+    "status": "PASS"
+  },
+  "invariant_checks": {
+    "truth_defined_before_detector": true,
+    "detector_inputs_exclude_hidden_fields": true,
+    "canonical_events_do_not_cross_splits": true,
+    "reports_do_not_cross_splits": true,
+    "incidents_do_not_cross_splits": true,
+    "pair_labels_derive_from_generator_identity": true,
+    "duplicates_remain_within_event": true,
+    "all_required_scenarios_present": true,
+    "all_configured_event_types_present": true,
+    "all_pair_labels_present": true,
+    "random_row_split_absent": true,
+    "detector_not_used_for_labels": true
+  },
+  "errors": [],
+  "warnings": [
+    "Synthetic event performance is not field or production evidence.",
+    "Controlled TextPrediction fixtures are not frozen NLP model inferences."
+  ],
+  "provenance": "PROJECT_AUTHORED",
+  "data_kind": "SYNTHETIC",
+  "classification": "DEVELOPMENT_ONLY",
+  "production_validation": "NOT_VALIDATED"
+}

@@ -1,0 +1,621 @@
+{
+  "model_version": "nlp-classifier-v1",
+  "model_status": "EVALUATED",
+  "dataset_version": "reports-v1-development-synthetic",
+  "dataset_status": "DEVELOPMENT_ONLY / SYNTHETIC / NOT PRODUCTION VALIDATION",
+  "dataset_sha256": "3178b8d980d9ea8d5bea9089d0535aeaeebfc80a4cbca9349d27d2fa1bab031d",
+  "training_split_sha256": "897b8eaa1f9a496574691d5cb7d181613b5d39e4085e7b98272a080d5643ec6c",
+  "preprocessing_version": "nlp-text-normalization-v1",
+  "feature_version": "nlp-features-v1",
+  "random_state": 42,
+  "n_train": 210,
+  "n_test": 90,
+  "classes": [
+    "CLOUDBURST",
+    "CYCLONE_INUNDATION",
+    "NOT_RELEVANT",
+    "RIVER_BREACH",
+    "URBAN_FLOOD"
+  ],
+  "training_class_distribution": {
+    "CLOUDBURST": 42,
+    "CYCLONE_INUNDATION": 42,
+    "NOT_RELEVANT": 42,
+    "RIVER_BREACH": 42,
+    "URBAN_FLOOD": 42
+  },
+  "selection": {
+    "method": "StratifiedKFold(5, shuffle=True, random_state=42) on training rows only",
+    "macro_f1_by_c": {
+      "0.1": 0.6910792712619338,
+      "1.0": 0.7504144671977488,
+      "10.0": 0.7426069097740924
+    },
+    "chosen_c": 1.0
+  },
+  "leakage_audit": {
+    "status": "VALID",
+    "errors": [],
+    "actual_classes": [
+      "CLOUDBURST",
+      "CYCLONE_INUNDATION",
+      "NOT_RELEVANT",
+      "RIVER_BREACH",
+      "URBAN_FLOOD"
+    ],
+    "empty_records": [],
+    "label_conflict_groups": [],
+    "train_test_text_overlap": [],
+    "dataset_status": "DEVELOPMENT_ONLY / SYNTHETIC / NOT PRODUCTION VALIDATION"
+  },
+  "test": {
+    "component": "nlp_classifier",
+    "evaluation_status": "DATA_AVAILABLE",
+    "classes": [
+      "CLOUDBURST",
+      "CYCLONE_INUNDATION",
+      "NOT_RELEVANT",
+      "RIVER_BREACH",
+      "URBAN_FLOOD"
+    ],
+    "sample_count": 90,
+    "accuracy": 0.8111111111111111,
+    "macro_precision": 0.8168253968253968,
+    "macro_recall": 0.8111111111111111,
+    "macro_f1": 0.8104532163742689,
+    "per_class_metrics": {
+      "CLOUDBURST": {
+        "precision": 0.9285714285714286,
+        "recall": 0.7222222222222222,
+        "f1": 0.8125,
+        "support": 18
+      },
+      "CYCLONE_INUNDATION": {
+        "precision": 0.85,
+        "recall": 0.9444444444444444,
+        "f1": 0.8947368421052632,
+        "support": 18
+      },
+      "NOT_RELEVANT": {
+        "precision": 0.7777777777777778,
+        "recall": 0.7777777777777778,
+        "f1": 0.7777777777777778,
+        "support": 18
+      },
+      "RIVER_BREACH": {
+        "precision": 0.75,
+        "recall": 0.8333333333333334,
+        "f1": 0.7894736842105263,
+        "support": 18
+      },
+      "URBAN_FLOOD": {
+        "precision": 0.7777777777777778,
+        "recall": 0.7777777777777778,
+        "f1": 0.7777777777777778,
+        "support": 18
+      }
+    },
+    "confusion_matrix": [
+      [
+        13,
+        0,
+        2,
+        2,
+        1
+      ],
+      [
+        0,
+        17,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        14,
+        1,
+        2
+      ],
+      [
+        1,
+        1,
+        0,
+        15,
+        1
+      ],
+      [
+        0,
+        1,
+        2,
+        1,
+        14
+      ]
+    ],
+    "not_relevant_recall": 0.7777777777777778,
+    "subgroup_metrics": {
+      "en": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 67,
+        "accuracy": 0.8805970149253731,
+        "macro_f1": 0.8831397560541052
+      },
+      "hi": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 8,
+        "accuracy": 0.625,
+        "macro_f1": 0.5142857142857142
+      },
+      "hinglish": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 15,
+        "accuracy": 0.6,
+        "macro_f1": 0.5119047619047619
+      }
+    },
+    "error_analysis": {
+      "false_positives": [
+        {
+          "record_id": "r003",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "en",
+          "text": "Municipal corporation warns of waterlogging in low-lying Kankarbagh lanes if rain continues tonight"
+        },
+        {
+          "record_id": "r011",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Hamare mohalle ki naali overflow hone lagi hai, baarish ruki nahi to paani ghar tak aayega"
+        },
+        {
+          "record_id": "r026",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hinglish",
+          "text": "Dukano mein paani ghus gaya Lalbagh market mein, saara maal geela ho gaya"
+        },
+        {
+          "record_id": "r057",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hi",
+          "text": "बाढ़ के पानी में करंट फैलने से तीन लोगों की मौत, पूरा इलाका डूबा हुआ है"
+        },
+        {
+          "record_id": "r071",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CLOUDBURST",
+          "language": "hi",
+          "text": "गंडक नदी का जलस्तर बढ़ रहा है, प्रशासन ने तटवर्ती गांवों को सतर्क किया"
+        },
+        {
+          "record_id": "r093",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Waist-deep river water inside homes in Dhemaji, NDRF boats evacuating families"
+        },
+        {
+          "record_id": "r099",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hinglish",
+          "text": "Kamar tak nadi ka paani ghar mein, maweshi beh gaye, naav chahiye"
+        },
+        {
+          "record_id": "r123",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "en",
+          "text": "Char Dham yatra halted at Sonprayag as a precaution after extremely heavy rain on the hills"
+        },
+        {
+          "record_id": "r128",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Pahad pe bahut tez baarish ho rahi hai, gadhera ka paani badh raha hai, dhyaan rakhna"
+        },
+        {
+          "record_id": "r135",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Heavy rain spell over the Munsiyari hills, small slips on the road, traffic moving with caution"
+        },
+        {
+          "record_id": "r144",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Achanak aayi baadh se puliya beh gayi, pahadi gaon ka sampark toot gaya"
+        },
+        {
+          "record_id": "r160",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Seene tak malba wala paani aaya, gaon ke log pahad pe chadh gaye"
+        },
+        {
+          "record_id": "r222",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hi",
+          "text": "सुंदरबन में तूफानी लहरों से तटबंध टूटे, कई द्वीप जलमग्न"
+        },
+        {
+          "record_id": "r248",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Pothole on the main road outside the school keeps getting bigger"
+        },
+        {
+          "record_id": "r252",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Typhoon floods Manila streets as residents wade through knee-deep water"
+        },
+        {
+          "record_id": "r264",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "en",
+          "text": "Dust storm in Bikaner reduced visibility in the afternoon"
+        },
+        {
+          "record_id": "r273",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "RIVER_BREACH",
+          "language": "en",
+          "text": "Click here to claim government flood relief of 10000 rupees, enter your bank details"
+        }
+      ],
+      "false_negatives": [
+        {
+          "record_id": "r003",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "en",
+          "text": "Municipal corporation warns of waterlogging in low-lying Kankarbagh lanes if rain continues tonight"
+        },
+        {
+          "record_id": "r011",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Hamare mohalle ki naali overflow hone lagi hai, baarish ruki nahi to paani ghar tak aayega"
+        },
+        {
+          "record_id": "r026",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hinglish",
+          "text": "Dukano mein paani ghus gaya Lalbagh market mein, saara maal geela ho gaya"
+        },
+        {
+          "record_id": "r057",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hi",
+          "text": "बाढ़ के पानी में करंट फैलने से तीन लोगों की मौत, पूरा इलाका डूबा हुआ है"
+        },
+        {
+          "record_id": "r071",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CLOUDBURST",
+          "language": "hi",
+          "text": "गंडक नदी का जलस्तर बढ़ रहा है, प्रशासन ने तटवर्ती गांवों को सतर्क किया"
+        },
+        {
+          "record_id": "r093",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Waist-deep river water inside homes in Dhemaji, NDRF boats evacuating families"
+        },
+        {
+          "record_id": "r099",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hinglish",
+          "text": "Kamar tak nadi ka paani ghar mein, maweshi beh gaye, naav chahiye"
+        },
+        {
+          "record_id": "r123",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "en",
+          "text": "Char Dham yatra halted at Sonprayag as a precaution after extremely heavy rain on the hills"
+        },
+        {
+          "record_id": "r128",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Pahad pe bahut tez baarish ho rahi hai, gadhera ka paani badh raha hai, dhyaan rakhna"
+        },
+        {
+          "record_id": "r135",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Heavy rain spell over the Munsiyari hills, small slips on the road, traffic moving with caution"
+        },
+        {
+          "record_id": "r144",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Achanak aayi baadh se puliya beh gayi, pahadi gaon ka sampark toot gaya"
+        },
+        {
+          "record_id": "r160",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Seene tak malba wala paani aaya, gaon ke log pahad pe chadh gaye"
+        },
+        {
+          "record_id": "r222",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hi",
+          "text": "सुंदरबन में तूफानी लहरों से तटबंध टूटे, कई द्वीप जलमग्न"
+        },
+        {
+          "record_id": "r248",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Pothole on the main road outside the school keeps getting bigger"
+        },
+        {
+          "record_id": "r252",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Typhoon floods Manila streets as residents wade through knee-deep water"
+        },
+        {
+          "record_id": "r264",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "en",
+          "text": "Dust storm in Bikaner reduced visibility in the afternoon"
+        },
+        {
+          "record_id": "r273",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "RIVER_BREACH",
+          "language": "en",
+          "text": "Click here to claim government flood relief of 10000 rupees, enter your bank details"
+        }
+      ],
+      "most_confused_class_pairs": [
+        {
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "count": 2
+        },
+        {
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "count": 2
+        },
+        {
+          "true_label": "CLOUDBURST",
+          "predicted_label": "RIVER_BREACH",
+          "count": 2
+        },
+        {
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "count": 2
+        },
+        {
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "count": 1
+        },
+        {
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "count": 1
+        },
+        {
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CLOUDBURST",
+          "count": 1
+        },
+        {
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "URBAN_FLOOD",
+          "count": 1
+        },
+        {
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "count": 1
+        },
+        {
+          "true_label": "CLOUDBURST",
+          "predicted_label": "URBAN_FLOOD",
+          "count": 1
+        },
+        {
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "RIVER_BREACH",
+          "count": 1
+        },
+        {
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "count": 1
+        },
+        {
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "RIVER_BREACH",
+          "count": 1
+        }
+      ],
+      "not_relevant_errors": [
+        {
+          "record_id": "r003",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "en",
+          "text": "Municipal corporation warns of waterlogging in low-lying Kankarbagh lanes if rain continues tonight"
+        },
+        {
+          "record_id": "r011",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Hamare mohalle ki naali overflow hone lagi hai, baarish ruki nahi to paani ghar tak aayega"
+        },
+        {
+          "record_id": "r123",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "en",
+          "text": "Char Dham yatra halted at Sonprayag as a precaution after extremely heavy rain on the hills"
+        },
+        {
+          "record_id": "r128",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Pahad pe bahut tez baarish ho rahi hai, gadhera ka paani badh raha hai, dhyaan rakhna"
+        },
+        {
+          "record_id": "r248",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Pothole on the main road outside the school keeps getting bigger"
+        },
+        {
+          "record_id": "r252",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Typhoon floods Manila streets as residents wade through knee-deep water"
+        },
+        {
+          "record_id": "r264",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "en",
+          "text": "Dust storm in Bikaner reduced visibility in the afternoon"
+        },
+        {
+          "record_id": "r273",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "RIVER_BREACH",
+          "language": "en",
+          "text": "Click here to claim government flood relief of 10000 rupees, enter your bank details"
+        }
+      ],
+      "hindi_hinglish_errors": {
+        "hinglish": [
+          {
+            "record_id": "r011",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Hamare mohalle ki naali overflow hone lagi hai, baarish ruki nahi to paani ghar tak aayega"
+          },
+          {
+            "record_id": "r026",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "CYCLONE_INUNDATION",
+            "language": "hinglish",
+            "text": "Dukano mein paani ghus gaya Lalbagh market mein, saara maal geela ho gaya"
+          },
+          {
+            "record_id": "r099",
+            "true_label": "RIVER_BREACH",
+            "predicted_label": "CYCLONE_INUNDATION",
+            "language": "hinglish",
+            "text": "Kamar tak nadi ka paani ghar mein, maweshi beh gaye, naav chahiye"
+          },
+          {
+            "record_id": "r128",
+            "true_label": "CLOUDBURST",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Pahad pe bahut tez baarish ho rahi hai, gadhera ka paani badh raha hai, dhyaan rakhna"
+          },
+          {
+            "record_id": "r144",
+            "true_label": "CLOUDBURST",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hinglish",
+            "text": "Achanak aayi baadh se puliya beh gayi, pahadi gaon ka sampark toot gaya"
+          },
+          {
+            "record_id": "r160",
+            "true_label": "CLOUDBURST",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hinglish",
+            "text": "Seene tak malba wala paani aaya, gaon ke log pahad pe chadh gaye"
+          }
+        ],
+        "hi": [
+          {
+            "record_id": "r057",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hi",
+            "text": "बाढ़ के पानी में करंट फैलने से तीन लोगों की मौत, पूरा इलाका डूबा हुआ है"
+          },
+          {
+            "record_id": "r071",
+            "true_label": "RIVER_BREACH",
+            "predicted_label": "CLOUDBURST",
+            "language": "hi",
+            "text": "गंडक नदी का जलस्तर बढ़ रहा है, प्रशासन ने तटवर्ती गांवों को सतर्क किया"
+          },
+          {
+            "record_id": "r222",
+            "true_label": "CYCLONE_INUNDATION",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hi",
+            "text": "सुंदरबन में तूफानी लहरों से तटबंध टूटे, कई द्वीप जलमग्न"
+          }
+        ]
+      }
+    },
+    "warnings": []
+  },
+  "flood_to_not_relevant_errors": 4,
+  "acceptance_gate": {
+    "macro_f1": {
+      "value": 0.8104532163742689,
+      "minimum": 0.75,
+      "pass": true
+    },
+    "not_relevant_recall": {
+      "value": 0.7777777777777778,
+      "minimum": 0.8,
+      "pass": false
+    },
+    "flood_to_not_relevant_errors": {
+      "value": 4,
+      "maximum": 4,
+      "pass": true
+    }
+  },
+  "development_acceptance": {
+    "accepted": false,
+    "status": "EVALUATED"
+  },
+  "production_validation": "NOT_VALIDATED",
+  "production_validated": false,
+  "legacy_reference": "LEGACY_RECORDED_METRICS / NOT REPRODUCED IN CURRENT RUN"
+}

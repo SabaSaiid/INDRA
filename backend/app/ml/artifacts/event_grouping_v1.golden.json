@@ -1,0 +1,16 @@
+{
+  "configuration_artifact_hash": "e70a61efdbcb5be22b75236b4822c2721df94bb4eaf5d1e93ceb5e4e314d5d3d",
+  "expected_chain_all_merged_count": 0,
+  "expected_duplicate_inflation_violations": 0,
+  "expected_elongated_recovery_rate": 1.0,
+  "expected_single_confirmed_count": 0,
+  "golden_version": "event-grouping-v1-golden",
+  "production_validation": "NOT_VALIDATED",
+  "selected_configuration": {
+    "minimum_independent_reports": 2,
+    "minimum_type_probability": 0.4,
+    "spatial_radius_km": 5.0,
+    "temporal_window_minutes": 180.0
+  },
+  "validation_grouping_metrics_sha256": "ace67088d34675357b26335011c163f03c18d27c69522198050baabea3b5a851"
+}

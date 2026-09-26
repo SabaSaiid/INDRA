@@ -1,0 +1,99 @@
+{
+  "schema_version": "phase25r-backend-verification-receipt-v1",
+  "verified_at": "2026-09-25T19:52:36+05:30",
+  "status": "PASS",
+  "scope": "Disposable local native Windows test stack; no production database or Redis instance used",
+  "environment": {
+    "virtual_environment": "D:/INDRA/.venv",
+    "python": "3.14.3",
+    "pytest": "9.1.1",
+    "pytest_asyncio": "1.4.0",
+    "asyncpg": "0.31.0",
+    "sqlalchemy": "2.1.0",
+    "alembic": "1.20.0",
+    "python_dependencies_installed_during_this_verification": false,
+    "requested_offline_wheelhouse_present_at_verification": false,
+    "postgresql_postgis": {
+      "status": "READY",
+      "distribution": "Official PostgreSQL 16.15 portable Windows binaries with PostGIS 3.4.2 bundle",
+      "host": "127.0.0.1",
+      "port": 5433,
+      "database": "indra_test",
+      "role": "indra_user",
+      "database_encoding": "UTF8",
+      "postgis_version_query": "3.4 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
+      "cluster_directory": "D:/INDRA/tmp/phase25r-native/data",
+      "migration_head": "0009_event_location",
+      "public_tables": 9,
+      "public_indexes": 37,
+      "public_constraints": 25,
+      "test_only_loopback": true
+    },
+    "redis_compatible": {
+      "status": "READY",
+      "product": "Memurai Developer",
+      "version": "4.1.2",
+      "redis_api_version": "7.2.5",
+      "host": "127.0.0.1",
+      "port": 6379,
+      "test_only_loopback": true,
+      "windows_service_installed": false,
+      "ping": "PONG"
+    }
+  },
+  "verification": {
+    "backend_collection": {
+      "collected": 686,
+      "status": "PASS"
+    },
+    "backend_full_suite": {
+      "passed": 678,
+      "repository_declared_skips": 8,
+      "errors": 0,
+      "failures": 0,
+      "deselected": 0,
+      "status": "PASS",
+      "skip_explanation": "Six existing sentence-transformers fallback tests and two existing unreachable generate_series fallback branches"
+    },
+    "redis_integration_subset": {
+      "passed": 5,
+      "skipped": 0,
+      "status": "PASS"
+    },
+    "ai_ml_regression": {
+      "passed": 343,
+      "skipped": 0,
+      "status": "PASS"
+    },
+    "minilm_regression_guard": {
+      "passed": 2,
+      "status": "PASS"
+    },
+    "ml_socket_denial": {
+      "passed": 2,
+      "status": "PASS"
+    },
+    "ml_policy_scan": {
+      "status": "PASS",
+      "source_files_scanned": 92,
+      "prohibited_violations": 0,
+      "boundary_status": "PASS",
+      "live_minilm_runtime_dependency": "REMOVED",
+      "ml_runtime_network_dependency": "NONE"
+    },
+    "frozen_artifact_integrity": "PASS",
+    "protected_receipt_integrity": "PASS",
+    "phase20r_manifest_and_receipt_integrity": "PASS",
+    "protected_phase18_to_phase23_benchmarks_rerun": false
+  },
+  "retained_limitations": {
+    "phase20_event_evidence": "REVALIDATED",
+    "anomaly_synthetic_generator_dependence": "HIGH",
+    "production_validation": "NOT_VALIDATED"
+  },
+  "authorization": {
+    "committed": false,
+    "pushed": false,
+    "merged": false
+  }
+}

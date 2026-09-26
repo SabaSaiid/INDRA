@@ -113,6 +113,12 @@ Two things to be precise about: `places` resolves against a 56-city gazetteer, s
 **cities, never landmarks** — `"Patna"`, not `"Gandhi Maidan"`. And extraction is regex and
 dictionaries, **not a model**; if it fails the report is still stored with `analysis: null`.
 
+The rule-based extraction above is distinct from the frozen local AI/ML advisory path. When the
+pipeline processes a clusterable stored report, its typed six-component `UnifiedMLResult` is
+persisted under `raw_reports.analysis.ml`; missing image or station history is `NOT_RUN`, not a
+zero or negative prediction. A stored media URL is never fetched by model inference. This internal
+evidence does not change the public submit response or authorize automatic confirmation.
+
 A swapped lat/lng pair that lands inside India is corrected rather than rejected.
 
 The route is anonymous and **always stores `CITIZEN_APP`**, whatever the body says. A client that
@@ -420,8 +426,12 @@ The receipt is the product. It explains every number it states.
 
 **`confidence = total_weighted / factor_coverage`**, and the numbers are printed so you can check
 it. `factor_coverage` is the share of the designed model that actually reported: **0.80**, because
-`vision_analysis` (0.15) and `anomaly_detection` (0.05) are **permanently offline** — the AI/ML
-layer left this project's scope on 20 Sep. **Never display the score without the coverage.**
+`vision_analysis` (0.15) and `anomaly_detection` (0.05) did not contribute to this historical
+fusion receipt. The later frozen image and anomaly components produce separate advisory results,
+not calibrated replacements for these fusion factors. **Never display the score without the coverage.**
+
+`verification_receipt.ml_event_grouping`, when present, contains advisory candidate grouping from
+the frozen deterministic event component. It does not change `review_status` or confirm an event.
 
 `weather.source` is `station_reading` when the rainfall came from this platform's own polled
 table, `open_meteo_live` when it was fetched while scoring.

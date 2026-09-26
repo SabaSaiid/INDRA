@@ -12,14 +12,15 @@
 > the pitch, the ledger is the truth, and conflating the two is how a demo falls apart under
 > a judge's follow-up question.
 >
-> Ledger last verified against code **and a live stack**: **21 Sep 2026**, the last day of the
-> backend sprint; rows 3, 5, 8a, 8b and 9 re-verified **22 Sep**. Everything marked ✅ below was
-> exercised by a named test or reproduced in a run recorded on those days.
+> The original backend ledger was verified against a live stack on **21–22 Sep 2026**. It is a
+> dated backend snapshot; the subsequent native-stack AI/ML release and this merge require
+> their own test results. Current frozen ML details are in [ML architecture](ML_ARCHITECTURE.md)
+> and [ML validation](ML_VALIDATION_REPORT.md).
 >
-> **Scope, stated once.** Layers **4 (AI/ML)** and **8b (the alert engine)** left the backend's
-> scope on 20 Sep. They are **cancelled, not deferred**: the ML code already committed stays
-> frozen, and no alerting will be built. Where this document's design sections describe them, they
-> describe the target architecture, not a plan with a date on it.
+> **Scope update.** The alert-sending engine remains cancelled. The 20 Sep AI/ML cancellation
+> below is historical: six frozen local synthetic-development components are now connected as
+> advisory typed results. Their outputs do not turn synthetic evidence into production validation
+> or automatically confirm an event.
 
 ---
 
@@ -82,8 +83,8 @@ flowchart TD
 |---|---|---|---|
 | 1 | Data Sources | 🟡 **2 of 6** | Citizen reports have a live writer (`POST /api/reports/submit`). **Open-Meteo is now polled on a schedule** (`workers/station_poller.py`, Day 6): every 10 minutes, 24 h accumulated rainfall for six cities is written to `station_readings` as `agency = OPEN_METEO`, and the weather factor prefers a stored reading within 3 h and 25 km over a live request. Before today the table had never held a row. `TWITTER_IMD`, `CWC_GAUGE`, `OFFICIAL_DISPATCH` remain declared `SourceType` values with no producer; the OpenWeather, IMD and Twitter keys are empty and unread (decided 16 Sep, for want of credentials). `raw_reports.media_url` stores a string; no image is uploaded or opened, and none ever will be — vision left the scope on 20 Sep. |
 | 2 | Data Ingestion | ✅ **stream real, batch honestly synthetic** | REST → Postgres **and** Redpanda (`indra.raw.reports`); `workers/report_consumer.py` consumes it and `services/event_publisher.py` publishes verified events to `indra.verified.events`. A report that cannot be stored returns **503** and is never published; a stored report whose publish fails returns 202 `queued: false`. A re-delivered message is not re-broadcast as `NEW_REPORT` — and since Day 6 that memory lives in Redis, so it **survives a restart**. **Batch ingestion is a synthetic seed script and says so**: `scripts/seed_national_data.py` refuses to run without `--synthetic` and marks every receipt `synthetic: true`. |
-| 3 | Data Processing | ✅ **5 of 6** | Deduplication is real and wired (`services/dedup.py`: MiniLM cosine ≥ 0.88 **AND** ≤ 1 km **AND** ≤ 15 min, Levenshtein ≥ 0.75 fallback, thresholds now in `config.py`). A suppressed report is recorded as `duplicate_of` its original and excluded from clustering, so it is never counted as corroboration **and never grades severity**. Out-of-India coordinates are **rejected with 422 and never stored**; a swapped lat/lng is still corrected. Each report gets a computed `credibility_score`. **Cleaning and metadata extraction ship** (`services/text_processing.py`, migration `0005`): every report stores `{cleaned_text, language, depth_cm, depth_basis, keywords, places, …}`, all of it regex and dictionaries — rule-based, and the receipt says `rule_based`, never "model". Geocoding resolves every point against a **737-district Census 2011 gazetteer**, forward and reverse, and refuses rather than guesses — a point in the Bay of Bengal gets no name (BUG-033); only the text extractor's `places` still uses the older 56-city list. |
-| 4 | AI / ML | ⬛ **out of scope since 20 Sep** | `all-MiniLM-L6-v2` runs for duplicate matching and for nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macro-F1 0.787; NOT_RELEVANT recall 0.667 and 5/72 floods dismissed), so `classify()` returns `None` and it is unwired. The labelled set (`data/labelled/reports_v1.csv`, 300 synthetic rows, frozen split, `DATASHEET.md`) stays committed and frozen. No vision model, no fake detection, no anomaly detection — and none is planned. `vision_analysis` and `anomaly_detection` are **permanently `offline`** in every receipt, with a reason, rather than filled with a number. |
+| 3 | Data Processing | ✅ | Deduplication uses the frozen local Phase 19 matcher with the backend's spatial/time eligibility gates; a suppressed report is recorded as `duplicate_of` and excluded from corroboration and severity. Out-of-India coordinates are rejected with 422; geocoding uses the 737-district gazetteer. Cleaning and metadata extraction remain rule-based in `analysis`; typed ML evidence is stored separately at `analysis.ml`. |
+| 4 | AI / ML | ✅ **synthetic-development integration** | Six frozen local components provide typed advisory NLP, duplicate, event, credibility, image, and anomaly results. MiniLM is removed from the live runtime; the older below-gate classifier remains quarantined. Single reports remain candidates, and synthetic scores do not automatically decide truth or human-review status. Production validation remains `NOT_VALIDATED`. |
 | 5 | Geo-Analytics | ✅ | DBSCAN clustering is real, persists membership, and yields centroid / radius / max-pairwise stats in `geography` metres. **Every event carries a `boundary_polygon`** containing all of its non-duplicate reports (concave hull, buffered 250 m, convex-hull fallback), served as `boundary_geojson`. **`GET /api/geo/heatmap`** aggregates the stored `h3_res8` at res 6/7/8 over a 24 h/48 h/7 d window, duplicates excluded, with res-7 counts summing their res-8 children exactly. Risk zones do not exist. Since 22 Sep the DBSCAN radius is a **great-circle distance** (scikit-learn, haversine, off the event loop), so the 5 km neighbourhood is a circle at every latitude; the degree-based eps it replaced reached only ~4.5 km east–west at Patna (BUG-012). |
 | 6 | Event Fusion | ✅ **the spine** | `services/pipeline.py` correlates, merges duplicates, merges streaming-arrival fragments into one event, scores and persists. **No randomness.** Confidence is `Σ_online(w·s) / Σ_online w` and the receipt publishes **`factor_coverage`** beside it, so an offline factor lowers the stated coverage instead of silently scoring zero; a determinism test proves the same cluster gives a byte-identical receipt. **Severity comes from the reports' content**: `max()` of a depth axis (≥120 cm CRITICAL / ≥60 HIGH / ≥20 MODERATE) and a corroboration axis (≥10 HIGH / ≥5 MODERATE), published thresholds with no model behind them, and the receipt names the winning axis and the phrase it read. A human decision is never overwritten by a later merge; each pipeline write is one transaction. |
 | 7 | Data Platform | ✅ **3 of 4** | PostGIS is fully real (6 migrations, GIST indexes, enums, audit-immutability trigger). `audit_logs` is an append-only **SHA-256 hash chain** (`services/audit.py`), written by the pipeline and the review endpoint, appended under an advisory lock so concurrent writers cannot fork it. **Redis is genuinely in use since Day 6** (`services/cache.py`): the Open-Meteo cache and the broadcast-dedup set, each with an in-memory fallback, so a stopped Redis degrades the service and breaks nothing. **`station_readings` holds real polled rows.** Object storage is configured in `.env` but absent from `docker-compose.yml`. WebSocket fan-out is still an in-process list, so the app runs **single-process by design**. |
@@ -94,11 +95,13 @@ flowchart TD
 ### Where the real path runs
 
 ```
-Citizen report ──► REST ──► Redpanda ──► consumer ──► dedup ──► DBSCAN cluster
+Citizen report ──► REST + outbox ──► Redpanda ──► consumer ──► dedup ──► DBSCAN cluster
                                                                       │
    station_readings (polled every 10 min) ──► 6-factor receipt ◄──────┘
-        └─ or live Open-Meteo on a miss        (4 online, 2 permanently offline,
-                                                coverage 0.80 published with it)
+        └─ or live Open-Meteo on a miss        (legacy fusion factors; missing
+                                                factors lower published coverage)
+                                                        │
+   frozen local ML ──► raw_reports.analysis.ml; candidate event grouping in receipt
                                                         │
    WebSocket ◄── verified_events row + boundary polygon + audit row (one transaction)
        │              │
@@ -107,9 +110,10 @@ Citizen report ──► REST ──► Redpanda ──► consumer ──► de
        └── commander: PATCH /review ──► HUMAN_APPROVED + audit row ──► EVENT_REVIEWED
 ```
 
-Everything on that line is live and test-covered (**948 passed, 2 skipped**, against a separate
-`indra_test` database, and green with the network off; plus 26 browser tests on the dashboard). Everything off it — NLP classification,
-vision, anomaly detection, alerting, object storage, risk zones — is not, and is not coming.
+The pre-merge `origin/main` backend snapshot reported 948 passed and 2 skipped plus 26 browser
+tests; the merged branch requires its own result. Frozen NLP, credibility, image, event and anomaly
+outputs are advisory, not fusion factors or production-approved decisions. Alert dispatch and risk
+zones remain unbuilt; optional object-storage and feed infrastructure is present in origin/main.
 
 ### Audit, auth and review — three claims to keep straight
 
@@ -133,17 +137,17 @@ The full register with a severity, a status and a sentence to say out loud for e
 
 ### The one-line summary
 
-The **spine is real and honest**: a citizen report travels REST → Kafka → dedup → DBSCAN cluster
-→ deterministic scoring (4 measured factors, including rainfall read from this platform's own
-polled `station_readings`, and 2 permanently offline with the coverage published beside the score)
+The **spine is real and honest**: a citizen report travels REST + transactional outbox → Kafka →
+dedup → DBSCAN cluster → deterministic scoring (measured factors include rainfall read from this
+platform's own `station_readings`; unavailable factors lower the published coverage)
 → a persisted event with a boundary polygon and a hash-chained audit row → WebSocket and
 `indra.verified.events`, and a commander can approve it through an auth-gated endpoint without the
 next report undoing the decision.
 
-What is **not** real is the *perception* layer (no NLP classification, no vision, no anomaly
-detection — out of scope since 20 Sep), most *external ingestion* (one feed, Open-Meteo), and the
-entire *alerting* tier (cancelled). Because two factors are permanently offline, **coverage is
-0.80 and is quoted with every score**. The live demo cluster lands at **0.4984 → `QUARANTINED`**,
+What remains unproven is *production* performance of the six synthetic-development perception
+components; their advisory scores do not enter the legacy fusion factors. The alert-sending tier
+is cancelled. The historical demo's **coverage was 0.80**, quoted with its score. That 21 Sep
+cluster landed at **0.4984 → `QUARANTINED`**,
 which is the correct reading of five unverified citizen reports and near-zero rainfall, and it
 reaches a commander through human review rather than auto-publishing.
 

@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from app.ml.data.nlp_annotations import SEALED_SOURCE_DATASET_SHA256
 from tests.conftest import requires_embeddings
 
 REPO = Path(__file__).resolve().parents[2]
@@ -100,7 +101,10 @@ def test_no_near_duplicate_pairs_across_train_and_test(rows):
 
 
 def test_datasheet_hash_matches_the_file():
-    digest = hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    raw = DATASET.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == SEALED_SOURCE_DATASET_SHA256
+    # The datasheet predates the sealed CRLF checkout and records the Git LF blob.
+    digest = hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
     assert digest in DATASHEET.read_text(encoding="utf-8")
 
 

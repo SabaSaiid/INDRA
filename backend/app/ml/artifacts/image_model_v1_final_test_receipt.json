@@ -1,0 +1,202 @@
+{
+  "artifact_sha256": "6daf6e9dc41783c7d30b19b5c0cc2a0fb20871733f9ab714a7b99552424f9248",
+  "calibration": {
+    "field_probability_claim": false,
+    "fit_source": "VALIDATION_ONLY",
+    "status": "VALIDATION_TEMPERATURE_CALIBRATED",
+    "test_metrics": {
+      "bins": [
+        {
+          "count": 48719,
+          "lower": 0.0,
+          "mean_score": 0.00349758,
+          "positive_rate": 0.0034278208,
+          "upper": 0.1
+        },
+        {
+          "count": 748,
+          "lower": 0.1,
+          "mean_score": 0.1417000674,
+          "positive_rate": 0.172459893,
+          "upper": 0.2
+        },
+        {
+          "count": 420,
+          "lower": 0.2,
+          "mean_score": 0.2458771553,
+          "positive_rate": 0.2976190476,
+          "upper": 0.3
+        },
+        {
+          "count": 297,
+          "lower": 0.3,
+          "mean_score": 0.3492807893,
+          "positive_rate": 0.4781144781,
+          "upper": 0.4
+        },
+        {
+          "count": 285,
+          "lower": 0.4,
+          "mean_score": 0.4494449479,
+          "positive_rate": 0.6,
+          "upper": 0.5
+        },
+        {
+          "count": 245,
+          "lower": 0.5,
+          "mean_score": 0.5512735823,
+          "positive_rate": 0.7346938776,
+          "upper": 0.6
+        },
+        {
+          "count": 298,
+          "lower": 0.6,
+          "mean_score": 0.6526582291,
+          "positive_rate": 0.8087248322,
+          "upper": 0.7
+        },
+        {
+          "count": 391,
+          "lower": 0.7,
+          "mean_score": 0.7530215434,
+          "positive_rate": 0.8670076726,
+          "upper": 0.8
+        },
+        {
+          "count": 746,
+          "lower": 0.8,
+          "mean_score": 0.8556586044,
+          "positive_rate": 0.9356568365,
+          "upper": 0.9
+        },
+        {
+          "count": 22851,
+          "lower": 0.9,
+          "mean_score": 0.9945090688,
+          "positive_rate": 0.9981182443,
+          "upper": 1.0
+        }
+      ],
+      "brier_score": 0.0101554174,
+      "expected_calibration_error": 0.0054330225,
+      "per_label_brier": {
+        "FLOODED_SCENE": 0.020390297,
+        "HEAVY_RAIN_VISUAL": 0.0010168852,
+        "NORMAL_SCENE": 0.0055797886,
+        "STANDING_WATER": 0.0149415321,
+        "STORM_DAMAGE": 0.008848584
+      }
+    }
+  },
+  "claimed_at": "2026-09-24T08:00:00+00:00",
+  "completed_at": "2026-09-24T08:00:00+00:00",
+  "configuration_changed_after_freeze": false,
+  "configuration_frozen_before_test": true,
+  "credibility_modified": false,
+  "dataset_id": "indra-synthetic-image-v1",
+  "dataset_sha256": "8cc2da10c57accbeff09a166221eb0b3f1df80e431c1810aad095eda0df972ba",
+  "dataset_version": "1.0.0",
+  "development_manifest_sha256": "6d683a9e23053b0a8a6ea447362c50f67cec95ea870b040518350caf7fc2e9a8",
+  "duplicate_modified": false,
+  "error_report_file": "image_model_v1.error_report.json",
+  "error_report_sha256": "16982fa215c6ab4cb5c9fb0f984bba84c2539262f69d34b17332bd9b35be2d08",
+  "evaluation_invocation_count": 1,
+  "evaluation_label": "FINAL_SYNTHETIC_IMAGE_HOLDOUT_EVALUATION",
+  "event_modified": false,
+  "external_apis": [],
+  "final_metrics_file": "image_model_v1.metrics.json",
+  "final_metrics_sha256": "8659989d325061da7d2912f75bc562c92d0291cb042ba3d9a9a450c3915fd7c2",
+  "frozen_state_checks": {
+    "artifact": true,
+    "artifact_manifest": true,
+    "development_manifest": true,
+    "protected_components": true,
+    "source_files": true
+  },
+  "live_backend_modified": false,
+  "metrics": {
+    "hamming_loss": 0.0127466667,
+    "macro_f1": 0.9813059275,
+    "micro_f1": 0.9808677554,
+    "micro_precision": 0.9814963153,
+    "micro_recall": 0.98024,
+    "per_label": {
+      "FLOODED_SCENE": {
+        "confusion": {
+          "false_negative": 163,
+          "false_positive": 220,
+          "true_negative": 9780,
+          "true_positive": 4837
+        },
+        "f1": 0.9619170727,
+        "precision": 0.9564959462,
+        "recall": 0.9674,
+        "support": 5000
+      },
+      "HEAVY_RAIN_VISUAL": {
+        "confusion": {
+          "false_negative": 5,
+          "false_positive": 16,
+          "true_negative": 9984,
+          "true_positive": 4995
+        },
+        "f1": 0.9979023075,
+        "precision": 0.9968070245,
+        "recall": 0.999,
+        "support": 5000
+      },
+      "NORMAL_SCENE": {
+        "confusion": {
+          "false_negative": 25,
+          "false_positive": 43,
+          "true_negative": 11207,
+          "true_positive": 3725
+        },
+        "f1": 0.9909550412,
+        "precision": 0.9885881104,
+        "recall": 0.9933333333,
+        "support": 3750
+      },
+      "STANDING_WATER": {
+        "confusion": {
+          "false_negative": 153,
+          "false_positive": 157,
+          "true_negative": 7343,
+          "true_positive": 7347
+        },
+        "f1": 0.979338843,
+        "precision": 0.9790778252,
+        "recall": 0.9796,
+        "support": 7500
+      },
+      "STORM_DAMAGE": {
+        "confusion": {
+          "false_negative": 148,
+          "false_positive": 26,
+          "true_negative": 11224,
+          "true_positive": 3602
+        },
+        "f1": 0.976416373,
+        "precision": 0.9928335171,
+        "recall": 0.9605333333,
+        "support": 3750
+      }
+    },
+    "sample_count": 15000,
+    "subset_accuracy": 0.9448
+  },
+  "network_access": false,
+  "nlp_modified": false,
+  "open_weight_models": [],
+  "phase": "22 — IMAGE MODEL SYNTHETIC VALIDATION",
+  "pretrained_models": [],
+  "production_validation": "NOT_VALIDATED",
+  "rerun_permitted": false,
+  "schema_version": "1.0",
+  "status": "FINAL_EVALUATION_COMPLETE",
+  "test_images": 15000,
+  "test_model_input_sha256": "c3c432037e49e70e2d3ec3d87ede6693b6b2367d985d3ebf5171ad3e80c17296",
+  "test_used_for_calibration": false,
+  "test_used_for_model_selection": false,
+  "test_used_for_threshold_selection": false
+}

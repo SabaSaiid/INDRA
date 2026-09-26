@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS",
+  "fixture_count": 100,
+  "fixture_split": "validation",
+  "semantic_sha256": "160547cc757270d3c5debdd3ecfbdc0aea9ec07baf96920b82260b4613616d21",
+  "checks": {
+    "repeat_predictions_identical": true,
+    "repeat_evidence_identical": true,
+    "original_feature_state_unchanged": true,
+    "default_configuration_not_replaced": true,
+    "development_matcher_is_opt_in": true
+  },
+  "production_validation": "NOT_VALIDATED"
+}

@@ -1,0 +1,98 @@
+{
+  "artifact_hash": "1063a75a1460ab0dc42365a3319790dd594c70a26c98138e9e250fe20a0ab681",
+  "artifact_sha256": "8bbd16727be2ba639e031db37a84f0ca92a2a14220fd1819e45dbf689bab7052",
+  "calibration": {
+    "brier_score": 0.0,
+    "expected_calibration_error_10_bins": 1.06e-08,
+    "log_loss": 1.06e-08
+  },
+  "claimed_at": "2026-09-24T05:00:00+00:00",
+  "completed_at": "2026-09-24T05:00:00+00:00",
+  "configuration_changed_after_freeze": false,
+  "configuration_frozen_before_test": true,
+  "dataset_id": "indra-credibility-project-synthetic-v1",
+  "dataset_sha256": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+  "dataset_version": "synthetic-credibility-100800-v1",
+  "development_manifest_sha256": "2638a79d775cd6289be68775cbdc42ea2485e6dbf66ccb15e47ebd5b81fd644e",
+  "duplicate_modified": false,
+  "error_report_file": "credibility_v1.error_report.json",
+  "error_report_sha256": "8fae1f1f9439ed8f66fef17d0464c7edb122303f67651abec4598dedeec3c4ad",
+  "evaluation_invocation_count": 1,
+  "evaluation_label": "FINAL_SYNTHETIC_CREDIBILITY_HOLDOUT_EVALUATION",
+  "event_modified": false,
+  "external_apis": [],
+  "final_metrics_file": "credibility_v1.metrics.json",
+  "final_metrics_sha256": "be4d54401daac4b444f8d7304599f659576e8c92ee48384de60c2419ae41099a",
+  "frozen_state_checks": {
+    "artifact": true,
+    "artifact_manifest": true,
+    "development_manifest": true,
+    "protected_components": true
+  },
+  "live_backend_modified": false,
+  "metrics": {
+    "accuracy": 1.0,
+    "confusion_matrix": {
+      "AUTHENTIC": {
+        "AUTHENTIC": 5400,
+        "MISLEADING": 0,
+        "UNCERTAIN": 0
+      },
+      "MISLEADING": {
+        "AUTHENTIC": 0,
+        "MISLEADING": 8640,
+        "UNCERTAIN": 0
+      },
+      "UNCERTAIN": {
+        "AUTHENTIC": 0,
+        "MISLEADING": 0,
+        "UNCERTAIN": 1080
+      }
+    },
+    "false_negative_rate": 0.0,
+    "false_positive_rate": 0.0,
+    "macro_f1": 1.0,
+    "misleading_precision": 1.0,
+    "misleading_recall": 1.0,
+    "per_label": {
+      "AUTHENTIC": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 5400
+      },
+      "MISLEADING": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 8640
+      },
+      "UNCERTAIN": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 1080
+      }
+    },
+    "row_count": 15120
+  },
+  "network_access": false,
+  "nlp_modified": false,
+  "open_weight_models": [],
+  "phase": "21 — CREDIBILITY VALIDATION",
+  "pretrained_models": [],
+  "production_validation": "NOT_VALIDATED",
+  "rerun_permitted": false,
+  "schema_version": "1.0",
+  "semantic_target": "MISLEADING_RISK_EVIDENCE",
+  "split_sha256": "7142901293a1ac0c0cf5fbc6972168025def9cbdcde8fb27d5ffb46cf352b742",
+  "status": "FINAL_EVALUATION_COMPLETE",
+  "test_detector_input_sha256": "e1f15638b76bcc5c3bd74d7dd260177c5b4ce745f3db1d3569efaaf5f20a48dd",
+  "test_ground_truth_sha256": "fad14f89a0b69b17d3f328ef7ab71c693a84ca99deb48fdf1751856b8b8d2ea3",
+  "test_rows": 15120,
+  "test_used_for_calibration": false,
+  "test_used_for_model_selection": false,
+  "test_used_for_preprocessing_fit": false,
+  "test_used_for_threshold_selection": false,
+  "truth_probability": false
+}
