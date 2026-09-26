@@ -135,13 +135,12 @@ class TestPersistentStore:
         rule = get_active_rules()[0]
         lm = LifecycleManager()
         alert, _ = lm.create_alert(patna_event, rule, "Test")
-        # mode is derived from raw_source="api" -> alert.mode="api"
         await store.save_alert(alert)
 
         # Filter by wrong mode — should return empty
-        actives = await store.list_active_alerts(mode="live")
+        actives = await store.list_active_alerts(mode="WRONG_MODE")
         assert not any(a.alert_id == alert.alert_id for a in actives)
 
         # Filter by correct mode
-        actives = await store.list_active_alerts(mode="api")
+        actives = await store.list_active_alerts(mode=alert.mode)
         assert any(a.alert_id == alert.alert_id for a in actives)

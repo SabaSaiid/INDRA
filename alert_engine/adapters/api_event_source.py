@@ -38,7 +38,7 @@ class ApiEventSource:
         Returns list of IndraEvent objects.
         Empty list on any error.
         """
-        url = f"{settings.INDRA_API_BASE}/api/events"
+        url = f"{settings.INDRA_API_BASE}/api/events?time_range=7d&limit=100"
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(url)

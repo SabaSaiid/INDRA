@@ -9,8 +9,10 @@ from typing import Optional
 
 from alert_engine.models import Alert, IndraEvent, AlertRule, AlertStatus, AlertHistory, EscalationLevel, NotificationStatus
 from alert_engine.engine.deduplication import generate_fingerprint
+from alert_engine.config import get_alert_settings
 
 logger = logging.getLogger("alert_engine.engine.lifecycle")
+settings = get_alert_settings()
 
 
 class LifecycleManager:
@@ -18,6 +20,7 @@ class LifecycleManager:
 
     @staticmethod
     def create_alert(event: IndraEvent, rule: AlertRule, reason: str) -> tuple[Alert, AlertHistory]:
+        from datetime import timedelta
         now = datetime.now(timezone.utc)
         alert_id = f"ALT-{now.year}-{uuid.uuid4().hex[:6].upper()}"
         
@@ -34,21 +37,21 @@ class LifecycleManager:
             severity=event.severity,
             status=AlertStatus.ACTIVE,
             escalation_level=EscalationLevel.NONE,
-            title=f"{event.severity} WARNING: {event.event_type} in {event.quadrant}",
+            title=f"{event.event_type} — {event.severity.upper()} severity",
             message=reason,
             confidence=event.confidence_score,
             source_count=event.source_count,
             evidence=event.verification_receipt,
-            affected_area=event.quadrant,
+            affected_area=f"{event.city}, {event.state}" if event.city and event.state else (event.city or event.state or event.quadrant),
             lat=event.lat,
             lng=event.lng,
             impact_radius_km=event.impact_radius_km,
-            mode=event.raw_source or "demo",
+            mode="DEMO" if getattr(settings, "DEMO_MODE", False) else "LIVE",
             created_at=now,
             updated_at=now,
             triggered_at=now,
             resolved_at=None,
-            expires_at=None,
+            expires_at=now + timedelta(seconds=rule.alert_duration_seconds),
             fingerprint=fingerprint,
         )
 
@@ -99,6 +102,7 @@ class LifecycleManager:
 
     @staticmethod
     def update_alert(alert: Alert, event: IndraEvent, reason: str) -> Optional[AlertHistory]:
+        from datetime import timedelta
         now = datetime.now(timezone.utc)
         
         # We don't change status, just update data
@@ -106,6 +110,13 @@ class LifecycleManager:
         alert.source_count = event.source_count
         alert.evidence = event.verification_receipt
         alert.updated_at = now
+        
+        # Extend the expiry
+        from alert_engine.rules.registry import get_active_rules
+        rule = next((r for r in get_active_rules() if r.rule_id == alert.rule_id), None)
+        if rule:
+            alert.expires_at = now + timedelta(seconds=rule.alert_duration_seconds)
+
         
         logger.debug(f"Updated alert {alert.alert_id} for event {event.event_code}")
         return None  # Routine updates don't necessarily need a history record unless we want high verbosity

@@ -57,7 +57,7 @@ class PersistentStore:
                     acknowledged_at TEXT,
                     notification_status TEXT,
                     delivery_attempts INTEGER,
-                    fingerprint TEXT UNIQUE
+                    fingerprint TEXT
                 )
             """)
 
@@ -133,7 +133,7 @@ class PersistentStore:
     async def get_alert_by_fingerprint(self, fingerprint: str) -> Optional[Alert]:
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM alerts WHERE fingerprint = ?", (fingerprint,)) as cursor:
+            async with db.execute("SELECT * FROM alerts WHERE fingerprint = ? ORDER BY updated_at DESC LIMIT 1", (fingerprint,)) as cursor:
                 row = await cursor.fetchone()
                 if row:
                     return self._row_to_alert(row)
@@ -177,6 +177,50 @@ class PersistentStore:
             async with db.execute(query, params) as cursor:
                 rows = await cursor.fetchall()
                 return [self._row_to_alert(row) for row in rows]
+
+    async def get_alert_by_id(self, alert_id: str) -> Optional[Alert]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return self._row_to_alert(row)
+        return None
+
+    async def get_alert_history(self, alert_id: str) -> List[dict]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM alert_history WHERE alert_id = ? ORDER BY timestamp ASC",
+                (alert_id,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+
+    async def get_alert_stats(self) -> dict:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("""
+                SELECT status, severity, COUNT(*) as count
+                FROM alerts
+                GROUP BY status, severity
+            """) as cursor:
+                rows = await cursor.fetchall()
+
+            async with db.execute("SELECT COUNT(*) as total FROM alerts") as cursor:
+                total_row = await cursor.fetchone()
+
+            async with db.execute("""
+                SELECT COUNT(*) as active FROM alerts
+                WHERE status IN ('ACTIVE', 'ESCALATED', 'ACKNOWLEDGED')
+            """) as cursor:
+                active_row = await cursor.fetchone()
+
+        return {
+            "total": total_row["total"] if total_row else 0,
+            "active": active_row["active"] if active_row else 0,
+            "breakdown": [dict(r) for r in rows],
+        }
 
     def _row_to_alert(self, row: aiosqlite.Row) -> Alert:
         return Alert(

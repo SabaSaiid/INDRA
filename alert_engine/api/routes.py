@@ -108,13 +108,10 @@ async def get_alert(
     store: PersistentStore = Depends(get_store),
 ):
     """Get a single alert by its ID."""
-    async with __import__("aiosqlite").connect(store.db_path) as db:
-        db.row_factory = __import__("aiosqlite").Row
-        async with db.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)) as cursor:
-            row = await cursor.fetchone()
-            if not row:
-                raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
-            return store._row_to_alert(row).to_dict()
+    alert = await store.get_alert_by_id(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+    return alert.to_dict()
 
 
 @router.post("/alerts/{alert_id}/acknowledge", tags=["alerts"])
@@ -124,14 +121,9 @@ async def acknowledge_alert(
     store: PersistentStore = Depends(get_store),
 ):
     """Acknowledge an active alert."""
-    import aiosqlite
-    async with aiosqlite.connect(store.db_path) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)) as cursor:
-            row = await cursor.fetchone()
-            if not row:
-                raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
-            alert = store._row_to_alert(row)
+    alert = await store.get_alert_by_id(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
 
     if alert.status.value not in ("ACTIVE", "ESCALATED"):
         raise HTTPException(
@@ -157,14 +149,9 @@ async def resolve_alert(
     store: PersistentStore = Depends(get_store),
 ):
     """Manually resolve an alert."""
-    import aiosqlite
-    async with aiosqlite.connect(store.db_path) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)) as cursor:
-            row = await cursor.fetchone()
-            if not row:
-                raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
-            alert = store._row_to_alert(row)
+    alert = await store.get_alert_by_id(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
 
     if alert.status.value in ("RESOLVED", "EXPIRED"):
         raise HTTPException(
@@ -189,44 +176,15 @@ async def get_alert_history(
     store: PersistentStore = Depends(get_store),
 ):
     """Get the state-transition history for an alert."""
-    import aiosqlite
-    async with aiosqlite.connect(store.db_path) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM alert_history WHERE alert_id = ? ORDER BY timestamp ASC",
-            (alert_id,)
-        ) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+    history = await store.get_alert_history(alert_id)
+    return history
 
 
 @router.get("/stats", tags=["alerts"])
 async def alert_stats(store: PersistentStore = Depends(get_store)):
     """Return aggregate alert statistics."""
-    import aiosqlite
-    async with aiosqlite.connect(store.db_path) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
-            SELECT status, severity, COUNT(*) as count
-            FROM alerts
-            GROUP BY status, severity
-        """) as cursor:
-            rows = await cursor.fetchall()
-
-        async with db.execute("SELECT COUNT(*) as total FROM alerts") as cursor:
-            total_row = await cursor.fetchone()
-
-        async with db.execute("""
-            SELECT COUNT(*) as active FROM alerts
-            WHERE status IN ('ACTIVE', 'ESCALATED', 'ACKNOWLEDGED')
-        """) as cursor:
-            active_row = await cursor.fetchone()
-
-    return {
-        "total": total_row["total"] if total_row else 0,
-        "active": active_row["active"] if active_row else 0,
-        "breakdown": [dict(r) for r in rows],
-    }
+    stats = await store.get_alert_stats()
+    return stats
 
 
 @router.get("/rules", tags=["rules"])
