@@ -81,6 +81,12 @@ data/postgres_data/
 data/redis_data/
 data/redpanda_data/
 
+# Alert Engine — runtime artefacts (never commit)
+*.db
+*.db-shm
+*.db-wal
+alert_engine.db
+
 # Model checkpoints and large cache
 models/checkpoints/
 models/cache/

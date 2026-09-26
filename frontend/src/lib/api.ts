@@ -46,6 +46,8 @@ import { sanitizeIncidentCoordinate } from './geo-resolver';
 
 export type { FeedItem };
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+export const ALERT_ENGINE_BASE = process.env.NEXT_PUBLIC_ALERT_ENGINE_BASE_URL || 'http://localhost:8001';
+export const ALERT_ENGINE_WS = process.env.NEXT_PUBLIC_ALERT_ENGINE_WS_URL || 'ws://localhost:8001/ws/alerts';
 
 /** Thrown when the backend could not be reached or answered with an error. */
 export class ApiError extends Error {
@@ -1048,4 +1050,84 @@ export async function fetchAuditLedger(
     throw mutationError(path, res.status, 'Reading the audit ledger');
   }
   return (await res.json()) as AuditLedger;
+}
+
+// ─── Alert Engine (Additive UI Component Data) ────────────────────────────────
+
+export interface EngineAlert {
+  id: string;
+  fingerprint: string;
+  event_id: string;
+  event_code: string;
+  rule_id: string;
+  rule_name?: string;
+  severity: string;
+  status: string;
+  confidence: number;
+  message: string;
+  affected_area?: string;
+  created_at: string;
+  updated_at: string;
+  expires_at?: string;
+  acknowledged_by?: string;
+  acknowledged_at?: string;
+  notification_status?: string;
+  mode?: string;
+}
+
+/**
+ * Fetch active alerts from the independent Alert Engine service.
+ * Returns [] if the engine is offline, rather than failing the whole page.
+ */
+export async function fetchEngineAlerts(): Promise<EngineAlert[]> {
+  try {
+    const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    // Return empty array when Alert Engine is offline so the main UI doesn't break
+    return [];
+  }
+}
+
+/**
+ * Acknowledge an active Alert Engine alert.
+ */
+export async function acknowledgeEngineAlert(alertId: string, operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
+  try {
+    const authHeaders = await getAuthHeaders(operatorUsername);
+    const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/acknowledge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ acknowledged_by: operatorUsername }) // We still send it, but engine should verify via token
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      return { success: false, error: err.detail || `HTTP ${res.status}` };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Network error' };
+  }
+}
+
+/**
+ * Resolve an active Alert Engine alert.
+ */
+export async function resolveEngineAlert(alertId: string, reason: string = "Resolved by operator", operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
+  try {
+    const authHeaders = await getAuthHeaders(operatorUsername);
+    const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ resolved_by: operatorUsername, reason: reason })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      return { success: false, error: err.detail || `HTTP ${res.status}` };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Network error' };
+  }
 }
