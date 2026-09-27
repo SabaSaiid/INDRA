@@ -1,23 +1,43 @@
 """
 INDRA Platform — FusionEngine
-Computes the Verification Receipt as a weighted 6-factor confidence score,
-assigns quadrant and review_status to verified events.
+Computes the Verification Receipt as a weighted 7-factor confidence score
+(receipt v2, Phase 4 T4), decides the event's verdict, and assigns quadrant and
+review_status to verified events.
 """
 
 import logging
-from typing import Dict, Any, Iterable, List, Optional
+from typing import Dict, Any, Iterable, List, Mapping, Optional, Sequence
 
 from app.core.config import get_settings
-from app.models.enums import Severity, ReviewStatus, Quadrant, SourceType
+from app.models.enums import EventType, Severity, ReviewStatus, Quadrant, SourceType, Verdict
 
 logger = logging.getLogger("indra.services.fusion_engine")
 
 
-# ── Factor weights ─────────────────────────────────────────────────────────────
+# ── Factor weights: receipt v2 ─────────────────────────────────────────────────
+#
+# Phase 4 T4 adds the official warning (IMD and SDMA, via SACHET) and
+# rebalances so the weights still sum to 1.00:
+#
+#   factor               v1     v2
+#   weather_station      0.25   0.20
+#   official_warning       —    0.10
+#   report_density       0.20   0.20
+#   spatial_coherence    0.20   0.15
+#   vision_analysis      0.15   0.15   (offline: layer 4, permanently)
+#   source_reliability   0.15   0.15
+#   anomaly_detection    0.05   0.05   (offline: layer 4, permanently)
+#
+# With vision and anomaly offline, factor_coverage is still exactly 0.80, so
+# nothing the dashboard or the Q&A says about coverage changes; with SACHET
+# stale as well it is 0.70.
+RECEIPT_VERSION = 2
+
 FACTORS = {
-    "weather_station": {"weight": 0.25, "label": "Weather Station Corroboration"},
+    "weather_station": {"weight": 0.20, "label": "Weather Station Corroboration"},
+    "official_warning": {"weight": 0.10, "label": "Official Warning (IMD/SDMA via SACHET)"},
     "report_density": {"weight": 0.20, "label": "Report Density Analysis"},
-    "spatial_coherence": {"weight": 0.20, "label": "Spatial Coherence Score"},
+    "spatial_coherence": {"weight": 0.15, "label": "Spatial Coherence Score"},
     "vision_analysis": {"weight": 0.15, "label": "Computer Vision Analysis"},
     "source_reliability": {"weight": 0.15, "label": "Source Reliability Index"},
     "anomaly_detection": {"weight": 0.05, "label": "Anomaly Detection Signal"},
@@ -104,6 +124,7 @@ class FusionEngine:
         vision_score: Optional[float] = None,
         reliability_score: Optional[float] = None,
         anomaly_score: Optional[float] = None,
+        official_score: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Compute the verification receipt.
@@ -142,11 +163,14 @@ class FusionEngine:
         adds up to total_weighted exactly. A receipt whose line items do not add
         to its total is a bug in a receipt.
 
-        Returns {"confidence_score", "factor_coverage", "factors",
-                 "total_weighted"}.
+        Returns {"receipt_version", "confidence_score", "factor_coverage",
+                 "factors", "total_weighted"}. Each factor row also carries
+        its `key` (weather_station, official_warning, …), which the pipeline
+        uses to attach the evidence behind it.
         """
         scores = {
             "weather_station": weather_score,
+            "official_warning": official_score,
             "report_density": report_density_score,
             "spatial_coherence": spatial_score,
             "vision_analysis": vision_score,
@@ -176,6 +200,7 @@ class FusionEngine:
             total_weighted += weighted_points
 
             factors.append({
+                "key": key,
                 "factor": meta["label"],
                 "weight_pct": meta["weight"] * 100,
                 # "computed" | "offline" — the same vocabulary the pipeline's
@@ -206,6 +231,7 @@ class FusionEngine:
         confidence = max(0.0, min(1.0, confidence))
 
         return {
+            "receipt_version": RECEIPT_VERSION,
             "confidence_score": confidence,
             "factor_coverage": factor_coverage,
             "factors": factors,
