@@ -25,7 +25,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import text
 
-from tests.conftest import wipe_event_tables
+from tests.conftest import TEST_ACCOUNTS, wipe_event_tables
 from tests.test_feed_pipeline import _headline, _post
 
 from app.core.database import async_session
@@ -266,7 +266,7 @@ async def test_the_citizens_pick_types_an_untagged_cluster(db):
 
 
 @pytest_asyncio.fixture
-async def api():
+async def api(accounts):
     from app.main import app
 
     transport = httpx.ASGITransport(app=app)
@@ -274,8 +274,9 @@ async def api():
         yield client
 
 
-async def _login(api, user, password):
-    r = await api.post("/api/auth/token", data={"username": user, "password": password})
+async def _login(api, user):
+    # The suite's own passwords (conftest.TEST_ACCOUNTS); no password ships in app/ since 25 Sep.
+    r = await api.post("/api/auth/token", data={"username": user, "password": TEST_ACCOUNTS[user][0]})
     assert r.status_code == 200
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
@@ -298,7 +299,7 @@ async def test_a_commanders_type_survives_later_reports(db, api, monkeypatch):
 
     monkeypatch.setattr(ws_manager, "broadcast", _quiet)
     event = await _flood_event(db)
-    commander = await _login(api, "commander", "commander123")
+    commander = await _login(api, "commander")
     r = await api.patch(f"/api/events/{event['id']}/review", headers=commander, json={
         "action": "override_event_type", "event_type": "FOG",
         "reason": "Field team: it is fog on the river bank, not a flood",
@@ -330,7 +331,7 @@ async def test_a_commanders_type_survives_later_reports(db, api, monkeypatch):
 
 async def test_an_analyst_cannot_override_the_type(db, api):
     event = await _flood_event(db)
-    analyst = await _login(api, "analyst", "analyst123")
+    analyst = await _login(api, "analyst")
     r = await api.patch(f"/api/events/{event['id']}/review", headers=analyst, json={
         "action": "override_event_type", "event_type": "FOG", "reason": "I think it is fog",
     })
@@ -404,7 +405,7 @@ async def test_provenance_shows_where_a_post_came_from(db, api):
         await process(db, await citizen(db, body, at=PATNA_DISTRICT, north_km=i * 0.7))
     post = await feed(db, _post("<p>Waterlogging everywhere in Patna, knee deep near the market</p>"))
     (event,) = await events(db)
-    analyst = await _login(api, "analyst", "analyst123")
+    analyst = await _login(api, "analyst")
     r = await api.get(f"/api/events/{event['id']}/provenance", headers=analyst)
     assert r.status_code == 200
     (entry,) = [p for p in r.json()["reports"] if p["id"] == str(post)]
@@ -459,7 +460,7 @@ async def test_a_heatwave_cluster_never_merges_into_a_flood_event(db, api, monke
         await process(db, await citizen(db, body, north_km=0.3 + i * 0.4))
     assert {e["event_type"] for e in await events(db)} == {"URBAN_FLOOD", "HEATWAVE"}
 
-    commander = await _login(api, "commander", "commander123")
+    commander = await _login(api, "commander")
     r = await api.patch(f"/api/events/{flood['id']}/review", headers=commander, json={
         "action": "override_event_type", "event_type": "FOG", "reason": "Field team says fog",
     })
