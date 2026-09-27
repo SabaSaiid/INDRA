@@ -52,3 +52,30 @@ itself). v2 was labelled the same way, by Claude, with the conventions above, be
 run on any of its rows, and committed before measuring. One row (p097, a headline cut off before
 its hazard word) is `skip`. **v2's figure is the one to quote**, with the same caveat: labelled by
 Claude, not a person.
+
+## `hazards_real_v3.csv`, the independent sample after BUG-113 and BUG-114
+
+v2 was read on 27 Sep to find BUG-113 and BUG-114, and the rules were fixed after that (`d086fee` …
+`221bc07`), so v2 no longer measures anything independently either. **v3** was drawn the same
+afternoon with `--seed 28092026 --exclude hazards_real_v1.csv --exclude hazards_real_v2.csv`: 100 of
+2,734 candidates, 38 in Hindi, no row shared with v1 or v2, no personal data found. Committed
+unlabelled (`2b66f87`), labelled by Claude from the text alone before the tagger ran on any row
+(`7bed3bf`), then measured. The labeller had just written the BUG-113/114 rules, which makes this a
+weaker check than a person's labels would be.
+
+| | `main` before the fixes, on v3 | **after the fixes, on v3** |
+|---|---|---|
+| micro-F1 (P / R) | 0.954 (0.94 / 0.97) | **0.954 (0.95 / 0.96)** |
+| English / Hindi | 0.963 / 0.940 | **0.957 / 0.949** |
+| primary hazard right | 95% | 95% |
+| non-hazard posts tagged as happening | 15.4% | **12.8%** |
+| tense right | 85% | 85% |
+
+**What it says:** on posts the fixes were never tuned on, they hold the overall figure and cut
+false alarms a little; the large gain measured on v2 (0.913 → 0.960) was on the sample the fixes
+were written from. 100 posts is a small sample: `main` itself scored 0.913 on v2 and 0.954 on v3.
+**Quote v3: "micro-F1 0.95 on 100 real posts collected from 24 Sep, labelled by Claude".**
+
+The 16 rows v3 gets wrong are recorded as BUG-115 … BUG-118 and were not tuned on. One is a
+regression of the BUG-113 rule: "Colaba logged 222mm in 48 hours #MumbaiRains" now names nothing,
+because a figure in mm with no rain word is not read as a reading and the tag list is then dropped.

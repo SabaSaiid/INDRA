@@ -17,7 +17,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 26 Sep 2026, after Phase 3's testing pass (BUG-081, BUG-090 … BUG-092 fixed; BUG-101 … BUG-107).**
+**Last updated: 27 Sep 2026, after the third real-post sample (BUG-108 … BUG-114 fixed; BUG-115 … BUG-118 open).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1749,3 +1749,46 @@ posts-only event is never published without a human.
 "लू का वार", "लू की स्थिति" (heatwave); "आंधी-पानी" (पानी as rain); "सड़कों पर भरा पानी" (the verb
 before पानी); "80 KM की रफ्तार से चलेंगी हवाएं" (a wind speed in Hindi). 5 of the 100. Also
 "flood threat" / "flood concerns" read as a flood (2), and 7 tense misses.
+
+**27 Sep, afternoon (branch `aditya_27sep_b`):** BUG-113 and BUG-114 **`FIXED`** (`d086fee`,
+`2ac3d91`, `759cb33`, `221bc07`; tests `d80aaf2`). A hashtag counts only as a word in a sentence or
+beside weather words, a reading or a named hazard; a photo's tags and an all-tag post still count;
+creative writing names nothing; "Cyclone" before a model code is a product. The Hindi forms above
+are read, a threat is a forecast (kept in a forecast, dropped beside something happening now), and
+plural colour alerts, "now through" and "caused" set the tense correctly. The fixture is unchanged
+(macro-F1 0.9952). On a **third, independent sample** (`hazards_real_v3.csv`, labelled by Claude
+before measuring): micro-F1 **0.954**, the same as `main` scores on it, with non-hazard posts tagged
+down from 15.4% to 12.8% and Hindi up from 0.940 to 0.949. v3's 16 wrong rows are below, not tuned on.
+
+# Phase 3 third real-post sample — 27 Sep 2026
+
+### BUG-115 — Hindi heat warnings with a word between लू and the alert
+**S3** · Layer 3 · **`OPEN`**
+
+"लू का ऑरेंज अलर्ट" and "लू और उमस भरे मौसम की चेतावनी" name no heatwave: the लू companions are word
+pairs, so a colour between का and अलर्ट, or "लू और …", is not one. 2 of v3's 100 (both forecasts).
+
+### BUG-116 — A rainfall figure beside only hashtags names nothing (a regression of BUG-113's fix)
+**S3** · Layer 3 · **`OPEN`**
+
+"Colaba logged 222mm in just 48 hours … #MumbaiRains #IMDUpdate": "mm" with no rain word within five
+tokens is not read as a rainfall reading, so the post has no weather word of its own and the tag
+list is dropped. Before the fix it was RAINFALL through the hashtag. 1 of v3's 100.
+
+### BUG-117 — Tense: a year in a hashtag, a date earlier this year, a Hindi future
+**S3** · Layer 3 · **`OPEN`**
+
+"#ChennaiFloods2025" makes "Chennai braces for heavy rainfall" a past story; "on April 1st 2026 we
+had a huge storm" (September 2026) is read as happening; "जारी रहेगा बारिश का दौर?" (will the rain
+go on?) is not a forecast; "IMD warns of … till Tuesday" beside a cyclone that "swirls" now reads as
+a forecast. 4 of v3's 100; tense right on 85% of rows.
+
+### BUG-118 — Hazard words that are not the hazard happening
+**S3** · Layer 3 · **`OPEN`**
+
+"respite from the sweltering heat" → HEATWAVE; "a 15% rain deficit" → RAINFALL; "cyclonic
+circulation" → CYCLONE; "Is rain coming?" → RAINFALL; "नदी में डूबने से मौतें" (drowned in a river)
+→ URBAN_FLOOD; preparing "to deal with flash floods" → URBAN_FLOOD; and wind damage written verb
+first ("तेज आंधी से गिरा … होर्डिंग", "आंधी से बिजली का तार गिरा") is missed as STRONG_WIND. 8 of v3's
+100. Like BUG-113, these reach only a commander's review queue: a posts-only event is never
+published without a human.
