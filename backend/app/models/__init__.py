@@ -14,12 +14,13 @@ from app.models.audit_logs import AuditLog
 from app.models.teams import Team
 from app.models.profiles import UserProfile
 from app.models.agency_alerts import AgencyAlert
+from app.models.event_snapshots import EventSnapshot
 
 __all__ = [
     "SourceType", "EventType", "Severity", "ReviewStatus", "Quadrant",
     "Agency", "AuditAction",
     "TeamStatus", "TeamAgency", "DutyStatus", "OperatorRole", "Verdict",
     "VerifiedEvent", "RawReport", "StationReading", "AuditLog",
-    "Team", "UserProfile", "AgencyAlert",
+    "Team", "UserProfile", "AgencyAlert", "EventSnapshot",
 ]
 
