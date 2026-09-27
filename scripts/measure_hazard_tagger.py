@@ -215,6 +215,8 @@ def _real_section() -> Dict:
     result.update({
         "status": "labelled",
         "claim": "measured on real #IMD and weather posts and headlines collected from 24 Sep 2026",
+        # Who labelled the rows (hazards_real_v1.md). Quote the figure with it.
+        "labelled_by": "Claude, 27 Sep 2026, at Aditya's request; not a person (see hazards_real_v1.md)",
         "file_sha256": _sha256(REAL),
         "rows_drawn": len(raw),
         "rows_skipped": len(skipped),
