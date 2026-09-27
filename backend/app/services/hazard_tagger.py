@@ -43,6 +43,15 @@ Rules that are not just a word list
   a Vietnamese name in a translated headline ("ट्रान लू क्वांग"), or an
   English toilet. The companions are word pairs, a little stricter than the
   plan's bare "लू का" / "लू से", because "लू का" also opens "Lu's statement".
+  Headlines put the verb first too ("आज से चलेगी लू", BUG-110), so चल / लग in
+  the two tokens before counts as well.
+* **"आंधी" / "aandhi" with rain is a squall, not a dust storm** (BUG-108). Hindi
+  news writes "आंधी-बारिश", "बारिश और आंधी" for a monsoon squall; with a rain
+  word within 8 tokens and no dust word (धूल, रेत, dust, sand) it is
+  THUNDERSTORM and STRONG_WIND. आंधी alone, or with dust, stays DUST_STORM.
+* **"डूब" next to fog is a figure of speech** ("कोहरे में डूबेगा प्रदेश", a state
+  "drowned" in fog, BUG-111): with कोहरा, धुंध or अंधेरा in the 4 tokens before,
+  it names no flood.
 * **"तूफान" / "toofan" is a thunderstorm only next to rain words** (within 5
   tokens), and never after चक्रवाती (a cyclone) or रेतीला (a sandstorm). A bare
   English "storm" follows the same rule. "Aandhi-toofan" / "आंधी-तूफान" is a
@@ -68,7 +77,10 @@ Patna", "without rain for weeks"). Hindi puts the negation after the verb, so
 नहीं / nahi within **3 tokens after** drops it too ("baarish nahi hui", "बाढ़
 नहीं आई"). Not a negation: "no relief from the heat", "no break in the rain",
 "rain isn't stopping" (नहीं थम रही, ruk nahi rahi). An English report that
-says the hazard "did not hit / never came" is dropped as well. A hazard is kept
+says the hazard "did not hit / never came" is dropped as well. A Hindi negation
+after the word does not deny it when a postposition follows the word ("बारिश
+में भी नहीं डिगा", "बारिश से राहत नहीं"): the hazard is then a circumstance, not
+the thing denied (BUG-109); nor does टला नहीं ("hasn't passed"). A hazard is kept
 if any one of its mentions is not denied; the denied ones are listed in
 `negated`.
 
@@ -81,8 +93,15 @@ Tense (T2)
 "worst since 2019"). A report that also says the hazard is happening now
 ("since morning", "right now", "ho rahi hai", "lashed", "recorded", हुई, रही)
 is an observation, whatever else it says: "rain lashed Mumbai; more expected
-tomorrow" is evidence, not a forecast. "Kal" is both yesterday and tomorrow in
-Hindi, so it sets nothing.
+tomorrow" is evidence, not a forecast. A Hindi auxiliary (रहा, रही, हुई …) marks
+an observation only in the 4 tokens after a hazard word: in "बारिश का अलर्ट … लोगों
+को किया जा रहा सतर्क" it belongs to another verb. "Kal" is both yesterday and
+tomorrow in Hindi, so it sets nothing.
+
+Hashtags
+--------
+A post tagged as a joke (#Humor, #Funday, #Satire, #meme …) is not a report:
+its other hashtags name no hazard (BUG-112). Words in its text still count.
 
 Measured, not asserted: `scripts/measure_hazard_tagger.py` scores this module
 on `tests/fixtures/hazards_v1.csv` (a frozen held-out split) and on 100 real
@@ -224,11 +243,16 @@ LEXICON: List[Cue] = [
         r"\bjal\s?magn\b",
         _SEA_HL + r"\bpaa?ni\s+(?:bhar|ghus)\w*",
         _SEA_HL + r"\bpaa?ni\s+aa\s+(?:gaya|gayi|gaye|raha|rahi|rahe)\b",
-        r"\bdoo?b\s+(?:gaya|gayi|gaye|gai|gae|chuka|chuki|chuke|raha|rahi|rahe)\b",
-        r"\bdoob(?:i|e|a)\b",
         r"\bsaila+b\b",
     ),
-    *_hi("URBAN_FLOOD", "बाढ*", "जलभराव", "जलजमाव", "जलमग्न", "सैलाब", "डूब*"),
+    *_hl(
+        "URBAN_FLOOD",
+        r"\bdoo?b\s+(?:gaya|gayi|gaye|gai|gae|chuka|chuki|chuke|raha|rahi|rahe)\b",
+        r"\bdoob(?:i|e|a)\b",
+        kind="doob",
+    ),
+    *_hi("URBAN_FLOOD", "बाढ*", "जलभराव", "जलजमाव", "जलमग्न", "सैलाब"),
+    *_hi("URBAN_FLOOD", "डूब*", kind="doob"),
     *_hi("URBAN_FLOOD", "पानी भर*", "पानी घुस*", not_after=_SEA_HI),
 
     # ── RIVER_BREACH ───────────────────────────────────────────────────────
@@ -394,8 +418,8 @@ LEXICON: List[Cue] = [
         r"\bhaboobs?\b",
     ),
     # "aandhi", never "andhi" (blind); and not "aandhi-toofan" (a thunderstorm).
-    *_hl("DUST_STORM", r"\baandhi(?:yan|yaan|yon)?\b(?![\s-]+t(?:oo|u)fa)"),
-    *_hi("DUST_STORM", "आंधी", "आंधियां", "आंधियों", not_before=("तूफान",)),
+    *_hl("DUST_STORM", r"\baandhi(?:yan|yaan|yon)?\b(?![\s-]+t(?:oo|u)fa)", kind="aandhi"),
+    *_hi("DUST_STORM", "आंधी", "आंधियां", "आंधियों", kind="aandhi", not_before=("तूफान",)),
     *_hi("DUST_STORM", "रेतीला तूफान*", "रेतीली आंधी*"),
 
     # ── STRONG_WIND ────────────────────────────────────────────────────────
@@ -518,6 +542,8 @@ _HASHTAG_HINTS: List[Tuple[str, "re.Pattern[str]"]] = [
     ("COLD_WAVE", re.compile(r"coldwave|shitlahar|sheetlahar")),
     ("FOG", re.compile(r"fog|smog|kohra")),
 ]
+# A post tagged as a joke is not a report (BUG-112).
+_HUMOUR_TAG = re.compile(r"humou?r|funday|satire|meme|joke|sarcasm|comedy|funny|^lol$")
 # Hashtags that contain a hint by accident.
 _HASHTAG_NOT = re.compile(r"train|brain|drain|grain|terrain|ukrain|strain|rainbow|raincoat|thunderbolt")
 
@@ -538,7 +564,12 @@ _NOT_A_DENIAL_NEXT = ("relief", "respite", "end", "letup", "let", "stopping", "b
 # window, so the phrase is matched whole.
 _NOT_A_DROP = (("not", "a", "single", "drop", "of"), ("not", "a", "drop", "of"), ("not", "one", "drop", "of"))
 # "rain isn't stopping": रुक नहीं रही, थमने का नाम नहीं, ruk nahi rahi.
-_CONTINUING = ("ruk", "tham", "naam", fold("रुक"), fold("थम"), fold("नाम"))
+_CONTINUING = ("ruk", "tham", "naam", "tal", fold("रुक"), fold("थम"), fold("नाम"), fold("टल"))
+# A Hindi negation after the hazard does not deny it when one of these follows
+# the hazard word: "बारिश में भी नहीं डिगा", "बारिश से राहत नहीं" (BUG-109).
+_HI_POSTPOSITIONS = frozenset({"me", "mein", "main", "se", "ke", "ki", "ka", "ko", "par", "pe",
+                               fold("में"), fold("से"), fold("के"), fold("की"), fold("का"), fold("को"),
+                               fold("पर")})
 _DID_NOT_HAPPEN_RE = re.compile(
     r"^(?:\S+\s){0,2}?(?:did\s+not|does\s+not|has\s+not|had\s+not|didn\s+t|doesn\s+t|hasn\s+t|hadn\s+t|never)"
     r"\s+(?:\S+\s)?(?:hit|come|arrive|reach|occur|happen|make|strike|materiali[sz]e|form)\b"
@@ -556,6 +587,8 @@ _LOO_NEXT = (
     (fold("से"), fold("राहत")), (fold("से"), fold("परेशान")), (fold("की"), fold("चेतावनी")),
     (fold("की"), fold("चपेट")), (fold("जैसे"), fold("हालात")), (fold("जैसी"), fold("स्थिति")),
 )
+# "आज से चलेगी लू": the verb before (BUG-110).
+_LOO_BEFORE = ("chal", "lag", fold("चल"), fold("लग"))
 _HEAT_WORDS = ("garmi", "tapman", "degree", "digri", "heat", "temperature", "paara", "mercury", "°",
                fold("गर्मी"), fold("तापमान"), fold("डिग्री"), fold("पारा"))
 _COLD_WORDS = ("cold", "freez", "froze", "frost", "chill", "shiver", "thand", "sardi", "winter",
@@ -567,6 +600,14 @@ _WIND_WORDS = ("wind", "gust", "squall", "gale", "hawa", "storm", "cyclon", "too
 _RAIN_WORDS = ("rain", "precipitation", "downpour", "shower", "recorded", "baarish", "barish",
                fold("बारिश"), fold("वर्षा"), fold("बरसात"))
 
+# BUG-108: rain next to आंधी makes it a squall; dust keeps it a dust storm.
+_RAIN_STEMS = ("rain", "baarish", "barish", "barsat", "bauchhar", fold("बारिश"), fold("वर्षा"),
+               fold("बरसात"), fold("बूंदाबांदी"), fold("झमाझम"), fold("बौछार"))
+_DUST_STEMS = ("dust", "dhool", "dhul", "sand", "reti", "retil", fold("धूल"), fold("रेत"), fold("गर्द"))
+AANDHI_RAIN_SPAN = 8
+# BUG-111: "कोहरे में डूबेगा" — drowned in fog, or in darkness.
+_DOOB_FIGURATIVE = ("kohr", "dhund", "andher", "fog", fold("कोहर"), fold("धुंध"), fold("अंधेर"))
+
 _SENTENCE_RE = re.compile(r"[.!?।\n]+")
 
 # ── Tense ──────────────────────────────────────────────────────────────────────
@@ -576,6 +617,9 @@ _FORECAST_RE = re.compile(
     r"|possible|possibility|probable|probability|tomorrow|outlook|nowcast|warns?|warned|warnings?"
     r"|chances?\s+of|(?:orange|yellow|red)\s+alert|alert\s+(?:issued|for|has\s+been)|advisory\s+(?:issued|for)"
     r"|next\s+(?:\d+|few|two|three)\s+(?:hours|days)|coming\s+(?:hours|days)|next\s+week"
+    r"|(?:till|until)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next|the\s+weekend)"
+    r"|(?:rain|rainfall|weather|flood|storm|cyclone|heat|heatwave|cold\s?wave|fog|thunderstorm)\s+alerts?"
+    r"|alerts?\s+(?:in|across|over)"
     r"|aane\s+wa+le|aane\s+vale|sambha+va?na|hogi|hoga|honge|cheta(?:va|wa)a?ni)\b"
 )
 _FORECAST_HI = frozenset(fold(w) for w in ("संभावना", "पूर्वानुमान", "चेतावनी", "अलर्ट", "होगी", "होगा", "होंगे",
@@ -588,10 +632,14 @@ _OBSERVED_RE = re.compile(
     r"|waterlogged|inundated|evacuated|rescued"
     r"|abhi|ho\s+rah[aie]|chal\s+rah[aie]|rah[aie]\s+hai|rahe\s+hain|hui|hua|huyi)\b"
 )
-_OBSERVED_HI = frozenset(fold(w) for w in ("रही", "रहा", "रहे", "हुई", "हुआ", "गिरे", "गिरी"))
+_OBSERVED_HI = frozenset(fold(w) for w in ("रही", "रहा", "रहे", "हुई", "हुआ", "गिरे", "गिरी", "रिकॉर्ड",
+                                            "रिकार्ड", "दर्ज"))
+# A Hindi auxiliary marks an observation only this close after a hazard word.
+OBSERVED_HI_SPAN = 4
 
 _PAST_RE = re.compile(
-    r"\b(?:last\s+(?:year|week|month|monsoon|season|summer|winter)|years?\s+ago|months?\s+ago|weeks?\s+ago"
+    r"\b(?:last\s+(?:year|week|month|monsoon|season|summer|winter)(?!\s+of\b)|years?\s+ago|months?\s+ago"
+    r"|weeks?\s+ago"
     r"|throwback|tbt|flashback|anniversary|remembering"
     r"|old\s+(?:video|photo|pic|picture|clip|footage|image)s?"
     r"|pich+(?:le|li)\s+(?:saal|varsh|baras|hafte|mahine)|saal\s+(?:pehle|pahle)"
@@ -820,9 +868,15 @@ def _keep_special(hit: _Hit, hits: List[_Hit], text: str, tokens: _Tokens) -> bo
                 w.startswith(c) for w, c in zip(after, companion)
             ):
                 return True
+        before = words[max(0, hit.first - 2):hit.first]
+        if any(_starts_with_any(w, _LOO_BEFORE) for w in before):
+            return True
         offset = tokens.starts[hit.first] if tokens.starts else 0
         sentence = _sentence_of(text, offset)
         return any(w in sentence for w in _HEAT_WORDS)
+    if hit.kind == "doob":
+        before = words[max(0, hit.first - 4):hit.first]
+        return not any(_starts_with_any(w, _DOOB_FIGURATIVE) for w in before)
     if hit.kind in ("toofan", "storm"):
         return any(
             h.hazard == "RAINFALL" and abs(h.first - hit.first) <= 5 for h in hits
@@ -857,15 +911,20 @@ def _denied(hit: _Hit, tokens: _Tokens) -> bool:
     if any(is_negator(j, _EN_NEGATORS | _HI_NEGATORS) for j in before):
         return True
     after = range(hit.last + 1, min(len(words), hit.last + 4))
-    if any(is_negator(j, _HI_NEGATORS) for j in after):
+    circumstance = hit.last + 1 < len(words) and words[hit.last + 1] in _HI_POSTPOSITIONS
+    if not circumstance and any(is_negator(j, _HI_NEGATORS) for j in after):
         return True
     following = " ".join(words[hit.last + 1:hit.last + 7])
     return bool(_DID_NOT_HAPPEN_RE.match(following + " "))
 
 
-def _tense(text: str, tokens: _Tokens, reference_year: int) -> Optional[str]:
+def _tense(text: str, tokens: _Tokens, reference_year: int, hazard_ends: Sequence[int] = ()) -> Optional[str]:
     words = tokens.words
-    observed = bool(_OBSERVED_RE.search(text)) or any(w in _OBSERVED_HI for w in words)
+    observed = bool(_OBSERVED_RE.search(text)) or any(
+        words[j] in _OBSERVED_HI
+        for end in hazard_ends
+        for j in range(end + 1, min(len(words), end + 1 + OBSERVED_HI_SPAN))
+    )
 
     past = bool(_PAST_RE.search(text)) or any(
         _seq_at(words, i, seq) for seq in _PAST_HI_SEQ for i in range(len(words))
@@ -910,6 +969,25 @@ def _number_hits(numbers: Dict[str, Any], hits: List[_Hit]) -> List[_Hit]:
     return found
 
 
+def _aandhi_with_rain(hits: List[_Hit], tokens: _Tokens) -> List[_Hit]:
+    """BUG-108: आंधी with a rain word nearby and no dust is a squall."""
+    words = tokens.words
+    out: List[_Hit] = []
+    for h in hits:
+        if h.kind != "aandhi":
+            out.append(h)
+            continue
+        near = words[max(0, h.first - AANDHI_RAIN_SPAN):h.last + 1 + AANDHI_RAIN_SPAN]
+        rain = any(_starts_with_any(w, _RAIN_STEMS) and not w.startswith("train") for w in near)
+        dust = any(_starts_with_any(w, _DUST_STEMS) and w not in ("sandwich",) for w in near)
+        if rain and not dust:
+            out.append(_Hit("THUNDERSTORM", h.basis, h.matched, h.first, h.last))
+            out.append(_Hit("STRONG_WIND", h.basis, h.matched, h.first, h.last))
+        else:
+            out.append(h)
+    return out
+
+
 def tag_hazards(
     text: Optional[str],
     *,
@@ -927,10 +1005,12 @@ def tag_hazards(
     tokens = _Tokens.of(folded)
     year = reference_year or datetime.now(timezone.utc).year
 
-    hits = _cue_hits(folded, tokens) + _hashtag_hits(folded, tokens)
+    joke = any(_HUMOUR_TAG.search(m.group(1)) for m in _HASHTAG_RE.finditer(folded))
+    hits = _cue_hits(folded, tokens) + ([] if joke else _hashtag_hits(folded, tokens))
     for m in _NAMED_STORM_RE.finditer(unicodedata.normalize("NFKC", raw)):
         hits.append(_Hit("CYCLONE", "hinglish", m.group(0).lower(), 0, 0))
     hits = [h for h in hits if _keep_special(h, hits, folded, tokens)]
+    hits = _aandhi_with_rain(hits, tokens)
 
     numbers = _numbers(folded, tokens)
     cold_word = any(_starts_with_any(w, _COLD_WORDS) for w in tokens.words)
@@ -959,7 +1039,7 @@ def tag_hazards(
         ],
         "hazard_primary": primary,
         "hazard_family": family_of(primary) if primary else None,
-        "tense": _tense(folded, tokens, year),
+        "tense": _tense(folded, tokens, year, [kept[t].last for t in ordered if kept[t].basis != "hashtag"]),
         "negated": by_precedence(t for t in denied if t not in kept),
         **numbers,
         "implausible": numbers["implausible"] + (
