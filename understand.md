@@ -1,10 +1,18 @@
-# 🌩️ UNDERSTAND.md
+# Understanding INDRA
 
 ## National Weather Big Data Analytics Platform — explained from zero
 
 > **Purpose of this document:** teach the entire project to a person who has never written code before, while still explaining the real engineering underneath it.
 >
 > Think of this document as the **story, map, dictionary, and instruction manual** for the system we are building.
+
+> **How to read it (reviewed 28 Sep 2026).** This is a teaching guide. It explains general ideas
+> (data lakes, Kubernetes, ClickHouse, computer vision) that INDRA may never use, so that the ideas
+> INDRA *does* use make sense. Where a section describes INDRA itself, section 8's nine-layer
+> table is the current state. For engineering detail, read the
+> [system architecture](docs/ARCHITECTURE.md). In short, INDRA runs on FastAPI, PostgreSQL + PostGIS,
+> H3, Redpanda, Redis, SeaweedFS (S3-compatible storage) and Next.js. Its scoring is published
+> rules, not a trained model. No ClickHouse, Kubernetes or PyTorch is in the running system.
 
 ---
 
@@ -35,7 +43,7 @@ The official problem statement asks for a scalable national weather big-data pla
 
 The project blueprint we are using goes further and proposes an event-driven architecture, deterministic verification, spatiotemporal clustering, multimodal deduplication, and auditable provenance.
 
-The separate INDRA design shows a practical hackathon implementation using FastAPI, PostgreSQL/PostGIS, H3, Redpanda/Kafka, Redis, PyTorch/NLP and Next.js.
+INDRA is the practical implementation: FastAPI, PostgreSQL/PostGIS, H3, Redpanda/Kafka, Redis, SeaweedFS object storage and Next.js, with rule-based text understanding and scoring.
 
 ---
 
@@ -86,7 +94,7 @@ That transformation is the heart of the project.
 
 # 2. The whole system in one picture
 
-![Big picture](understand_diagrams/01_big_picture.png)
+![Big picture: the end-to-end system](docs/architecture/01-end-to-end-system.svg)
 
 Read the picture from left to right:
 
@@ -200,7 +208,7 @@ The platform's intelligence comes from moving from **many reports** to **one eve
 
 # 6. The complete journey of information
 
-![Event journey](understand_diagrams/02_event_journey.png)
+![Event journey: one report's lifecycle](docs/architecture/02-report-lifecycle.svg)
 
 This is the most important flow to understand.
 
@@ -376,7 +384,7 @@ That plan is the software architecture.
 
 # 8. Our architecture in layers
 
-![System layers](understand_diagrams/03_system_layers.png)
+![System layers](docs/architecture/01-end-to-end-system.svg)
 
 The system can be explained as six layers.
 
@@ -385,9 +393,9 @@ The system can be explained as six layers.
 | Frontend | What humans see | Next.js + TypeScript |
 | Backend | Talks to the frontend and coordinates the system | FastAPI + Python |
 | Stream | Moves incoming events reliably | Kafka / Redpanda |
-| AI worker | Understands text/images | PyTorch + Transformers + OpenCV |
+| Text understanding | Reads what a report says | Published rules for English, Hindi and Hinglish (plus layer 4's frozen local models, advisory only) |
 | Deterministic verifier | Checks hard facts with rules | Python + PostGIS |
-| Data layer | Stores events/files/history | PostgreSQL/PostGIS + Redis + MinIO |
+| Data layer | Stores events/files/history | PostgreSQL/PostGIS + Redis + SeaweedFS (S3-compatible) |
 
 Later, for larger deployments, we can add ClickHouse and Iceberg for analytics and large-scale storage.
 
@@ -396,30 +404,28 @@ Later, for larger deployments, we can add ClickHouse and Iceberg for analytics a
 The six layers above are a teaching simplification. The team's **official system-architecture
 diagram** splits the same system into nine layers, and that is the version to use when
 talking to anyone outside the team. Here it is, with an honest mark on each one showing
-whether it is actually built yet (checked against the code on 16 Sep 2026, end of backend sprint Day 3).
+whether it is actually built (checked against the code on 28 Sep 2026, after Phase 4).
 
-Legend: ✅ built · 🟡 partly built · ⬜ designed, not built yet
+Legend: ✅ built · 🟡 partly built · ⬜ not built · ↗ built as a separate service
 
 | # | Layer | What it does | Built? |
 |---|---|---|---|
-| 1 | **Data Sources** | Where information comes from: IMD/Govt APIs, weather APIs, public datasets, social media, citizen reports, images/videos | 🟡 **Citizen reports, plus rainfall from Open-Meteo** fetched whenever an event is scored. No other outside source is read yet. |
-| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | 🟡 Live reports flow in through the API and the stream, and a report that couldn't be saved is told so (503) instead of being silently lost. Reports with coordinates outside India are refused. There is no bulk loader: outside feeds arrive through scheduled pollers, and the fake-data seed script that once stood in for batch loading was deleted on 25 Sep. |
-| 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | ✅ Deduplication (a repeated report is remembered as a copy and never counted as extra evidence), coordinate checking, geocoding and a credibility score per report. **20 Sep: cleaning and metadata extraction now run at ingest** and are stored on the report — how deep the water is, which language it is in, life-safety keywords, place names. Rules and dictionaries, not a model. |
-| 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | ⬜ **Out of this project's scope since 20 Sep**, and not being built. Duplicate matching, which does work, uses sentence embeddings and stays. The trained classifier missed the accuracy gate set before training — it dismissed too many real floods as chatter — so it ships switched off and is not being retrained. **Image analysis and anomaly detection are permanently offline**, and every receipt says so instead of substituting a number. |
-| 5 | **Geo-Analytics** | Everything about *where*: location mapping, spatial clustering, heatmaps, event boundaries, risk zones, time-space trends | ✅ Clustering and mapping are real. **20 Sep: every event now has a real boundary polygon** on the map, and `GET /api/geo/heatmap` serves report density per hexagonal cell at three zoom levels, where coarser zooms are exact sums of finer ones. Risk zones aren't built. |
-| 6 | **Event Fusion Engine** | The heart: correlate observations, merge duplicates, calculate confidence, determine severity, build the weather event | ✅ Working, with no random numbers: 4 of the 6 confidence factors are real measurements and 2 are marked offline. **20 Sep: confidence is now an average over the factors that actually reported**, and the receipt publishes `factor_coverage` — how much of the designed model that was — so a score is never read as more complete than it is. **Severity now comes from what the reports say** (how deep the water is), not from how many people reported. A human's approval is never undone by later reports. |
-| 7 | **Data Platform** | The memory: PostgreSQL+PostGIS, Redis, object storage, historical datasets | ✅ The database is real and the audit log is a working tamper-evident hash chain. **Redis now does two jobs** (21 Sep): it caches the rainfall reading per map cell, and it remembers which reports have already been pushed to the dashboard so a restart doesn't show them twice. Both fall back to in-process memory if Redis is gone, so losing it degrades the platform rather than stopping it. **The sensor-reading table now fills on a schedule** — every ten minutes, real rainfall for six cities. Object storage still isn't deployed, which is stated rather than dressed up. |
-| 8a | **Real-Time API** | Serving it out: FastAPI, WebSocket, REST | ✅ Working. A commander can approve or reject an event, and that endpoint (plus provenance) requires login; the older dashboard endpoints still don't. |
-| 8b | **Alert Engine** | Telling people: critical events, SMS/email, dashboard alerts | ⬜ **Does not exist, and is out of this project's scope since 20 Sep.** No alert rules, no SMS, no email. Nothing in the API or the dashboard claims otherwise. |
-| 9 | **IMD Command Center** | The control room humans look at | 🟡 The dashboard is built (another team member's work); risk zones and critical alerts have nothing behind them. **21 Sep: an old static prototype page that claimed IMD and CWC sensor feeds was deleted** — it was a mockup from before the pipeline existed and contradicted the real system. |
+| 1 | **Data Sources** | Where information comes from | ✅ Citizen reports, official field reports from signed-in commanders, **official IMD, CWC and state warnings** (from NDMA's SACHET feed, every 5 minutes), **rainfall and weather** from Open-Meteo, **airport weather observations** (METAR), public posts from Mastodon and **news headlines** in English and Hindi. None needs a password or key. Not connected: IMD's own API (it only answers whitelisted addresses), CWC river gauges and Twitter/X. |
+| 2 | **Data Ingestion** | The front door | ✅ A report is saved together with its "message to send" in one step, so it can never be accepted and then lost, even if the event stream is down. A report that fails three times is set aside in a dead-letter queue to be replayed later. Every raw message is also archived in the data lake. |
+| 3 | **Data Processing** | Tidying up | ✅ Checking the location is in India, naming the district, cleaning the text, reading numbers out of it (water depth, temperature, wind, visibility), **recognising which of 16 hazards it describes** in English, Hindi or Hinglish, flagging text that looks misleading (a forward, an old event, an exaggeration), and removing copies. |
+| 4 | **AI / ML Layer** | Understanding with models | 🟡 Another team member's layer. Six small local models give **advisory** opinions that are stored with each report, but they never change a score or a decision. Photos and anomaly detection therefore stay "offline" in the receipt. |
+| 5 | **Geo-Analytics** | Everything about *where* | ✅ Reports about the same kind of hazard that are close in space and time are grouped (5 km for floods, up to 25 km for a heatwave). Every event gets a boundary shape on the map, and a hexagon heatmap shows where reports cluster. Risk zones are not built. |
+| 6 | **Event Fusion Engine** | The heart | ✅ Groups become events. Each event gets a type (by majority vote of its reports), a severity (read from what people describe, on IMD's own scales), and a **Verification Receipt** checked against real evidence: the nearest airport's thermometer, rainfall, and whether an official warning covers the place. A claim the weather flatly contradicts is marked **CONTRADICTED** and sent to a person, never silently deleted. A warning that arrives later re-scores the event. |
+| 7 | **Data Platform** | The memory | ✅ PostgreSQL + PostGIS for everything of record, a tamper-evident hash-chained audit log, Redis for short-lived memory, and SeaweedFS for the raw data lake. |
+| 8a | **Real-Time API** | Serving it out | ✅ REST and WebSocket. Every action that changes something needs a signed-in operator with the right role. Commanders work from a review queue and "claim" an event so that two people don't decide the same one. |
+| 8b | **Alert Engine** | Telling people | ↗ Built by another team member as a separate service (`alert_engine/`). It is not run on the team server, and the core platform itself sends no SMS or email. |
+| 9 | **IMD Command Center** | The control room | ✅ The Next.js dashboard, built by the frontend team: live map, events, reports, review, official warnings, analytics and a 12-language interface. |
 
-**If you remember one thing from this section:** the middle of the system — ingestion,
-clustering, fusion, and serving — genuinely works. A citizen report really does travel all
-the way through and come out as a scored event, a human can approve it, and every decision is
-written to a tamper-evident audit log. What is missing is at the two ends: we pull in only one
-outside source (rainfall, layer 1), and we don't yet *send alerts out* (layer 8b).
-And the "AI" layer is thinner than its name suggests: it matches duplicates. A text
-classifier has been built and measured, but it missed its quality bar, so it stays switched off.
+**If you remember one thing from this section:** a citizen's report really does travel all the
+way through, is checked against real thermometers, rain and official warnings, and comes out as
+a scored, explained event that a human decides on, and every decision is written to a
+tamper-evident log. What INDRA deliberately does *not* do is judge photos or send public alerts
+itself.
 
 ---
 
@@ -525,8 +531,6 @@ Meaning:
 ---
 
 # 12. What is Kafka / Redpanda?
-
-![Kafka conveyor](understand_diagrams/04_kafka.png)
 
 Imagine a very fast conveyor belt in a factory.
 
@@ -712,8 +716,6 @@ This helps us find **semantic duplicates**.
 
 # 18. Deduplication: removing repeated information
 
-![Deduplication concept](understand_diagrams/02_event_journey.png)
-
 Deduplication means preventing the same information from being counted repeatedly.
 
 We use multiple levels.
@@ -827,7 +829,7 @@ The blueprint specifically proposes this style of processing, including database
 
 # 22. Verification: the detective part
 
-![Verification pipeline](understand_diagrams/05_verification.png)
+![Verification: the report lifecycle](docs/architecture/02-report-lifecycle.svg)
 
 Verification is where the system asks:
 
@@ -984,8 +986,6 @@ Do not make one pretend to be the other.
 
 # 26. What is provenance?
 
-![Provenance chain](understand_diagrams/06_provenance.png)
-
 Provenance means:
 
 > **“Where did this result come from?”**
@@ -1063,7 +1063,7 @@ We do not need blockchain merely to create an auditable chain of hashes.
 
 # 28. Our databases: the project's memory
 
-![Database roles](understand_diagrams/07_databases.png)
+![Database roles: the data model](docs/architecture/04-data-model.svg)
 
 Different databases have different jobs.
 
