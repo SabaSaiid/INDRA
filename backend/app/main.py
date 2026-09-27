@@ -298,6 +298,7 @@ from app.api import (
     meta_router,
     stations_router,
     report_search_router,
+    review_router,
 )
 app.include_router(dashboard_router)
 app.include_router(events_router)
@@ -312,6 +313,8 @@ app.include_router(audit_router)
 app.include_router(meta_router)
 app.include_router(stations_router)
 app.include_router(report_search_router)
+# Phase 4 T7: the review queue.
+app.include_router(review_router)
 # Only on the Playwright backend: the suite checks which database it is about
 # to write to before it runs a spec. Everywhere else the path is a 404.
 if settings.ENVIRONMENT == "e2e":

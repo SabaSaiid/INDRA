@@ -65,17 +65,37 @@ STATIONS_CSV = (
 _last_modified: Optional[str] = None
 # Why the last tick failed, or None; read by run_tick for the heartbeat.
 last_tick_error: Optional[str] = None
+# The observations the last tick stored (new rows only): what late
+# corroboration (Phase 4 T5) looks through for a fog, a thunderstorm or a
+# threshold worth re-scoring open events for.
+last_stored: List[Dict[str, object]] = []
 
 
 def _reset_for_tests() -> None:
-    global _last_modified, last_tick_error
+    global _last_modified, last_tick_error, last_stored
     _last_modified = None
     last_tick_error = None
+    last_stored = []
+
+
+def _optional_float(value: Optional[str]) -> Optional[float]:
+    try:
+        return float(value) if value not in (None, "") else None
+    except ValueError:
+        return None
 
 
 @lru_cache(maxsize=1)
 def station_table() -> Dict[str, Dict[str, object]]:
-    """ICAO id → {name, lat, lon, elevation_m}. Empty (with an ERROR) if unreadable."""
+    """
+    ICAO id → {name, lat, lon, elevation_m, iata, civil}. Empty (with an ERROR)
+    if unreadable.
+
+    `civil` is True for a station with an IATA code, i.e. a passenger airport,
+    whose observers are IMD's aerodrome meteorological office. Phase 4's
+    evidence line says "IMD" only for those: some Indian METAR stations are
+    military airfields (services/evidence.py).
+    """
     try:
         with STATIONS_CSV.open(newline="", encoding="utf-8") as handle:
             return {
@@ -83,6 +103,9 @@ def station_table() -> Dict[str, Dict[str, object]]:
                     "name": row["name"],
                     "lat": float(row["lat"]),
                     "lon": float(row["lon"]),
+                    "elevation_m": _optional_float(row.get("elevation_m")),
+                    "iata": (row.get("iata") or "").strip() or None,
+                    "civil": bool((row.get("iata") or "").strip()),
                 }
                 for row in csv.DictReader(handle)
             }
@@ -156,7 +179,12 @@ def _row_values(obs: Observation) -> Dict[str, object]:
 
 
 async def store_observations(db, observations: List[Observation]) -> int:
-    """Insert what is new; returns how many rows were written. Commits."""
+    """
+    Insert what is new; returns how many rows were written. Commits. The rows
+    written are kept in `last_stored` for late corroboration.
+    """
+    global last_stored
+    last_stored = []
     if not observations:
         return 0
     stmt = (
@@ -166,11 +194,31 @@ async def store_observations(db, observations: List[Observation]) -> int:
             index_elements=["station_code", "recorded_at"],
             index_where=text("feed = 'metar'"),
         )
-        .returning(StationReading.id)
+        .returning(
+            StationReading.station_code,
+            StationReading.recorded_at,
+            StationReading.weather_codes,
+            StationReading.visibility_m,
+            StationReading.gust_kmh,
+            StationReading.wind_kmh,
+            StationReading.temperature_c,
+        )
     )
-    written = len((await db.execute(stmt)).fetchall())
+    rows = (await db.execute(stmt)).fetchall()
     await db.commit()
-    return written
+    last_stored = [
+        {
+            "station_code": r[0],
+            "recorded_at": r[1],
+            "weather_codes": list(r[2] or []),
+            "visibility_m": r[3],
+            "gust_kmh": r[4],
+            "wind_kmh": r[5],
+            "temperature_c": r[6],
+        }
+        for r in rows
+    ]
+    return len(rows)
 
 
 def indian_rows_csv(content: bytes) -> bytes:
@@ -282,6 +330,16 @@ async def run_tick(session_factory=None) -> Tuple[int, int]:
         error=last_tick_error,
         cursor={"last_modified": _last_modified} if _last_modified else None,
     )
+
+    # Phase 4 T5: an airport reporting fog, a thunderstorm, dust, a squall,
+    # heavy rain or a threshold after an event was scored re-scores the open
+    # events within 50 km. Never raises.
+    if get_settings().LATE_CORROBORATION_ENABLED:
+        from app.services import late_corroboration
+
+        triggers = late_corroboration.metar_triggers(last_stored if written else [])
+        if triggers or late_corroboration.pending():
+            await late_corroboration.rescore_open_events(triggers, session_factory)
     return written, seen
 
 

@@ -1,24 +1,28 @@
 """
 T3 + T4 (Day 3) — the pipeline's audit rows, and merges that respect human decisions.
 
-Weather is pinned at 0.35 / 15.6 mm as in test_pipeline.py. With that pin,
-streaming CLUSTER_TEXTS one report at a time scores (re-measured 26 Sep, after
-Phase 3 T8 made the density factor count independent witnesses):
+Weather is pinned at 0.35 / 15.6 mm as in test_pipeline.py. The five reports
+come from five unverified reporters with credibility 0.595, 0.565, 0.555, 0.57
+and 0.565, so n_eff is 1.9333 / 2.8583 / 3.8083 / 4.75, each report counting
+credibility / 0.60 of a witness (Phase 3 T8).
 
-    2 reports 0.5374 → 3: 0.5617 → 4: 0.5830 → 5: 0.6006
+**Receipt v2 (Phase 4, 27 Sep).** Streaming CLUSTER_TEXTS one report at a time,
+with SACHET current (the conftest default):
 
-The five reports come from five unverified reporters with credibility 0.595,
-0.565, 0.555, 0.57 and 0.565, so n_eff is 1.9333 / 2.8583 / 3.8083 / 4.75,
-each report counting credibility / 0.60 of a witness. The 20 Sep ladder, which
-counted reports, was 0.5393 / 0.5654 / 0.5871 / 0.6052.
+    no warning in force        2 reports 0.4530 → 3: 0.4776 → 4: 0.4991 → 5: 0.5171
+    a Severe warning in force  2 reports 0.5593 → 3: 0.5839 → 4: 0.6054 → 5: 0.6234
 
-`factor_coverage` is 0.80 at every step — vision (0.15) and anomaly (0.05) are
-permanently offline and are excluded from the weighted mean instead of being
-scored 0.0, so each figure is its `total_weighted` (0.4299 / 0.4494 / 0.4664 /
-0.4805) divided by 0.80.
+Derived by hand from the v1 ladder before measuring. v1's total was
+0.1775 + 0.2·(density + coherence); v2's is 0.16 + 0.2·density + 0.15·coherence
+(+ 0.085 under a Severe warning), with density 0.2629 / 0.3636 / 0.4531 / 0.5298
+from n_eff and coherence backed out of the v1 totals (0.4299 / 0.4494 / 0.4664 /
+0.4805). The v1 ladder was 0.5374 / 0.5617 / 0.5830 / 0.6006, and on 20 Sep,
+counting reports, 0.5393 / 0.5654 / 0.5871 / 0.6052.
 
-All four remain QUARANTINED at the default thresholds: re-normalisation fixed the
-scale, not the gates.
+So **without a warning the five Patna reports stay QUARANTINED**: the official
+factor reads 0.0 ("no warning in force covers this event"), which v1 could not
+say. Under an IMD warning the fourth report crosses the 0.60 gate. Coverage is
+0.80 at every step: vision and anomaly are permanently offline and excluded.
 """
 
 import json
@@ -30,7 +34,9 @@ from sqlalchemy import text
 from app.core.database import async_session
 from app.services import audit, pipeline
 from app.services.pipeline import process_report
+from app.services import clock
 from tests.conftest import TEST_ACCOUNTS, wipe_event_tables
+from tests.phase4_support import insert_warning, wipe_phase4_rows
 from tests.test_pipeline import CLUSTER_TEXTS, PATNA_LAT, PATNA_LNG, insert_report
 
 pytestmark = pytest.mark.integration
@@ -54,11 +60,18 @@ def fixed_weather(monkeypatch):
 async def db():
     async with async_session() as session:
         await wipe_event_tables(session)
+        await wipe_phase4_rows(session)
         try:
             yield session
         finally:
             await session.rollback()
+            await wipe_phase4_rows(session)
             await wipe_event_tables(session)
+
+
+async def warning_over_patna(db):
+    """A Severe heavy-rain warning in force over Patna: official_warning 0.85."""
+    await insert_warning(db, lat=PATNA_LAT, lng=PATNA_LNG, now=clock.now())
 
 
 async def stream(db, texts):
@@ -92,12 +105,13 @@ async def test_default_thresholds_write_one_row_per_status_change(db):
     """
     The audit trail records decisions, not traffic.
 
-    Five reports arrive but only two of them change the event's status, so only
-    two rows are written. Before the review gate moved to 0.60 this test asserted
-    exactly one row, because nothing in the ladder could clear 0.70 — the
-    escalation the product is built around was unreachable with default settings.
-    Now report 5 crosses the gate and the trail shows it.
+    Five reports arrive under an IMD warning, but only two of them change the
+    event's status, so only two rows are written: created at 2 reports, and
+    escalated when the fourth crosses 0.60. Before the review gate moved to 0.60
+    nothing in the ladder could clear 0.70; since receipt v2, nothing does
+    without a warning (see the module docstring).
     """
+    await warning_over_patna(db)
     results = await stream(db, CLUSTER_TEXTS)
 
     rows = await audit_rows(db)
@@ -109,27 +123,27 @@ async def test_default_thresholds_write_one_row_per_status_change(db):
     assert first["details"]["from_status"] is None
     assert first["details"]["to_status"] == "QUARANTINED"
     assert first["details"]["report_count"] == 2
-    assert first["details"]["confidence_score"] == pytest.approx(0.5374, abs=1e-4)
+    assert first["details"]["confidence_score"] == pytest.approx(0.5593, abs=1e-4)
+    assert first["details"]["verdict"] == "CORROBORATED"
 
-    # 0.6006 clears HUMAN_REVIEW_THRESHOLD (0.60) on the fifth report.
+    # 0.6054 clears HUMAN_REVIEW_THRESHOLD (0.60) on the fourth report.
     assert second["details"]["from_status"] == "QUARANTINED"
     assert second["details"]["to_status"] == "PENDING_HUMAN_REVIEW"
-    assert second["details"]["report_count"] == 5
-    assert second["details"]["confidence_score"] == pytest.approx(0.6006, abs=1e-4)
+    assert second["details"]["report_count"] == 4
+    assert second["details"]["confidence_score"] == pytest.approx(0.6054, abs=1e-4)
 
     assert await audit.verify_chain(db) == {"valid": True, "checked": 2, "broken_at_seq": None}
 
 
 async def test_a_status_change_on_merge_writes_a_second_row(db, monkeypatch):
-    # 0.55 sits between the n=2 score (0.5374) and the n=3 score (0.5617), so the
-    # third report is what crosses the gate. The old value here was 0.45, which
-    # every score in the ladder now clears — the test would have passed
-    # vacuously with a single ESCALATE row and no transition to observe.
+    # 0.4653 sits between the n=2 score (0.4530) and the n=3 score (0.4776) with
+    # no warning in force, so the third report is what crosses the gate.
     #
     # Rule for picking this number: take the midpoint of the two adjacent
-    # measured scores you want to straddle (0.5524 here), so a ±1e-3 tweak to a
-    # scoring curve cannot flip which report triggers the change.
-    monkeypatch.setattr(pipeline.settings, "HUMAN_REVIEW_THRESHOLD", 0.55)
+    # measured scores you want to straddle, so a ±1e-3 tweak to a scoring curve
+    # cannot flip which report triggers the change. (v1: 0.55, between 0.5374
+    # and 0.5617.)
+    monkeypatch.setattr(pipeline.settings, "HUMAN_REVIEW_THRESHOLD", 0.4653)
 
     await stream(db, CLUSTER_TEXTS)
 
@@ -138,9 +152,9 @@ async def test_a_status_change_on_merge_writes_a_second_row(db, monkeypatch):
 
     first, second = rows
     assert first["details"]["report_count"] == 2
-    assert first["details"]["confidence_score"] == pytest.approx(0.5374, abs=1e-4)
+    assert first["details"]["confidence_score"] == pytest.approx(0.4530, abs=1e-4)
     assert second["details"]["report_count"] == 3
-    assert second["details"]["confidence_score"] == pytest.approx(0.5617, abs=1e-4)
+    assert second["details"]["confidence_score"] == pytest.approx(0.4776, abs=1e-4)
     assert second["details"]["from_status"] == "QUARANTINED"
     assert second["details"]["to_status"] == "PENDING_HUMAN_REVIEW"
 
@@ -204,7 +218,7 @@ async def test_merges_keep_a_human_approval(db):
     status, severity, quadrant, score, _ = await event_row(db, event_id)
     assert status == "HUMAN_APPROVED"
     assert quadrant == "Confirmed Minor Event"
-    assert score == pytest.approx(0.6006, abs=1e-4)
+    assert score == pytest.approx(0.5171, abs=1e-4)
 
 
 async def test_merges_keep_a_severity_override(db):
@@ -278,19 +292,19 @@ async def test_without_a_human_decision_status_is_recomputed(db):
     """
     With no human decision on record, status follows the score on every merge.
 
-    The claim is "recomputed, not frozen", and it is now demonstrated by a status
-    that actually moves: reports 3 and 4 leave it QUARANTINED, report 5 takes the
-    score to 0.6006 and the gate at 0.60 escalates it. Previously every step
-    stayed QUARANTINED, so the test could not distinguish "recomputed" from
-    "never touched".
+    The claim is "recomputed, not frozen", demonstrated by a status that
+    actually moves. Under an IMD warning, report 3 leaves it QUARANTINED
+    (0.5839), report 4 takes it to 0.6054 and the gate at 0.60 escalates it, and
+    report 5 keeps it there (0.6234).
     """
+    await warning_over_patna(db)
     event_id = await _event_from_first_two(db)
 
     results = await stream(db, CLUSTER_TEXTS[2:])
 
     assert [r["review_status"] for r in results] == [
         "QUARANTINED",
-        "QUARANTINED",
+        "PENDING_HUMAN_REVIEW",
         "PENDING_HUMAN_REVIEW",
     ]
     status, severity, *_ = await event_row(db, event_id)

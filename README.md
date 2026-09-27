@@ -146,22 +146,37 @@ Disaster response demands separating **how dangerous an event is** (Severity) fr
 
 INDRA does not output an opaque score; it calculates an **explainable, unalterable audit receipt**:
 
-$$\text{Confidence} = 25\% (\text{Weather}) + 20\% (\text{Reports}) + 20\% (\text{Spatio-Temporal}) + 15\% (\text{Vision}) + 15\% (\text{Reliability}) + 5\% (\text{Anomaly})$$
+$$\text{Confidence} = \frac{\sum_{\text{online}} w \cdot s}{\sum_{\text{online}} w}, \quad 20\% (\text{Weather}) + 10\% (\text{Official warning}) + 20\% (\text{Reports}) + 15\% (\text{Spatial}) + 15\% (\text{Vision}) + 15\% (\text{Reliability}) + 5\% (\text{Anomaly})$$
+
+A real receipt (v2, Phase 4), not a design: five labelled synthetic "heatwave, 47 degree" reports
+placed 5 km from Dehradun airport, scored on the evening of 27 Sep 2026 against that day's real
+observations by `scripts/run_verification_demo.py`, which writes nothing:
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        THE VERIFICATION RECEIPT                        │
-├────────────────────────────────────────────────────────────────────────┤
-│  Weather Station Corroboration (25%): 24 h rainfall vs IMD categories  │
-│  Report Density Analysis       (20%): independent reporters            │
-│  Spatial Coherence Score       (20%): cluster diameter vs 10 km search │
-│  Computer Vision Analysis      (15%): offline — out of scope           │
-│  Source Reliability Index      (15%): best source prior in cluster     │
-│  Anomaly Detection Signal       (5%): offline — out of scope           │
-├────────────────────────────────────────────────────────────────────────┤
-│  confidence = total_weighted / factor_coverage   (coverage 0.80)       │
-└────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                  THE VERIFICATION RECEIPT — receipt_version 2                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  Weather Station Corroboration (20%)  0.00 × 0.20 = 0.0000   CONTRADICTED    │
+│     airport VIDN (Dehradun Arpt, 5 km) measured a maximum of 20.0 °C;        │
+│     a heatwave claim is contradicted below 35 °C on the plains               │
+│     (the Open-Meteo model agreed: 20.3 °C)                                   │
+│  Official Warning (IMD/SDMA)   (10%)  0.00 × 0.10 = 0.0000                   │
+│     no official warning in force covers this event (SACHET, polled < 30 min) │
+│  Report Density Analysis       (20%)  0.55 × 0.20 = 0.1097   5 witnesses     │
+│  Spatial Coherence Score       (15%)  1.00 × 0.15 = 0.1498                   │
+│  Computer Vision Analysis      (15%)  offline — layer 4, out of scope        │
+│  Source Reliability Index      (15%)  0.60 × 0.15 = 0.0900   citizen reports │
+│  Anomaly Detection Signal       (5%)  offline — layer 4, out of scope        │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  total_weighted 0.3495 / factor_coverage 0.80 = confidence 0.4369            │
+│  VERDICT: CONTRADICTED   →  PENDING_HUMAN_REVIEW (never auto-rejected)       │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+The same run's genuine case, five flood reports in Uttarkashi under an Extreme Uttarakhand SDMA
+rain warning where 54.6 mm had fallen, scored 0.5696 / 0.80 = **0.712, CORROBORATED**. Every
+weather line names its source: an airport's METAR where one is within 50 km, the Open-Meteo model
+otherwise, and SACHET for official warnings.
 
 ### Review Thresholds
 - **$\ge 90\%$ (Auto-Verified)**: Auto-published to Command Center and emergency responders.
@@ -308,8 +323,8 @@ flowchart TD
 ```
 Citizen report ──► REST ──► Redpanda ──► consumer ──► dedup ──► DBSCAN cluster
                                                                       │
-                          Open-Meteo rainfall ──► 6-factor receipt ◄──┘
-                                                        │
+     METAR · Open-Meteo · SACHET warnings ──► receipt v2 + verdict ◄──┘
+                                              │
    WebSocket ◄── verified_events row + audit row (one transaction)
        │
        └── commander: PATCH /review ──► HUMAN_APPROVED + audit row ──► EVENT_REVIEWED

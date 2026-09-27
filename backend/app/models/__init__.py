@@ -5,7 +5,7 @@ Re-exports all ORM models so Alembic and the app can import from one place.
 
 from app.models.enums import (
     SourceType, EventType, Severity, ReviewStatus, Quadrant, Agency, AuditAction,
-    TeamStatus, TeamAgency, DutyStatus, OperatorRole,
+    TeamStatus, TeamAgency, DutyStatus, OperatorRole, Verdict,
 )
 from app.models.verified_events import VerifiedEvent
 from app.models.raw_reports import RawReport
@@ -14,12 +14,13 @@ from app.models.audit_logs import AuditLog
 from app.models.teams import Team
 from app.models.profiles import UserProfile
 from app.models.agency_alerts import AgencyAlert
+from app.models.event_snapshots import EventSnapshot
 
 __all__ = [
     "SourceType", "EventType", "Severity", "ReviewStatus", "Quadrant",
     "Agency", "AuditAction",
-    "TeamStatus", "TeamAgency", "DutyStatus", "OperatorRole",
+    "TeamStatus", "TeamAgency", "DutyStatus", "OperatorRole", "Verdict",
     "VerifiedEvent", "RawReport", "StationReading", "AuditLog",
-    "Team", "UserProfile", "AgencyAlert",
+    "Team", "UserProfile", "AgencyAlert", "EventSnapshot",
 ]
 

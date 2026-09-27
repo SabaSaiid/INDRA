@@ -5,10 +5,11 @@ Pure math, no database. This is the scoring claim the whole pitch rests on:
 if a judge asks "how do you know the confidence score is right?", this file is
 the answer.
 
-Weights (from fusion_engine.FACTORS):
-    weather_station    0.25
+Weights (from fusion_engine.FACTORS), receipt v2 since Phase 4:
+    weather_station    0.20
+    official_warning   0.10
     report_density     0.20
-    spatial_coherence  0.20
+    spatial_coherence  0.15
     vision_analysis    0.15
     source_reliability 0.15
     anomaly_detection  0.05
@@ -25,6 +26,7 @@ from app.services.fusion_engine import (
 
 ALL_FACTOR_KWARGS = (
     "weather_score",
+    "official_score",
     "report_density_score",
     "spatial_score",
     "vision_score",
@@ -56,7 +58,7 @@ def test_all_factors_offline_scores_zero(fusion):
     receipt = fusion.compute_receipt(**_all(None))
     assert receipt["confidence_score"] == 0.0
     assert receipt["factor_coverage"] == 0.0
-    assert len(receipt["factors"]) == 6
+    assert len(receipt["factors"]) == 7
     for factor in receipt["factors"]:
         assert factor["evidence"] == "Telemetry factor offline"
         assert factor["state"] == "offline"
@@ -65,7 +67,8 @@ def test_all_factors_offline_scores_zero(fusion):
 
 def test_known_vector_scores_exactly_070(fusion):
     """
-    0.9*.25 + 0.8*.20 + 0.85*.20 + 0.0*.15 + 0.8*.15 + 0.5*.05 = 0.70
+    0.9*.20 + 0.875*.10 + 0.8*.20 + 0.85*.15 + 0.0*.15 + 0.8*.15 + 0.5*.05
+      = 0.18 + 0.0875 + 0.16 + 0.1275 + 0 + 0.12 + 0.025 = 0.70     (receipt v2)
 
     Also the anchor for the rule that **an explicit 0.0 is online**: vision is
     passed 0.0, not None, so it is a measurement of "no signal" and still costs
@@ -75,6 +78,7 @@ def test_known_vector_scores_exactly_070(fusion):
     """
     receipt = fusion.compute_receipt(
         weather_score=0.9,
+        official_score=0.875,
         report_density_score=0.8,
         spatial_score=0.85,
         vision_score=0.0,
@@ -124,7 +128,7 @@ def test_weight_pct_stays_nominal_when_a_factor_is_offline(fusion):
 
     assert vision["weight_pct"] == 15.0
     assert vision["state"] == "offline"
-    assert weather["weight_pct"] == 25.0
+    assert weather["weight_pct"] == 20.0
     assert sum(f["weight_pct"] for f in receipt["factors"]) == pytest.approx(100.0)
 
 
@@ -155,14 +159,17 @@ def test_receipt_shape_is_stable(fusion):
     """The frontend and the stored JSONB both depend on this shape."""
     receipt = fusion.compute_receipt(**_all(0.5))
     assert set(receipt) == {
+        "receipt_version",
         "confidence_score",
         "factor_coverage",
         "factors",
         "total_weighted",
     }
-    assert len(receipt["factors"]) == 6
+    assert receipt["receipt_version"] == 2
+    assert len(receipt["factors"]) == 7
     for factor in receipt["factors"]:
         assert set(factor) == {
+            "key",
             "factor",
             "weight_pct",
             "state",
@@ -199,12 +206,25 @@ def test_a_single_offline_factor_costs_nothing_but_lowers_coverage(fusion):
 @pytest.mark.parametrize(
     "online,expected_coverage",
     [
-        (("weather_score",), 0.25),
-        (("weather_score", "report_density_score"), 0.45),
+        (("weather_score",), 0.20),
+        (("official_score",), 0.10),
+        (("weather_score", "report_density_score"), 0.40),
         (("vision_score", "anomaly_score"), 0.20),
+        # SACHET stale: the four that are left.
         (
             (
                 "weather_score",
+                "report_density_score",
+                "spatial_score",
+                "reliability_score",
+            ),
+            0.70,
+        ),
+        # Production's usual set: everything but the two layer-4 factors.
+        (
+            (
+                "weather_score",
+                "official_score",
                 "report_density_score",
                 "spatial_score",
                 "reliability_score",
@@ -226,7 +246,8 @@ def test_coverage_is_the_sum_of_reporting_weights(fusion, online, expected_cover
 
 def test_confidence_stays_in_range_at_every_coverage(fusion):
     """
-    All 63 non-empty online subsets keep confidence inside [0, 1].
+    All 127 non-empty online subsets of the seven factors keep confidence
+    inside [0, 1].
 
     verified_events carries CHECK (confidence_score BETWEEN 0 AND 1); an INSERT
     that violates it is swallowed by process_report's blanket `except` and
@@ -238,7 +259,7 @@ def test_confidence_stays_in_range_at_every_coverage(fusion):
     cases: it is a single property, and inflating the suite count with it would
     misrepresent how much was actually covered today.
     """
-    for subset_bits in range(1, 64):
+    for subset_bits in range(1, 2 ** len(ALL_FACTOR_KWARGS)):
         for value in (0.0, 1.0):
             kwargs = _all(None)
             for i, name in enumerate(ALL_FACTOR_KWARGS):

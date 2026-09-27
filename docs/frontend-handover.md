@@ -605,6 +605,36 @@ server with `scripts/set_operator_password.py`; there is no default password any
 
 ---
 
+## 21. Phase 4 (27 Sep): verification — station evidence, contradictions, verdicts and the review queue
+
+**Backend status: tested 27 Sep, not yet merged or deployed** (branch `aditya_27sep_phase4`, PR
+#47; suite 1,788 passed, the 2 failures are BUG-106, layer 4's). Shapes are in
+[`api-contract.md`](api-contract.md), marked "Phase 4". **Nothing here breaks the dashboard as it
+is:** the receipt gains factors and keys, the list gains `verdict`, and the endpoints are new. The
+only behaviour change to an existing call: `PATCH /api/events/{id}/review` answers `409` when
+another commander holds an unexpired claim, which cannot happen until the dashboard starts
+claiming. No file in `frontend/` was touched.
+
+| Change | What the dashboard can do with it | |
+|---|---|---|
+| **Receipt v2** (`receipt_version: 2`): seven factors, the new `official_warning` (10%), each row with `key` and, for weather and warning, `source` (`airport_metar`, `open_meteo_model`, `sachet_cap`) | A receipt that shows **what** stood behind each line: "IMD airport observation VIDP (…, 14 km): FG, visibility 150 m" or "IMD Patna: Severe Heavy Rainfall warning in force until …". Key rows on `key`, not the label. Coverage is still 0.80 | recommended |
+| **`verdict`** on every event (list, detail, `VERIFIED_EVENT`): `CORROBORATED` · `CONTRADICTED` · `UNCONFIRMED`; `?verdict=` on the list; `verdicts` in `/api/meta/filters` | A verdict badge on each event card and a filter chip. `CONTRADICTED` in red with the reason; it is never "rejected", a human decides | **new** |
+| **`contradictions`** in the receipt (`[{factor, rule, reason}]`) | Show the reason prominently: "airport VIDP measured a maximum of 26.7 °C; a heatwave claim is contradicted below 35 °C". This is the demo's key scene | **new** |
+| **`evidence.weather_station.detail.lines`** and `detail.disagreement` | Both lines (station and model), and "the station and the model disagree; the measurement is used" when they do | optional |
+| **`news_basis`** (`count`, `publishers`, `line`) | "Reported by 3 independent publishers: …" under Source Reliability | optional |
+| **`GET /api/review/queue`** with tabs `pending`, `contradicted`, `suspicious`, `high_impact`, `recent`, `claimed`, and `?counts=true` | **F2, the verification queue**: tabs with counts, rows in the published order (severity, then verdict, then oldest first) | **new** |
+| **`POST` / `DELETE /api/events/{id}/claim`** and the **`EVENT_CLAIMED`** WebSocket message; `claim` on the event detail | "Being reviewed by OP-CMD-001 until 14:05" on the card, a Claim button, and a live update when someone else claims. A decision releases the claim (`EVENT_REVIEWED.claim_released`) | **new** |
+| **`GET /api/events/{id}/history`** | A confidence-over-time chart from the `snapshot` entries and a status timeline from both kinds | **new** |
+| **`LATE_CORROBORATION`** ledger rows and `receipt.late_corroboration` | "Raised by an IMD warning at 10:20" in the ledger and on the receipt | recommended |
+
+**Test, once the branch is deployed:** the review queue and claims need a commander token
+(sign-in, section 19). To see a contradiction, the E2E backend (`make e2e-backend`, port 8100) with a
+heatwave report near an airport whose METAR reads under 35 °C; never the API on :8000.
+`scripts/run_verification_demo.py` prints a genuine and a fabricated case side by side without
+writing anything.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |

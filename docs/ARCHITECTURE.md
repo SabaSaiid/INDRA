@@ -101,7 +101,7 @@ flowchart TD
 ```
 Citizen report ──► REST + outbox ──► Redpanda ──► consumer ──► dedup ──► DBSCAN cluster
                                                                       │
-   station_readings (polled every 10 min) ──► 6-factor receipt ◄──────┘
+   METAR · Open-Meteo · SACHET ─────────────► receipt v2 + verdict ◄──┘
         └─ or live Open-Meteo on a miss        (legacy fusion factors; missing
                                                 factors lower published coverage)
                                                         │
@@ -285,27 +285,37 @@ INDRA processes incoming reports through a 3-step spatial pipeline:
 
 INDRA does **not** treat confidence as a black box. For every generated incident, the system computes and prints an **unalterable Verification Receipt** with exact mathematical weights summing to $100\%$:
 
-$$C = 0.25 \cdot S_{\text{weather}} + 0.20 \cdot S_{\text{reports}} + 0.20 \cdot S_{\text{spatio-temporal}} + 0.15 \cdot S_{\text{image}} + 0.15 \cdot S_{\text{reliability}} + 0.05 \cdot S_{\text{anomaly}}$$
+$$C = 0.20 \cdot S_{\text{weather}} + 0.10 \cdot S_{\text{official}} + 0.20 \cdot S_{\text{reports}} + 0.15 \cdot S_{\text{spatial}} + 0.15 \cdot S_{\text{image}} + 0.15 \cdot S_{\text{reliability}} + 0.05 \cdot S_{\text{anomaly}}$$
+
+(receipt v2, Phase 4, 27 Sep; re-normalised over the factors that reported)
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        THE VERIFICATION RECEIPT                        │
-├────────────────────────────────────────────────────────────────────────┤
-│  Weather Station Corroboration (25%): 24 h rainfall vs IMD categories  │
-│  Report Density Analysis       (20%): independent reporters            │
-│  Spatial Coherence Score       (20%): cluster diameter vs 10 km search │
-│  Computer Vision Analysis      (15%): offline — out of scope           │
-│  Source Reliability Index      (15%): best source prior in cluster     │
-│  Anomaly Detection Signal       (5%): offline — out of scope           │
-├────────────────────────────────────────────────────────────────────────┤
-│  confidence = total_weighted / factor_coverage   (coverage 0.80)       │
-└────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     THE VERIFICATION RECEIPT — version 2                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Weather Station Corroboration (20%): the hazard's own variable, from an    │
+│                                        airport METAR ≤ 50 km or the model   │
+│  Official Warning              (10%): IMD/SDMA warning in force, SACHET     │
+│  Report Density Analysis       (20%): independent reporters                 │
+│  Spatial Coherence Score       (15%): cluster diameter vs search span       │
+│  Computer Vision Analysis      (15%): offline — out of scope                │
+│  Source Reliability Index      (15%): best source prior; news by publisher  │
+│  Anomaly Detection Signal       (5%): offline — out of scope                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  confidence = total_weighted / factor_coverage   (coverage 0.80)            │
+│  verdict    = CORROBORATED · CONTRADICTED · UNCONFIRMED                     │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+A measured example is in the README: a fabricated heatwave beside Dehradun airport, contradicted
+by its 20.0 °C maximum, `0.3495 / 0.80 = 0.4369`.
 
 > **Status (see §0, updated Day 2):** the weighted arithmetic, the quadrant assignment, and
 > the review-status routing are all real and unit-tested. The receipt above lists each factor and
-> what it reads today. **Today four of the six factors carry real evidence and none is random:**
-> `weather_station` (live Open-Meteo 24 h rainfall mapped onto IMD rainfall categories),
+> what it reads today. **Since Phase 4 five of the seven factors carry real evidence and none is
+> random:** `official_warning` (SACHET warnings in force, of the event's hazard),
+> `weather_station` (each hazard's own variable, an airport METAR preferred over the Open-Meteo
+> model; a flood still reads 24 h rainfall on IMD's rainfall categories),
 > `report_density` (deduplicated report count on a curve saturating at 25),
 > `spatial_coherence` (raised cosine over the DBSCAN cluster span) and `source_reliability`
 > (a documented per-source lookup, max over the cluster). `vision_analysis` and

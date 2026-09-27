@@ -91,8 +91,15 @@ def test_the_vote_does_not_depend_on_order():
 # ── The caps: UNCLASSIFIED (T6) and posts only (T9) are never auto-published ───
 
 def _near_perfect(event_type, source_types):
+    """
+    Every independent signal at its best: 250 mm of rain and, since receipt v2,
+    an Extreme IMD warning in force (official_warning 1.0). An UNCLASSIFIED
+    event has no hazard to match a warning or the weather against, so both are
+    offline for it, as in the pipeline.
+    """
     from app.services.corroboration import effective_reporters
-    from app.services.pipeline import score_cluster
+    from app.services.evidence import Evidence
+    from app.services.pipeline import _legacy_evidence, score_cluster
 
     stats = {"centroid_lat": 25.59, "centroid_lng": 85.13, "radius_km": 0.3, "max_pairwise_km": 0.2,
              "count": 20}
@@ -101,10 +108,20 @@ def _near_perfect(event_type, source_types):
          for i in range(20)]
     )
     rain = event_type != "UNCLASSIFIED"
+    evidence = _legacy_evidence(
+        event_type, 1.0 if rain else None, 250.0 if rain else None,
+        "station_reading" if rain else "not_applicable",
+    )
+    if rain:
+        evidence["official"] = Evidence(
+            1.0, "computed", "official warning", 1.0, source="sachet_cap",
+            reason="IMD Patna: Extreme Heavy Rainfall warning in force",
+        )
     return score_cluster(
         stats, source_types, 1.0 if rain else None, 250.0 if rain else None,
         report_texts=["Water 5 feet deep, people stranded"] * 20, event_type=event_type,
         density=witnesses, eps_km=5.0, weather_source="station_reading" if rain else "not_applicable",
+        evidence=evidence,
     )
 
 

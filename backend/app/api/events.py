@@ -4,7 +4,9 @@ GET /api/events — list with the PS's date, event, location and status filters
 GET /api/events/distribution — counts by event_type for donut chart
 GET /api/events/{event_id} — full event detail
 PATCH /api/events/{event_id}/review — commander/admin approve, reject, re-grade
+POST/DELETE /api/events/{event_id}/claim — take or release an event for review
 GET /api/events/{event_id}/provenance — contributing reports + audit chain
+GET /api/events/{event_id}/history — snapshots and ledger rows, one timeline
 """
 
 import json
@@ -21,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.empty import empty_or_503
 from app.core.security import TokenData, require_roles
-from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, SourceType
+from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, SourceType, Verdict
 from app.services import audit
 from app.services.fusion_engine import FusionEngine
 # Display label and thumbnail per event type. They live in the hazard taxonomy
@@ -103,6 +105,9 @@ def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
         "confidence_score": row["confidence_score"],
         "verification": REVIEW_STATUS_LABELS.get(row["review_status"], "under-review"),
         "review_status": row["review_status"],
+        # Phase 4 T4: CORROBORATED | CONTRADICTED | UNCONFIRMED; null for an
+        # event last scored before receipt v2.
+        "verdict": row["verdict"],
         "quadrant": row["quadrant"],
         "impact_radius_km": row["impact_radius_km"],
         "lat": row["lat"],
@@ -139,6 +144,7 @@ def event_conditions(
     time_range: Optional[str] = None,
     bbox: Optional[str] = None,
     q: Optional[str] = None,
+    verdict: Optional[str] = None,
 ) -> Tuple[List[str], Dict[str, Any]]:
     """
     The WHERE conditions and bound parameters for GET /api/events' filters, over
@@ -154,6 +160,11 @@ def event_conditions(
         params["statuses"] = statuses
     else:
         conditions.append("review_status != 'REJECTED'")
+
+    verdicts = _csv("verdict", verdict, [v.value for v in Verdict])
+    if verdicts:
+        conditions.append("CAST(verdict AS text) = ANY(CAST(:verdicts AS text[]))")
+        params["verdicts"] = verdicts
 
     severities = _csv("severity", severity, [s.value for s in Severity])
     if severities:
@@ -252,6 +263,9 @@ async def list_events(
         None, description="Comma-separated review statuses; REJECTED is shown only when named"
     ),
     severity: Optional[str] = Query(None, description="Comma-separated: ADVISORY, MODERATE, HIGH, CRITICAL"),
+    verdict: Optional[str] = Query(
+        None, description="Comma-separated: CORROBORATED, CONTRADICTED, UNCONFIRMED"
+    ),
     state: Optional[str] = Query(None, max_length=120, description="Exact state name, any case"),
     district: Optional[str] = Query(None, max_length=120, description="Exact district name, any case"),
     source_type: Optional[str] = Query(
@@ -276,7 +290,7 @@ async def list_events(
         date_from=date_from, date_to=date_to, event_type=event_type, family=family,
         review_status=review_status, severity=severity, state=state, district=district,
         source_type=source_type, min_confidence=min_confidence, time_range=time_range,
-        bbox=bbox, q=q,
+        bbox=bbox, q=q, verdict=verdict,
     )
 
     includes = _csv("include", include, INCLUDES, normalise=str.lower) or []
@@ -296,7 +310,7 @@ async def list_events(
             CAST(severity AS text) AS severity, confidence_score,
             CAST(review_status AS text) AS review_status, quadrant, impact_radius_km,
             ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
-            verified_at,
+            verified_at, CAST(verdict AS text) AS verdict,
             district, state, place_precision{boundary_column}
         FROM verified_events
         WHERE {where_clause}
@@ -311,7 +325,7 @@ async def list_events(
     filtered = any(
         v is not None
         for v in (date_from, date_to, event_type, family, review_status, state, district,
-                  source_type, min_confidence, q)
+                  source_type, min_confidence, q, verdict)
     ) or offset > 0
 
     db_error = None
@@ -428,7 +442,7 @@ async def event_distribution(
 
 EXPORT_COLUMNS = [
     "id", "event_code", "event_type", "family", "label", "severity", "confidence_score",
-    "factor_coverage", "review_status", "quadrant", "impact_radius_km", "lat", "lng",
+    "factor_coverage", "verdict", "review_status", "quadrant", "impact_radius_km", "lat", "lng",
     "district", "state", "place_precision", "report_count", "verified_at", "updated_at",
 ]
 
@@ -436,6 +450,7 @@ EXPORT_SQL = """
     SELECT id, event_code, CAST(event_type AS text) AS event_type,
            CAST(severity AS text) AS severity, confidence_score,
            CAST(verification_receipt->>'factor_coverage' AS double precision) AS factor_coverage,
+           CAST(verdict AS text) AS verdict,
            CAST(review_status AS text) AS review_status, CAST(quadrant AS text) AS quadrant,
            impact_radius_km, ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
            district, state, place_precision,
@@ -479,6 +494,7 @@ async def export_events(
     family: Optional[str] = Query(None),
     review_status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
+    verdict: Optional[str] = Query(None),
     state: Optional[str] = Query(None, max_length=120),
     district: Optional[str] = Query(None, max_length=120),
     source_type: Optional[str] = Query(None),
@@ -508,7 +524,7 @@ async def export_events(
         date_from=date_from, date_to=date_to, event_type=event_type, family=family,
         review_status=review_status, severity=severity, state=state, district=district,
         source_type=source_type, min_confidence=min_confidence, time_range=time_range,
-        bbox=bbox, q=q,
+        bbox=bbox, q=q, verdict=verdict,
     )
     field, _, direction = sort.partition(":")
     direction = (direction or "desc").lower()
@@ -518,7 +534,7 @@ async def export_events(
 
     filters = {
         "from": date_from, "to": date_to, "event_type": event_type, "family": family,
-        "review_status": review_status, "severity": severity, "state": state,
+        "review_status": review_status, "severity": severity, "verdict": verdict, "state": state,
         "district": district, "source_type": source_type, "min_confidence": min_confidence,
         "time_range": time_range, "bbox": bbox, "q": q, "sort": sort,
     }
@@ -557,7 +573,8 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
             ST_Y(center_point) as lat, ST_X(center_point) as lng,
             ST_AsGeoJSON(boundary_polygon) as boundary_geojson,
             verification_receipt, verified_at,
-            district, state, place_precision
+            district, state, place_precision,
+            CAST(verdict AS text), claimed_by, claimed_at
         FROM verified_events
         WHERE event_code = :event_code
            OR id = CAST(:event_uuid AS uuid)
@@ -599,6 +616,10 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
                 "city": row[13],
                 "state": row[14],
                 "place_precision": row[15],
+                # Phase 4: what the evidence says (T4), and who is reviewing
+                # it (T7; null when nobody holds an unexpired claim).
+                "verdict": row[16],
+                "claim": claim_view(row[17], row[18]),
             }
     except Exception as e:
         logger.warning(f"Database query failed in get_event_detail: {e}")
@@ -608,6 +629,33 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
 
     return empty_or_503(f"GET /api/events/{event_id}", _not_found, db_error)
+
+
+# ── Review claims (Phase 4 T7) ─────────────────────────────────────────────────
+
+CLAIM_MINUTES = 15
+
+
+def claim_expires_at(claimed_at: Optional[datetime]) -> Optional[datetime]:
+    return claimed_at + timedelta(minutes=CLAIM_MINUTES) if claimed_at else None
+
+
+def claim_active(claimed_by: Optional[str], claimed_at: Optional[datetime], now: datetime) -> bool:
+    """A claim holds for CLAIM_MINUTES after it was taken; nothing clears it on expiry."""
+    return bool(claimed_by) and claimed_at is not None and now < claim_expires_at(claimed_at)
+
+
+def claim_view(claimed_by: Optional[str], claimed_at: Optional[datetime]) -> Optional[Dict[str, Any]]:
+    """{operator_id, claimed_at, expires_at} for an unexpired claim, else None."""
+    from app.services import clock
+
+    if not claim_active(claimed_by, claimed_at, clock.now()):
+        return None
+    return {
+        "operator_id": claimed_by,
+        "claimed_at": claimed_at.isoformat(),
+        "expires_at": claim_expires_at(claimed_at).isoformat(),
+    }
 
 
 # ── Human review ───────────────────────────────────────────────────────────────
@@ -684,6 +732,9 @@ async def review_event(
       and preserves HUMAN_APPROVED and severity_override (pipeline.py step 7).
     * The status change and its audit row commit together; EVENT_REVIEWED is
       broadcast only after the commit.
+    * **Claims (Phase 4 T7).** A decision releases the event's claim. While
+      another commander holds an unexpired claim, a commander's decision is a
+      409 naming the holder; an ADMIN may still decide.
     """
     event_uuid = _event_uuid_or_404(event_id)
     # The account's operator_id from its token (OP-CMD-001 and so on); a token
@@ -695,7 +746,8 @@ async def review_event(
             await db.execute(
                 text("""
                     SELECT id, event_code, review_status, severity, quadrant,
-                           confidence_score, verification_receipt, CAST(event_type AS text)
+                           confidence_score, verification_receipt, CAST(event_type AS text),
+                           claimed_by, claimed_at
                     FROM verified_events
                     WHERE id = CAST(:id AS uuid)
                     FOR UPDATE
@@ -711,8 +763,17 @@ async def review_event(
         await db.rollback()
         raise HTTPException(status_code=404, detail="Event not found")
 
-    _, event_code, status, severity, quadrant, confidence, receipt, event_type = row
+    _, event_code, status, severity, quadrant, confidence, receipt, event_type, \
+        holder, claimed_at = row
     receipt = receipt or {}
+
+    from app.services import clock
+
+    if claim_active(holder, claimed_at, clock.now()) and holder != operator_id \
+            and operator.role != "ADMIN":
+        await db.rollback()
+        raise _claimed_by_other(holder, claimed_at)
+    claim_released = bool(holder)
     allowed_from, audit_action = REVIEW_TRANSITIONS[body.action]
     if status == ReviewStatus.REJECTED.value or (
         allowed_from is not None and status not in allowed_from
@@ -800,7 +861,10 @@ async def review_event(
                     quadrant = CAST(:quad AS quadrant_enum),
                     event_type = CAST(:etype AS event_type_enum),
                     hazard_family = :family,
-                    verification_receipt = CAST(:receipt AS jsonb)
+                    verification_receipt = CAST(:receipt AS jsonb),
+                    -- A decision releases the review claim (T7).
+                    claimed_by = NULL,
+                    claimed_at = NULL
                 WHERE id = CAST(:id AS uuid)
             """),
             {
@@ -845,12 +909,156 @@ async def review_event(
                 "reason": body.reason,
                 "at": human_review["at"],
             },
+            # True when the decision released a review claim (T7).
+            "claim_released": claim_released,
         })
     except Exception as e:
         # The decision is committed; a failed broadcast must not report it as failed.
         logger.error(f"EVENT_REVIEWED broadcast failed for {event_code}: {e}")
 
     return await get_event_detail(event_uuid, db)
+
+
+# ── Claiming (Phase 4 T7: the UNDER_REVIEW state) ─────────────────────────────
+
+async def _broadcast_claim(event_uuid: str, event_code: str, claim, **extra) -> None:
+    """EVENT_CLAIMED, so two commanders do not review the same event. Never raises."""
+    try:
+        from app.main import ws_manager
+
+        await ws_manager.broadcast({
+            "type": "EVENT_CLAIMED",
+            "event": {"id": event_uuid, "event_code": event_code},
+            # null when the claim was released
+            "claim": claim,
+            **extra,
+        })
+    except Exception as e:
+        logger.error(f"EVENT_CLAIMED broadcast failed for {event_code}: {e}")
+
+
+async def _lock_for_claim(db: AsyncSession, event_uuid: str):
+    try:
+        row = (await db.execute(
+            text("""
+                SELECT event_code, CAST(review_status AS text), claimed_by, claimed_at
+                FROM verified_events WHERE id = CAST(:id AS uuid) FOR UPDATE
+            """),
+            {"id": event_uuid},
+        )).fetchone()
+    except Exception as e:
+        logger.warning(f"Database query failed in claim: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if row is None:
+        await db.rollback()
+        raise HTTPException(status_code=404, detail="Event not found")
+    return row
+
+
+def _claimed_by_other(holder: str, claimed_at: datetime) -> HTTPException:
+    until = claim_expires_at(claimed_at)
+    return HTTPException(
+        status_code=409,
+        detail={
+            "message": f"Claimed by {holder} until {until.isoformat()}",
+            "claim": {
+                "operator_id": holder,
+                "claimed_at": claimed_at.isoformat(),
+                "expires_at": until.isoformat(),
+            },
+        },
+    )
+
+
+@router.post("/{event_id}/claim")
+async def claim_event(
+    event_id: str,
+    operator: TokenData = Depends(require_roles("COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Take the event for review for CLAIM_MINUTES (15). A second commander's
+    claim while it holds is a 409 naming the holder; the holder claiming again
+    renews it. A review decision releases it (PATCH …/review), and so does
+    DELETE …/claim. Broadcasts EVENT_CLAIMED.
+    """
+    from app.services import clock
+
+    event_uuid = _event_uuid_or_404(event_id)
+    operator_id = operator.operator_id or operator.sub
+    event_code, status, holder, claimed_at = await _lock_for_claim(db, event_uuid)
+    now = clock.now()
+
+    if status == ReviewStatus.REJECTED.value:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Cannot claim an event that is REJECTED")
+    if claim_active(holder, claimed_at, now) and holder != operator_id:
+        await db.rollback()
+        raise _claimed_by_other(holder, claimed_at)
+
+    try:
+        await db.execute(
+            text("""
+                UPDATE verified_events SET claimed_by = :who, claimed_at = :at
+                WHERE id = CAST(:id AS uuid)
+            """),
+            {"who": operator_id, "at": now, "id": event_uuid},
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"claim_event failed for {event_uuid}: {e}")
+        raise HTTPException(status_code=503, detail="Claim could not be recorded")
+
+    claim = claim_view(operator_id, now)
+    logger.info(f"Claim: {operator_id} claimed {event_code} until {claim['expires_at']}")
+    await _broadcast_claim(event_uuid, event_code, claim)
+    return {"event_id": event_uuid, "event_code": event_code, "claim": claim}
+
+
+@router.delete("/{event_id}/claim")
+async def release_claim(
+    event_id: str,
+    operator: TokenData = Depends(require_roles("COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Release the claim. The holder may release it, and so may an ADMIN;
+    another commander gets a 409 naming the holder. Releasing an event nobody
+    holds is a 200 that changes nothing. Broadcasts EVENT_CLAIMED with
+    `claim: null`.
+    """
+    from app.services import clock
+
+    event_uuid = _event_uuid_or_404(event_id)
+    operator_id = operator.operator_id or operator.sub
+    event_code, _status, holder, claimed_at = await _lock_for_claim(db, event_uuid)
+    now = clock.now()
+
+    if not claim_active(holder, claimed_at, now):
+        await db.rollback()
+        return {"event_id": event_uuid, "event_code": event_code, "claim": None}
+    if holder != operator_id and operator.role != "ADMIN":
+        await db.rollback()
+        raise _claimed_by_other(holder, claimed_at)
+
+    try:
+        await db.execute(
+            text("""
+                UPDATE verified_events SET claimed_by = NULL, claimed_at = NULL
+                WHERE id = CAST(:id AS uuid)
+            """),
+            {"id": event_uuid},
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"release_claim failed for {event_uuid}: {e}")
+        raise HTTPException(status_code=503, detail="Claim could not be released")
+
+    logger.info(f"Claim: {operator_id} released {event_code} (held by {holder})")
+    await _broadcast_claim(event_uuid, event_code, None, released_by=operator_id)
+    return {"event_id": event_uuid, "event_code": event_code, "claim": None}
 
 
 # ── Provenance ─────────────────────────────────────────────────────────────────
@@ -962,4 +1170,96 @@ async def event_provenance(
             for a in audit_rows
         ],
         "chain": chain,
+    }
+
+
+# ── History (Phase 4 T7) ───────────────────────────────────────────────────────
+
+@router.get("/{event_id}/history")
+async def event_history(
+    event_id: str,
+    operator: TokenData = Depends(require_roles("ANALYST", "COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    One timeline of everything that happened to an event, oldest first:
+
+    * `snapshot` — every score write (event_snapshots): created, each merge,
+      each late re-score, with confidence, coverage, report count, verdict,
+      status and what triggered it. Enough to draw confidence over time.
+    * `audit` — every ledger row about the event: the pipeline's decisions,
+      LATE_CORROBORATION, and every human review.
+
+    At equal times a snapshot comes before the ledger row written with it.
+    ANALYST or above, as provenance is: the ledger names operators.
+    """
+    event_uuid = _event_uuid_or_404(event_id)
+    try:
+        event = (await db.execute(
+            text("""
+                SELECT id, event_code, confidence_score, CAST(verdict AS text),
+                       CAST(review_status AS text), CAST(severity AS text), verified_at
+                FROM verified_events WHERE id = CAST(:id AS uuid)
+            """),
+            {"id": event_uuid},
+        )).fetchone()
+        if event is None:
+            raise HTTPException(status_code=404, detail="Event not found")
+        snapshots = (await db.execute(
+            text("""
+                SELECT at, confidence, factor_coverage, report_count, verdict, review_status,
+                       severity, trigger, receipt_version, details
+                FROM event_snapshots
+                WHERE event_id = CAST(:id AS uuid)
+                ORDER BY at, id
+            """),
+            {"id": event_uuid},
+        )).fetchall()
+        audit_rows = await audit.fetch_rows(db, event_uuid)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Database query failed in event_history: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    timeline: List[Tuple[datetime, int, Dict[str, Any]]] = []
+    for r in snapshots:
+        timeline.append((r[0], 0, {
+            "kind": "snapshot",
+            "at": r[0].isoformat(),
+            "confidence_score": r[1],
+            "factor_coverage": r[2],
+            "report_count": r[3],
+            "verdict": r[4],
+            "review_status": r[5],
+            "severity": r[6],
+            "trigger": r[7],
+            "receipt_version": r[8],
+            "details": r[9],
+        }))
+    for a in audit_rows:
+        timeline.append((a["logged_at"], 1, {
+            "kind": "audit",
+            "at": a["logged_at"].isoformat(),
+            "seq": a["seq"],
+            "action_taken": a["action_taken"],
+            "operator_id": a["operator_id"],
+            "reason": a["reason"],
+            "details": a["details"],
+        }))
+    timeline.sort(key=lambda t: (t[0], t[1]))
+
+    return {
+        "event": {
+            "id": str(event[0]),
+            "event_code": event[1],
+            "confidence_score": event[2],
+            "verdict": event[3],
+            "review_status": event[4],
+            "severity": event[5],
+            "verified_at": event[6].isoformat() if event[6] else None,
+        },
+        "snapshots": len(snapshots),
+        "audit_rows": len(audit_rows),
+        "timeline": [entry for _, _, entry in timeline],
     }

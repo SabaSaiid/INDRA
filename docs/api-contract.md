@@ -298,6 +298,7 @@ tracking"*. Every parameter is optional and they combine with AND. Lists are com
 | `family` | `water` · `convective` · `thermal` · `visibility` |
 | `review_status` | one or more statuses. **`REJECTED` appears only when named** |
 | `severity` | one or more of `ADVISORY` · `MODERATE` · `HIGH` · `CRITICAL`. The old single value still works |
+| `verdict` | **Phase 4 (tested 27 Sep).** one or more of `CORROBORATED` · `CONTRADICTED` · `UNCONFIRMED`. An event scored before receipt v2 has no verdict and matches none |
 | `state`, `district` | exact name, any case (`bihar` matches `Bihar`) |
 | `source_type` | events with at least one report from these sources, e.g. `OFFICIAL_DISPATCH` |
 | `min_confidence` | 0–1 |
@@ -311,7 +312,7 @@ tracking"*. Every parameter is optional and they combine with AND. Lists are com
 **The body is still a list**, newest first. **The number of matching events is in the
 `X-Total-Count` header**, which CORS exposes to the dashboard's origin. Each item has the keys it
 always had, plus `event_type` (the enum — key icons on this, not on the display label `eventType`)
-and `family`.
+and `family`, and since Phase 4 `verdict` (`null` for an event last scored before receipt v2).
 
 Captured 23 Sep:
 
@@ -501,8 +502,72 @@ Confidence ≥ 0.90 publishes; ≥ 0.60 goes to review; below that the event is 
   counts less). Show it as "5 reports, 4.8 independent witnesses".
 * **`routing.caps`**: `unclassified` or `posts_only` hold an event for a human whatever its
   confidence; `basis` is `cap` when that is why it is pending.
-* **`weather.note`**: for a hazard rainfall cannot corroborate (heat, cold, fog, dust, wind) the
-  weather factor is `offline` rather than scoring a dry day against it, and the note says why.
+* **`weather.note`** (Phase 3 only, **gone in receipt v2**): for a hazard rainfall cannot
+  corroborate the weather factor was `offline`, with this note. Since Phase 4 every hazard reads its
+  own variable instead; an older stored receipt may still carry the note.
+
+#### Phase 4: receipt v2 (tested 27 Sep)
+
+`receipt_version: 2`. Seven factors, weights still summing to 1.00:
+
+| `key` | `factor` label | v1 | v2 |
+|---|---|---|---|
+| `weather_station` | Weather Station Corroboration | 0.25 | **0.20** |
+| `official_warning` | Official Warning (IMD/SDMA via SACHET) | — | **0.10** |
+| `report_density` | Report Density Analysis | 0.20 | 0.20 |
+| `spatial_coherence` | Spatial Coherence Score | 0.20 | **0.15** |
+| `vision_analysis` | Computer Vision Analysis (offline, layer 4) | 0.15 | 0.15 |
+| `source_reliability` | Source Reliability Index | 0.15 | 0.15 |
+| `anomaly_detection` | Anomaly Detection Signal (offline, layer 4) | 0.05 | 0.05 |
+
+With vision and anomaly offline, **`factor_coverage` is still 0.80**; with SACHET stale as well,
+0.70. `total_weighted / factor_coverage = confidence_score` still holds exactly. Each factor row
+gains `key`, and the two independent factors gain `source`:
+
+```json
+{"key": "weather_station", "factor": "Weather Station Corroboration", "weight_pct": 20.0,
+ "state": "computed", "score": 0.85, "weighted_points": 0.17, "source": "airport_metar",
+ "evidence": "IMD airport observation VIDP (Indira Gandhi Intl, 14 km): FG, visibility 150 m at 11:00 IST; Open-Meteo model: minimum visibility 400 m at 05:00 UTC in 03:00–09:00 UTC (08:30–14:30 IST)"}
+```
+
+New top-level blocks:
+
+```json
+"evidence": {
+  "weather_station": {"score": 0.85, "state": "computed", "variable": "minimum visibility",
+                      "value": 150, "window": "03:00–09:00 UTC (08:30–14:30 IST)",
+                      "source": "airport_metar", "contradiction": false, "reason": "…",
+                      "detail": {"station": {…}, "model": {…}, "lines": ["…", "…"]}},
+  "official_warning": {"score": 0.85, "source": "sachet_cap",
+                       "reason": "IMD Patna: Severe Heavy Rainfall warning in force until 28 Sep 08:30 IST (SACHET CAP, matched by polygon)",
+                       "detail": {"in_force_covering": [{"identifier": "…", "sender": "…", "event": "…",
+                                  "raw_severity": "Severe", "score": 0.85, "families": ["water"],
+                                  "matches_hazard": true, …}]}}},
+"evidence_window": {"start": "…", "end": "…", "rule": "the observed span ± 3 h", "label": "…"},
+"contradictions": [{"factor": "weather_station", "rule": "maximum below 35 °C (plains)",
+                    "reason": "airport VIDP (…, 14 km) measured a maximum of 26.7 °C in …"}],
+"verdict": {"value": "CONTRADICTED", "rule": "…", "reason": "…", "official_warning": 0.0,
+            "weather": 0.0, "contradictions": 1},
+"news_basis": {"score": 0.75, "count": 3, "publishers": ["Telangana Today", "The Hindu", "Times of India"],
+               "line": "reported by 3 independent publishers: …", …},
+"late_corroboration": {"trigger": "sachet:<identifier>@<sent>", "at": "…", "before": {…}}
+```
+
+* **`evidence.*.source`**: `airport_metar` (an aerodrome's METAR within 50 km; "IMD" is said only
+  for civil airports), `open_meteo_model`, `sachet_cap`, or `none` (offline).
+* **Every hazard reads its own variable** — temperature for heat and cold, visibility for fog,
+  gusts for wind, weather code and CAPE for thunderstorms, dust for a dust storm, the peak hour for a
+  cloudburst, 24 h rainfall for floods (unchanged). `weather.note` is gone: no hazard is
+  `offline` merely because rainfall cannot speak to it.
+* **`contradictions`**: non-empty only when the evidence affirmatively says the opposite (the
+  published table is in `backend/app/services/evidence.py`). The weather factor then scores 0.0,
+  online, and `routing.caps` gains `contradicted`. **Never an automatic rejection.**
+* **`verdict`**: `CONTRADICTED` if any contradiction; else `CORROBORATED` if `official_warning` or
+  the weather evidence is ≥ 0.6; else `UNCONFIRMED`. Also stored as the event's `verdict` column.
+* **`news_basis`**: news counts as corroborated (0.75 in Source Reliability) only from two or more
+  independent publishers; one publisher is 0.55.
+* **`late_corroboration`**: present when the event was re-scored because a warning or an airport
+  observation arrived after it; `before` is the confidence, verdict, status and severity it had.
 
 ### `PATCH /api/events/{event_id}/review` — **requires a token**
 
@@ -529,6 +594,52 @@ decision are recorded separately, on purpose.
 unknown id · `409` transition not allowed, nothing written · `422` bad body · `503` database
 error. Row-locked, so two concurrent approvals give one `200` and one `409`. Broadcasts
 `EVENT_REVIEWED` after the commit.
+
+**Phase 4 (tested 27 Sep):** a decision releases the event's review claim
+(`EVENT_REVIEWED` gains `claim_released: true`). While **another** commander holds an unexpired
+claim, a commander's decision is a `409` naming the holder; an `ADMIN` may still decide.
+
+### `POST /api/events/{event_id}/claim`, `DELETE /api/events/{event_id}/claim` — **requires a token** (Phase 4)
+
+Auth: `COMMANDER` or `ADMIN`. Tested 27 Sep (`test_review_queue.py`).
+
+`POST` takes the event for review for **15 minutes**:
+
+```json
+{"event_id": "…", "event_code": "INDRA-20260927-004",
+ "claim": {"operator_id": "OP-CMD-001", "claimed_at": "…", "expires_at": "…"}}
+```
+
+* Someone else holds an unexpired claim → **`409`**, `detail: {"message": "Claimed by OP-CMD-001
+  until …", "claim": {…}}`. The holder claiming again renews it. After 15 minutes anyone may claim.
+* A `REJECTED` event → `409`. Unknown id → `404`.
+* `DELETE` releases it: the holder or an `ADMIN`; another commander gets the `409`. Releasing an
+  event nobody holds is a `200` with `claim: null`.
+* Both broadcast **`EVENT_CLAIMED`** (below). `GET /api/events/{id}` shows the current `claim`
+  (`null` when nobody holds an unexpired one).
+
+### `GET /api/events/{event_id}/history` — **requires a token** (Phase 4)
+
+Auth: `ANALYST`, `COMMANDER` or `ADMIN`. Tested 27 Sep. One timeline, oldest first:
+
+```json
+{"event": {"id": "…", "event_code": "…", "confidence_score": 0.71, "verdict": "CORROBORATED",
+           "review_status": "PENDING_HUMAN_REVIEW", "severity": "HIGH", "verified_at": "…"},
+ "snapshots": 4, "audit_rows": 3,
+ "timeline": [
+   {"kind": "snapshot", "at": "…", "confidence_score": 0.52, "factor_coverage": 0.8,
+    "report_count": 3, "verdict": "UNCONFIRMED", "review_status": "QUARANTINED",
+    "severity": "MODERATE", "trigger": "created", "receipt_version": 2, "details": {…}},
+   {"kind": "audit", "at": "…", "seq": 812, "action_taken": "QUARANTINE",
+    "operator_id": "SYSTEM-PIPELINE", "reason": "…", "details": {…}},
+   {"kind": "snapshot", "trigger": "late:sachet:<identifier>@<sent>", …},
+   {"kind": "audit", "action_taken": "LATE_CORROBORATION", "details": {"trigger": "…", "before": {…}, "after": {…}}, …}
+ ]}
+```
+
+A snapshot is written on every score write: `created`, each `merge`, each `late:…` re-score, and
+`late:backfill:receipt_v2`. A review is not a score change, so it appears as its audit row only.
+Draw "confidence over time" from the snapshots; the status history from both.
 
 ### `GET /api/events/{event_id}/provenance` — **requires a token**
 
@@ -567,11 +678,49 @@ who filed an `OFFICIAL_DISPATCH`; it is `null` for a citizen report.
 | `GET /api/profile/me`, `PATCH /api/profile/me` | 401 | 401 | 200 | 200 | 200 | 200 |
 | `GET /api/reports/search`, `/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/events/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
+| `POST`/`DELETE /api/events/{id}/claim` (Phase 4, `test_review_queue.py`; the expired-key column is not pinned) | 401 | 401 | 403 | 403 | 200 | 200 |
+| `GET /api/events/{id}/history` (Phase 4, `test_review_queue.py`; the expired-key column is not pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
+| `GET /api/review/queue` (Phase 4, `test_review_queue.py`; the expired-key column is not pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `POST /api/reports/submit` | 202 | 202 | 202 | 202 | 202 | 202 |
 | `GET /api/events` | 200 | 200 | 200 | 200 | 200 | 200 |
 
 `/api/profile/me`, read or edited, is **the token's own operator only**; there is no `?user=`
 parameter.
+
+---
+
+## `/api/review` (Phase 4)
+
+### `GET /api/review/queue?tab=pending&limit=50&offset=0` — **requires a token**
+
+Auth: `ANALYST`, `COMMANDER` or `ADMIN` (claiming and deciding need `COMMANDER` or `ADMIN`).
+Tested 27 Sep (`test_review_queue.py`).
+
+| `tab` | Contents |
+|---|---|
+| `pending` | `PENDING_HUMAN_REVIEW` or `QUARANTINED`, never reviewed |
+| `contradicted` | verdict `CONTRADICTED`, never reviewed |
+| `suspicious` | at least one contributing report flagged (`promotional`, `past_event`, `implausible_value`, `exaggeration`, `shouting`, `forward_marker`, `coordinated`; a forecast's `not_an_observation` is not suspicious) |
+| `high_impact` | severity `HIGH` or `CRITICAL`, never reviewed |
+| `recent` | created in the last 2 hours |
+| `claimed` | someone holds an unexpired claim |
+
+"Never reviewed" means no commander has acted on it. `REJECTED` events are in no tab. **Order,
+published:** severity (critical first), then verdict (`CORROBORATED`, `UNCONFIRMED`,
+`CONTRADICTED`), then age, oldest first.
+
+```json
+{"tab": "pending", "total": 7, "limit": 50, "offset": 0, "order": "…",
+ "items": [{"id": "…", "event_code": "…", "event_type": "HEATWAVE", "label": "Heatwave",
+            "family": "thermal", "severity": "HIGH", "confidence_score": 0.44,
+            "factor_coverage": 0.8, "verdict": "CONTRADICTED", "review_status": "PENDING_HUMAN_REVIEW",
+            "district": "…", "state": "…", "verified_at": "…", "age_minutes": 38.5,
+            "report_count": 5, "flagged_reports": 0, "contradictions": [{…}], "claim": null}]}
+```
+
+`?counts=true` returns `{"pending": 7, "contradicted": 2, "suspicious": 1, "high_impact": 4,
+"recent": 3, "claimed": 0}` in one call. An unknown `tab` is a `422` naming it; a database error
+`503`.
 
 ---
 
@@ -664,6 +813,10 @@ Captured 23 Sep (one event in the database):
  "date_min":"2026-09-23","date_max":"2026-09-23",
  "generated_at":"2026-09-23T14:35:54.192358+00:00"}
 ```
+
+**Phase 4 (tested 27 Sep):** `verdicts`, `[{"value": "CORROBORATED", "count": n}, …]`
+in the order CORROBORATED, UNCONFIRMED, CONTRADICTED, over non-rejected events that have a
+verdict.
 
 Empty database: every list `[]` and both dates `null`. Cached for **60 s** (Redis key
 `meta:filters`, with an in-memory fallback), so a new event can take up to a minute to appear in the
@@ -905,8 +1058,9 @@ long the oldest has waited). Captured 23 Sep:
 | Message | Payload | When |
 |---|---|---|
 | `NEW_REPORT` | `{type, report}` | A report was accepted. Once per report id, now across a restart |
-| `VERIFIED_EVENT` | `{type, event}` | The pipeline created or updated an event |
-| `EVENT_REVIEWED` | `{type, event}` | A commander approved, rejected or re-graded one |
+| `VERIFIED_EVENT` | `{type, event}` | The pipeline created or updated an event. **Phase 4:** also when late corroboration re-scored one (`event.late_corroboration` says by what); `event.verdict` on every one |
+| `EVENT_REVIEWED` | `{type, event, review, claim_released}` | A commander approved, rejected or re-graded one. `claim_released` (Phase 4) is true when the decision released a review claim |
+| `EVENT_CLAIMED` | `{type, event: {id, event_code}, claim}` | **Phase 4.** A commander claimed an event for review; `claim` is `{operator_id, claimed_at, expires_at}`, or `null` with `released_by` when it was released. Show "being reviewed by …" |
 | `NEW_FEED_ITEM` | `{type, report}` | **Phase 2.** A poller collected a post or headline. Same payload as `NEW_REPORT` (`source_type` `SOCIAL_MEDIA` or `NEWS_MEDIA`; `latitude`/`longitude` may be `null`). A separate type so a news tick storing dozens of headlines does not fire dozens of `NEW_REPORT` refetches; a dashboard that ignores it is unaffected |
 
 `report` carries `raw_text`, `h3_res8`, `credibility_score` and `source_type`. The key is
@@ -921,16 +1075,14 @@ connected browser.
 
 ## Proposed — Phase 4, 5 and 6
 
-Phase 2's four are built (above). **The rest are not built yet.** These are the names later phases will use, published now so the dashboard can be
-built against them. Shapes will be fixed in this file when each one lands; until then treat
-everything but the path as provisional.
+Phase 2's four are built (above), and Phase 4's four are written (above: the review queue,
+claiming, history and `?verdict=`; tested 27 Sep). **The rest are not built yet.** These are the
+names later phases will use, published now so the dashboard can be built against them. Shapes will
+be fixed in this file when each one lands; until then treat everything but the path as
+provisional.
 
 | Phase | Endpoint | For |
 |---|---|---|
-| 4 | `GET /api/review/queue` | The review queue's tabs |
-| 4 | `POST /api/events/{id}/claim`, `DELETE /api/events/{id}/claim` | Claiming an event for review |
-| 4 | `GET /api/events/{id}/history` | An event's score and status over time |
-| 4 | `GET /api/events?verdict=` | Corroborated / contradicted / no official match |
 | 5 | `POST /api/reports/submit` as multipart | Photo and video upload |
 | 5 | `GET /api/media/{id}` | A report's media |
 | 5 | `DELETE /api/reports/{docket}` | A citizen withdrawing their own report |

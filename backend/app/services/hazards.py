@@ -22,11 +22,11 @@ the thunderstorm that brings them, a cloudburst or a storm surge before the
 flood it causes. So "bijli giri, thunder and heavy rain" is a lightning report,
 and the answer never depends on the order a caller listed the types in.
 
-**`measured_by` is a promise, not a feature.** It names the measurement Phase 4
-will use to corroborate each hazard (IMD airport METAR, Open-Meteo, SACHET
-warnings). Nothing reads it yet; it is here so the verification work has one
-place to start from and so a reviewer can see, per hazard, what "verified" will
-mean.
+**`measured_by` says, in words, what corroborates each hazard** (IMD airport
+METAR, Open-Meteo, SACHET warnings). Since Phase 4 the measurements themselves
+are read in `services/evidence.py` (the weather, per hazard) and
+`services/official_warnings.py` (the warnings); this column stays the one-line
+summary a reviewer can scan, and nothing computes from it.
 
 **Labels keep the strings the dashboard already keys on.** The map's icon table
 (`frontend/src/components/client-only/GlobeEventMap.tsx`) and the distribution

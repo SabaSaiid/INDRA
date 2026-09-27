@@ -1,8 +1,16 @@
 """
 INDRA Platform — Weather Station Corroboration (Open-Meteo)
 
-The one external signal in the fusion receipt: does recent rainfall at the
-event's location support a flood report?
+Two requests to Open-Meteo live here:
+
+* the **24 h rainfall** at an event's location (below, since Day 2): does recent
+  rainfall support a flood report? The rain family still reads exactly this;
+* since Phase 4, **one hourly request for every hazard's variable**, per H3
+  res-7 cell (the section at the end): temperature, visibility, gusts, weather
+  code, CAPE, and dust from the air-quality API. `services/evidence.py` turns
+  them into each hazard's evidence, beside the airports' own observations.
+
+The rest of this docstring describes the rainfall request.
 
     weather_score(lat, lng) -> Optional[float]
 
@@ -29,7 +37,9 @@ event's location support a flood report?
 
 import logging
 import time
-from typing import Callable, List, Optional, Tuple
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import httpx
 
@@ -183,3 +193,228 @@ async def weather_score(
     if rainfall is None:
         return None, None
     return rainfall_to_score(rainfall), rainfall
+
+
+# ── Phase 4 T1: one request per H3 res-7 cell, every variable ─────────────────
+#
+# Rainfall alone says nothing for or against a heatwave, fog or a gale. Phase 4
+# reads each hazard's own variable, and asks Open-Meteo for all of them at once:
+#
+#     hourly=precipitation,temperature_2m,visibility,wind_gusts_10m,
+#            wind_speed_10m,weather_code,cape
+#     past_days=1  forecast_days=1  timezone=UTC
+#
+# All seven answered without a key on 22 Sep. The series runs from 00:00 UTC
+# yesterday to 23:00 UTC today; the evidence functions (services/evidence.py)
+# only ever read the hours up to now, because an hour after now is a forecast.
+#
+# **Cached per H3 res-7 cell** (about 5 km², coarser than the res-8 rainfall
+# cache above) for 10 minutes, in Redis under `wx:v2:{cell}`: two events in the
+# same cell within ten minutes cost one request. A failure is cached for one
+# minute, as above, and is None, never a guess.
+#
+# DUST_STORM also reads the Air Quality API (`hourly=dust,pm10`), cached under
+# `wx:v2aq:{cell}`. Its dust figure is CAMS's model estimate, not a measurement.
+
+HOURLY_VARIABLES = (
+    "precipitation",
+    "temperature_2m",
+    "visibility",
+    "wind_gusts_10m",
+    "wind_speed_10m",
+    "weather_code",
+    "cape",
+)
+AIR_QUALITY_VARIABLES = ("dust", "pm10")
+
+V2_H3_RESOLUTION = 7
+V2_CACHE_KEY_PREFIX = "wx:v2:"
+AIR_QUALITY_CACHE_KEY_PREFIX = "wx:v2aq:"
+
+
+@dataclass(frozen=True)
+class HourlySeries:
+    """
+    Hourly model values at one point. `times[i]` is the hour the values at
+    index i belong to, aware UTC; a missing hour is None in every list.
+    `elevation_m` is the model grid's elevation, which decides the hill
+    heatwave threshold.
+    """
+
+    times: Tuple[datetime, ...]
+    values: Dict[str, Tuple[Optional[float], ...]]
+    elevation_m: Optional[float]
+    provider: str  # "open-meteo forecast" | "open-meteo air-quality"
+
+    def series(self, variable: str) -> Tuple[Optional[float], ...]:
+        return self.values.get(variable) or tuple(None for _ in self.times)
+
+    def between(
+        self, variable: str, start: datetime, end: datetime
+    ) -> List[Tuple[datetime, float]]:
+        """(hour, value) for every non-missing value with start ≤ hour ≤ end."""
+        out: List[Tuple[datetime, float]] = []
+        for t, v in zip(self.times, self.series(variable)):
+            if v is not None and start <= t <= end:
+                out.append((t, float(v)))
+        return out
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "times": [t.isoformat() for t in self.times],
+            "values": {k: list(v) for k, v in self.values.items()},
+            "elevation_m": self.elevation_m,
+            "provider": self.provider,
+        }
+
+    @classmethod
+    def from_json(cls, data: Dict[str, Any]) -> "HourlySeries":
+        return cls(
+            times=tuple(datetime.fromisoformat(t) for t in data["times"]),
+            values={k: tuple(v) for k, v in data["values"].items()},
+            elevation_m=data.get("elevation_m"),
+            provider=data.get("provider", "open-meteo forecast"),
+        )
+
+
+def _cell7_key(lat: float, lng: float) -> str:
+    try:
+        import h3
+
+        return h3.latlng_to_cell(lat, lng, V2_H3_RESOLUTION)
+    except Exception:
+        # ~2.5 km rounding if h3 is unavailable — the same order as res 7.
+        return f"{round(lat * 40) / 40},{round(lng * 40) / 40}"
+
+
+def parse_hourly(
+    body: Any, variables: Sequence[str], provider: str
+) -> Optional[HourlySeries]:
+    """
+    An Open-Meteo response as an HourlySeries, or None when it is not one.
+    A variable the response left out is all None; a series with no time axis
+    or no value at all is no measurement.
+    """
+    try:
+        hourly = body["hourly"]
+        raw_times = hourly["time"]
+        if not isinstance(raw_times, list) or not raw_times:
+            return None
+        times = []
+        for raw in raw_times:
+            t = datetime.fromisoformat(str(raw))
+            times.append(t if t.tzinfo else t.replace(tzinfo=timezone.utc))
+        values: Dict[str, Tuple[Optional[float], ...]] = {}
+        for name in variables:
+            column = hourly.get(name)
+            if not isinstance(column, list) or len(column) != len(times):
+                values[name] = tuple(None for _ in times)
+                continue
+            values[name] = tuple(None if v is None else float(v) for v in column)
+        if all(v is None for column in values.values() for v in column):
+            return None
+        elevation = body.get("elevation")
+        return HourlySeries(
+            times=tuple(times),
+            values=values,
+            elevation_m=float(elevation) if elevation is not None else None,
+            provider=provider,
+        )
+    except Exception as e:
+        logger.warning(f"Open-Meteo hourly response malformed: {type(e).__name__}: {e}")
+        return None
+
+
+async def _request_json(
+    url: str, params: Dict[str, Any], client: Optional[httpx.AsyncClient]
+) -> Optional[Any]:
+    try:
+        if client is None:
+            async with httpx.AsyncClient(timeout=settings.WEATHER_TIMEOUT_SECONDS) as own:
+                resp = await own.get(url, params=params)
+        else:
+            resp = await client.get(url, params=params, timeout=settings.WEATHER_TIMEOUT_SECONDS)
+    except Exception as e:
+        logger.warning(f"Open-Meteo request to {url} failed: {type(e).__name__}: {e}")
+        return None
+    if resp.status_code != 200:
+        logger.warning(f"Open-Meteo {url} returned HTTP {resp.status_code}")
+        return None
+    try:
+        return resp.json()
+    except Exception as e:
+        logger.warning(f"Open-Meteo {url} returned no JSON: {type(e).__name__}: {e}")
+        return None
+
+
+async def _cached_series(
+    key: str,
+    url: str,
+    params: Dict[str, Any],
+    variables: Sequence[str],
+    provider: str,
+    client: Optional[httpx.AsyncClient],
+) -> Optional[HourlySeries]:
+    now = _clock()
+    hit = await cache.get_json(key)
+    # [expires_at, series | null]; a cached null is a remembered failure.
+    if isinstance(hit, list) and len(hit) == 2 and hit[0] > now:
+        return HourlySeries.from_json(hit[1]) if hit[1] is not None else None
+
+    body = await _request_json(url, params, client)
+    series = parse_hourly(body, variables, provider) if body is not None else None
+    ttl = CACHE_TTL_SECONDS if series is not None else FAILURE_CACHE_TTL_SECONDS
+    await cache.set_json(
+        key, [now + ttl, series.to_json() if series is not None else None], ttl_seconds=ttl
+    )
+    return series
+
+
+async def fetch_hourly(
+    lat: float, lng: float, client: Optional[httpx.AsyncClient] = None
+) -> Optional[HourlySeries]:
+    """Every forecast variable Phase 4 reads, for the res-7 cell around a point. Never raises."""
+    try:
+        return await _cached_series(
+            V2_CACHE_KEY_PREFIX + _cell7_key(lat, lng),
+            settings.OPEN_METEO_API_URL,
+            {
+                "latitude": round(lat, 4),
+                "longitude": round(lng, 4),
+                "hourly": ",".join(HOURLY_VARIABLES),
+                "past_days": 1,
+                "forecast_days": 1,
+                "timezone": "UTC",
+            },
+            HOURLY_VARIABLES,
+            "open-meteo forecast",
+            client,
+        )
+    except Exception as e:  # the pipeline must never see this
+        logger.warning(f"Hourly weather lookup failed unexpectedly: {e}")
+        return None
+
+
+async def fetch_air_quality(
+    lat: float, lng: float, client: Optional[httpx.AsyncClient] = None
+) -> Optional[HourlySeries]:
+    """Dust and PM10 (µg/m³) for the res-7 cell around a point. Never raises."""
+    try:
+        return await _cached_series(
+            AIR_QUALITY_CACHE_KEY_PREFIX + _cell7_key(lat, lng),
+            settings.OPEN_METEO_AIR_QUALITY_URL,
+            {
+                "latitude": round(lat, 4),
+                "longitude": round(lng, 4),
+                "hourly": ",".join(AIR_QUALITY_VARIABLES),
+                "past_days": 1,
+                "forecast_days": 1,
+                "timezone": "UTC",
+            },
+            AIR_QUALITY_VARIABLES,
+            "open-meteo air-quality",
+            client,
+        )
+    except Exception as e:
+        logger.warning(f"Air-quality lookup failed unexpectedly: {e}")
+        return None

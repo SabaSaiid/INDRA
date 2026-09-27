@@ -142,6 +142,9 @@ class Settings(BaseSettings):
 
     # ── External signals ───────────────────────────────────────────────────
     OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
+    # Phase 4 T1: dust (µg/m³) for DUST_STORM evidence. No key, like the
+    # forecast API; the value is CAMS's model estimate, and the receipt says so.
+    OPEN_METEO_AIR_QUALITY_URL: str = "https://air-quality-api.open-meteo.com/v1/air-quality"
     WEATHER_TIMEOUT_SECONDS: float = 3.0
 
     # ── Station poller (layer 1: the one scheduled external feed) ──────────
@@ -177,6 +180,11 @@ class Settings(BaseSettings):
     # One live Gujarat district ring measured 235 KB. Past this the ring is
     # decimated and the row records that it was.
     SACHET_MAX_POLYGON_POINTS: int = 2000
+
+    # Phase 4 T5: re-score open events when a SACHET warning or a relevant
+    # METAR observation is stored after them. Off means evidence only counts
+    # for events scored after it arrived, as before Phase 4.
+    LATE_CORROBORATION_ENABLED: bool = True
 
     # Optional METAR, Mastodon and Google News pollers from origin/main.
     METAR_POLLER_ENABLED: bool = False

@@ -290,6 +290,20 @@ async def test_chain_is_valid_after_a_run_of_reviews(api, db, tokens, broadcasts
 # ── T6: provenance ─────────────────────────────────────────────────────────────
 
 async def test_provenance_of_a_streamed_then_approved_event(api, db, tokens, broadcasts):
+    # An IMD warning over Patna, so the pipeline's own escalation is reachable
+    # (receipt v2: without one, five citizen reports stay quarantined).
+    from app.services import clock
+    from tests.phase4_support import insert_warning, wipe_phase4_rows
+
+    await wipe_phase4_rows(db)
+    await insert_warning(db, lat=PATNA_LAT, lng=PATNA_LNG, now=clock.now())
+    try:
+        await _streamed_then_approved(api, db, tokens)
+    finally:
+        await wipe_phase4_rows(db)
+
+
+async def _streamed_then_approved(api, db, tokens):
     ids = []
     for lat, lng, body in CLUSTER_TEXTS:
         rid = await insert_report(db, lat, lng, body)
@@ -313,8 +327,9 @@ async def test_provenance_of_a_streamed_then_approved_event(api, db, tokens, bro
     assert str(dupe) not in [x["id"] for x in body["reports"]]
     created = [x["created_at"] for x in body["reports"]]
     assert created == sorted(created)
-    # QUARANTINE at report 2, ESCALATE when report 5 takes the score past the
-    # 0.60 review gate, then the commander's HUMAN_APPROVE. The ESCALATE row is
+    # QUARANTINE at report 2, ESCALATE when report 4 takes the score past the
+    # 0.60 review gate (under the warning), then the commander's HUMAN_APPROVE.
+    # The ESCALATE row is
     # new since the gate moved: the pipeline's own escalation is now reachable
     # with default settings, so the provenance shows the full decision history
     # rather than jumping from quarantine straight to approval.

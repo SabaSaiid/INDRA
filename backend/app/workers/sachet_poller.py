@@ -45,7 +45,7 @@ polling would double-write. Same rule as BUG-011.
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 import httpx
 from sqlalchemy import func, select
@@ -80,6 +80,12 @@ last_tick_error: Optional[str] = None
 # Process-local ETag for the index. Deliberately not persisted: after a restart
 # one full fetch is correct, since the database may have been rebuilt.
 _index_etag: Optional[str] = None
+
+# The warnings the last tick stored, new or revised: what late corroboration
+# (Phase 4 T5) re-scores open events for once the tick has committed. Kept
+# beside last_tick_error rather than in poll_once's return value, which callers
+# and tests read as (written, seen).
+last_written: List[Dict[str, Any]] = []
 
 
 def _reset_etag_for_tests() -> None:
@@ -275,8 +281,9 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> Tuple[int
     (0, 99) means every alert in the feed was already stored, which is the steady
     state and is why this poller is cheap to run at a short interval.
     """
-    global last_tick_error
+    global last_tick_error, last_written
     last_tick_error = None
+    last_written = []
 
     own_client = client is None
     if own_client:
@@ -315,12 +322,20 @@ async def poll_once(db, client: Optional[httpx.AsyncClient] = None) -> Tuple[int
                 polygon = await fetch_polygon(client, alert)
                 await _upsert(db, item, alert, polygon)
                 written += 1
+                stored = {
+                    "identifier": item.identifier,
+                    "event": alert.event,
+                    "headline": alert.headline or item.title or None,
+                    "sent_at": alert.sent_at or item.published_at,
+                    "msg_type": alert.msg_type,
+                }
             except Exception as e:
                 # Rule 4: one bad alert costs one alert.
                 logger.warning(
                     f"SACHET alert {item.identifier} failed: {type(e).__name__}: {e}"
                 )
                 continue
+            last_written.append(stored)
             if settings.SACHET_FETCH_DELAY_SECONDS:
                 await asyncio.sleep(settings.SACHET_FETCH_DELAY_SECONDS)
 
@@ -446,6 +461,26 @@ async def run_tick(session_factory=None) -> Tuple[int, int]:
     await record_tick(
         FEED, ok=last_tick_error is None, items=written, error=last_tick_error
     )
+
+    # Phase 4 T5: a warning stored after an event was scored re-scores it.
+    # After the heartbeat, so the factor reads SACHET as fresh; every tick, so
+    # events carried over from a busy tick are reached even when nothing new
+    # arrived. Never raises.
+    if settings.LATE_CORROBORATION_ENABLED:
+        from app.services import late_corroboration
+
+        triggers = [
+            t for t in (
+                late_corroboration.sachet_trigger(
+                    w["identifier"], event=w["event"], headline=w["headline"],
+                    sent_at=w["sent_at"], msg_type=w["msg_type"],
+                )
+                for w in last_written
+            )
+            if t is not None
+        ]
+        if triggers or late_corroboration.pending():
+            await late_corroboration.rescore_open_events(triggers, session_factory)
     return written, seen
 
 

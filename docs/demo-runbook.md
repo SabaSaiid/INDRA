@@ -61,7 +61,7 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0019_operator_password_hash (head)
+# → 0019_operator_password_hash (head); 0020_verification_v2 once Phase 4 is merged
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
@@ -297,6 +297,37 @@ The two totals are equal. **Zooming out is aggregation, not re-binning** — the
 exact sum of its children, nothing smoothed or spread.
 
 `GET /api/events/{id}` returns `boundary_geojson`, a Polygon containing every contributing report.
+
+---
+
+## Scene 5b — A fabricated heatwave, caught by a thermometer (Phase 4)
+
+*Run live on the server 27 Sep, 23:32 IST: case A was Uttarkashi under an Extreme Uttarakhand SDMA
+rain warning with 54.6 mm fallen, **0.712 CORROBORATED**; case B was five "47 degree" reports 5 km
+from Dehradun airport, which measured 20.0 °C, **0.4369 CONTRADICTED**; exit code 0. That run's
+inputs are committed as `data/demo/verification_cases.json` for the offline fallback. Rehearse it
+live again on the day: the places change with the weather.*
+
+```bash
+backend/.venv/bin/python scripts/run_verification_demo.py --record data/demo/verification_cases.json
+# → Case A CORROBORATED, Case B CONTRADICTED, side by side; exit code 0
+```
+
+It chooses both places from **today's** data: A where an IMD warning is in force and rain has
+fallen, or where an airport reports rain, a thunderstorm or fog; B where a plains airport's maximum
+over the last day was under 35 °C. It scores five labelled reports at each through the pipeline's
+own scoring, and **writes nothing to the database**. Say so: the reports are synthetic and labelled,
+the stations, warnings and readings are real.
+
+Point at case B's contradiction line: the station, its distance and the temperature it measured.
+Then at case A's official-warning line: which office issued it, how severe, until when.
+
+If there is no genuine case today (no warning, no rain anywhere), the script says so and exits 1;
+it never invents one. Offline, replay the recording (it prints the time it was recorded; say so):
+
+```bash
+backend/.venv/bin/python scripts/run_verification_demo.py --frozen data/demo/verification_cases.json
+```
 
 ---
 

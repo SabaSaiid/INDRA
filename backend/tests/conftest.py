@@ -256,6 +256,46 @@ def _isolated_kafka_publisher():
     kafka.set_publisher(None)
 
 
+# ── Phase 4: no network, and SACHET current ────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def _no_hourly_weather(monkeypatch):
+    """
+    The pipeline's hourly Open-Meteo requests (Phase 4 T1) answer None in every
+    test, so an event's model evidence is offline and nothing reaches the
+    internet: the first Phase 4 run on the server scored heatwaves on Delhi's
+    real temperature that afternoon. A test that wants model evidence patches
+    `pipeline.fetch_hourly` itself, after this. The rain family's 24 h request
+    is patched per module, as it always was (`pipeline.weather_score`).
+    """
+    from app.services import pipeline
+
+    async def _offline(lat, lng, client=None):
+        return None
+
+    monkeypatch.setattr(pipeline, "fetch_hourly", _offline)
+    monkeypatch.setattr(pipeline, "fetch_air_quality", _offline)
+
+
+@pytest.fixture(autouse=True)
+def _sachet_current(request, monkeypatch):
+    """
+    SACHET counts as polled a minute ago in every test: its steady state in
+    production, where the official-warning factor is online (0.0 when no
+    warning covers the event) and a receipt's coverage is 0.80. Without this,
+    no test database has a heartbeat and every receipt would be scored at 0.70.
+    Tests of the freshness rule itself are marked `real_sachet_heartbeat`.
+    """
+    if request.node.get_closest_marker("real_sachet_heartbeat"):
+        return
+    from app.services import official_warnings
+
+    async def _fresh(db, now):
+        return True, 1.0
+
+    monkeypatch.setattr(official_warnings, "sachet_freshness", _fresh)
+
+
 # ── Service fixtures (no DB) ───────────────────────────────────────────────────
 
 @pytest.fixture

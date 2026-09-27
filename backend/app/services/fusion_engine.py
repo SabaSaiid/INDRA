@@ -1,23 +1,43 @@
 """
 INDRA Platform — FusionEngine
-Computes the Verification Receipt as a weighted 6-factor confidence score,
-assigns quadrant and review_status to verified events.
+Computes the Verification Receipt as a weighted 7-factor confidence score
+(receipt v2, Phase 4 T4), decides the event's verdict, and assigns quadrant and
+review_status to verified events.
 """
 
 import logging
-from typing import Dict, Any, Iterable, List, Optional
+from typing import Dict, Any, Iterable, List, Mapping, Optional, Sequence
 
 from app.core.config import get_settings
-from app.models.enums import Severity, ReviewStatus, Quadrant, SourceType
+from app.models.enums import EventType, Severity, ReviewStatus, Quadrant, SourceType, Verdict
 
 logger = logging.getLogger("indra.services.fusion_engine")
 
 
-# ── Factor weights ─────────────────────────────────────────────────────────────
+# ── Factor weights: receipt v2 ─────────────────────────────────────────────────
+#
+# Phase 4 T4 adds the official warning (IMD and SDMA, via SACHET) and
+# rebalances so the weights still sum to 1.00:
+#
+#   factor               v1     v2
+#   weather_station      0.25   0.20
+#   official_warning       —    0.10
+#   report_density       0.20   0.20
+#   spatial_coherence    0.20   0.15
+#   vision_analysis      0.15   0.15   (offline: layer 4, permanently)
+#   source_reliability   0.15   0.15
+#   anomaly_detection    0.05   0.05   (offline: layer 4, permanently)
+#
+# With vision and anomaly offline, factor_coverage is still exactly 0.80, so
+# nothing the dashboard or the Q&A says about coverage changes; with SACHET
+# stale as well it is 0.70.
+RECEIPT_VERSION = 2
+
 FACTORS = {
-    "weather_station": {"weight": 0.25, "label": "Weather Station Corroboration"},
+    "weather_station": {"weight": 0.20, "label": "Weather Station Corroboration"},
+    "official_warning": {"weight": 0.10, "label": "Official Warning (IMD/SDMA via SACHET)"},
     "report_density": {"weight": 0.20, "label": "Report Density Analysis"},
-    "spatial_coherence": {"weight": 0.20, "label": "Spatial Coherence Score"},
+    "spatial_coherence": {"weight": 0.15, "label": "Spatial Coherence Score"},
     "vision_analysis": {"weight": 0.15, "label": "Computer Vision Analysis"},
     "source_reliability": {"weight": 0.15, "label": "Source Reliability Index"},
     "anomaly_detection": {"weight": 0.05, "label": "Anomaly Detection Signal"},
@@ -61,10 +81,17 @@ SOURCE_RELIABILITY: Dict[SourceType, float] = {
 }
 
 
-def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
+def source_reliability_score(
+    source_types: Iterable[Any], news_score: Optional[float] = None
+) -> Optional[float]:
     """
     The Source Reliability factor for a cluster: the *maximum* reliability
     among its reports' sources.
+
+    `news_score` (Phase 4 T6, corroboration.news_corroboration) replaces the
+    NEWS_MEDIA prior: 0.75 when two or more independent publishers carry the
+    event, 0.55 for one. It counts even when the news items are warning-tense
+    headlines of the event's district that are not in the cluster itself.
 
     Maximum rather than mean, because one official gauge reading corroborating
     five citizen reports should lift the event — averaging would let the
@@ -77,10 +104,96 @@ def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
     scores = []
     for raw in source_types:
         try:
-            scores.append(SOURCE_RELIABILITY[SourceType(raw)])
-        except (ValueError, KeyError):
+            source = SourceType(raw)
+        except ValueError:
             logger.warning(f"Unknown source_type {raw!r} ignored for source reliability")
+            continue
+        if source is SourceType.NEWS_MEDIA and news_score is not None:
+            continue  # counted once, below, by the publisher rule
+        if source in SOURCE_RELIABILITY:
+            scores.append(SOURCE_RELIABILITY[source])
+    if news_score is not None:
+        scores.append(float(news_score))
     return max(scores) if scores else None
+
+
+# ── The verdict (Phase 4 T4) ───────────────────────────────────────────────────
+
+CORROBORATION_THRESHOLD = 0.6
+
+
+def decide_verdict(
+    contradictions: Sequence[Mapping[str, Any]],
+    official_score: Optional[float],
+    weather_score: Optional[float],
+) -> Dict[str, Any]:
+    """
+    {"verdict", "basis"}: what the independent evidence says about the event.
+
+    * **CONTRADICTED** if any contradiction is recorded. It wins over
+      everything, including an official warning: a thermometer reading 26 °C
+      is a fact about this place that a district-wide warning does not undo.
+      It never means rejected; a human decides.
+    * **CORROBORATED** if there is no contradiction and either the official
+      warning or the weather/station evidence scores at least 0.6.
+    * **UNCONFIRMED** otherwise: nothing independent either way.
+    """
+    if contradictions:
+        verdict = Verdict.CONTRADICTED
+        why = "a contradiction is recorded: " + "; ".join(
+            str(c.get("reason", "")) for c in contradictions
+        )
+    elif (official_score or 0.0) >= CORROBORATION_THRESHOLD:
+        verdict = Verdict.CORROBORATED
+        why = f"official warning {official_score:.2f} ≥ {CORROBORATION_THRESHOLD}"
+    elif (weather_score or 0.0) >= CORROBORATION_THRESHOLD:
+        verdict = Verdict.CORROBORATED
+        why = f"weather evidence {weather_score:.2f} ≥ {CORROBORATION_THRESHOLD}"
+    else:
+        verdict = Verdict.UNCONFIRMED
+        why = "no contradiction, and neither the official warning nor the weather reaches 0.6"
+    return {
+        "verdict": verdict,
+        "basis": {
+            "rule": (
+                "CONTRADICTED if any contradiction; else CORROBORATED if official_warning "
+                "or weather ≥ 0.6; else UNCONFIRMED"
+            ),
+            "reason": why,
+            "official_warning": official_score,
+            "weather": weather_score,
+            "contradictions": len(contradictions),
+        },
+    }
+
+
+# ── Review caps (Phase 3 T6, T9; Phase 4 T4) ───────────────────────────────────
+# Why an event may not be auto-published, whatever its confidence. Each holds
+# it at PENDING_HUMAN_REVIEW at most, so a human sees it:
+#
+#   contradicted   the evidence says the opposite (T3): ten coordinated reports
+#                  cannot auto-publish against a thermometer
+#   unclassified   nothing says what hazard it is
+#   posts_only     every report is a post or a headline: posts corroborate, they
+#                  do not verify on their own
+
+FEED_SOURCE_TYPES = frozenset({"SOCIAL_MEDIA", "NEWS_MEDIA"})
+
+
+def review_caps(
+    event_type: Optional[str],
+    source_types: Sequence[Any],
+    verdict: Optional[Any] = None,
+) -> List[str]:
+    caps = []
+    if verdict is not None and str(getattr(verdict, "value", verdict)) == Verdict.CONTRADICTED.value:
+        caps.append("contradicted")
+    if event_type == EventType.UNCLASSIFIED.value:
+        caps.append("unclassified")
+    sources = {str(getattr(t, "value", t)) for t in source_types}
+    if sources and sources <= FEED_SOURCE_TYPES:
+        caps.append("posts_only")
+    return caps
 
 
 def _is_high(severity: Any) -> bool:
@@ -104,6 +217,7 @@ class FusionEngine:
         vision_score: Optional[float] = None,
         reliability_score: Optional[float] = None,
         anomaly_score: Optional[float] = None,
+        official_score: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Compute the verification receipt.
@@ -124,10 +238,10 @@ class FusionEngine:
         claims and the evidence behind it stay separable.
 
         An explicit 0.0 is a measurement, not a gap: zero rainfall is a real
-        reading and costs the weather factor its full 0.25. Only None is
-        offline.
+        reading and costs the weather factor its full weight (0.20 in v2).
+        Only None is offline.
 
-        `weight_pct` stays nominal (25.0, 20.0, …) — it is the *design* weight,
+        `weight_pct` stays nominal (20.0, 10.0, …) — it is the *design* weight,
         identical on every receipt, so the offline rows keep showing what the
         model wanted and did not get. Re-normalising it per factor would print
         "weather 31.25%" on one receipt and "25%" on another, leaving a reader
@@ -142,11 +256,14 @@ class FusionEngine:
         adds up to total_weighted exactly. A receipt whose line items do not add
         to its total is a bug in a receipt.
 
-        Returns {"confidence_score", "factor_coverage", "factors",
-                 "total_weighted"}.
+        Returns {"receipt_version", "confidence_score", "factor_coverage",
+                 "factors", "total_weighted"}. Each factor row also carries
+        its `key` (weather_station, official_warning, …), which the pipeline
+        uses to attach the evidence behind it.
         """
         scores = {
             "weather_station": weather_score,
+            "official_warning": official_score,
             "report_density": report_density_score,
             "spatial_coherence": spatial_score,
             "vision_analysis": vision_score,
@@ -176,6 +293,7 @@ class FusionEngine:
             total_weighted += weighted_points
 
             factors.append({
+                "key": key,
                 "factor": meta["label"],
                 "weight_pct": meta["weight"] * 100,
                 # "computed" | "offline" — the same vocabulary the pipeline's
@@ -206,6 +324,7 @@ class FusionEngine:
         confidence = max(0.0, min(1.0, confidence))
 
         return {
+            "receipt_version": RECEIPT_VERSION,
             "confidence_score": confidence,
             "factor_coverage": factor_coverage,
             "factors": factors,
@@ -283,14 +402,22 @@ class FusionEngine:
         auto_threshold: Optional[float] = None,
         review_threshold: Optional[float] = None,
         severity: Optional[Any] = None,
+        caps: Sequence[str] = (),
     ) -> ReviewStatus:
         """
         Route event to the appropriate review status.
 
-        - C ≥ auto_threshold → AUTO_PUBLISHED
+        - C ≥ auto_threshold → AUTO_PUBLISHED, unless a cap applies
         - C ≥ review_threshold → PENDING_HUMAN_REVIEW
         - severity HIGH or CRITICAL → PENDING_HUMAN_REVIEW, however low C is
         - else → QUARANTINED
+
+        **Every cap lives here** (Phase 4 T4): `caps` is review_caps()'s list
+        (contradicted, unclassified, posts_only), and any one of them holds an
+        event that cleared the auto-publish gate at PENDING_HUMAN_REVIEW. The
+        0.90 and 0.60 gates themselves are unchanged. A cap never pushes an
+        event down: a quarantined event stays quarantined, and the review
+        queue's `contradicted` tab (T7) is where a human finds it.
 
         **A High or Critical claim is never quarantined** (BUG-067, 24 Sep). It
         still needs 0.90 to publish on its own, but below the review gate it goes
@@ -312,6 +439,8 @@ class FusionEngine:
             review_threshold = settings.HUMAN_REVIEW_THRESHOLD
 
         if confidence >= auto_threshold:
+            if caps:
+                return ReviewStatus.PENDING_HUMAN_REVIEW
             return ReviewStatus.AUTO_PUBLISHED
         elif confidence >= review_threshold:
             return ReviewStatus.PENDING_HUMAN_REVIEW
