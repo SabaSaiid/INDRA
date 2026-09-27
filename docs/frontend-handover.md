@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **From** | Aditya, core platform (layers 1–3, 5, 6, 7, 8a) |
-| **To** | The owners of `frontend/`, the command center (layer 9) |
+| **To** | Saba Saeed, owner of `frontend/`, the command center (layer 9) |
 | **Covers** | Every backend change from 16 Sep 2026 onwards that the dashboard can see, and every change made inside `frontend/` from the backend side, with the reason |
 | **Latest** | Section 21, Phase 4: verdicts, contradictions, the review queue and claims, merged to `main` (PR #47) |
 | **Last reviewed** | 28 Sep 2026 |

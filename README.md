@@ -12,7 +12,7 @@ verified, explainable weather events for India's emergency operations centres.
 [![PostGIS](https://img.shields.io/badge/PostgreSQL%2016-PostGIS%203.4-336791?style=flat-square&logo=postgresql&logoColor=white)](docker-compose.yml)
 [![Redpanda](https://img.shields.io/badge/Redpanda-Kafka%20API-E2401B?style=flat-square&logo=apachekafka&logoColor=white)](docker-compose.yml)
 [![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white)](frontend/package.json)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/License-All%20rights%20reserved-red?style=flat-square)](LICENSE)
 [![SIH 2026](https://img.shields.io/badge/SIH%202026-SIH26069-orange?style=flat-square)](#team)
 
 [Overview](#overview) ·
@@ -96,7 +96,7 @@ Open it in [diagrams.net](https://app.diagrams.net) or the draw.io desktop app. 
 | 7 | **Data platform** | PostgreSQL + PostGIS (20 migrations), Redis, SeaweedFS object store, audit chain | `models/`, `alembic/`, `services/audit.py`, `services/objectstore.py` |
 | 8a | **Real-time API** | REST, WebSocket, authentication and RBAC, review queue, health | `api/`, `core/security.py`, `main.py` |
 | 8b | **Alert engine** | A separate service in [`alert_engine/`](alert_engine/) (port 8001), maintained independently and not part of the core deployment | [`docs/ALERT_ENGINE_INTEGRATION.md`](docs/ALERT_ENGINE_INTEGRATION.md) |
-| 9 | **Command center** | The Next.js dashboard: live map, events, reports, review, analytics | [`frontend/`](frontend/) |
+| 9 | **Command center** | The Next.js dashboard: live map, events, reports, review, analytics. Built by Saba Saeed | [`frontend/`](frontend/) |
 
 ### The live path
 
@@ -553,8 +553,11 @@ National Weather Big Data Analytics Platform** (theme: Disaster Management).
 | Core platform: data sources, ingestion, processing, geo-analytics, event fusion, data platform, real-time API (layers 1–3, 5–8a) | Aditya ([@aditbytes](https://github.com/aditbytes)) |
 | AI/ML (layer 4) | Pritam Singh |
 | Alert engine (layer 8b) | Meenal Sinha |
-| Command center (layer 9) | Frontend team |
+| Command center (layer 9) | Saba Saeed |
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Copyright © 2026 Team Sixth Sense. **All rights reserved.**
+
+This is proprietary software. No licence is granted to use, copy, modify, distribute or deploy any
+part of it without the prior written permission of the copyright holders. See [`LICENSE`](LICENSE).

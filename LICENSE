@@ -1,16 +1,22 @@
-MIT License
-
 Copyright (c) 2026 Team Sixth Sense - Smart India Hackathon 2026
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+INDRA - Intelligent National Disaster & Weather Platform
+Problem statement SIH26069
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This software, including its source code, documentation, diagrams, datasets
+and all associated files (the "Software"), is proprietary to Team Sixth Sense.
+
+No licence or other right in the Software is granted to any person, whether
+expressly, by implication, by estoppel or otherwise. Without the prior written
+permission of the copyright holders, no person may use, copy, modify, merge,
+publish, distribute, sublicense, sell, deploy, host, or create derivative works
+of the Software, in whole or in part.
+
+Access to this repository does not grant any right to use the Software.
+
+Third-party components used by the Software remain subject to their own
+licences.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +25,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Requests for permission should be sent to the repository owners.
