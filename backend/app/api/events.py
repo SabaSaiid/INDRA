@@ -1171,3 +1171,95 @@ async def event_provenance(
         ],
         "chain": chain,
     }
+
+
+# ── History (Phase 4 T7) ───────────────────────────────────────────────────────
+
+@router.get("/{event_id}/history")
+async def event_history(
+    event_id: str,
+    operator: TokenData = Depends(require_roles("ANALYST", "COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    One timeline of everything that happened to an event, oldest first:
+
+    * `snapshot` — every score write (event_snapshots): created, each merge,
+      each late re-score, with confidence, coverage, report count, verdict,
+      status and what triggered it. Enough to draw confidence over time.
+    * `audit` — every ledger row about the event: the pipeline's decisions,
+      LATE_CORROBORATION, and every human review.
+
+    At equal times a snapshot comes before the ledger row written with it.
+    ANALYST or above, as provenance is: the ledger names operators.
+    """
+    event_uuid = _event_uuid_or_404(event_id)
+    try:
+        event = (await db.execute(
+            text("""
+                SELECT id, event_code, confidence_score, CAST(verdict AS text),
+                       CAST(review_status AS text), CAST(severity AS text), verified_at
+                FROM verified_events WHERE id = CAST(:id AS uuid)
+            """),
+            {"id": event_uuid},
+        )).fetchone()
+        if event is None:
+            raise HTTPException(status_code=404, detail="Event not found")
+        snapshots = (await db.execute(
+            text("""
+                SELECT at, confidence, factor_coverage, report_count, verdict, review_status,
+                       severity, trigger, receipt_version, details
+                FROM event_snapshots
+                WHERE event_id = CAST(:id AS uuid)
+                ORDER BY at, id
+            """),
+            {"id": event_uuid},
+        )).fetchall()
+        audit_rows = await audit.fetch_rows(db, event_uuid)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Database query failed in event_history: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    timeline: List[Tuple[datetime, int, Dict[str, Any]]] = []
+    for r in snapshots:
+        timeline.append((r[0], 0, {
+            "kind": "snapshot",
+            "at": r[0].isoformat(),
+            "confidence_score": r[1],
+            "factor_coverage": r[2],
+            "report_count": r[3],
+            "verdict": r[4],
+            "review_status": r[5],
+            "severity": r[6],
+            "trigger": r[7],
+            "receipt_version": r[8],
+            "details": r[9],
+        }))
+    for a in audit_rows:
+        timeline.append((a["logged_at"], 1, {
+            "kind": "audit",
+            "at": a["logged_at"].isoformat(),
+            "seq": a["seq"],
+            "action_taken": a["action_taken"],
+            "operator_id": a["operator_id"],
+            "reason": a["reason"],
+            "details": a["details"],
+        }))
+    timeline.sort(key=lambda t: (t[0], t[1]))
+
+    return {
+        "event": {
+            "id": str(event[0]),
+            "event_code": event[1],
+            "confidence_score": event[2],
+            "verdict": event[3],
+            "review_status": event[4],
+            "severity": event[5],
+            "verified_at": event[6].isoformat() if event[6] else None,
+        },
+        "snapshots": len(snapshots),
+        "audit_rows": len(audit_rows),
+        "timeline": [entry for _, _, entry in timeline],
+    }
