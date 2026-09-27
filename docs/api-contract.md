@@ -594,6 +594,85 @@ unknown id · `409` transition not allowed, nothing written · `422` bad body ·
 error. Row-locked, so two concurrent approvals give one `200` and one `409`. Broadcasts
 `EVENT_REVIEWED` after the commit.
 
+**Phase 4 (written, not yet tested):** a decision releases the event's review claim
+(`EVENT_REVIEWED` gains `claim_released: true`). While **another** commander holds an unexpired
+claim, a commander's decision is a `409` naming the holder; an `ADMIN` may still decide.
+
+### `POST /api/events/{event_id}/claim`, `DELETE /api/events/{event_id}/claim` — **requires a token** (Phase 4)
+
+Auth: `COMMANDER` or `ADMIN`. Written, not yet tested.
+
+`POST` takes the event for review for **15 minutes**:
+
+```json
+{"event_id": "…", "event_code": "INDRA-20260927-004",
+ "claim": {"operator_id": "OP-CMD-001", "claimed_at": "…", "expires_at": "…"}}
+```
+
+* Someone else holds an unexpired claim → **`409`**, `detail: {"message": "Claimed by OP-CMD-001
+  until …", "claim": {…}}`. The holder claiming again renews it. After 15 minutes anyone may claim.
+* A `REJECTED` event → `409`. Unknown id → `404`.
+* `DELETE` releases it: the holder or an `ADMIN`; another commander gets the `409`. Releasing an
+  event nobody holds is a `200` with `claim: null`.
+* Both broadcast **`EVENT_CLAIMED`** (below). `GET /api/events/{id}` shows the current `claim`
+  (`null` when nobody holds an unexpired one).
+
+### `GET /api/events/{event_id}/history` — **requires a token** (Phase 4)
+
+Auth: `ANALYST`, `COMMANDER` or `ADMIN`. Written, not yet tested. One timeline, oldest first:
+
+```json
+{"event": {"id": "…", "event_code": "…", "confidence_score": 0.71, "verdict": "CORROBORATED",
+           "review_status": "PENDING_HUMAN_REVIEW", "severity": "HIGH", "verified_at": "…"},
+ "snapshots": 4, "audit_rows": 3,
+ "timeline": [
+   {"kind": "snapshot", "at": "…", "confidence_score": 0.52, "factor_coverage": 0.8,
+    "report_count": 3, "verdict": "UNCONFIRMED", "review_status": "QUARANTINED",
+    "severity": "MODERATE", "trigger": "created", "receipt_version": 2, "details": {…}},
+   {"kind": "audit", "at": "…", "seq": 812, "action_taken": "QUARANTINE",
+    "operator_id": "SYSTEM-PIPELINE", "reason": "…", "details": {…}},
+   {"kind": "snapshot", "trigger": "late:sachet:<identifier>@<sent>", …},
+   {"kind": "audit", "action_taken": "LATE_CORROBORATION", "details": {"trigger": "…", "before": {…}, "after": {…}}, …}
+ ]}
+```
+
+A snapshot is written on every score write: `created`, each `merge`, each `late:…` re-score, and
+`late:backfill:receipt_v2`. A review is not a score change, so it appears as its audit row only.
+Draw "confidence over time" from the snapshots; the status history from both.
+
+## `/api/review` (Phase 4)
+
+### `GET /api/review/queue?tab=pending&limit=50&offset=0` — **requires a token**
+
+Auth: `ANALYST`, `COMMANDER` or `ADMIN` (claiming and deciding need `COMMANDER` or `ADMIN`).
+Written, not yet tested.
+
+| `tab` | Contents |
+|---|---|
+| `pending` | `PENDING_HUMAN_REVIEW` or `QUARANTINED`, never reviewed |
+| `contradicted` | verdict `CONTRADICTED`, never reviewed |
+| `suspicious` | at least one contributing report flagged (`promotional`, `past_event`, `implausible_value`, `exaggeration`, `shouting`, `forward_marker`, `coordinated`; a forecast's `not_an_observation` is not suspicious) |
+| `high_impact` | severity `HIGH` or `CRITICAL`, never reviewed |
+| `recent` | created in the last 2 hours |
+| `claimed` | someone holds an unexpired claim |
+
+"Never reviewed" means no commander has acted on it. `REJECTED` events are in no tab. **Order,
+published:** severity (critical first), then verdict (`CORROBORATED`, `UNCONFIRMED`,
+`CONTRADICTED`), then age, oldest first.
+
+```json
+{"tab": "pending", "total": 7, "limit": 50, "offset": 0, "order": "…",
+ "items": [{"id": "…", "event_code": "…", "event_type": "HEATWAVE", "label": "Heatwave",
+            "family": "thermal", "severity": "HIGH", "confidence_score": 0.44,
+            "factor_coverage": 0.8, "verdict": "CONTRADICTED", "review_status": "PENDING_HUMAN_REVIEW",
+            "district": "…", "state": "…", "verified_at": "…", "age_minutes": 38.5,
+            "report_count": 5, "flagged_reports": 0, "contradictions": [{…}], "claim": null}]}
+```
+
+`?counts=true` returns `{"pending": 7, "contradicted": 2, "suspicious": 1, "high_impact": 4,
+"recent": 3, "claimed": 0}` in one call. An unknown `tab` is a `422` naming it; a database error
+`503`.
+
 ### `GET /api/events/{event_id}/provenance` — **requires a token**
 
 Auth: `ANALYST`, `COMMANDER` or `ADMIN`.
