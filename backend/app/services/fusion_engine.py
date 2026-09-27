@@ -103,6 +103,85 @@ def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
     return max(scores) if scores else None
 
 
+# ── The verdict (Phase 4 T4) ───────────────────────────────────────────────────
+
+CORROBORATION_THRESHOLD = 0.6
+
+
+def decide_verdict(
+    contradictions: Sequence[Mapping[str, Any]],
+    official_score: Optional[float],
+    weather_score: Optional[float],
+) -> Dict[str, Any]:
+    """
+    {"verdict", "basis"}: what the independent evidence says about the event.
+
+    * **CONTRADICTED** if any contradiction is recorded. It wins over
+      everything, including an official warning: a thermometer reading 26 °C
+      is a fact about this place that a district-wide warning does not undo.
+      It never means rejected; a human decides.
+    * **CORROBORATED** if there is no contradiction and either the official
+      warning or the weather/station evidence scores at least 0.6.
+    * **UNCONFIRMED** otherwise: nothing independent either way.
+    """
+    if contradictions:
+        verdict = Verdict.CONTRADICTED
+        why = "a contradiction is recorded: " + "; ".join(
+            str(c.get("reason", "")) for c in contradictions
+        )
+    elif (official_score or 0.0) >= CORROBORATION_THRESHOLD:
+        verdict = Verdict.CORROBORATED
+        why = f"official warning {official_score:.2f} ≥ {CORROBORATION_THRESHOLD}"
+    elif (weather_score or 0.0) >= CORROBORATION_THRESHOLD:
+        verdict = Verdict.CORROBORATED
+        why = f"weather evidence {weather_score:.2f} ≥ {CORROBORATION_THRESHOLD}"
+    else:
+        verdict = Verdict.UNCONFIRMED
+        why = "no contradiction, and neither the official warning nor the weather reaches 0.6"
+    return {
+        "verdict": verdict,
+        "basis": {
+            "rule": (
+                "CONTRADICTED if any contradiction; else CORROBORATED if official_warning "
+                "or weather ≥ 0.6; else UNCONFIRMED"
+            ),
+            "reason": why,
+            "official_warning": official_score,
+            "weather": weather_score,
+            "contradictions": len(contradictions),
+        },
+    }
+
+
+# ── Review caps (Phase 3 T6, T9; Phase 4 T4) ───────────────────────────────────
+# Why an event may not be auto-published, whatever its confidence. Each holds
+# it at PENDING_HUMAN_REVIEW at most, so a human sees it:
+#
+#   contradicted   the evidence says the opposite (T3): ten coordinated reports
+#                  cannot auto-publish against a thermometer
+#   unclassified   nothing says what hazard it is
+#   posts_only     every report is a post or a headline: posts corroborate, they
+#                  do not verify on their own
+
+FEED_SOURCE_TYPES = frozenset({"SOCIAL_MEDIA", "NEWS_MEDIA"})
+
+
+def review_caps(
+    event_type: Optional[str],
+    source_types: Sequence[Any],
+    verdict: Optional[Any] = None,
+) -> List[str]:
+    caps = []
+    if verdict is not None and str(getattr(verdict, "value", verdict)) == Verdict.CONTRADICTED.value:
+        caps.append("contradicted")
+    if event_type == EventType.UNCLASSIFIED.value:
+        caps.append("unclassified")
+    sources = {str(getattr(t, "value", t)) for t in source_types}
+    if sources and sources <= FEED_SOURCE_TYPES:
+        caps.append("posts_only")
+    return caps
+
+
 def _is_high(severity: Any) -> bool:
     """True for HIGH or CRITICAL, given a Severity or its value; False for anything else."""
     try:
@@ -145,10 +224,10 @@ class FusionEngine:
         claims and the evidence behind it stay separable.
 
         An explicit 0.0 is a measurement, not a gap: zero rainfall is a real
-        reading and costs the weather factor its full 0.25. Only None is
-        offline.
+        reading and costs the weather factor its full weight (0.20 in v2).
+        Only None is offline.
 
-        `weight_pct` stays nominal (25.0, 20.0, …) — it is the *design* weight,
+        `weight_pct` stays nominal (20.0, 10.0, …) — it is the *design* weight,
         identical on every receipt, so the offline rows keep showing what the
         model wanted and did not get. Re-normalising it per factor would print
         "weather 31.25%" on one receipt and "25%" on another, leaving a reader
@@ -309,14 +388,22 @@ class FusionEngine:
         auto_threshold: Optional[float] = None,
         review_threshold: Optional[float] = None,
         severity: Optional[Any] = None,
+        caps: Sequence[str] = (),
     ) -> ReviewStatus:
         """
         Route event to the appropriate review status.
 
-        - C ≥ auto_threshold → AUTO_PUBLISHED
+        - C ≥ auto_threshold → AUTO_PUBLISHED, unless a cap applies
         - C ≥ review_threshold → PENDING_HUMAN_REVIEW
         - severity HIGH or CRITICAL → PENDING_HUMAN_REVIEW, however low C is
         - else → QUARANTINED
+
+        **Every cap lives here** (Phase 4 T4): `caps` is review_caps()'s list
+        (contradicted, unclassified, posts_only), and any one of them holds an
+        event that cleared the auto-publish gate at PENDING_HUMAN_REVIEW. The
+        0.90 and 0.60 gates themselves are unchanged. A cap never pushes an
+        event down: a quarantined event stays quarantined, and the review
+        queue's `contradicted` tab (T7) is where a human finds it.
 
         **A High or Critical claim is never quarantined** (BUG-067, 24 Sep). It
         still needs 0.90 to publish on its own, but below the review gate it goes
@@ -338,6 +425,8 @@ class FusionEngine:
             review_threshold = settings.HUMAN_REVIEW_THRESHOLD
 
         if confidence >= auto_threshold:
+            if caps:
+                return ReviewStatus.PENDING_HUMAN_REVIEW
             return ReviewStatus.AUTO_PUBLISHED
         elif confidence >= review_threshold:
             return ReviewStatus.PENDING_HUMAN_REVIEW
