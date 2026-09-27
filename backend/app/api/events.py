@@ -4,7 +4,9 @@ GET /api/events — list with the PS's date, event, location and status filters
 GET /api/events/distribution — counts by event_type for donut chart
 GET /api/events/{event_id} — full event detail
 PATCH /api/events/{event_id}/review — commander/admin approve, reject, re-grade
+POST/DELETE /api/events/{event_id}/claim — take or release an event for review
 GET /api/events/{event_id}/provenance — contributing reports + audit chain
+GET /api/events/{event_id}/history — snapshots and ledger rows, one timeline
 """
 
 import json
@@ -897,6 +899,148 @@ async def review_event(
         logger.error(f"EVENT_REVIEWED broadcast failed for {event_code}: {e}")
 
     return await get_event_detail(event_uuid, db)
+
+
+# ── Claiming (Phase 4 T7: the UNDER_REVIEW state) ─────────────────────────────
+
+async def _broadcast_claim(event_uuid: str, event_code: str, claim, **extra) -> None:
+    """EVENT_CLAIMED, so two commanders do not review the same event. Never raises."""
+    try:
+        from app.main import ws_manager
+
+        await ws_manager.broadcast({
+            "type": "EVENT_CLAIMED",
+            "event": {"id": event_uuid, "event_code": event_code},
+            # null when the claim was released
+            "claim": claim,
+            **extra,
+        })
+    except Exception as e:
+        logger.error(f"EVENT_CLAIMED broadcast failed for {event_code}: {e}")
+
+
+async def _lock_for_claim(db: AsyncSession, event_uuid: str):
+    try:
+        row = (await db.execute(
+            text("""
+                SELECT event_code, CAST(review_status AS text), claimed_by, claimed_at
+                FROM verified_events WHERE id = CAST(:id AS uuid) FOR UPDATE
+            """),
+            {"id": event_uuid},
+        )).fetchone()
+    except Exception as e:
+        logger.warning(f"Database query failed in claim: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if row is None:
+        await db.rollback()
+        raise HTTPException(status_code=404, detail="Event not found")
+    return row
+
+
+def _claimed_by_other(holder: str, claimed_at: datetime) -> HTTPException:
+    until = claim_expires_at(claimed_at)
+    return HTTPException(
+        status_code=409,
+        detail={
+            "message": f"Claimed by {holder} until {until.isoformat()}",
+            "claim": {
+                "operator_id": holder,
+                "claimed_at": claimed_at.isoformat(),
+                "expires_at": until.isoformat(),
+            },
+        },
+    )
+
+
+@router.post("/{event_id}/claim")
+async def claim_event(
+    event_id: str,
+    operator: TokenData = Depends(require_roles("COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Take the event for review for CLAIM_MINUTES (15). A second commander's
+    claim while it holds is a 409 naming the holder; the holder claiming again
+    renews it. A review decision releases it (PATCH …/review), and so does
+    DELETE …/claim. Broadcasts EVENT_CLAIMED.
+    """
+    from app.services import clock
+
+    event_uuid = _event_uuid_or_404(event_id)
+    operator_id = operator.operator_id or operator.sub
+    event_code, status, holder, claimed_at = await _lock_for_claim(db, event_uuid)
+    now = clock.now()
+
+    if status == ReviewStatus.REJECTED.value:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Cannot claim an event that is REJECTED")
+    if claim_active(holder, claimed_at, now) and holder != operator_id:
+        await db.rollback()
+        raise _claimed_by_other(holder, claimed_at)
+
+    try:
+        await db.execute(
+            text("""
+                UPDATE verified_events SET claimed_by = :who, claimed_at = :at
+                WHERE id = CAST(:id AS uuid)
+            """),
+            {"who": operator_id, "at": now, "id": event_uuid},
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"claim_event failed for {event_uuid}: {e}")
+        raise HTTPException(status_code=503, detail="Claim could not be recorded")
+
+    claim = claim_view(operator_id, now)
+    logger.info(f"Claim: {operator_id} claimed {event_code} until {claim['expires_at']}")
+    await _broadcast_claim(event_uuid, event_code, claim)
+    return {"event_id": event_uuid, "event_code": event_code, "claim": claim}
+
+
+@router.delete("/{event_id}/claim")
+async def release_claim(
+    event_id: str,
+    operator: TokenData = Depends(require_roles("COMMANDER", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Release the claim. The holder may release it, and so may an ADMIN;
+    another commander gets a 409 naming the holder. Releasing an event nobody
+    holds is a 200 that changes nothing. Broadcasts EVENT_CLAIMED with
+    `claim: null`.
+    """
+    from app.services import clock
+
+    event_uuid = _event_uuid_or_404(event_id)
+    operator_id = operator.operator_id or operator.sub
+    event_code, _status, holder, claimed_at = await _lock_for_claim(db, event_uuid)
+    now = clock.now()
+
+    if not claim_active(holder, claimed_at, now):
+        await db.rollback()
+        return {"event_id": event_uuid, "event_code": event_code, "claim": None}
+    if holder != operator_id and operator.role != "ADMIN":
+        await db.rollback()
+        raise _claimed_by_other(holder, claimed_at)
+
+    try:
+        await db.execute(
+            text("""
+                UPDATE verified_events SET claimed_by = NULL, claimed_at = NULL
+                WHERE id = CAST(:id AS uuid)
+            """),
+            {"id": event_uuid},
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"release_claim failed for {event_uuid}: {e}")
+        raise HTTPException(status_code=503, detail="Claim could not be released")
+
+    logger.info(f"Claim: {operator_id} released {event_code} (held by {holder})")
+    await _broadcast_claim(event_uuid, event_code, None, released_by=operator_id)
+    return {"event_id": event_uuid, "event_code": event_code, "claim": None}
 
 
 # ── Provenance ─────────────────────────────────────────────────────────────────
