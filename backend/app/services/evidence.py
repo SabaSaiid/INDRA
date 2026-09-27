@@ -1075,9 +1075,16 @@ def find_contradiction(
 
 
 def contradicted(e: Evidence, contradiction: Mapping[str, str]) -> Evidence:
-    """The factor's evidence once contradicted: 0.0, online, the reason first."""
+    """
+    The factor's evidence once contradicted: 0.0, online, the reason first, and
+    then every line it had, so the officer sees what the contradiction overruled
+    ("the model said 44 °C; the station and the model disagree").
+    """
+    reason = f"CONTRADICTED: {contradiction['reason']}"
+    if e.reason:
+        reason += f"; {e.reason}"
     return Evidence(
         0.0, "computed", e.variable, e.value, window=e.window, source=e.source,
-        contradiction=True, reason=f"CONTRADICTED: {contradiction['reason']}",
+        contradiction=True, reason=reason,
         detail={**e.detail, "contradiction": dict(contradiction), "score_before": e.score},
     )
