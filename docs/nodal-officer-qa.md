@@ -1,16 +1,17 @@
 # INDRA — Questions You Will Be Asked, and the Honest Answer
 
-**What this is:** the answer to every hard question a nodal officer, judge or teammate can ask
-about this backend. Each one has a number, a file or a test behind it.
+The answer to every hard question a nodal officer, reviewer or teammate is likely to ask about the
+platform. Each answer has a number, a file or a test behind it.
 
 **The rule this whole project runs on:** *stating that a signal is absent is strictly better than
 faking it.* Every answer below follows from that, including the uncomfortable ones. If you are
 ever unsure what to say, say what is true and say where it is written down.
 
-**Verified 21 Sep 2026; updated 22 Sep after the official-dispatch route and the dashboard audit.
-Updated 25 Sep after every demo implementation was deleted.**
-AI/ML evidence is separate and synthetic-development only: see [ML architecture](ML_ARCHITECTURE.md)
-and [validation](ML_VALIDATION_REPORT.md).
+| | |
+|---|---|
+| **Applies to** | `main` after Phase 4 (PR #47) |
+| **Last reviewed** | 28 Sep 2026. The Phase 4 numbers were measured on 27 Sep |
+| **Out of scope here** | Layer 4 (AI/ML), whose evidence is advisory and synthetic-development only: [ML architecture](ML_ARCHITECTURE.md), [validation](ML_VALIDATION_REPORT.md) |
 
 ---
 
@@ -117,8 +118,11 @@ neither result is a production-validation claim.
 
 ### Where are the alerts? Who gets the SMS?
 
-**Nobody. There is no alert engine.** INDRA sends no SMS, no email and no CAP broadcast, and has no
-dispatch integration. It was scoped, then cancelled on 20 Sep rather than half-built.
+**Nobody, from the core platform.** INDRA's backend sends no SMS, no email and no CAP broadcast, and
+has no dispatch integration. Alerting (layer 8b) left the core platform's scope on 20 Sep rather
+than being half-built. Its owner has since written a separate service, `alert_engine/` (PR #38),
+with its own rules and SMTP e-mail. It is maintained independently and **does not run on the team
+server**, so no alert is sent during a demo. See [Alert engine integration](ALERT_ENGINE_INTEGRATION.md).
 
 What the Warnings page shows is **official warnings that others issued**: IMD, CWC and state SDMA
 CAP alerts, collected every 5 minutes from NDMA's SACHET feed (`GET /api/alerts/agency`) and
@@ -271,8 +275,9 @@ backend and database, so not even a test report reaches the live one.
 It was removed on 21 Sep because none of it existed. There was no IMD, CWC or social feed behind
 those "48 social media posts" and "2 CWC river gauges", image verification was offline, and the
 **94% never came from the scoring engine**. It was replaced with the engine's real output for a set
-of test reports, labelled as a worked example, and a note recording what was there before, so the
-change is auditable rather than quiet. On 25 Sep the rest went too: the demo mode and its fallback
+of test reports, labelled as a worked example, together with a note saying what had been there
+before, so the change was auditable rather than quiet. The note is in the README's git history and
+the fabricated event is in the [bug register](bug-register.md). On 25 Sep the rest went too: the demo mode and its fallback
 events, the seed script, the scripted report generators and the dashboard's invented operator
 profiles.
 
@@ -280,11 +285,13 @@ That is worth saying out loud if anyone has seen the old version: we found it, a
 
 ### What is Redis actually for?
 
-Two jobs as of 21 Sep: the Open-Meteo cache keyed by H3 cell, and the set of report ids already
-broadcast to the dashboard, so a Kafka re-delivery does not show the same report twice — now
-across a restart, which process memory could not do.
+Five short-lived jobs: the Open-Meteo caches keyed by H3 cell; the set of report ids already
+broadcast to the dashboard, so a Kafka re-delivery does not show the same report twice even across
+a restart; the per-message failure counter that sends a message to the dead-letter topic after
+three attempts; the filter-options cache; and the memory of which event–evidence pairs late
+corroboration has already evaluated.
 
-Both fall back to memory if Redis is gone. `redis-cli dbsize` after a few minutes of live traffic
+Every one falls back to process memory if Redis is gone, and `/healthz` then says `degraded`. `redis-cli dbsize` after a few minutes of live traffic
 shows it holding real keys.
 
 ---
@@ -293,8 +300,10 @@ shows it holding real keys.
 
 ### How do you know any of this works?
 
-**948 automated backend tests**, run against a separate database, green with the network off, and
-**26 browser tests** against the running dashboard. But the more honest answer is the second half:
+**1,788 automated backend tests passing** (27 Sep 2026, the code now on `main`), run against a
+separate database, with the network stubbed. The only two failures are in layer 4's package
+(BUG-106). A Playwright suite runs against the dashboard on a disposable backend. But the more
+honest answer is the second half:
 
 **Every one of the most serious defects in this project was invisible to a green suite.** With 518
 tests passing, the demo would still have opened on a fabricated `0.94 / AUTO_PUBLISHED` event,
@@ -315,10 +324,13 @@ All three are in the [bug register](bug-register.md), with dates.
 
 ### What would you do next, with more time?
 
-In order: anchor the audit chain's head hash externally so a truncated tail is detectable; a
-reporter identity for the citizen channel, so dedup can tell the same person repeating from a
-second witness; shared pub/sub for the WebSocket fan-out, so more than one backend process can run;
-and MFA for operator accounts.
+The planned phases come first. Phase 5 adds photo and video upload, a citizen withdrawing their
+own report and per-source credibility administration. Phase 6 adds the analytics endpoints, bulk
+ingestion of real archives and a load test on an isolated backend. After those, in order: anchor
+the audit chain's head hash externally so a truncated tail is detectable; a reporter identity for
+the citizen channel, so dedup can tell the same person repeating from a second witness; shared
+pub/sub for the WebSocket fan-out, so more than one backend process can run; and MFA for operator
+accounts.
 
 Three items from the old version of this list were done on 22 Sep: every write is now token-gated,
 clustering uses a true great-circle radius instead of degrees, and the dedup threshold was
