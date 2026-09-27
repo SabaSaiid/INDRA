@@ -502,8 +502,9 @@ Confidence ≥ 0.90 publishes; ≥ 0.60 goes to review; below that the event is 
   counts less). Show it as "5 reports, 4.8 independent witnesses".
 * **`routing.caps`**: `unclassified` or `posts_only` hold an event for a human whatever its
   confidence; `basis` is `cap` when that is why it is pending.
-* **`weather.note`**: for a hazard rainfall cannot corroborate (heat, cold, fog, dust, wind) the
-  weather factor is `offline` rather than scoring a dry day against it, and the note says why.
+* **`weather.note`** (Phase 3 only, **gone in receipt v2**): for a hazard rainfall cannot
+  corroborate the weather factor was `offline`, with this note. Since Phase 4 every hazard reads its
+  own variable instead; an older stored receipt may still carry the note.
 
 #### Phase 4: receipt v2 (written, not yet tested)
 
