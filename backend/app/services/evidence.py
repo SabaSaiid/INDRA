@@ -929,14 +929,20 @@ def find_contradiction(
     st = (weather.detail or {}).get("station") or {}
 
     if etype == "HEATWAVE":
-        hill = bool(m.get("hill"))
-        limit = HEAT_CONTRADICTION_HILLS_C if hill else HEAT_CONTRADICTION_PLAINS_C
+        chosen = None
         if deciding_station:
             chosen = next((s for s in stations if s["station"] == st.get("station")), None)
             value = chosen["max_temp_c"] if chosen else None
             who = f"airport {_name(chosen)} measured" if chosen else None
         else:
             value, who = m.get("max_temp_c"), "the Open-Meteo model gives"
+        # The hill test is the model grid's at the event; without the model,
+        # the deciding station's own elevation.
+        if m.get("available"):
+            hill = bool(m.get("hill"))
+        else:
+            hill = is_hill(chosen.get("elevation_m")) if chosen else False
+        limit = HEAT_CONTRADICTION_HILLS_C if hill else HEAT_CONTRADICTION_PLAINS_C
         if value is not None and value < limit:
             return {
                 "factor": "weather_station",
