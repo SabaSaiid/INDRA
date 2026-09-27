@@ -1016,12 +1016,14 @@ export async function fetchEngineAlerts(): Promise<EngineAlert[]> {
 /**
  * Acknowledge an active Alert Engine alert.
  */
-export async function acknowledgeEngineAlert(alertId: string, operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
+export async function acknowledgeEngineAlert(alertId: string): Promise<{ success: boolean; error?: string }> {
+  const session = getSession();
+  if (!session) return { success: false, error: 'Sign in to acknowledge an alert' };
+  const operatorUsername = session.username;
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
     const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/acknowledge`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ acknowledged_by: operatorUsername }) // We still send it, but engine should verify via token
     });
     if (!res.ok) {
@@ -1037,12 +1039,14 @@ export async function acknowledgeEngineAlert(alertId: string, operatorUsername: 
 /**
  * Resolve an active Alert Engine alert.
  */
-export async function resolveEngineAlert(alertId: string, reason: string = "Resolved by operator", operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
+export async function resolveEngineAlert(alertId: string, reason: string = "Resolved by operator"): Promise<{ success: boolean; error?: string }> {
+  const session = getSession();
+  if (!session) return { success: false, error: 'Sign in to resolve an alert' };
+  const operatorUsername = session.username;
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
     const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/resolve`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ resolved_by: operatorUsername, reason: reason })
     });
     if (!res.ok) {
