@@ -58,6 +58,7 @@ Rules that are not just a word list
   hills"). Beside something happening now it is dropped, because the report's
   one tense would call it happening too ("rain continues for 40 hours; flood
   threat in 32 districts" is rain, not a flood).
+* **"Cyclone" before a model code is a product** ("Cyclone RX600", BUG-113).
 * **"डूब" next to fog is a figure of speech** ("कोहरे में डूबेगा प्रदेश", a state
   "drowned" in fog, BUG-111): with कोहरा, धुंध or अंधेरा in the 4 tokens before,
   it names no flood.
@@ -113,8 +114,18 @@ tomorrow in Hindi, so it sets nothing.
 
 Hashtags
 --------
-A post tagged as a joke (#Humor, #Funday, #Satire, #meme …) is not a report:
-its other hashtags name no hazard (BUG-112). Words in its text still count.
+A post tagged as a joke (#Humor, #Funday, #Satire, #meme …) or laughing at
+itself (🤣, 😂) is not a report: its other hashtags name no hazard (BUG-112).
+Words in its text still count. A post tagged as creative writing (#haiku,
+#poetry, #dailyhaikuprompt …) names no hazard at all, words included: a haiku
+on the prompt word "fog" is not fog (BUG-113).
+
+A hashtag names a hazard only when it is used as a word in a sentence ("#Cloudburst
+in Tehri", "#DelhiFog 100 flights diverted"), or when the text around it is
+about weather: it names a hazard itself, quotes a reading, or has a weather or
+impact word (IMD, alert, forecast, मौसम, killed, stranded, closed …). A tag at
+the end of a post about crickets ("#ClimateChange #HeatWave") names nothing
+(BUG-113).
 
 Measured, not asserted: `scripts/measure_hazard_tagger.py` scores this module
 on `tests/fixtures/hazards_v1.csv` (a frozen held-out split) and on 100 real
@@ -476,7 +487,8 @@ LEXICON: List[Cue] = [
     *_en(
         "CYCLONE",
         r"\bcyclon(?:e|es|ic)\b(?!\s+(?:the\s+)?(?:roller\s?coaster|ride)\b)"
-        r"(?!\s+(?:fan|separator|dust\s+collector)\b)",
+        r"(?!\s+(?:fan|separator|dust\s+collector)\b)"
+        r"(?!\s+[a-z]{1,4}\d)",                   # a model code: "Cyclone RX600"
         r"\blandfall\b",
         r"\bdeep\s+depression\s+(?:over|in|off|has|intensified|moving|centred|centered|lay|lies|formed|near)\b",
         r"\bdepression\s+over\s+(?:the\s+)?(?:bay|arabian|sea)\b",
@@ -557,8 +569,32 @@ _HASHTAG_HINTS: List[Tuple[str, "re.Pattern[str]"]] = [
     ("COLD_WAVE", re.compile(r"coldwave|shitlahar|sheetlahar")),
     ("FOG", re.compile(r"fog|smog|kohra")),
 ]
-# A post tagged as a joke is not a report (BUG-112).
+# A post tagged as a joke is not a report (BUG-112), nor one laughing at itself.
 _HUMOUR_TAG = re.compile(r"humou?r|funday|satire|meme|joke|sarcasm|comedy|funny|^lol$")
+_HUMOUR_EMOJI = ("🤣", "😂", "😹")
+# Creative writing names no hazard at all, words included (BUG-113).
+_CREATIVE_TAG = re.compile(
+    r"haiku|senryu|tanka|poem|poetry|^poet$|writingprompt|amwriting|flashfiction|shortstory|^vss$"
+    r"|writingcommunity|micropoetry"
+)
+# A photo's tags say what is in the picture: "#landscape #fog" is fog seen, as
+# both real-post samples were labelled.
+_PHOTO_TAG = re.compile(
+    r"photo|landscape|analog|35mm|filmisnotdead|kodak|ilford|fujifilm|darktable|lightroom|blackandwhite"
+    r"|monochrome|goldenhour|shotoniphone"
+)
+# A hashtag at the end of a post names a hazard only when the text around it is
+# about weather (BUG-113): one of these, a hazard named in the text, or a reading.
+_WEATHER_STEMS = (
+    "weather", "mausam", "forecast", "alert", "warning", "advisory", "monsoon", "temperature",
+    "visibility", "humidity", "storm", "killed", "stranded", "trapped", "evacuat", "rescu", "closed",
+    "divert", "cancel", "delay", "damag", "destroy", "washed", "collaps", "uproot", "disrupt", "havoc",
+    fold("मौसम"), fold("मानसून"), fold("तापमान"), fold("अलर्ट"), fold("चेतावनी"), fold("मौत"),
+    fold("तबाही"), fold("कहर"), fold("नुकसान"), fold("फंस"), fold("हवा"),
+)
+# Whole words only: "wind" is not "window", "dead" not "deadline", "shut" not "shuttle".
+_WEATHER_WORDS = frozenset({"imd", "nws", "wind", "winds", "windy", "dead", "died", "death", "deaths",
+                            "shut", fold("बंद")})
 # Hashtags that contain a hint by accident.
 _HASHTAG_NOT = re.compile(r"train|brain|drain|grain|terrain|ukrain|strain|rainbow|raincoat|thunderbolt")
 
@@ -844,6 +880,7 @@ class _Hit:
     first: int      # token index of the first matched token
     last: int       # token index of the last
     kind: str = ""
+    tag: str = ""   # inside a hashtag: "word" used in a sentence, "block" a tag list (BUG-113)
 
 
 def _seq_at(words: List[str], i: int, seq: Tuple[str, ...]) -> bool:
@@ -858,15 +895,17 @@ def _seq_at(words: List[str], i: int, seq: Tuple[str, ...]) -> bool:
     return True
 
 
-def _cue_hits(text: str, tokens: _Tokens) -> List[_Hit]:
+def _cue_hits(text: str, tokens: _Tokens, tags: Sequence["re.Match[str]"] = ()) -> List[_Hit]:
     hits: List[_Hit] = []
     words = tokens.words
     for cue in LEXICON:
         if cue.pattern is not None:
+            # `\b` sees a word start after "#", so "#fog" and "#heatwave" match here too.
             for m in cue.pattern.finditer(text):
                 hits.append(_Hit(
                     cue.hazard, cue.basis, m.group(0),
                     tokens.index_at(m.start()), tokens.index_at(max(m.end() - 1, m.start())), cue.kind,
+                    _tag_at(text, tags, m.start()),
                 ))
             continue
         for i in range(len(words)):
@@ -881,17 +920,43 @@ def _cue_hits(text: str, tokens: _Tokens) -> List[_Hit]:
     return hits
 
 
-def _hashtag_hits(text: str, tokens: _Tokens) -> List[_Hit]:
+def _hashtag_hits(text: str, tokens: _Tokens, tags: Sequence["re.Match[str]"]) -> List[_Hit]:
     hits: List[_Hit] = []
-    for m in _HASHTAG_RE.finditer(text):
+    for m in tags:
         body = m.group(1)
         if _HASHTAG_NOT.search(body):
             continue
         index = tokens.index_at(m.start(1))
         for hazard, hint in _HASHTAG_HINTS:
             if hint.search(body):
-                hits.append(_Hit(hazard, "hashtag", m.group(0), index, index))
+                hits.append(_Hit(hazard, "hashtag", m.group(0), index, index, tag=_tag_at(text, tags, m.start(1))))
     return hits
+
+
+def _tag_at(text: str, tags: Sequence["re.Match[str]"], offset: int) -> str:
+    """
+    "" outside a hashtag. Inside one, "word" when a word follows it in the
+    sentence ("#Cloudburst in Tehri"), else "block": a tag list, or the end.
+    """
+    for m in tags:
+        if m.start() <= offset < m.end():
+            rest = text[m.end():].lstrip(" \t,;:")
+            return "word" if rest and rest[0].isalnum() else "block"
+    return ""
+
+
+def _about_weather(hits: List[_Hit], numbers: Dict[str, Any], tokens: _Tokens, hashtag_tokens: set) -> bool:
+    """Does the text itself, hashtags aside, say it is about weather? (BUG-113)"""
+    if any(not h.tag for h in hits):
+        return True
+    # Any reading, even an impossible one: "Chennai touched 77°C" is about the heat.
+    if any(numbers[k] is not None for k in ("temp_c", "visibility_m", "wind_kmh", "rain_mm")):
+        return True
+    return any(
+        w in _WEATHER_WORDS or _starts_with_any(w, _WEATHER_STEMS)
+        for i, w in enumerate(tokens.words)
+        if i not in hashtag_tokens
+    )
 
 
 def _sentence_of(text: str, offset: int) -> str:
@@ -1047,10 +1112,10 @@ def _aandhi_with_rain(hits: List[_Hit], tokens: _Tokens) -> List[_Hit]:
         beside = words[max(0, h.first - 1):h.first] + words[h.last + 1:h.last + 2]
         water = any(w in _AANDHI_WATER for w in beside)
         if (rain or water) and not dust:
-            out.append(_Hit("THUNDERSTORM", h.basis, h.matched, h.first, h.last))
-            out.append(_Hit("STRONG_WIND", h.basis, h.matched, h.first, h.last))
+            out.append(_Hit("THUNDERSTORM", h.basis, h.matched, h.first, h.last, tag=h.tag))
+            out.append(_Hit("STRONG_WIND", h.basis, h.matched, h.first, h.last, tag=h.tag))
             if water and not rain:
-                out.append(_Hit("RAINFALL", h.basis, h.matched, h.first, h.last))
+                out.append(_Hit("RAINFALL", h.basis, h.matched, h.first, h.last, tag=h.tag))
         else:
             out.append(h)
     return out
@@ -1073,14 +1138,24 @@ def tag_hazards(
     tokens = _Tokens.of(folded)
     year = reference_year or datetime.now(timezone.utc).year
 
-    joke = any(_HUMOUR_TAG.search(m.group(1)) for m in _HASHTAG_RE.finditer(folded))
-    hits = _cue_hits(folded, tokens) + ([] if joke else _hashtag_hits(folded, tokens))
+    tags = list(_HASHTAG_RE.finditer(folded))
+    creative = any(_CREATIVE_TAG.search(m.group(1)) for m in tags)
+    joke = any(_HUMOUR_TAG.search(m.group(1)) for m in tags) or any(e in folded for e in _HUMOUR_EMOJI)
+    hits = _cue_hits(folded, tokens, tags) + _hashtag_hits(folded, tokens, tags)
+    if joke:
+        hits = [h for h in hits if not h.tag]
     for m in _NAMED_STORM_RE.finditer(unicodedata.normalize("NFKC", raw)):
         hits.append(_Hit("CYCLONE", "hinglish", m.group(0).lower(), 0, 0))
     hits = [h for h in hits if _keep_special(h, hits, folded, tokens)]
     hits = _aandhi_with_rain(hits, tokens)
 
     numbers = _numbers(folded, tokens)
+    hashtag_tokens = {tokens.index_at(m.start(1)) for m in tags}
+    # A post of nothing but tags, or a photo, is what its tags say it is.
+    only_tags = all(i in hashtag_tokens for i in range(len(tokens.words)))
+    photo = any(_PHOTO_TAG.search(m.group(1)) for m in tags)
+    if not (only_tags or photo or _about_weather(hits, numbers, tokens, hashtag_tokens)):
+        hits = [h for h in hits if h.tag != "block"]
     cold_word = any(_starts_with_any(w, _COLD_WORDS) for w in tokens.words)
     for h in _number_hits(numbers, hits):
         if h.kind == "cold_number" and not cold_word:
@@ -1090,6 +1165,8 @@ def tag_hazards(
     surge = any(h.hazard == "CYCLONE_INUNDATION" for h in hits)
     if depth_cm is not None and not surge:
         hits.append(_Hit("URBAN_FLOOD", "depth", f"{depth_cm:g} cm", 0, 0))
+    if creative:
+        hits = []
 
     kept: Dict[str, _Hit] = {}
     denied: Dict[str, _Hit] = {}
