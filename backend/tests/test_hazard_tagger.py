@@ -210,3 +210,52 @@ def test_spelling_variants_and_not_a_drop(text, hazards, negated):
     r = tag_hazards(text)
     assert {h["type"] for h in r["hazards"]} == hazards
     assert r["negated"] == negated
+
+
+# ── Found on the first 100 real posts (27 Sep): BUG-108 … BUG-112 ──────────────
+
+@pytest.mark.parametrize(
+    "text, hazards",
+    [
+        # BUG-108: आंधी with rain is a squall; alone, or with dust, a dust storm.
+        ("गोरखपुर में बारिश और आंधी से कई पेड़ गिरे", {"THUNDERSTORM", "STRONG_WIND", "RAINFALL"}),
+        ("आंधी-बारिश से आम की फसल को नुकसान", {"THUNDERSTORM", "STRONG_WIND", "RAINFALL"}),
+        ("tez aandhi ke baad jhamajham baarish", {"THUNDERSTORM", "STRONG_WIND", "RAINFALL"}),
+        ("धूल भरी आंधी के बाद हल्की बारिश", {"DUST_STORM", "RAINFALL"}),
+        ("आंधी चली, आसमान में धूल ही धूल", {"DUST_STORM"}),
+        ("आंधी आई, पूरा शहर धूल से भर गया", {"DUST_STORM"}),
+        # BUG-111: drowned in fog is a figure of speech; drowned houses are a flood.
+        ("घने कोहरे में डूबा शहर", {"FOG"}),
+        ("गांव के कई घर पानी में डूब गए", {"URBAN_FLOOD"}),
+        # BUG-110: the verb before लू.
+        ("राजस्थान में कल से चलेगी लू", {"HEATWAVE"}),
+        # BUG-109: continuing, and a circumstance rather than a denial.
+        ("धुंध अभी टली नहीं है", {"FOG"}),
+        ("बारिश में भी नहीं रुका मेला", {"RAINFALL"}),
+        ("बारिश से कोई राहत नहीं", {"RAINFALL"}),
+        # …while a plain denial still denies.
+        ("इस बार बाढ़ नहीं आई", set()),
+        # BUG-112: a joke is not a report.
+        ("#Humor #SundayFunday #MumbaiRains", set()),
+        ("#MumbaiRains local trains running late", {"RAINFALL"}),
+    ],
+)
+def test_real_post_faults(text, hazards):
+    assert {h["type"] for h in tag_hazards(text)["hazards"]} == hazards
+
+
+@pytest.mark.parametrize(
+    "text, tense",
+    [
+        # A Hindi auxiliary counts only right after a hazard word.
+        ("भारी बारिश का अलर्ट, प्रशासन की ओर से लोगों को किया जा रहा सतर्क", "forecast"),
+        ("तेज बारिश हो रही है, अलर्ट जारी", None),
+        ("दो दिन में 60 मिमी बारिश रिकॉर्ड, आज भी अलर्ट", None),
+        ("Rain and thunderstorm in Assam till Friday: IMD", "forecast"),
+        ("Heavy rain alert across 12 districts of Odisha", "forecast"),
+        ("The last week of the year brings dense fog, IMD expects", "forecast"),
+        ("Photos from the floods last week", "past"),
+    ],
+)
+def test_real_post_tense(text, tense):
+    assert tag_hazards(text)["tense"] == tense
