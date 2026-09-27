@@ -24,7 +24,7 @@ import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.services import kafka
 from app.services.credibility import compute_credibility
+from app.services.report_flags import FLAGS, adjust_credibility, text_flags
 from app.services.text_processing import clean_text, detect_language, extract_metadata
 
 logger = logging.getLogger("indra.services.ingest")
@@ -155,7 +156,8 @@ def reporter_hash_for(client_id: Optional[str]) -> Optional[str]:
 
 def analyse(raw_text: str, report_id) -> Optional[dict]:
     """
-    Layer-3 extraction for one report: cleaned text, language, depth, keywords.
+    Layer-3 extraction for one report: cleaned text, language, depth, keywords,
+    and (Phase 3) the hazards it describes, its tense and the numbers it quotes.
 
     Rules and dictionaries only — no model. `raw_text` is never modified; this is
     stored alongside it in raw_reports.analysis.
@@ -168,6 +170,7 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
     """
     try:
         meta = extract_metadata(raw_text)
+        flags, flag_basis = text_flags(raw_text, meta)
         return {
             "cleaned_text": clean_text(raw_text),
             "language": detect_language(raw_text),
@@ -177,6 +180,22 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
             "places": meta["places"],
             "url_count": meta["url_count"],
             "phone_count": meta["phone_count"],
+            # Phase 3 T1, T2: services/hazard_tagger.py. The full detail stays
+            # here; hazard_primary and hazard_family are also columns (0017).
+            "hazards": meta["hazards"],
+            "hazard_primary": meta["hazard_primary"],
+            "hazard_family": meta["hazard_family"],
+            "tense": meta["tense"],
+            "negated": meta["negated"],
+            "temp_c": meta["temp_c"],
+            "visibility_m": meta["visibility_m"],
+            "wind_kmh": meta["wind_kmh"],
+            "rain_mm": meta["rain_mm"],
+            "implausible": meta["implausible"],
+            "number_phrases": meta["number_phrases"],
+            # Phase 3 T8: services/report_flags.py. Also a column (0017).
+            "flags": flags,
+            "flag_basis": flag_basis,
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
@@ -184,6 +203,40 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
             f"Analysis failed for report {report_id}, storing it without one: {e}"
         )
         return None
+
+
+def derive_text_fields(
+    source_type: str, raw_text: str, report_id, extra_flags: Sequence[str] = ()
+) -> Dict[str, Any]:
+    """
+    Everything ingest derives from a report's text, in one place so the
+    backfill (scripts/backfill_hazards.py) writes exactly what a newly stored
+    report gets. `extra_flags` carries a flag the text alone cannot show —
+    `coordinated`, which the pipeline sets from other reports — so a backfill
+    keeps it:
+
+        analysis         the layer-3 extraction (None if it failed)
+        hazard_primary   the hazard the text is about, or None
+        hazard_family    its family, or None
+        flags            the misleading-text flags (Phase 3 T8)
+        credibility      the source-and-length credibility × the flags'
+                         multipliers, floored at 0.05 (report_flags.py)
+    """
+    analysis = analyse(raw_text, report_id)
+    fields = analysis or {}
+    flags = list(fields.get("flags") or [])
+    extra = [f for f in extra_flags if f not in flags]
+    if extra:
+        flags = [f for f in FLAGS if f in set(flags) | set(extra)]
+        if analysis is not None:
+            analysis["flags"] = flags
+    return {
+        "analysis": analysis,
+        "hazard_primary": fields.get("hazard_primary"),
+        "hazard_family": fields.get("hazard_family"),
+        "flags": flags,
+        "credibility": adjust_credibility(compute_credibility(source_type, raw_text), flags),
+    }
 
 
 def _h3_cell(lat: float, lng: float) -> Optional[str]:
@@ -207,7 +260,8 @@ _INSERT_REPORT = text("""
     INSERT INTO raw_reports (id, source_type, raw_text, latitude, longitude, geom_point, h3_res8,
                              district, state, media_url, credibility_score, analysis, submitted_by,
                              observed_at, reporter_hash, citizen_hazard, docket,
-                             platform, external_id, source_meta, place_precision)
+                             platform, external_id, source_meta, place_precision,
+                             hazard_primary, hazard_family, flags)
     VALUES (
         :id, :source_type, :raw_text, CAST(:lat AS double precision), CAST(:lng AS double precision),
         CASE WHEN :with_geom
@@ -215,7 +269,8 @@ _INSERT_REPORT = text("""
         END,
         :h3_cell, :district, :state, :media_url, :credibility, CAST(:analysis AS jsonb), :submitted_by,
         COALESCE(CAST(:observed_at AS timestamptz), NOW()), :reporter_hash, :citizen_hazard, :docket,
-        :platform, :external_id, CAST(:source_meta AS jsonb), :place_precision
+        :platform, :external_id, CAST(:source_meta AS jsonb), :place_precision,
+        :hazard_primary, :hazard_family, CAST(:flags AS text[])
     )
     -- A poller that sees the same post twice stores it once (Phase 2 T4). The
     -- target is the partial unique index from 0012; a citizen report has no
@@ -283,12 +338,13 @@ async def store_report(
         )
 
     report_id = uuid.uuid4()
-    credibility = compute_credibility(source_type, raw_text)
+    derived = derive_text_fields(source_type, raw_text, report_id)
+    credibility = derived["credibility"]
+    analysis = derived["analysis"]
     # The H3 cell is a claim about a 0.46 km hexagon, so only a GPS fix earns
     # one: a district centroid in the heat map would light up a street nobody
     # reported from.
     h3_cell = _h3_cell(latitude, longitude) if place_precision == "gps" else None
-    analysis = analyse(raw_text, report_id)
 
     # The message is exactly what ingest has always published, and nothing
     # more: report_consumer broadcasts it verbatim to every connected browser as
@@ -329,6 +385,11 @@ async def store_report(
         "source_meta": json.dumps(source_meta) if source_meta is not None else None,
         "place_precision": place_precision,
         "with_geom": has_point and place_precision in GEOMETRY_PRECISIONS,
+        # Phase 3 (0017). NULL when the analysis failed, exactly as a report
+        # whose text names no hazard: clustering treats both as untagged.
+        "hazard_primary": derived["hazard_primary"],
+        "hazard_family": derived["hazard_family"],
+        "flags": derived["flags"],
     }
 
     for attempt in range(1, _DOCKET_ATTEMPTS + 1):

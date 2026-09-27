@@ -16,6 +16,11 @@ and drains in hours, a heatwave covers a district for a day.
 **Precedence breaks ties, and the impact outranks its cause** (lower wins). When
 reports in one cluster disagree, the event is named for the thing that hurts
 people: a flood beats the rain that caused it, a landslide beats the rain too.
+Two hazards with the same precedence are ordered by their place in the table
+below, where the more specific comes first (Phase 3): lightning and hail before
+the thunderstorm that brings them, a cloudburst or a storm surge before the
+flood it causes. So "bijli giri, thunder and heavy rain" is a lightning report,
+and the answer never depends on the order a caller listed the types in.
 
 **`measured_by` is a promise, not a feature.** It names the measurement Phase 4
 will use to corroborate each hazard (IMD airport METAR, Open-Meteo, SACHET
@@ -73,15 +78,17 @@ _HAZARDS = (
     # ── water ──────────────────────────────────────────────────────────────
     # The four flood types INDRA started with keep their thumbnails, and the
     # chart colours match the ones the dashboard already shows.
-    Hazard(EventType.URBAN_FLOOD, "Flood", "water", 1,
-           "24 h rainfall; METAR rain codes",
-           "linear-gradient(135deg, #2563EB, #1E3A8A)", "#F59E0B"),
+    # Within precedence 1 the specific cause comes first: a report naming a
+    # cloudburst and the flood it caused is a cloudburst report.
     Hazard(EventType.CLOUDBURST, "Cloudburst", "water", 1,
            "hourly rainfall of 100 mm/h or more",
            "linear-gradient(135deg, #3B82F6, #6366F1)", "#0EA5E9"),
     Hazard(EventType.CYCLONE_INUNDATION, "Storm surge", "water", 1,
            "official warning",
            "linear-gradient(135deg, #EF4444, #C2410C)", "#0891B2"),
+    Hazard(EventType.URBAN_FLOOD, "Flood", "water", 1,
+           "24 h rainfall; METAR rain codes",
+           "linear-gradient(135deg, #2563EB, #1E3A8A)", "#F59E0B"),
     Hazard(EventType.RIVER_BREACH, "River flood", "water", 2,
            "24 h rainfall",
            "linear-gradient(135deg, #F59E0B, #92400E)", "#D97706"),
@@ -98,15 +105,17 @@ _HAZARDS = (
     Hazard(EventType.DUST_STORM, "Dust storm", "convective", 4,
            "METAR DS/DU; dust µg/m³; visibility",
            "linear-gradient(135deg, #D97706, #78350F)", "#CA8A04"),
-    Hazard(EventType.THUNDERSTORM, "Thunderstorm", "convective", 5,
-           "METAR TS and CB clouds; weather codes 95–99; CAPE",
-           "linear-gradient(135deg, #6D28D9, #312E81)", "#8B5CF6"),
+    # Within precedence 5, lightning and hail (what injures people and crops)
+    # come before the thunderstorm that brings them.
     Hazard(EventType.LIGHTNING, "Lightning", "convective", 5,
            "as thunderstorm",
            "linear-gradient(135deg, #FACC15, #6D28D9)", "#EAB308"),
     Hazard(EventType.HAILSTORM, "Hailstorm", "convective", 5,
            "METAR GR/GS; weather codes 96 and 99",
            "linear-gradient(135deg, #7DD3FC, #0369A1)", "#06B6D4"),
+    Hazard(EventType.THUNDERSTORM, "Thunderstorm", "convective", 5,
+           "METAR TS and CB clouds; weather codes 95–99; CAPE",
+           "linear-gradient(135deg, #6D28D9, #312E81)", "#8B5CF6"),
     Hazard(EventType.STRONG_WIND, "Strong Winds", "convective", 6,
            "METAR gusts or SQ; model gusts",
            "linear-gradient(135deg, #0EA5E9, #1E40AF)", "#2563EB"),
@@ -130,6 +139,9 @@ _HAZARDS = (
 )
 
 HAZARDS: Dict[str, Hazard] = {h.type.value: h for h in _HAZARDS}
+
+# A type's place in the table: the tie-break between equal precedences.
+_TABLE_ORDER: Dict[str, int] = {t: i for i, t in enumerate(HAZARDS)}
 
 # The two maps the events API has always used, now derived rather than copied.
 EVENT_TYPE_LABELS: Dict[str, str] = {t: h.label for t, h in HAZARDS.items()}
@@ -171,10 +183,21 @@ def color_of(event_type: TypeLike) -> str:
     return hazard.color if hazard else DEFAULT_COLOR
 
 
+def precedence_key(event_type: TypeLike) -> tuple:
+    """
+    Sort key: precedence, then the type's place in the table. Unknown types
+    sort after every known one, among themselves by name.
+    """
+    key = _key(event_type) or ""
+    if key in HAZARDS:
+        return (HAZARDS[key].precedence, _TABLE_ORDER[key], "")
+    return (1000, 1000, key)
+
+
 def by_precedence(event_types: Iterable[TypeLike]) -> List[str]:
     """Type values ordered so the one an event should be named for comes first."""
     keys = [_key(t) for t in event_types if _key(t)]
-    return sorted(keys, key=lambda t: HAZARDS[t].precedence if t in HAZARDS else 1000)
+    return sorted(keys, key=precedence_key)
 
 
 def types_in_family(family: str) -> List[str]:

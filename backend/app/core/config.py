@@ -104,9 +104,11 @@ class Settings(BaseSettings):
     # Origin/main's post/headline intake keeps its own link/text windows.
     FEED_DEDUP_LINK_WINDOW_HOURS: int = 72
     FEED_DEDUP_TEXT_WINDOW_HOURS: int = 24
-    # Until feed hazard tagging is validated, social/news items are held out
-    # of event clustering even though they are stored and deduplicated.
-    SOCIAL_CLUSTERING_ENABLED: bool = False
+    # On since Phase 3 T9: posts and headlines cluster within their hazard
+    # family (a Delhi heatwave headline joins heat reports, never a flood), a
+    # news publisher counts as one witness, and an event made only of posts is
+    # capped at PENDING_HUMAN_REVIEW. False holds every post out of clustering.
+    SOCIAL_CLUSTERING_ENABLED: bool = True
 
     DBSCAN_EPS_KM: float = 5.0
     DBSCAN_MIN_SAMPLES: int = 2

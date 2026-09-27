@@ -332,11 +332,29 @@ async def test_every_stored_report_carries_an_analysis(api, session):
         "places",
         "url_count",
         "phone_count",
+        # Phase 3 T1, T2: the hazard tagger
+        "hazards",
+        "hazard_primary",
+        "hazard_family",
+        "tense",
+        "negated",
+        "temp_c",
+        "visibility_m",
+        "wind_kmh",
+        "rain_mm",
+        "implausible",
+        "number_phrases",
+        # Phase 3 T8: the misleading-text flags
+        "flags",
+        "flag_basis",
         "extracted_at",
     }
     assert analysis["depth_cm"] == 91          # 3 ft
     assert analysis["depth_basis"] == "measure:feet"
     assert analysis["language"] == "en"
+    # "3 feet deep" is a depth cue, and a depth is a flood.
+    assert analysis["hazard_primary"] == "URBAN_FLOOD"
+    assert analysis["flags"] == []
 
 
 @pytest.mark.parametrize(

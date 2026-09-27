@@ -17,7 +17,7 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 24 Sep 2026, after the dashboard repair (BUG-070 fixed, BUG-071 … BUG-080).**
+**Last updated: 26 Sep 2026, after Phase 3's testing pass (BUG-081, BUG-090 … BUG-092 fixed; BUG-101 … BUG-107).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1613,3 +1613,92 @@ is retried by seeking back to it, and the third failure publishes it with its er
 crash from "no event" without making `process_report` raise, which every caller relies on.
 Commits: `b40b7d0`, `87c5c5d`, `f73f5c8`, `6e97592`, `84e33d1`. To be marked `FIXED` when the T8
 tests in the phase file pass.
+**24 Sep: `FIXED`.** The T8 consumer tests pass (retry twice, dead-letter on the third, commit only
+after, nothing committed when the dead-letter topic is unreachable), PR #35.
+
+# Phase 3 — 25 Sep 2026 (branch `aditya_25sept`, written, not yet tested)
+
+### BUG-090 — Clustering ran DBSCAN over every unassigned report ever stored
+**S2** · Layer 5 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T5)
+
+No time window, no locality, no hazard: a week-old report could cluster with today's, a heatwave
+with a flood, and the candidate set grew with the table. `cluster_around(report)` pre-filters in
+SQL (unassigned, clusterable, same family or untagged, inside the family's window, within 3 × eps)
+and runs DBSCAN over that set. Commits `b1d4e52`, `c8e8025`. `FIXED` when T5's cases pass,
+including the 10,000-row timing.
+**26 Sep: `FIXED`.** T5's table passes (`test_hazard_clustering.py`). With 10,000 old unassigned
+reports in the table, `cluster_around` takes a median **7.2 ms** (worst 7.7 ms of 7 runs); the old
+whole-table method took **296 ms** on the same rows.
+
+### BUG-091 — Every report's credibility was computed at ingest and read by nothing
+**S2** · Layer 6 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T8)
+
+Report Density counted reports, so five from one device were five witnesses. It now scores
+`n_eff = Σ_distinct reporters min(1, best credibility / 0.60)`, the misleading-text flags lower
+credibility, and a news publisher counts once. Commits `2b0131e`, `9a4c91d`, `eefdf69`, `778e301`,
+`c8e8025`.
+**26 Sep: `FIXED`.** `test_report_flags.py` and the `coordinated` cases pass: five clean citizen
+reports count 4.75 witnesses, five from one device 1.0, three devices sending one text 1.5.
+
+### BUG-092 — Every event was stored as `URBAN_FLOOD`
+**S2** · Layer 6 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T6)
+
+The type was hard-coded at insert. It is now the majority of the reports' tagged hazards, ties by
+precedence, UNCLASSIFIED (never auto-published) with no votes; a commander can override it on the
+record. Commits `ddeef6e`, `c8e8025`, `36d231b`.
+**26 Sep: `FIXED`.** Each of the PS's seven categories makes one event of its own type by a 5–0
+vote (`test_hazard_scenarios.py`); UNCLASSIFIED and posts-only events stay with a human even at
+0.99 (`test_event_typing.py`).
+
+# Phase 3 testing pass — 26 Sep 2026 (branch `aditya_26sep`)
+
+Numbered from BUG-101, because the unmerged 25 Sep demo-data branch already uses BUG-093 … BUG-100.
+
+### BUG-101 — Merging main dropped PR #39's ML block from a re-typed event's receipt
+**S3** · Layer 6 · **`FIXED`** `9919f48`
+
+Phase 3 re-scores an event under a commander's type and rebuilds the receipt; PR #39 added
+`ml_event_grouping` only after the first score, so every re-typed event lost it. Now set on both.
+Test: `test_a_commanders_type_survives_later_reports`.
+
+### BUG-102 — The tagger missed "bhishan garmi" and "shitlahar", the plan's own spellings
+**S3** · Layer 3 · **`FIXED`** `924496d`
+
+The Hinglish regexes matched "bheshan" and "sheet lehar" but not the lexicon's own words. Found
+on the fixture; the first measurement (gate passed, macro-F1 0.9913) is kept in `89e66fe`.
+
+### BUG-103 — A rain reading with no depth left the receipt's severity axis blank
+**S3** · Layer 6 · **`FIXED`** `758568a`
+
+A RAINFALL event quoting "64.4 mm" showed `axis: water_depth, value: null`. The rain reading is now
+the axis shown when no depth is quoted.
+
+### BUG-104 — A commander's type override split the incident into two events
+**S2** · Layer 6 · **`FIXED`** `f81cb63`
+
+After a commander re-typed a flood event as FOG, the next flood reports at the same place made a
+second URBAN_FLOOD event, because the merge matched only the event's (now visibility) family. The
+merge also accepts the family the reports voted (`override.machine_vote`); a heatwave cluster still
+never joins a flood event. Tests in `test_hazard_clustering.py`.
+
+### BUG-105 — `sample_real_posts.py` had never run
+**S3** · scripts · **`FIXED`** `0349a75`
+
+asyncpg refused `--since` as a string. Parsed to a datetime; the sample was then drawn (100 rows of
+2,198, 38 in Hindi).
+
+### BUG-106 — Two of PR #39's tests fail on every Mac and Linux checkout
+**S3** · Layer 4 · **`OPEN`**, handed to the ML owner
+
+`test_datasheet_hash_matches_the_file` and `test_committed_metrics_match_the_dataset_file` compare the
+raw file's SHA-256 with a CRLF checkout's hash; git stores `data/labelled/reports_v1.csv` as LF. The
+only 2 failures in the 1,475-test suite. Fix: hash the LF form, or pin the file's line endings.
+
+### BUG-107 — Phase 2's 24-hour collection never ran
+**S2** · infra · **`WONT-FIX`**, by decision
+
+The server was stopped at 19:59 on 24 Sep, 18 minutes after the Phase 2 deploy, and stayed off
+until 26 Sep. On 26 Sep Phase 2 was closed on the data collected, with its 24-hour row recorded as
+not met. If asked: "the pollers ran on the server for 18 minutes on 24 Sep and again on 26 Sep; a
+continuous 24-hour collection has not been run yet."
+

@@ -23,8 +23,12 @@ Filters (all optional, all combined with AND; a comma list is OR within it):
     status          fused, duplicate, unfused, stale, held (see STATUS_SQL)
     has_media       true / false
     language        en, hi, hinglish, or a post's own language code
-    hazard          an event type: today the category a citizen picked;
-                    from Phase 3, also the hazard a post is tagged with
+    hazard          an event type: a hazard the report's text is tagged with
+                    (Phase 3, any of them, not only the primary), or the
+                    category a citizen picked
+    flag            a misleading-text flag (Phase 3 T8): promotional,
+                    not_an_observation, past_event, implausible_value,
+                    exaggeration, shouting, forward_marker, coordinated
     q               text contains, any case
     sort            observed_at | created_at | credibility, then :asc or :desc
 """
@@ -39,10 +43,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.query_params import csv_values, date_range, invalid, like_pattern
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import TokenData, require_roles
 from app.models.enums import EventType, SourceType
 from app.services import exports
+from app.services.report_flags import FLAGS
 
 logger = logging.getLogger("indra.api.report_search")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
@@ -58,15 +64,21 @@ _LANGUAGE_RE = re.compile(r"^[a-z]{2,8}(-[a-z0-9]{2,8})?$")
 #   duplicate  suppressed as a copy of an earlier report (duplicate_of set)
 #   fused      part of an event
 #   stale      a headline already over 48 h old when collected; never clustered
-#   held       a post or headline, stored and shown, held out of clustering
-#              until Phase 3 tags hazards
-#   unfused    a report people filed that is not (yet) part of an event
+#   held       a post or headline, stored and shown, that cannot cluster: social
+#              clustering is off, it names no district (state or no place),
+#              or it is a forecast or warning (context only, Phase 3 T8)
+#   unfused    anything else not (yet) part of an event: a report people filed,
+#              or a post that could cluster and has found no neighbours
 STATUS_SQL = """
     CASE
         WHEN r.duplicate_of IS NOT NULL THEN 'duplicate'
         WHEN r.event_id IS NOT NULL THEN 'fused'
         WHEN COALESCE((r.source_meta->>'stale')::boolean, false) THEN 'stale'
-        WHEN CAST(r.source_type AS text) IN ('SOCIAL_MEDIA', 'NEWS_MEDIA') THEN 'held'
+        WHEN CAST(r.source_type AS text) IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+             AND (NOT CAST(:social_on AS boolean)
+                  OR COALESCE(r.place_precision, 'gps') IN ('state', 'none')
+                  OR 'not_an_observation' = ANY(COALESCE(r.flags, '{}'::text[])))
+             THEN 'held'
         ELSE 'unfused'
     END
 """
@@ -75,6 +87,19 @@ MEDIA_COUNT_SQL = """
     (CASE WHEN r.media_url IS NOT NULL THEN 1 ELSE 0 END
      + CASE WHEN jsonb_typeof(r.source_meta->'media') = 'array'
             THEN jsonb_array_length(r.source_meta->'media') ELSE 0 END)
+"""
+
+# Every hazard type the report's text is tagged with (analysis.hazards, the
+# tagger's full detail), in the tagger's precedence order.
+HAZARD_TYPES_SQL = """
+    ARRAY(
+        SELECT h->>'type'
+        FROM jsonb_array_elements(
+            CASE WHEN jsonb_typeof(r.analysis->'hazards') = 'array'
+                 THEN r.analysis->'hazards' ELSE '[]'::jsonb END
+        ) WITH ORDINALITY AS t(h, n)
+        ORDER BY n
+    )
 """
 
 SORTS = {
@@ -102,7 +127,10 @@ SELECT_SQL = f"""
            r.duplicate_of,
            r.credibility_score AS credibility,
            {MEDIA_COUNT_SQL} AS media_count,
-           r.citizen_hazard AS hazard
+           r.citizen_hazard AS hazard,
+           r.hazard_primary,
+           {HAZARD_TYPES_SQL} AS hazards,
+           r.flags
     FROM raw_reports r
     LEFT JOIN verified_events e ON e.id = r.event_id
 """
@@ -111,6 +139,7 @@ COLUMNS = [
     "id", "docket", "source_type", "platform", "publisher", "url", "text", "language",
     "district", "state", "precision", "lat", "lng", "observed_at", "created_at", "status",
     "event_code", "duplicate_of", "credibility", "media_count", "hazard",
+    "hazard_primary", "hazards", "flags",
 ]
 
 
@@ -136,11 +165,13 @@ class ReportQuery:
         has_media: Optional[bool] = Query(None),
         language: Optional[str] = Query(None, description="Comma-separated language codes"),
         hazard: Optional[str] = Query(None, description="Comma-separated event types"),
+        flag: Optional[str] = Query(None, description="Comma-separated misleading-text flags"),
         q: Optional[str] = Query(None, max_length=200, description="Text contains, any case"),
         sort: str = Query("observed_at:desc", description="observed_at, created_at or credibility, then :asc or :desc"),
     ):
         conditions: List[str] = []
-        params: Dict[str, Any] = {}
+        # STATUS_SQL reads it, in the select list and in ?status=.
+        params: Dict[str, Any] = {"social_on": bool(get_settings().SOCIAL_CLUSTERING_ENABLED)}
 
         if time_field not in ("observed", "created"):
             raise invalid("time_field", "expected observed or created", time_field)
@@ -191,8 +222,15 @@ class ReportQuery:
             params["languages"] = languages
         hazards = csv_values("hazard", hazard, [t.value for t in EventType])
         if hazards:
-            conditions.append("r.citizen_hazard = ANY(CAST(:hazards AS text[]))")
+            conditions.append(
+                f"(r.citizen_hazard = ANY(CAST(:hazards AS text[])) "
+                f"OR ({HAZARD_TYPES_SQL}) && CAST(:hazards AS text[]))"
+            )
             params["hazards"] = hazards
+        flags = csv_values("flag", flag, list(FLAGS), normalise=str.lower)
+        if flags:
+            conditions.append("r.flags && CAST(:flags AS text[])")
+            params["flags"] = flags
         if q and q.strip():
             conditions.append("r.raw_text ILIKE :q ESCAPE '\\'")
             params["q"] = like_pattern(q.strip())
@@ -209,7 +247,8 @@ class ReportQuery:
             "from": date_from, "to": date_to, "time_field": time_field,
             "source_type": source_type, "platform": platform, "publisher": publisher,
             "state": state, "district": district, "precision": precision, "status": status,
-            "has_media": has_media, "language": language, "hazard": hazard, "q": q, "sort": sort,
+            "has_media": has_media, "language": language, "hazard": hazard, "flag": flag, "q": q,
+            "sort": sort,
         }
 
 
@@ -217,6 +256,8 @@ def _item(row) -> Dict[str, Any]:
     out = {c: exports.plain(row[c]) for c in COLUMNS}
     out["id"] = str(row["id"])
     out["duplicate_of"] = str(row["duplicate_of"]) if row["duplicate_of"] else None
+    out["hazards"] = list(row["hazards"] or [])
+    out["flags"] = list(row["flags"] or [])
     return out
 
 

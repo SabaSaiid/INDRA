@@ -441,6 +441,32 @@ shows airport observations once `METAR_POLLER_ENABLED=true`.
 
 ---
 
+## 18. Phase 3 (25 Sep): every hazard gets its own type, severity and evidence
+
+**Backend status: written, not yet tested** (branch `aditya_25sept`). Shapes are in
+[`api-contract.md`](api-contract.md), marked "Phase 3". **Nothing here breaks the dashboard as it
+is:** every change is a new value in an existing field or a new key. No file in `frontend/` was
+touched.
+
+| Change | What the dashboard can do with it | |
+|---|---|---|
+| **Events now arrive with their real type**: `HEATWAVE`, `FOG`, `THUNDERSTORM`, `DUST_STORM`, … (16 possible, labels and families in `/api/meta/filters`), no longer always `URBAN_FLOOD`. `VERIFIED_EVENT` and the list carry it as today | **F4**, the hazard legend and icons: the map's icon table keys on the label (`Flood`, `Thunderstorm`, `Strong Winds`, `Fog`, `Heavy Rainfall`); add icons for `Heatwave`, `Cold wave`, `Dust storm`, `Lightning`, `Hailstorm`, `Cyclone`, `Cloudburst`, `Landslide`, `River flood`, `Storm surge` and `Unclassified`, or key on `event_type` / `family`. **F1**, per-hazard filter chips (`?event_type=`, `?family=`) | recommended |
+| **`UNCLASSIFIED` events** — reports cluster but nothing says what hazard | Show them as "Unclassified — needs a commander", never as a flood. They are never auto-published | recommended |
+| **`event_type_basis` in the receipt**: the vote (`{"URBAN_FLOOD": 4, "RAINFALL": 1}`) and any override | A "why this type" line: "Flood — 4 of 5 reports say flooding" | recommended |
+| **`severity_basis.axis`, `value`, `phrase`, `impact_floor`** | A "why this severity" line: "HIGH — 46 °C ('46 degree'), thermal scale" or "CRITICAL — 'died'". The old depth keys are still there | recommended |
+| **`density_basis`** (`n_eff`, `distinct_reporters`, `unverified_reporters`) | "5 reports, 4.8 independent witnesses" in the receipt, instead of a bare report count | recommended |
+| **`routing.caps`** (`unclassified`, `posts_only`) and `routing.basis` = `cap` | "Held for review: posts only" on the event card, so a commander knows why a confident event is waiting | optional |
+| **`weather.note`** for heat, cold, fog, dust and wind events; the weather factor is `offline` for them | Show the note under the weather line; it is honest, and Phase 4 fills it | optional |
+| **`override_event_type`** on `PATCH /api/events/{id}/review` (commander or admin), with `event_type` and a reason | **A "change type" control for commanders**, beside "change severity". `EVENT_REVIEWED` now carries `event.event_type` | new |
+| **Provenance reports** gain `platform`, `publisher`, `url`, `place_precision`, `hazard_primary`, `flags`, `flag_basis` | Posts and headlines that joined the event show where they came from (link out to the post); flagged reports get a badge with the reason ("promotional: a phone number") | recommended |
+| **Search**: `hazard_primary`, `hazards`, `flags` on every row; new `?flag=` filter; `?hazard=` now matches tagged text; `status` `held` now means "cannot cluster" (no district, a forecast, or clustering off) | **F3, the data explorer**: hazard and flag badges and filters. Relabel `held` from "not clustered until hazard tagging" to "context only" | recommended |
+
+**Test, once the branch is deployed:** `backend/.venv/bin/python scripts/run_hazard_demo.py --hazard
+heatwave --city delhi` makes a `HEATWAVE` event whose receipt has every block above; `--hazard fog
+--city lucknow` a `FOG` one.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |
@@ -449,7 +475,7 @@ shows airport observations once `METAR_POLLER_ENABLED=true`.
 | **Risk zones** | Not built, not scheduled |
 | **Image / vision analysis** | Out of scope. `media_url` is stored as a string and nothing opens it |
 | **Anomaly detection** | Out of scope. Permanently `offline` in the receipt |
-| **Event-type classification by a model** | Trained, measured below its gate, unwired, and frozen with the rest of layer 4. Tagging the 16 types by published rules is Phase 3; until then every event is `URBAN_FLOOD` |
+| **Event-type classification by a model** | Trained, measured below its gate, unwired, and frozen with the rest of layer 4. The 16 types are tagged by published rules instead (Phase 3, section 18) |
 
 If the dashboard currently renders any of these with mock data, that is the highest-value thing to
 remove before the demo — a panel showing invented telemetry is exactly what we spent 20–21 Sep

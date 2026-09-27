@@ -41,7 +41,12 @@ from app.models.enums import AuditAction, EventType, ReviewStatus, Severity
 from app.services import audit
 from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
-from app.services.geo_clustering import GeoClusteringService
+from app.services import severity_rules
+from app.services.corroboration import effective_reporters
+from app.services.event_typing import decide_event_type
+from app.services.hazards import family_of, types_in_family
+from app.services.geo_clustering import GeoClusteringService, family_params
+from app.services.report_flags import CREDIBILITY_FLOOR, FLAGS
 from app.services.geocoding import reverse_geocode
 from app.services.ml_adapter import analyze_stored_event_group, analyze_stored_report
 from app.services.text_processing import core_text, extract_metadata
@@ -165,48 +170,82 @@ def _count_severity(cluster_size: int) -> Severity:
     return Severity.ADVISORY
 
 
-def _derive_severity(report_texts: Sequence[str], cluster_size: int) -> Dict[str, Any]:
+def _derive_severity(
+    report_texts: Sequence[str],
+    cluster_size: int,
+    *,
+    event_type: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Severity from what the reports say, not just how many there are.
+
+        severity = max(content_axis, count_axis, impact_floor)
 
     Replaces a rule that graded a disaster by cluster size alone, so one report
     saying "water two metres deep" was MODERATE while twelve saying "small
     puddle" was HIGH.
 
+    **The content axis depends on the hazard** (Phase 3 T7,
+    services/severity_rules.py): depth or rainfall for water, temperature for
+    heat and cold, visibility for fog, wind for the convective family, each on
+    IMD's or Beaufort's published cuts. Impact words ("stranded", "died", "roof
+    blown off") set a floor whatever the measure says. `event_type=None` grades
+    a flood, as every event was before Phase 3.
+
     Pure: extract_metadata is a regex pass with no I/O, no clock and no sampling,
-    so the same cluster always yields the same severity. The maximum is
+    so the same cluster always yields the same severity. Every maximum is
     order-independent, which matters because the texts arrive in whatever order
     Postgres returns them.
 
     Returns {"severity", "provenance", "basis"}. `basis` goes into the receipt so
-    the reading is auditable: a commander can see that it was the phrase "knee
-    deep" that made this MODERATE, and override it knowing what they override.
+    the reading is auditable: a commander can see that it was the phrase "46
+    degree" or "knee deep" that set the grade, and override it knowing what they
+    override.
     """
-    depths: List[tuple] = []
-    for body in report_texts:
-        meta = extract_metadata(body or "")
-        if meta["depth_cm"] is not None:
-            depths.append((int(meta["depth_cm"]), meta["depth_basis"]))
-
+    metas = [extract_metadata(body or "") for body in report_texts]
+    depths: List[tuple] = [
+        (int(m["depth_cm"]), m["depth_basis"]) for m in metas if m["depth_cm"] is not None
+    ]
     max_depth_cm, depth_basis = max(depths, default=(None, None))
 
-    depth_axis = _depth_severity(max_depth_cm)
+    content = severity_rules.content_axis(event_type, metas)
+    floor = severity_rules.impact_floor(report_texts, event_type)
     count_axis = _count_severity(cluster_size)
-    severity = max(depth_axis, count_axis, key=SEVERITY_ORDER.index)
+    severity = severity_rules.highest(
+        content["severity"], count_axis, floor["severity"] if floor else Severity.ADVISORY
+    )
+
+    if content["axis"] == "water_depth":
+        provenance = "rule_based_depth_and_count" if depths else "rule_based_count_only"
+    elif content["value"] is not None:
+        provenance = f"rule_based_{content['axis']}_and_count"
+    else:
+        provenance = "rule_based_count_only"
+    if floor and severity == floor["severity"] and severity != max(
+        content["severity"], count_axis, key=SEVERITY_ORDER.index
+    ):
+        provenance = "rule_based_impact_words"
 
     return {
         "severity": severity,
-        "provenance": (
-            "rule_based_depth_and_count" if depths else "rule_based_count_only"
-        ),
+        "provenance": provenance,
         "basis": {
-            "rule": "max(depth_axis, count_axis)",
+            "rule": "max(content_axis, count_axis, impact_floor)",
+            "axis": content["axis"],
+            "value": content["value"],
+            "phrase": content["phrase"],
+            "content_axis": content["severity"].value,
+            "count_axis": count_axis.value,
+            "impact_floor": (
+                {"severity": floor["severity"].value, "phrase": floor["phrase"]} if floor else None
+            ),
+            "event_type": event_type,
+            "report_count": cluster_size,
+            # The depth reading, kept for every reader of the pre-Phase-3 receipt.
             "max_depth_cm": max_depth_cm,
             "depth_basis": depth_basis,
             "reports_with_depth": len(depths),
-            "report_count": cluster_size,
-            "depth_axis": depth_axis.value,
-            "count_axis": count_axis.value,
+            "depth_axis": _depth_severity(max_depth_cm).value,
         },
     }
 
@@ -221,9 +260,13 @@ DENSITY_SATURATION_REPORTS = 25
 DENSITY_CURVE_SCALE = 6.5
 
 
-def _density_score(cluster_size: int) -> float:
+def _density_score(cluster_size: float) -> float:
     """
     Report Density: how much independent corroboration a cluster has.
+
+    Since Phase 3 T8 the input is the cluster's effective independent reporters
+    (services/corroboration.py), a float: five reports from one device are one
+    witness, a spam report is a fifth of one. A plain report count still works.
 
         score(n) = (1 − e^(−n / 6.5)) / (1 − e^(−25 / 6.5)),  clamped to [0, 1]
 
@@ -249,12 +292,13 @@ def _density_score(cluster_size: int) -> float:
     return round(max(0.0, min(1.0, raw)), 4)
 
 
-def _coherence_score(max_pairwise_km: float) -> float:
+def _coherence_score(max_pairwise_km: float, eps_km: Optional[float] = None) -> float:
     """
     Spatial Coherence: a tight cluster is more likely to be one real event
     than a diffuse one. Scored on the cluster's diameter d against the DBSCAN
-    search diameter D = 2 × DBSCAN_EPS_KM (10 km by default) with a raised
-    cosine:
+    search diameter D = 2 × eps with a raised cosine, where eps is the hazard
+    family's clustering radius (Phase 3 T5: 5 km for water, 25 km for a
+    heatwave; DBSCAN_EPS_KM, 5 km, when not given):
 
         score(d) = ½ · (1 + cos(π · d / D)),  and 0 for d ≥ D
 
@@ -272,11 +316,53 @@ def _coherence_score(max_pairwise_km: float) -> float:
     Reference points (eps = 5 km): 0 km → 1.0, 1 km → 0.98, 4 km → 0.65,
     5 km → 0.5, 10 km → 0.0.
     """
-    span = max(settings.DBSCAN_EPS_KM * 2.0, 0.001)
+    span = max((eps_km or settings.DBSCAN_EPS_KM) * 2.0, 0.001)
     d = max(0.0, float(max_pairwise_km))
     if d >= span:
         return 0.0
     return round(0.5 * (1.0 + math.cos(math.pi * d / span)), 4)
+
+
+# Hazards whose events the Weather Station Corroboration factor can speak to.
+# It reads 24 h rainfall, and until Phase 4 brings per-hazard weather evidence
+# a rainfall figure says nothing for or against a heatwave, fog, a dust storm or
+# a gale: the factor is offline for those, with a note, rather than scoring a
+# dry day against a heatwave.
+RAIN_CORROBORATED_TYPES = frozenset({
+    "URBAN_FLOOD", "CLOUDBURST", "CYCLONE_INUNDATION", "RIVER_BREACH", "LANDSLIDE", "RAINFALL",
+    "THUNDERSTORM", "LIGHTNING", "HAILSTORM", "CYCLONE",
+})
+WEATHER_NOT_YET_NOTE = (
+    "rainfall does not corroborate this hazard; per-hazard weather evidence arrives in Phase 4"
+)
+
+
+def rain_corroborates(event_type: Optional[str]) -> bool:
+    return event_type is None or event_type in RAIN_CORROBORATED_TYPES
+
+
+def review_caps(event_type: Optional[str], source_types: Sequence[Any]) -> List[str]:
+    """
+    Why an event may not be auto-published, whatever its confidence:
+
+    * `unclassified` — nothing says what hazard it is (Phase 3 T6);
+    * `posts_only` — every report is a post or a headline: posts corroborate,
+      they do not verify on their own (T9).
+    """
+    caps = []
+    if event_type == EventType.UNCLASSIFIED.value:
+        caps.append("unclassified")
+    sources = {str(getattr(t, "value", t)) for t in source_types}
+    if sources and sources <= FEED_SOURCE_TYPES:
+        caps.append("posts_only")
+    return caps
+
+
+def capped(review_status: ReviewStatus, caps: Sequence[str]) -> ReviewStatus:
+    """AUTO_PUBLISHED becomes PENDING_HUMAN_REVIEW when a cap applies."""
+    if caps and review_status is ReviewStatus.AUTO_PUBLISHED:
+        return ReviewStatus.PENDING_HUMAN_REVIEW
+    return review_status
 
 
 def score_cluster(
@@ -287,10 +373,25 @@ def score_cluster(
     *,
     report_texts: Sequence[str],
     weather_source: str = "open_meteo_live",
+    event_type: Optional[str] = None,
+    event_type_basis: Optional[Dict[str, Any]] = None,
+    density: Optional[Dict[str, Any]] = None,
+    eps_km: Optional[float] = None,
+    cluster_basis: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Pure scoring step: cluster geometry + source mix + weather + report text →
     receipt, severity, quadrant and review status.
+
+    Phase 3 adds, all keyword-only and optional so a pre-Phase-3 caller scores
+    exactly as before:
+
+    * `event_type` and its `event_type_basis` (T6): the hazard's own severity
+      axis (T7), the review caps, and whether rainfall is evidence at all;
+    * `density` — effective_reporters() (T8): Report Density scores n_eff, not
+      the report count, and the receipt shows the arithmetic;
+    * `eps_km` — the family's radius, for Spatial Coherence (T5);
+    * `cluster_basis` — how the cluster was found (family, window, candidates).
 
     `report_texts` is keyword-only and deliberately has **no default**. Severity
     is derived from what the reports say, so a caller that forgot to pass them
@@ -305,13 +406,17 @@ def score_cluster(
     """
     fusion = FusionEngine()
 
-    density = _density_score(stats["count"])
-    coherence = _coherence_score(stats["max_pairwise_km"])
+    density_input = density["n_eff"] if density is not None else stats["count"]
+    density_score = _density_score(density_input)
+    eps = eps_km or settings.DBSCAN_EPS_KM
+    coherence = _coherence_score(stats["max_pairwise_km"], eps)
     reliability = source_reliability_score(source_types)
+    if not rain_corroborates(event_type):
+        weather, rainfall_mm = None, None
 
     receipt = fusion.compute_receipt(
         weather_score=weather,
-        report_density_score=density,
+        report_density_score=density_score,
         spatial_score=coherence,
         # Image and anomaly models now produce separate advisory ML evidence,
         # but their synthetic-development scores are not calibrated fusion
@@ -326,11 +431,19 @@ def score_cluster(
 
     # Replace the generic evidence text with what was actually measured.
     distinct_sources = sorted({str(getattr(t, "value", t)) for t in source_types})
+    if density is not None:
+        basis = density["basis"]
+        density_text = (
+            f"{basis['reports']} report(s), {density['n_eff']:g} independent witness(es) "
+            f"from {basis['distinct_reporters']} reporter(s)"
+        )
+    else:
+        density_text = f"{stats['count']} corroborating report(s) in cluster"
     evidence = {
-        "Report Density Analysis": f"{stats['count']} corroborating report(s) in cluster",
+        "Report Density Analysis": density_text,
         "Spatial Coherence Score": (
             f"cluster diameter {stats['max_pairwise_km']:.2f} km "
-            f"against {settings.DBSCAN_EPS_KM * 2:.0f} km search diameter"
+            f"against {eps * 2:.0f} km search diameter"
         ),
     }
     if reliability is not None:
@@ -356,14 +469,18 @@ def score_cluster(
     # The count axis uses stats["count"] (geometry-derived, consistent with the
     # density factor) rather than len(report_texts): a report with no geom_point
     # can still contribute its depth but must not contribute corroboration.
-    decided = _derive_severity(report_texts, stats["count"])
+    decided = _derive_severity(report_texts, stats["count"], event_type=event_type)
     severity = decided["severity"]
     quadrant = fusion.assign_quadrant(severity, confidence)
-    review_status = fusion.determine_review_status(
-        confidence,
-        settings.AUTO_PUBLISH_THRESHOLD,
-        settings.HUMAN_REVIEW_THRESHOLD,
-        severity=severity,
+    caps = review_caps(event_type, source_types)
+    review_status = capped(
+        fusion.determine_review_status(
+            confidence,
+            settings.AUTO_PUBLISH_THRESHOLD,
+            settings.HUMAN_REVIEW_THRESHOLD,
+            severity=severity,
+        ),
+        caps,
     )
 
     def _state(value: Optional[float]) -> str:
@@ -387,7 +504,7 @@ def score_cluster(
     # and what phrase it came from. A new top-level block rather than more keys
     # under provenance, whose key set is asserted exactly by the determinism test.
     receipt["severity_basis"] = decided["basis"]
-    receipt["routing"] = _routing(severity, confidence, review_status)
+    receipt["routing"] = _routing(severity, confidence, review_status, caps)
     receipt["cluster"] = {
         "size": stats["count"],
         "centroid_lat": stats["centroid_lat"],
@@ -395,13 +512,22 @@ def score_cluster(
         "max_pairwise_km": stats["max_pairwise_km"],
         "radius_km": stats["radius_km"],
         "source_types": distinct_sources,
+        "eps_km": eps,
     }
+    if cluster_basis is not None:
+        receipt["cluster"]["clustering"] = cluster_basis
+    if event_type_basis is not None:
+        receipt["event_type_basis"] = event_type_basis
+    if density is not None:
+        receipt["density_basis"] = density["basis"]
     if rainfall_mm is not None:
         receipt["weather"] = {
             "rainfall_24h_mm": rainfall_mm,
             "provider": "open-meteo",
             "source": weather_source,
         }
+    elif not rain_corroborates(event_type):
+        receipt["weather"] = {"note": WEATHER_NOT_YET_NOTE}
 
     return {
         "receipt": receipt,
@@ -409,23 +535,36 @@ def score_cluster(
         "severity": severity,
         "quadrant": quadrant,
         "review_status": review_status,
+        "caps": caps,
     }
 
 
-def _routing(severity: Severity, confidence: float, review_status: ReviewStatus) -> Dict[str, Any]:
+def _routing(
+    severity: Severity,
+    confidence: float,
+    review_status: ReviewStatus,
+    caps: Sequence[str] = (),
+) -> Dict[str, Any]:
     """
     Why the event is where it is, for the receipt. "severity" means a HIGH or
     CRITICAL event below the review gate that went to a human instead of into
     quarantine (BUG-067); an operator seeing a 0.45 event in the queue should
-    be able to read why.
+    be able to read why. "cap" means the confidence cleared the auto-publish
+    gate but a cap (review_caps) held it for a human.
     """
     by_severity = (
         confidence < settings.HUMAN_REVIEW_THRESHOLD
         and review_status is ReviewStatus.PENDING_HUMAN_REVIEW
     )
+    by_cap = (
+        bool(caps)
+        and confidence >= settings.AUTO_PUBLISH_THRESHOLD
+        and review_status is ReviewStatus.PENDING_HUMAN_REVIEW
+    )
     return {
         "review_status": review_status.value,
-        "basis": "severity" if by_severity else "confidence",
+        "basis": "cap" if by_cap else ("severity" if by_severity else "confidence"),
+        "caps": list(caps),
         "auto_publish_threshold": settings.AUTO_PUBLISH_THRESHOLD,
         "human_review_threshold": settings.HUMAN_REVIEW_THRESHOLD,
     }
@@ -446,7 +585,9 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
                 SELECT id, raw_text, latitude, longitude, created_at, event_id,
                        duplicate_of, CAST(source_type AS text) AS source_type, place_precision,
                        platform, source_meta, observed_at,
-                       geom_point IS NOT NULL AS has_geom, district, state
+                       geom_point IS NOT NULL AS has_geom, district, state,
+                       hazard_primary, hazard_family, COALESCE(flags, '{}'::text[]),
+                       citizen_hazard, reporter_hash, credibility_score
                 FROM raw_reports
                 WHERE id = CAST(:id AS uuid)
             """),
@@ -473,6 +614,13 @@ async def _load_report(db: AsyncSession, report_id: UUID) -> Optional[Dict[str, 
         "has_geom": bool(row[12]),
         "district": row[13],
         "state": row[14],
+        # Phase 3 (0017): what the text is about, and its flags.
+        "hazard_primary": row[15],
+        "hazard_family": row[16],
+        "flags": list(row[17] or []),
+        "citizen_hazard": row[18],
+        "reporter_hash": row[19],
+        "credibility": float(row[20]) if row[20] is not None else None,
     }
 
 
@@ -621,7 +769,7 @@ async def _feed_duplicate(db: AsyncSession, report: Dict[str, Any]) -> Optional[
 
 
 async def _find_mergeable_event(
-    db: AsyncSession, lat: float, lng: float
+    db: AsyncSession, lat: float, lng: float, family: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     """
     The nearest recent event whose footprint already covers this location.
@@ -631,6 +779,15 @@ async def _find_mergeable_event(
     is merged after the fact too. Rejected events are excluded — an operator
     dismissing an event must not have it silently resurrected.
 
+    **By family** (Phase 3 T6): a cluster merges only into an event of its own
+    hazard family, over that family's radius and window (a heatwave report
+    never joins a flood event next door). An untagged cluster (family None)
+    may join an event of any family, and any cluster may join an UNCLASSIFIED
+    event, which the merge then re-types by majority. **An event a commander
+    re-typed** also takes clusters of the family its reports voted for (the
+    receipt's `override.machine_vote`): people keep calling it what they called
+    it, and splitting the incident in two would undo the correction on the map.
+
     The window is measured from `updated_at`, not `verified_at`. `verified_at`
     is an insert-time default that means "created", and merging into an event
     rewrites its score and receipt without touching it, so keying the window
@@ -639,6 +796,7 @@ async def _find_mergeable_event(
     event's centroid came to be dropped (BUG-035): an ongoing flood stops
     accepting corroboration while it is still flooding.
     """
+    params = family_params(family)
     row = (
         await db.execute(
             text("""
@@ -648,6 +806,11 @@ async def _find_mergeable_event(
                           > NOW() - make_interval(mins => CAST(:window AS int))
                   AND review_status <> 'REJECTED'
                   AND center_point IS NOT NULL
+                  AND (CAST(:family AS text) IS NULL
+                       OR hazard_family IS NULL
+                       OR hazard_family = CAST(:family AS text)
+                       OR verification_receipt->'event_type_basis'->'override'->>'machine_vote'
+                          = ANY(CAST(:family_types AS text[])))
                   AND ST_DWithin(
                         center_point::geography,
                         ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
@@ -660,10 +823,14 @@ async def _find_mergeable_event(
                 LIMIT 1
             """),
             {
-                "window": MERGE_WINDOW_MINUTES,
+                # The longer of the old two-hour window and the family's own:
+                # a heatwave event stays open for a day.
+                "window": max(MERGE_WINDOW_MINUTES, params.window_hours * 60),
                 "lat": lat,
                 "lng": lng,
-                "eps": settings.DBSCAN_EPS_KM,
+                "eps": params.eps_km,
+                "family": family,
+                "family_types": types_in_family(family) if family else [],
             },
         )
     ).fetchone()
@@ -671,6 +838,134 @@ async def _find_mergeable_event(
     if row is None:
         return None
     return {"id": row[0], "event_code": row[1]}
+
+
+async def _cluster_reports(db: AsyncSession, report_ids: Sequence[UUID]) -> List[Dict[str, Any]]:
+    """
+    Every non-duplicate report in a cluster, with what the type vote (T6), the
+    severity (T7) and the independent-reporter count (T8, T9) read: text,
+    source, tagged hazard, the citizen's pick, reporter, credibility, flags and
+    a news item's publisher. Oldest first, so every derived list is stable.
+    """
+    ids = [str(rid) for rid in report_ids]
+    if not ids:
+        return []
+    rows = (
+        await db.execute(
+            text("""
+                SELECT id, raw_text, CAST(source_type AS text), hazard_primary, citizen_hazard,
+                       reporter_hash, credibility_score, COALESCE(flags, '{}'::text[]),
+                       COALESCE(source_meta->>'publisher_domain', source_meta->>'publisher')
+                FROM raw_reports
+                WHERE id = ANY(CAST(:ids AS uuid[]))
+                  AND duplicate_of IS NULL
+                ORDER BY created_at, id
+            """),
+            {"ids": ids},
+        )
+    ).fetchall()
+    return [
+        {
+            "id": r[0],
+            "raw_text": r[1] or "",
+            "source_type": r[2],
+            "hazard_primary": r[3],
+            "citizen_hazard": r[4],
+            "reporter_hash": r[5],
+            "credibility": float(r[6]) if r[6] is not None else 0.0,
+            "flags": list(r[7] or []),
+            "publisher": r[8],
+        }
+        for r in rows
+    ]
+
+
+# Phase 3 T8: `coordinated`. The same text from this many different reporters
+# within the window is a campaign, not a crowd. Texts shorter than the minimum
+# (after normalising) are skipped: three people really do write "heavy rain
+# here" in the same ten minutes.
+COORDINATED_MIN_REPORTERS = 3
+COORDINATED_WINDOW_MINUTES = 10
+COORDINATED_MIN_CHARS = 30
+
+# Lower case, punctuation to spaces, whitespace collapsed: the same message
+# with a different emoji or full stop is the same message.
+_NORMALISED_TEXT_SQL = (
+    "btrim(regexp_replace(regexp_replace(lower({col}), '[[:punct:][:space:]]+', ' ', 'g'), '\\s+', ' ', 'g'))"
+)
+
+
+async def _mark_coordinated(db: AsyncSession, report: Dict[str, Any]) -> List[UUID]:
+    """
+    Flag `coordinated` on this report and its copies when the same normalised
+    text arrives from COORDINATED_MIN_REPORTERS or more different reporters
+    within COORDINATED_WINDOW_MINUTES (a missing reporter id counts as its own
+    reporter). Each flagged report's credibility is halved once, floored at
+    0.05 (report_flags.FLAGS). Runs in the caller's transaction.
+
+    Citizen dedup (1 km, 15 min) already suppresses copies close together; this
+    catches the same message sent from far apart, which dedup never sees.
+    Returns the ids newly flagged.
+    """
+    norm_me = _NORMALISED_TEXT_SQL.format(col="me.raw_text")
+    norm_r = _NORMALISED_TEXT_SQL.format(col="r.raw_text")
+    rows = (
+        await db.execute(
+            text(f"""
+                WITH me AS (
+                    SELECT raw_text, created_at FROM raw_reports WHERE id = CAST(:id AS uuid)
+                )
+                SELECT r.id, COALESCE(r.reporter_hash, CAST(r.id AS text)),
+                       'coordinated' = ANY(COALESCE(r.flags, '{{}}'::text[]))
+                FROM raw_reports r, me
+                WHERE length({norm_me}) >= :min_chars
+                  AND r.created_at BETWEEN me.created_at - make_interval(mins => CAST(:window AS int))
+                                       AND me.created_at + make_interval(mins => CAST(:window AS int))
+                  AND {norm_r} = {norm_me}
+            """),
+            {
+                "id": str(report["id"]),
+                "window": COORDINATED_WINDOW_MINUTES,
+                "min_chars": COORDINATED_MIN_CHARS,
+            },
+        )
+    ).fetchall()
+    if len({r[1] for r in rows}) < COORDINATED_MIN_REPORTERS:
+        return []
+    fresh = [r[0] for r in rows if not r[2]]
+    if not fresh:
+        return []
+    await db.execute(
+        text("""
+            UPDATE raw_reports SET
+                flags = array_append(COALESCE(flags, '{}'::text[]), 'coordinated'),
+                credibility_score = GREATEST(CAST(:floor AS double precision),
+                    CAST(round(CAST(credibility_score * CAST(:factor AS double precision) AS numeric), 4)
+                         AS double precision)),
+                analysis = CASE WHEN analysis IS NULL THEN NULL ELSE
+                    jsonb_set(
+                        jsonb_set(analysis, '{flags}',
+                                  COALESCE(analysis->'flags', '[]'::jsonb) || '["coordinated"]'::jsonb),
+                        '{flag_basis}',
+                        COALESCE(analysis->'flag_basis', '{}'::jsonb)
+                            || jsonb_build_object('coordinated', CAST(:basis AS text))
+                    )
+                END
+            WHERE id = ANY(CAST(:ids AS uuid[]))
+              AND NOT 'coordinated' = ANY(COALESCE(flags, '{}'::text[]))
+        """),
+        {
+            "ids": [str(i) for i in fresh],
+            "floor": CREDIBILITY_FLOOR,
+            "factor": FLAGS["coordinated"],
+            "basis": (
+                f"the same text from {len({r[1] for r in rows})} reporters within "
+                f"{COORDINATED_WINDOW_MINUTES} minutes"
+            ),
+        },
+    )
+    logger.info(f"Pipeline: {len(fresh)} report(s) flagged coordinated with {report['id']}")
+    return fresh
 
 
 async def _event_report_ids(db: AsyncSession, event_id: UUID):
@@ -823,6 +1118,9 @@ async def _set_boundary_polygon(db: AsyncSession, event_id: UUID) -> bool:
                             WHERE event_id = CAST(:e AS uuid)
                               AND duplicate_of IS NULL
                               AND geom_point IS NOT NULL
+                              -- A forecast linked as context (Phase 3 T8) is
+                              -- not where the event is.
+                              AND NOT 'not_an_observation' = ANY(COALESCE(flags, '{}'::text[]))
                         ) shapes
                     ) hull
                     WHERE verified_events.id = CAST(:e AS uuid)
@@ -920,12 +1218,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             logger.info(f"Pipeline: report {report_id} already suppressed as a duplicate — skipping")
             return None
 
-        # ── 1b. Posts and headlines: their own dedup, then held ─────────────
+        # ── 1b. Posts and headlines: their own dedup, then clustered ────────
         # Phase 2 T7, T8. A post repeating an earlier post or headline is
         # suppressed exactly as a citizen duplicate is: duplicate_of, and never
-        # counted again. What is left is held out of clustering until Phase 3
-        # can say what hazard it is about (SOCIAL_CLUSTERING_ENABLED), and a
-        # headline that was already old when collected is never clustered.
+        # counted again. Since Phase 3 T9 what is left clusters within its
+        # hazard family like a citizen report (SOCIAL_CLUSTERING_ENABLED, on by
+        # default), capped so posts alone never auto-publish; a headline that
+        # was already old when collected is never clustered.
         if stored["source_type"] in FEED_SOURCE_TYPES:
             duplicate = await _feed_duplicate(db, stored)
             if duplicate is not None:
@@ -952,10 +1251,10 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 return None
 
             stale = bool(stored["source_meta"].get("stale"))
-            if stale or not settings.SOCIAL_CLUSTERING_ENABLED:
+            if stale or not get_settings().SOCIAL_CLUSTERING_ENABLED:
                 logger.info(
                     f"Pipeline: {stored['source_type']} {report_id} stored and held "
-                    f"({'stale' if stale else 'social clustering off until Phase 3'})"
+                    f"({'stale' if stale else 'social clustering is off'})"
                 )
                 await _mark_processed(db, report_id)
                 await db.commit()
@@ -1026,17 +1325,21 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 )
                 return None
 
+        # ── 2b. The same message from many reporters (Phase 3 T8) ───────────
+        # A copy close by is a duplicate (above); the same text from three or
+        # more reporters anywhere within ten minutes is `coordinated`, and each
+        # copy's credibility is halved before anything counts it.
+        await _mark_coordinated(db, stored)
+
         # ── 3. Spatial preparation ──────────────────────────────────────────
         geo = GeoClusteringService(db)
         await geo.update_geom_points()
         await geo.assign_h3_cells()
 
         # ── 4. Clustering — find the cluster this report belongs to ─────────
-        clusters = await geo.cluster_unassigned_reports()
-        cluster = next(
-            (c for c in clusters if report_id in c["report_ids"]),
-            None,
-        )
+        # Local, time-limited and within the report's hazard family (Phase 3
+        # T5): the candidates are this report's neighbourhood, never the table.
+        cluster = await geo.cluster_around(stored)
         if cluster is None:
             # No cluster can mean two very different things.
             #
@@ -1050,7 +1353,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             # Otherwise it really is a lone, uncorroborated report, and a single
             # report is not yet an event.
             nearby = await _find_mergeable_event(
-                db, stored["latitude"], stored["longitude"]
+                db, stored["latitude"], stored["longitude"], stored["hazard_family"]
             )
             if nearby is None:
                 logger.info(
@@ -1064,7 +1367,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             logger.info(
                 f"Pipeline: lone report {report_id} joins existing {nearby['event_code']}"
             )
-            cluster = {"cluster_id": -1, "report_ids": [report_id], "size": 1}
+            cluster = {
+                "cluster_id": -1,
+                "report_ids": [report_id],
+                "size": 1,
+                "family": stored["hazard_family"],
+                "basis": None,
+            }
 
         # ── 5. Cluster geometry ─────────────────────────────────────────────
         stats = await geo.get_cluster_stats(cluster["report_ids"])
@@ -1080,7 +1389,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         # until step 7: the report links, the event write and its audit row
         # land together or not at all.
         existing = await _find_mergeable_event(
-            db, stats["centroid_lat"], stats["centroid_lng"]
+            db, stats["centroid_lat"], stats["centroid_lng"], cluster.get("family")
         )
 
         if existing is not None:
@@ -1103,26 +1412,55 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
 
         # ── 6. Scoring ──────────────────────────────────────────────────────
         scoring_ids = all_report_ids if existing is not None else cluster["report_ids"]
+        reports = await _cluster_reports(db, scoring_ids)
         source_types = await _source_types(db, scoring_ids)
-        report_texts = await _report_texts(db, scoring_ids)
-        weather, rainfall_mm, weather_source = await _weather_for_cluster(
-            db, stats["centroid_lat"], stats["centroid_lng"]
-        )
+        report_texts = [r["raw_text"] for r in reports]
 
-        scored = score_cluster(
-            stats,
-            source_types,
-            weather,
-            rainfall_mm,
-            report_texts=report_texts,
-            weather_source=weather_source,
-        )
+        # Forecasts and warnings ride along as context (T8): they are linked and
+        # shown, but the event sits where the observations are, and only
+        # observations count towards its geometry.
+        observed_ids = [r["id"] for r in reports if "not_an_observation" not in r["flags"]]
+        if observed_ids and len(observed_ids) < len(reports):
+            stats = await geo.get_cluster_stats(observed_ids)
+
+        # The type is a published count of what the reports say (T6), and the
+        # density a count of independent witnesses, not of reports (T8, T9).
+        typed = decide_event_type(reports)
+        event_type = typed["event_type"]
+        event_type_basis = typed["basis"]
+        density = effective_reporters(reports)
+
+        if rain_corroborates(event_type):
+            weather, rainfall_mm, weather_source = await _weather_for_cluster(
+                db, stats["centroid_lat"], stats["centroid_lng"]
+            )
+        else:
+            weather, rainfall_mm, weather_source = None, None, "not_applicable"
+
+        def _score(etype: str, etype_basis: Dict[str, Any]) -> Dict[str, Any]:
+            return score_cluster(
+                stats,
+                source_types,
+                weather,
+                rainfall_mm,
+                report_texts=report_texts,
+                weather_source=weather_source,
+                event_type=etype,
+                event_type_basis=etype_basis,
+                density=density,
+                eps_km=family_params(family_of(etype)).eps_km,
+                cluster_basis=cluster.get("basis"),
+            )
+
+        scored = _score(event_type, event_type_basis)
         receipt = scored["receipt"]
-        receipt["ml_event_grouping"] = await analyze_stored_event_group(db, scoring_ids)
+        ml_event_grouping = await analyze_stored_event_group(db, scoring_ids)
+        receipt["ml_event_grouping"] = ml_event_grouping
         confidence = scored["confidence"]
         severity = scored["severity"]
         quadrant = scored["quadrant"]
         review_status = scored["review_status"]
+        caps = scored["caps"]
 
         # ── 7. Persist, with the decision's audit row, in one transaction ───
         impact_radius = max(stats["radius_km"], 0.5)
@@ -1144,6 +1482,28 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             ).fetchone()
             prior_status = str(current[0])
             human_review = current[1] or None
+
+            # A commander's type stands (T6): the reports keep voting, and the
+            # receipt shows both the vote and the override, but the event keeps
+            # the type a human gave it. Re-scored under that type, since the
+            # type decides the severity axis and the caps.
+            override_type = (human_review or {}).get("event_type_override")
+            if override_type and override_type != event_type:
+                event_type_basis = {
+                    **event_type_basis,
+                    "override": {
+                        "event_type": override_type,
+                        "machine_vote": event_type,
+                        "operator_id": human_review.get("operator_id"),
+                    },
+                }
+                event_type = override_type
+                scored = _score(event_type, event_type_basis)
+                receipt = scored["receipt"]
+                receipt["ml_event_grouping"] = ml_event_grouping
+                confidence = scored["confidence"]
+                severity = scored["severity"]
+                caps = scored["caps"]
 
             if prior_status == ReviewStatus.REJECTED.value:
                 # Rejected between _find_mergeable_event and the lock. Leave the
@@ -1170,11 +1530,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             else:
                 quadrant = FusionEngine().assign_quadrant(severity, confidence)
                 # Routing depends on severity too (BUG-067), so a commander's
-                # override to HIGH keeps the event in front of a human.
-                review_status = FusionEngine().determine_review_status(
-                    confidence, severity=severity
+                # override to HIGH keeps the event in front of a human; and the
+                # caps (unclassified, posts only) hold on a merge as on a create.
+                review_status = capped(
+                    FusionEngine().determine_review_status(confidence, severity=severity),
+                    caps,
                 )
-            receipt["routing"] = _routing(severity, confidence, review_status)
+            receipt["routing"] = _routing(severity, confidence, review_status, caps)
             if human_review:
                 receipt["human_review"] = human_review
 
@@ -1207,12 +1569,18 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             "district": place.district if place else None,
             "state": place.state if place else None,
             "precision": place.precision if place else None,
+            "etype": event_type,
+            "family": family_of(event_type),
         }
 
         if existing is not None:
             await db.execute(
                 text("""
                     UPDATE verified_events SET
+                        -- Re-typed when a merge changes the majority (T6),
+                        -- unless a commander set the type (applied above).
+                        event_type = CAST(:etype AS event_type_enum),
+                        hazard_family = :family,
                         severity = CAST(:sev AS severity_enum),
                         confidence_score = :conf,
                         review_status = CAST(:status AS review_status_enum),
@@ -1239,7 +1607,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                         (id, event_code, event_type, severity, confidence_score,
                          review_status, quadrant, impact_radius_km, center_point,
                          verification_receipt, district, state, place_precision,
-                         updated_at)
+                         hazard_family, updated_at)
                     VALUES
                         (CAST(:id AS uuid), :code,
                          CAST(:etype AS event_type_enum),
@@ -1251,9 +1619,9 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
                          CAST(:receipt AS jsonb),
                          :district, :state, :precision,
-                         NOW())
+                         :family, NOW())
                 """),
-                {**common, "code": event_code, "etype": EventType.URBAN_FLOOD.value},
+                {**common, "code": event_code},
             )
             # Link only after the event row exists — event_id is an FK.
             linked = await geo.assign_reports_to_event(
@@ -1282,7 +1650,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 operator_id=audit.SYSTEM_PIPELINE_OPERATOR,
                 action=PIPELINE_AUDIT_ACTIONS[review_status],
                 reason=(
-                    f"{event_code} {action}: confidence {confidence} over "
+                    f"{event_code} {action}: {event_type}, confidence {confidence} over "
                     f"{report_count} reports -> {review_status.value}"
                 ),
                 details={
@@ -1291,6 +1659,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     "confidence_score": confidence,
                     "report_count": report_count,
                     "severity": severity.value,
+                    "event_type": event_type,
+                    "caps": caps,
                 },
             )
 
@@ -1305,7 +1675,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         return {
             "id": str(event_id),
             "event_code": event_code,
-            "event_type": EventType.URBAN_FLOOD.value,
+            "event_type": event_type,
             "severity": severity.value,
             "confidence_score": confidence,
             "review_status": review_status.value,

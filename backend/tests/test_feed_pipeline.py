@@ -158,10 +158,17 @@ async def test_a_copy_of_a_copy_points_at_the_original(db):
     assert (await _row(db, third))["duplicate_of"] == first
 
 
-# ── T8: held out of clustering until Phase 3 ───────────────────────────────────
+# ── T8: the hold, a switch since Phase 3 T9 turned posts' clustering on ────────
 
-async def test_five_mastodon_posts_about_patna_make_no_event(db):
-    assert get_settings().SOCIAL_CLUSTERING_ENABLED is False
+def test_posts_join_clustering_by_default():
+    # The class default, not get_settings(): the team server's .env sets its own.
+    from app.core.config import Settings
+
+    assert Settings.model_fields["SOCIAL_CLUSTERING_ENABLED"].default is True
+
+
+async def test_with_the_hold_on_five_mastodon_posts_about_patna_make_no_event(db, monkeypatch):
+    monkeypatch.setattr(get_settings(), "SOCIAL_CLUSTERING_ENABLED", False)
     ids = []
     for words in ("Water rising near Gandhi Maidan", "Roads under water in Kankarbagh",
                   "Knee deep water at Boring Road", "Flooded underpass near the station",

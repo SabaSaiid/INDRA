@@ -173,7 +173,11 @@ def test_basis_names_the_phrase_that_decided_it():
     decided = _derive_severity(_texts("Knee deep water outside my house", 5), 5)
     basis = decided["basis"]
 
-    assert basis["rule"] == "max(depth_axis, count_axis)"
+    # Phase 3 T7: the content axis is the hazard's own measure, and impact words
+    # set a floor. With no event type the report is graded as a flood, on depth.
+    assert basis["rule"] == "max(content_axis, count_axis, impact_floor)"
+    assert basis["axis"] == "water_depth"
+    assert basis["impact_floor"] is None
     assert basis["max_depth_cm"] == 50
     assert basis["depth_basis"] == "body:knee"
     assert basis["reports_with_depth"] == 1
@@ -292,4 +296,6 @@ def test_a_moderate_event_below_the_gate_is_still_quarantined():
         "basis": "confidence",
         "auto_publish_threshold": 0.90,
         "human_review_threshold": 0.60,
+        # Phase 3 T6, T9: the UNCLASSIFIED and posts-only caps; neither applies.
+        "caps": [],
     }

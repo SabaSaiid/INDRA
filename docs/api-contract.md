@@ -227,10 +227,11 @@ under the DPDP Act.
 | `publisher` | a news publisher's name, any case |
 | `state`, `district` | exact name, any case |
 | `precision` | comma list: `gps`, `district`, `state`, `none` |
-| `status` | comma list: `duplicate` (suppressed copy), `fused` (in an event), `stale` (a headline already 48 h old when collected), `held` (a post or headline held out of clustering until Phase 3), `unfused` (a filed report not in an event) — one per report, in that order of precedence |
+| `status` | comma list: `duplicate` (suppressed copy), `fused` (in an event), `stale` (a headline already 48 h old when collected), `held` (a post or headline that cannot cluster: social clustering is off, it names no district, or it is a forecast or warning — **Phase 3**), `unfused` (anything else not in an event) — one per report, in that order of precedence |
 | `has_media` | `true` / `false` |
 | `language` | comma list of codes: `en`, `hi`, `hinglish`, or a post's own |
-| `hazard` | comma list of event types. Today: the category a citizen picked; Phase 3 adds tagged posts |
+| `hazard` | comma list of event types: a hazard the report's text is tagged with (any of them, not only the primary — **Phase 3**), or the category a citizen picked |
+| `flag` | comma list of misleading-text flags (**Phase 3 T8**): `promotional`, `not_an_observation`, `past_event`, `implausible_value`, `exaggeration`, `shouting`, `forward_marker`, `coordinated` |
 | `q` | text contains, any case; `%` and `_` match only themselves |
 | `sort` | `observed_at`, `created_at` or `credibility`, then `:asc` or `:desc` (default `observed_at:desc`) |
 | `limit`, `offset` | 1–200 (default 50), ≥ 0 |
@@ -241,8 +242,14 @@ under the DPDP Act.
   "text": "Yellow alert in …", "language": "en", "district": null, "state": "Kerala",
   "precision": "state", "lat": 10.3528, "lng": 76.5122, "observed_at": "2026-09-23T01:47:04.487000+00:00",
   "created_at": "…", "status": "held", "event_code": null, "duplicate_of": null,
-  "credibility": 0.5, "media_count": 1, "hazard": null}]
+  "credibility": 0.5, "media_count": 1, "hazard": null,
+  "hazard_primary": "RAINFALL", "hazards": ["RAINFALL"], "flags": ["not_an_observation"]}]
 ```
+
+**Phase 3 (written, not yet tested):** `hazard_primary` is the hazard the text is about (`null`
+when it names none), `hazards` every hazard it is tagged with, in precedence order, and `flags` its
+misleading-text flags (`[]` when clean). `hazard` is still the category the citizen picked. In the
+CSV export the two lists are JSON arrays.
 
 `docket` is filled for citizen reports only. `text` is at most 500 characters; `lat`/`lng` are
 rounded to 4 decimals. `401` without a token, `403` for a citizen token, `422` for an unknown
@@ -342,8 +349,14 @@ the table below (`"Flood"`); until 23 Sep an event the pipeline made was drawn a
 
 ### Event types
 
-Sixteen since 23 Sep (migration `0011`), described in one place: `app/services/hazards.py`. The
-pipeline still names every event `URBAN_FLOOD`; tagging reports with the other types is Phase 3.
+Sixteen since 23 Sep (migration `0011`), described in one place: `app/services/hazards.py`.
+**Since Phase 3 (written, not yet tested) an event's type is the majority of its reports' tagged
+hazards** (`services/hazard_tagger.py`, rules in English, Hindi and Hinglish), ties by precedence;
+with no votes it is `UNCLASSIFIED`, which is never auto-published. Until Phase 3 is deployed every
+event the pipeline makes is still `URBAN_FLOOD`.
+
+Two types with the same precedence are ordered as listed: the specific one first (lightning and hail
+before the thunderstorm that brings them, a cloudburst or storm surge before the flood it causes).
 
 | `event_type` | Label | Family | Precedence |
 |---|---|---|---|
@@ -351,15 +364,15 @@ pipeline still names every event `URBAN_FLOOD`; tagging reports with the other t
 | `CYCLONE_INUNDATION` | Storm surge | water | 1 |
 | `URBAN_FLOOD` | Flood | water | 1 |
 | `RIVER_BREACH` | River flood | water | 2 |
-| `CYCLONE` | Cyclone | convective | 3 |
 | `LANDSLIDE` | Landslide | water | 3 |
+| `CYCLONE` | Cyclone | convective | 3 |
 | `DUST_STORM` | Dust storm | convective | 4 |
-| `HAILSTORM` | Hailstorm | convective | 5 |
 | `LIGHTNING` | Lightning | convective | 5 |
+| `HAILSTORM` | Hailstorm | convective | 5 |
 | `THUNDERSTORM` | Thunderstorm | convective | 5 |
 | `STRONG_WIND` | Strong Winds | convective | 6 |
-| `COLD_WAVE` | Cold wave | thermal | 7 |
 | `HEATWAVE` | Heatwave | thermal | 7 |
+| `COLD_WAVE` | Cold wave | thermal | 7 |
 | `FOG` | Fog | visibility | 8 |
 | `RAINFALL` | Heavy Rainfall | water | 9 |
 | `UNCLASSIFIED` | Unclassified | — | 99 |
@@ -434,14 +447,55 @@ Confidence ≥ 0.90 publishes; ≥ 0.60 goes to review; below that the event is 
 **unless it is `HIGH` or `CRITICAL`, which goes to review instead**, and `basis` is `severity`
 (BUG-067). Nothing is published without a human below 0.90, whatever its severity.
 
+#### Phase 3 additions to the receipt (written, not yet tested)
+
+```json
+"event_type_basis": {"rule": "majority of report hazards, ties by precedence",
+                     "votes": {"URBAN_FLOOD": 4, "RAINFALL": 1}, "reports_voting": 5,
+                     "reports_untagged": 0, "citizen_choice_used": 0,
+                     "override": {"event_type": "FOG", "machine_vote": "URBAN_FLOOD",
+                                  "operator_id": "…"}},
+"severity_basis": {"rule": "max(content_axis, count_axis, impact_floor)",
+                   "axis": "thermal_heat", "value": 46.0, "phrase": "46 degree",
+                   "content_axis": "HIGH", "count_axis": "MODERATE",
+                   "impact_floor": {"severity": "HIGH", "phrase": "heatstroke"},
+                   "event_type": "HEATWAVE", "report_count": 5,
+                   "max_depth_cm": null, "depth_basis": null, "reports_with_depth": 0,
+                   "depth_axis": "ADVISORY"},
+"density_basis": {"reports": 5, "distinct_reporters": 5, "n_eff": 4.79, "excluded": 0,
+                  "unverified_reporters": 0, "publishers": 0, "baseline": 0.6, "rule": "…"},
+"routing": {"review_status": "PENDING_HUMAN_REVIEW", "basis": "cap", "caps": ["posts_only"], …},
+"cluster": {…, "eps_km": 25.0,
+            "clustering": {"family": "thermal", "eps_km": 25.0, "window_hours": 24,
+                           "search_m": 75000.0, "candidates": 7, "context_attached": 0,
+                           "elapsed_ms": 4.2}},
+"weather": {"note": "rainfall does not corroborate this hazard; per-hazard weather evidence arrives in Phase 4"}
+```
+
+* **`event_type_basis`**: the vote that typed the event. `override` appears only once a commander
+  has set the type; the event keeps it through later merges.
+* **`severity_basis.axis`** is the measure that graded it: `water_depth`, `water_rain`,
+  `thermal_heat`, `thermal_cold`, `visibility`, `convective_wind`, or `none` (UNCLASSIFIED). `value`
+  and `phrase` are the reading and the words it came from; `impact_floor` is set when words like
+  "stranded" (HIGH) or "died" (CRITICAL) raised the grade. The depth keys are kept for existing
+  readers.
+* **`density_basis`**: Report Density now scores `n_eff`, the effective independent reporters
+  (one device counts once; a news publisher counts once; forecasts are excluded; a flagged report
+  counts less). Show it as "5 reports, 4.8 independent witnesses".
+* **`routing.caps`**: `unclassified` or `posts_only` hold an event for a human whatever its
+  confidence; `basis` is `cap` when that is why it is pending.
+* **`weather.note`**: for a hazard rainfall cannot corroborate (heat, cold, fog, dust, wind) the
+  weather factor is `offline` rather than scoring a dry day against it, and the note says why.
+
 ### `PATCH /api/events/{event_id}/review` — **requires a token**
 
 Auth: `COMMANDER` or `ADMIN`.
 
 ```json
-{ "action": "approve" | "reject" | "override_severity",
+{ "action": "approve" | "reject" | "override_severity" | "override_event_type",
   "reason": "5 to 1000 characters",
-  "new_severity": "ADVISORY|MODERATE|HIGH|CRITICAL" }
+  "new_severity": "ADVISORY|MODERATE|HIGH|CRITICAL",
+  "event_type": "one of the 16 event types" }
 ```
 
 | Action | Effect |
@@ -449,6 +503,7 @@ Auth: `COMMANDER` or `ADMIN`.
 | `approve` | From `QUARANTINED`/`PENDING_HUMAN_REVIEW` → `HUMAN_APPROVED`. Quadrant becomes `Critical Verified Event` if HIGH/CRITICAL, else `Confirmed Minor Event`. Audit `HUMAN_APPROVE` |
 | `reject` | From anything but `REJECTED` → `REJECTED`. Drops out of the list, still served by detail. Audit `HUMAN_REJECT` |
 | `override_severity` | Status unchanged, quadrant recomputed. `new_severity` required. Audit `MANUAL_OVERRIDE` |
+| `override_event_type` | **Phase 3.** Status and severity unchanged; `event_type` required. Audit `MANUAL_OVERRIDE` with `details` `{field: "event_type", from, to}`. The type survives later merges; the receipt keeps the machine's vote beside it. `EVENT_REVIEWED` carries `event.event_type` |
 
 **`confidence_score` is never changed by a review.** The machine's reading and the human's
 decision are recorded separately, on purpose.
@@ -465,12 +520,16 @@ Auth: `ANALYST`, `COMMANDER` or `ADMIN`.
 ```json
 { "event": {...},
   "reports": [{id, source_type, raw_text, latitude, longitude, credibility_score, created_at,
-               submitted_by}],
+               submitted_by, platform, publisher, url, place_precision, hazard_primary, flags,
+               flag_basis}],
   "audit":   [{seq, action_taken, operator_id, reason, details, logged_at, sha256_hash, prev_hash}],
   "chain":   {"valid": true, "checked": 12, "broken_at_seq": null} }
 ```
 
-Reports oldest first; audit rows in chain order. **`chain` verifies the whole ledger from
+Reports oldest first; audit rows in chain order. **Phase 3:** a post or headline that joined the
+event shows its `platform`, `publisher` and `url` (null for a citizen report); every report shows
+its `hazard_primary`, its `flags` and why each was set (`flag_basis`), and its `place_precision`.
+A forecast linked as context carries `not_an_observation` and is not counted as a witness. **`chain` verifies the whole ledger from
 genesis**, so `checked` is the total row count, not this event's. `submitted_by` names the operator
 who filed an `OFFICIAL_DISPATCH`; it is `null` for a citizen report.
 

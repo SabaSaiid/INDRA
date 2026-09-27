@@ -7,7 +7,9 @@ severity, spam rules).
 
     clean_text(s)          normalised text for models and rules
     detect_language(s)     "en" | "hi" | "hinglish", by script and vocabulary
-    extract_metadata(s)    {depth_cm, depth_basis, keywords, places, url_count, phone_count}
+    extract_metadata(s)    {depth_cm, depth_basis, keywords, places, url_count, phone_count,
+                            hazards, hazard_primary, hazard_family, tense, negated,
+                            temp_c, visibility_m, wind_kmh, rain_mm, implausible}
     html_to_text(s)        a Mastodon post's HTML as plain text (Phase 2 T4)
     canonical_url(u)       one article's many URLs as one (Phase 2 T7)
     core_text(s)           a post without its links and trailing hashtags (T7)
@@ -39,6 +41,7 @@ import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.services.geocoding import INDIAN_GAZETTEER
+from app.services.hazard_tagger import tag_hazards
 
 # ── Cleaning ───────────────────────────────────────────────────────────────────
 
@@ -291,8 +294,13 @@ def detect_language(s: str) -> str:
     return "en"
 
 
-def extract_metadata(s: str) -> Dict[str, Any]:
-    """Depth, life-safety keywords, gazetteer places, URL and phone counts."""
+def extract_metadata(s: str, *, reference_year: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Depth, life-safety keywords, gazetteer places, URL and phone counts, and
+    (Phase 3) the hazards the text describes with its tense and numbers: see
+    services/hazard_tagger.py for every rule. A depth cue makes the report a
+    flood, so the tagger is given the depth found here.
+    """
     raw = s or ""
     text = clean_text(raw).lower()
     tokens = _tokens(text)
@@ -309,6 +317,7 @@ def extract_metadata(s: str) -> Dict[str, Any]:
         "places": _places(text),
         "url_count": len(URL_RE.findall(raw)),
         "phone_count": len(PHONE_RE.findall(raw)),
+        **tag_hazards(raw, depth_cm=depth_cm, reference_year=reference_year),
     }
 
 

@@ -1,10 +1,19 @@
 """
 INDRA Platform — GeoClusteringService
-DBSCAN over unassigned raw_reports with a great-circle radius, plus H3 cell indexes.
+DBSCAN with a great-circle radius, plus H3 cell indexes.
+
+**Local, time-limited and per hazard family** (Phase 3 T5). `cluster_around`
+finds the cluster one new report belongs to by pre-filtering its candidates in
+SQL — unassigned, clusterable, the same family or untagged, inside the family's
+time window, within 3 × eps — and running DBSCAN over that small set. The cost
+depends on the neighbourhood, not the size of the table, and a heatwave report
+never clusters with a flood report however close they are.
 """
 
 import asyncio
 import logging
+import math
+import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 from uuid import UUID
 
@@ -14,6 +23,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.services.hazards import FAMILIES, Family
 
 logger = logging.getLogger("indra.services.geo_clustering")
 settings = get_settings()
@@ -21,6 +31,63 @@ settings = get_settings()
 # Mean Earth radius, the sphere the haversine metric measures on. The same
 # figure scikit-learn's own haversine examples use.
 EARTH_RADIUS_KM = 6371.0088
+
+
+# A report whose text names no hazard. It joins any family's candidates (see
+# cluster_around); on its own it clusters with other untagged reports over the
+# radius INDRA used before families existed, and the water family's window.
+UNTAGGED = Family("untagged", eps_km=5.0, window_hours=6)
+
+# The candidate query reaches 3 × eps from the new report. DBSCAN can chain
+# further than that, report to report; a chain that would reach past 3 × eps
+# is split at that distance. Bounded, and the price of never scanning the table.
+SEARCH_EPS_MULTIPLE = 3.0
+# A report observed shortly after the new one is still its neighbour: clocks
+# differ, and a post's observed_at is when it was posted.
+FUTURE_SLACK_MINUTES = 15
+# A backstop, never reached in practice: a 3 × eps circle over a family's
+# window does not hold this many unassigned reports.
+CANDIDATE_LIMIT = 5000
+
+_CANDIDATES_SQL = """
+    SELECT id, ST_Y(geom_point) AS lat, ST_X(geom_point) AS lng, hazard_family,
+           'not_an_observation' = ANY(COALESCE(flags, '{}'::text[])) AS context_only
+    FROM raw_reports
+    WHERE event_id IS NULL
+      AND duplicate_of IS NULL
+      AND geom_point IS NOT NULL
+      AND COALESCE(place_precision, 'gps') IN ('gps', 'district')
+      -- The family's own reports and untagged ones. For an untagged run
+      -- (:family NULL) the comparison is NULL, so only untagged reports.
+      AND (hazard_family IS NULL OR hazard_family = CAST(:family AS text))
+      AND COALESCE(observed_at, created_at)
+            BETWEEN CAST(:t AS timestamptz) - make_interval(hours => CAST(:window AS int))
+                AND CAST(:t AS timestamptz) + make_interval(mins => CAST(:slack AS int))
+      AND ST_DWithin(
+            geom_point::geography,
+            ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+            :search_m
+          )
+      -- Posts and headlines only when social clustering is on, and a headline
+      -- already old when collected never (Phase 2 T8).
+      AND (
+          CAST(source_type AS text) NOT IN ('SOCIAL_MEDIA', 'NEWS_MEDIA')
+          OR (:social AND NOT COALESCE((source_meta->>'stale')::boolean, false))
+      )
+    ORDER BY created_at, id
+    LIMIT :limit
+"""
+
+
+def family_params(family: Optional[str]) -> Family:
+    """The radius and window a family clusters over; UNTAGGED for None."""
+    return FAMILIES.get(family or "", UNTAGGED)
+
+
+def haversine_km(a: Tuple[float, float], b: Tuple[float, float]) -> float:
+    lat1, lng1, lat2, lng2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lng2 - lng1) / 2) ** 2
+    return 2 * EARTH_RADIUS_KM * math.asin(min(1.0, math.sqrt(h)))
 
 
 def dbscan_labels(
@@ -61,8 +128,131 @@ class GeoClusteringService:
         self.min_samples = settings.DBSCAN_MIN_SAMPLES
         self.h3_resolution = settings.H3_HEX_RESOLUTION
 
+    async def _cluster_in_family(
+        self, report: Dict[str, Any], family: Optional[str], social: bool
+    ) -> Optional[Dict[str, Any]]:
+        """
+        The report's cluster among one family's candidates (plus untagged
+        ones), or None. See cluster_around.
+        """
+        params = family_params(family)
+        search_m = params.eps_km * SEARCH_EPS_MULTIPLE * 1000.0
+        t = report.get("observed_at") or report["created_at"]
+        rows = (
+            await self.db.execute(
+                text(_CANDIDATES_SQL),
+                {
+                    "family": family,
+                    "t": t,
+                    "window": params.window_hours,
+                    "slack": FUTURE_SLACK_MINUTES,
+                    "lat": report["latitude"],
+                    "lng": report["longitude"],
+                    "search_m": search_m,
+                    "social": social,
+                    "limit": CANDIDATE_LIMIT,
+                },
+            )
+        ).fetchall()
+
+        # Forecasts and warnings never make or bridge a cluster: DBSCAN runs
+        # over observations, and a forecast within eps of the result is
+        # attached as context (T8: kept, and excluded from density).
+        observations = [r for r in rows if not r[4]]
+        context = [r for r in rows if r[4]]
+        if not any(r[0] == report["id"] for r in observations):
+            return None
+
+        points = [(float(r[1]), float(r[2])) for r in observations]
+        labels = await asyncio.to_thread(dbscan_labels, points, params.eps_km, self.min_samples)
+        label = next(l for r, l in zip(observations, labels) if r[0] == report["id"])
+        if label < 0:
+            return None
+
+        members = [r for r, l in zip(observations, labels) if l == label]
+        member_points = [(float(r[1]), float(r[2])) for r in members]
+        attached = [
+            r for r in context
+            if any(haversine_km((float(r[1]), float(r[2])), p) <= params.eps_km for p in member_points)
+        ]
+        report_ids = [r[0] for r in members] + [r[0] for r in attached]
+        return {
+            "report_ids": report_ids,
+            "size": len(report_ids),
+            "tagged": sum(1 for r in members if r[3] is not None),
+            "basis": {
+                "family": family,
+                "eps_km": params.eps_km,
+                "window_hours": params.window_hours,
+                "search_m": search_m,
+                "candidates": len(rows),
+                "context_attached": len(attached),
+            },
+        }
+
+    async def cluster_around(self, report: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        The cluster a new report belongs to, or None when it is noise.
+
+            {"cluster_id": 0, "report_ids": [...], "size": n, "family": ...,
+             "basis": {family, eps_km, window_hours, search_m, candidates,
+                       context_attached, elapsed_ms}}
+
+        `report` is the pipeline's stored row: id, latitude, longitude,
+        observed_at, created_at, hazard_family.
+
+        **A tagged report** clusters within its own family, over the family's
+        radius and window (services/hazards.py: water 5 km / 6 h, convective
+        10 km / 3 h, thermal 25 km / 24 h, visibility 15 km / 12 h), with
+        untagged reports as candidates too.
+
+        **An untagged report** tries every family and joins the one whose
+        cluster around it holds the most tagged reports: text is the evidence,
+        and a report that names no hazard is corroboration for whatever its
+        neighbours name. With no tagged neighbour at all it clusters with other
+        untagged reports (UNTAGGED: 5 km / 6 h), and that cluster becomes
+        UNCLASSIFIED (T6).
+
+        Replaces cluster_unassigned_reports, which ran DBSCAN over every
+        unassigned report ever stored: no time window, no locality, no hazard,
+        and a candidate set that grew with the table.
+        """
+        started = time.perf_counter()
+        social = bool(get_settings().SOCIAL_CLUSTERING_ENABLED)
+        family = report.get("hazard_family")
+
+        if family:
+            chosen = await self._cluster_in_family(report, family, social)
+        else:
+            chosen = None
+            for name in FAMILIES:
+                found = await self._cluster_in_family(report, name, social)
+                if found and found["tagged"] and (chosen is None or found["tagged"] > chosen["tagged"]):
+                    chosen = found
+            if chosen is None:
+                chosen = await self._cluster_in_family(report, None, social)
+
+        if chosen is None:
+            return None
+        chosen["basis"]["elapsed_ms"] = round((time.perf_counter() - started) * 1000.0, 1)
+        logger.info(
+            f"Cluster around {report['id']}: {chosen['size']} reports "
+            f"(family {chosen['basis']['family']}, {chosen['basis']['candidates']} candidates, "
+            f"{chosen['basis']['elapsed_ms']} ms)"
+        )
+        return {
+            "cluster_id": 0,
+            "report_ids": chosen["report_ids"],
+            "size": chosen["size"],
+            "family": chosen["basis"]["family"],
+            "basis": chosen["basis"],
+        }
+
     async def cluster_unassigned_reports(self) -> List[Dict[str, Any]]:
         """
+        **Superseded by cluster_around (Phase 3 T5); the pipeline no longer
+        calls this.** Kept only until its tests move to cluster_around.
+
         DBSCAN over raw_reports WHERE event_id IS NULL AND duplicate_of IS NULL.
         A suppressed duplicate is never clustered, so it can never be counted
         as corroboration.

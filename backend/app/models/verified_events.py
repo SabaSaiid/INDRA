@@ -42,6 +42,10 @@ class VerifiedEvent(Base):
     state = Column(String(120), nullable=True)
     place_precision = Column(String(16), nullable=True)
 
+    # The event type's family (migration 0017): which reports it may absorb
+    # when it merges (Phase 3 T6). NULL only for UNCLASSIFIED.
+    hazard_family = Column(String(16), nullable=True)
+
     verified_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

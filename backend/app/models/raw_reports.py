@@ -8,7 +8,7 @@ from sqlalchemy import (
     Column, String, Float, Text, Enum, DateTime, ForeignKey,
     Index, CheckConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 
@@ -87,6 +87,13 @@ class RawReport(Base):
     # gps | district | state | none (migration 0015). Only gps and district
     # positions are ever clustered.
     place_precision = Column(String(10), nullable=True)
+    # Migration 0017 (Phase 3). The hazard the text is about and its family,
+    # from services/hazard_tagger.py (NULL when the text names none), and the
+    # misleading-text flags (services/report_flags.py; empty when clean).
+    # analysis.hazards keeps the full detail.
+    hazard_primary = Column(String(32), nullable=True)
+    hazard_family = Column(String(16), nullable=True)
+    flags = Column(ARRAY(Text), nullable=False, default=list, server_default="{}")
 
     # Constraints
     __table_args__ = (
