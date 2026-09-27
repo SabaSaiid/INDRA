@@ -1453,6 +1453,52 @@ async def _set_boundary_polygon(db: AsyncSession, event_id: UUID) -> bool:
         return False
 
 
+async def write_snapshot(
+    db: AsyncSession,
+    event_id: UUID,
+    *,
+    confidence: float,
+    factor_coverage: Optional[float],
+    report_count: Optional[int],
+    verdict: Optional[str],
+    review_status: str,
+    severity: Optional[str],
+    trigger: str,
+    receipt_version: Optional[int] = None,
+    details: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    One `event_snapshots` row (Phase 4 T7), in the caller's transaction, so
+    the snapshot commits with the score it records or not at all. `at` is the
+    verification clock's now, so a replayed day's history reads as that day.
+    """
+    await db.execute(
+        text("""
+            INSERT INTO event_snapshots
+                (id, event_id, at, confidence, factor_coverage, report_count, verdict,
+                 review_status, severity, trigger, receipt_version, details)
+            VALUES
+                (CAST(:id AS uuid), CAST(:event_id AS uuid), :at, :confidence, :coverage,
+                 :report_count, :verdict, :status, :severity, :trigger, :version,
+                 CAST(:details AS jsonb))
+        """),
+        {
+            "id": str(uuid4()),
+            "event_id": str(event_id),
+            "at": clock.now(),
+            "confidence": confidence,
+            "coverage": factor_coverage,
+            "report_count": report_count,
+            "verdict": verdict,
+            "status": review_status,
+            "severity": severity,
+            "trigger": trigger[:160],
+            "version": receipt_version,
+            "details": json.dumps(details) if details is not None else None,
+        },
+    )
+
+
 async def _next_event_code(db: AsyncSession) -> str:
     """
     Sequential, human-readable code: INDRA-YYYYMMDD-NNN.
