@@ -44,11 +44,13 @@ Rules that are not just a word list
   English toilet. The companions are word pairs, a little stricter than the
   plan's bare "लू का" / "लू से", because "लू का" also opens "Lu's statement".
   Headlines put the verb first too ("आज से चलेगी लू", BUG-110), so चल / लग in
-  the two tokens before counts as well.
+  the two tokens before counts as well. "लू का वार", "लू की स्थिति" (BUG-114).
 * **"आंधी" / "aandhi" with rain is a squall, not a dust storm** (BUG-108). Hindi
   news writes "आंधी-बारिश", "बारिश और आंधी" for a monsoon squall; with a rain
   word within 8 tokens and no dust word (धूल, रेत, dust, sand) it is
   THUNDERSTORM and STRONG_WIND. आंधी alone, or with dust, stays DUST_STORM.
+  "आंधी-पानी" (storm and rain) is the same squall, and names the rain too: पानी
+  counts as rain only right beside आंधी, where it cannot be a water tank.
 * **"डूब" next to fog is a figure of speech** ("कोहरे में डूबेगा प्रदेश", a state
   "drowned" in fog, BUG-111): with कोहरा, धुंध or अंधेरा in the 4 tokens before,
   it names no flood.
@@ -254,6 +256,8 @@ LEXICON: List[Cue] = [
     *_hi("URBAN_FLOOD", "बाढ*", "जलभराव", "जलजमाव", "जलमग्न", "सैलाब"),
     *_hi("URBAN_FLOOD", "डूब*", kind="doob"),
     *_hi("URBAN_FLOOD", "पानी भर*", "पानी घुस*", not_after=_SEA_HI),
+    # Headlines put the verb first: "सड़कों पर भरा पानी", "घरों में घुसा पानी" (BUG-114).
+    *_hi("URBAN_FLOOD", "भरा पानी", "भर गया पानी", "घुसा पानी", "घुस गया पानी", not_after=_SEA_HI),
 
     # ── RIVER_BREACH ───────────────────────────────────────────────────────
     *_en(
@@ -454,7 +458,7 @@ LEXICON: List[Cue] = [
     *_hi(
         "STRONG_WIND",
         "आंधी तूफान*", "तेज हवा*", "तूफानी हवा*", "पेड गिर*", "पेड उखड*", "पेडों गिर*", "छत* उड*",
-        "होर्डिंग गिर*", "खंभे गिर*", "खंभा गिर*",
+        "होर्डिंग गिर*", "खंभे गिर*", "खंभा गिर*", "खंभे टूट*", "खंभा टूट*", "गिरे पेड*",
     ),
 
     # ── CYCLONE ────────────────────────────────────────────────────────────
@@ -586,6 +590,10 @@ _LOO_NEXT = (
     (fold("से"), fold("बच")), (fold("से"), fold("मौत")), (fold("से"), fold("बेहाल")),
     (fold("से"), fold("राहत")), (fold("से"), fold("परेशान")), (fold("की"), fold("चेतावनी")),
     (fold("की"), fold("चपेट")), (fold("जैसे"), fold("हालात")), (fold("जैसी"), fold("स्थिति")),
+    # BUG-114: "लू का वार", "लू की स्थिति".
+    ("ka", "waar"), ("ki", "sthiti"), ("ka", "sitam"), ("ki", "maar"), ("ka", "daur"),
+    (fold("का"), fold("वार")), (fold("की"), fold("स्थिति")), (fold("का"), fold("सितम")),
+    (fold("की"), fold("मार")), (fold("का"), fold("दौर")),
 )
 # "आज से चलेगी लू": the verb before (BUG-110).
 _LOO_BEFORE = ("chal", "lag", fold("चल"), fold("लग"))
@@ -604,6 +612,8 @@ _RAIN_WORDS = ("rain", "precipitation", "downpour", "shower", "recorded", "baari
 _RAIN_STEMS = ("rain", "baarish", "barish", "barsat", "bauchhar", fold("बारिश"), fold("वर्षा"),
                fold("बरसात"), fold("बूंदाबांदी"), fold("झमाझम"), fold("बौछार"))
 _DUST_STEMS = ("dust", "dhool", "dhul", "sand", "reti", "retil", fold("धूल"), fold("रेत"), fold("गर्द"))
+# "आंधी-पानी": water is rain only right beside आंधी (BUG-114).
+_AANDHI_WATER = ("paani", "pani", fold("पानी"))
 AANDHI_RAIN_SPAN = 8
 # BUG-111: "कोहरे में डूबेगा" — drowned in fog, or in darkness.
 _DOOB_FIGURATIVE = ("kohr", "dhund", "andher", "fog", fold("कोहर"), fold("धुंध"), fold("अंधेर"))
@@ -690,6 +700,9 @@ _WIND_RE = re.compile(
     r"(?<![\d.])" + _NUM + r"(?:\s*(?:-|–|to)\s*" + _NUM + r")?\s*"
     r"(?:km\s*/\s*h(?:r|our)?|kmph|kmh|kph|km\s+per\s+hour|kilomet(?:re|er)s?\s+(?:per|an)\s+hour"
     r"|" + fold("किमी") + r"|" + fold("किलोमीटर") + r")(?![a-z])"
+    # "80 KM की रफ्तार" (BUG-114): km, then speed.
+    r"|(?<![\d.])" + _NUM + r"\s*km\s+(?:" + fold("की") + r"\s+)?(?:" + fold("रफ्तार") + r"|" + fold("गति")
+    + r"|" + fold("स्पीड") + r"|speed)"
 )
 _RAIN_MM_RE = re.compile(
     r"(?<![\d.])" + _NUM + r"\s*(?:mm|millimet(?:re|er)s?|" + fold("मिमी") + r"|" + fold("मिलीमीटर") + r")(?![a-z])"
@@ -761,7 +774,9 @@ def _numbers(text: str, tokens: _Tokens) -> Dict[str, Any]:
 
     winds: List[Tuple[float, str]] = []
     for m in _WIND_RE.finditer(text):
-        if _near(tokens, tokens.index_at(m.start()), _WIND_WORDS, 5):
+        if _near(tokens, tokens.index_at(m.start()), _WIND_WORDS, 5) or _near(
+            tokens, tokens.index_at(m.end() - 1), _WIND_WORDS, 5
+        ):
             winds.append((max(float(g) for g in m.groups() if g is not None), m.group(0).strip()))
     wind_kmh = None
     if winds:
@@ -980,9 +995,13 @@ def _aandhi_with_rain(hits: List[_Hit], tokens: _Tokens) -> List[_Hit]:
         near = words[max(0, h.first - AANDHI_RAIN_SPAN):h.last + 1 + AANDHI_RAIN_SPAN]
         rain = any(_starts_with_any(w, _RAIN_STEMS) and not w.startswith("train") for w in near)
         dust = any(_starts_with_any(w, _DUST_STEMS) and w not in ("sandwich",) for w in near)
-        if rain and not dust:
+        beside = words[max(0, h.first - 1):h.first] + words[h.last + 1:h.last + 2]
+        water = any(w in _AANDHI_WATER for w in beside)
+        if (rain or water) and not dust:
             out.append(_Hit("THUNDERSTORM", h.basis, h.matched, h.first, h.last))
             out.append(_Hit("STRONG_WIND", h.basis, h.matched, h.first, h.last))
+            if water and not rain:
+                out.append(_Hit("RAINFALL", h.basis, h.matched, h.first, h.last))
         else:
             out.append(h)
     return out
