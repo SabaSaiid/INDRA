@@ -251,9 +251,12 @@ async def test_the_holder_claiming_again_renews_it(api, db, tokens, broadcasts):
     assert again.json()["claim"]["expires_at"] > first.json()["claim"]["expires_at"]
 
 
-async def test_an_analyst_may_not_claim(api, db, tokens):
+@pytest.mark.parametrize("who, status", [(None, 401), ("citizen", 403), ("analyst", 403)])
+async def test_only_a_commander_or_admin_may_claim_or_release(api, db, tokens, who, status):
     event_id = await make_event(db)
-    assert (await api.post(f"/api/events/{event_id}/claim", headers=tokens["analyst"])).status_code == 403
+    headers = tokens[who] if who else {}
+    assert (await api.post(f"/api/events/{event_id}/claim", headers=headers)).status_code == status
+    assert (await api.delete(f"/api/events/{event_id}/claim", headers=headers)).status_code == status
 
 
 async def test_a_rejected_event_cannot_be_claimed(api, db, tokens):
