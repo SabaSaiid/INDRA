@@ -298,7 +298,7 @@ tracking"*. Every parameter is optional and they combine with AND. Lists are com
 | `family` | `water` · `convective` · `thermal` · `visibility` |
 | `review_status` | one or more statuses. **`REJECTED` appears only when named** |
 | `severity` | one or more of `ADVISORY` · `MODERATE` · `HIGH` · `CRITICAL`. The old single value still works |
-| `verdict` | **Phase 4 (written, not yet tested).** one or more of `CORROBORATED` · `CONTRADICTED` · `UNCONFIRMED`. An event scored before receipt v2 has no verdict and matches none |
+| `verdict` | **Phase 4 (tested 27 Sep).** one or more of `CORROBORATED` · `CONTRADICTED` · `UNCONFIRMED`. An event scored before receipt v2 has no verdict and matches none |
 | `state`, `district` | exact name, any case (`bihar` matches `Bihar`) |
 | `source_type` | events with at least one report from these sources, e.g. `OFFICIAL_DISPATCH` |
 | `min_confidence` | 0–1 |
@@ -506,7 +506,7 @@ Confidence ≥ 0.90 publishes; ≥ 0.60 goes to review; below that the event is 
   corroborate the weather factor was `offline`, with this note. Since Phase 4 every hazard reads its
   own variable instead; an older stored receipt may still carry the note.
 
-#### Phase 4: receipt v2 (written, not yet tested)
+#### Phase 4: receipt v2 (tested 27 Sep)
 
 `receipt_version: 2`. Seven factors, weights still summing to 1.00:
 
@@ -595,13 +595,13 @@ unknown id · `409` transition not allowed, nothing written · `422` bad body ·
 error. Row-locked, so two concurrent approvals give one `200` and one `409`. Broadcasts
 `EVENT_REVIEWED` after the commit.
 
-**Phase 4 (written, not yet tested):** a decision releases the event's review claim
+**Phase 4 (tested 27 Sep):** a decision releases the event's review claim
 (`EVENT_REVIEWED` gains `claim_released: true`). While **another** commander holds an unexpired
 claim, a commander's decision is a `409` naming the holder; an `ADMIN` may still decide.
 
 ### `POST /api/events/{event_id}/claim`, `DELETE /api/events/{event_id}/claim` — **requires a token** (Phase 4)
 
-Auth: `COMMANDER` or `ADMIN`. Written, not yet tested.
+Auth: `COMMANDER` or `ADMIN`. Tested 27 Sep (`test_review_queue.py`).
 
 `POST` takes the event for review for **15 minutes**:
 
@@ -620,7 +620,7 @@ Auth: `COMMANDER` or `ADMIN`. Written, not yet tested.
 
 ### `GET /api/events/{event_id}/history` — **requires a token** (Phase 4)
 
-Auth: `ANALYST`, `COMMANDER` or `ADMIN`. Written, not yet tested. One timeline, oldest first:
+Auth: `ANALYST`, `COMMANDER` or `ADMIN`. Tested 27 Sep. One timeline, oldest first:
 
 ```json
 {"event": {"id": "…", "event_code": "…", "confidence_score": 0.71, "verdict": "CORROBORATED",
@@ -678,9 +678,9 @@ who filed an `OFFICIAL_DISPATCH`; it is `null` for a citizen report.
 | `GET /api/profile/me`, `PATCH /api/profile/me` | 401 | 401 | 200 | 200 | 200 | 200 |
 | `GET /api/reports/search`, `/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/events/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
-| `POST`/`DELETE /api/events/{id}/claim` (Phase 4, not yet pinned) | 401 | 401 | 403 | 403 | 200 | 200 |
-| `GET /api/events/{id}/history` (Phase 4, not yet pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
-| `GET /api/review/queue` (Phase 4, not yet pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
+| `POST`/`DELETE /api/events/{id}/claim` (Phase 4, `test_review_queue.py`; the expired-key column is not pinned) | 401 | 401 | 403 | 403 | 200 | 200 |
+| `GET /api/events/{id}/history` (Phase 4, `test_review_queue.py`; the expired-key column is not pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
+| `GET /api/review/queue` (Phase 4, `test_review_queue.py`; the expired-key column is not pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `POST /api/reports/submit` | 202 | 202 | 202 | 202 | 202 | 202 |
 | `GET /api/events` | 200 | 200 | 200 | 200 | 200 | 200 |
 
@@ -694,7 +694,7 @@ parameter.
 ### `GET /api/review/queue?tab=pending&limit=50&offset=0` — **requires a token**
 
 Auth: `ANALYST`, `COMMANDER` or `ADMIN` (claiming and deciding need `COMMANDER` or `ADMIN`).
-Written, not yet tested.
+Tested 27 Sep (`test_review_queue.py`).
 
 | `tab` | Contents |
 |---|---|
@@ -814,7 +814,7 @@ Captured 23 Sep (one event in the database):
  "generated_at":"2026-09-23T14:35:54.192358+00:00"}
 ```
 
-**Phase 4 (written, not yet tested):** `verdicts`, `[{"value": "CORROBORATED", "count": n}, …]`
+**Phase 4 (tested 27 Sep):** `verdicts`, `[{"value": "CORROBORATED", "count": n}, …]`
 in the order CORROBORATED, UNCONFIRMED, CONTRADICTED, over non-rejected events that have a
 verdict.
 
@@ -1076,7 +1076,7 @@ connected browser.
 ## Proposed — Phase 4, 5 and 6
 
 Phase 2's four are built (above), and Phase 4's four are written (above: the review queue,
-claiming, history and `?verdict=`; not yet tested). **The rest are not built yet.** These are the
+claiming, history and `?verdict=`; tested 27 Sep). **The rest are not built yet.** These are the
 names later phases will use, published now so the dashboard can be built against them. Shapes will
 be fixed in this file when each one lands; until then treat everything but the path as
 provisional.
