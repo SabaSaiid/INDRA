@@ -73,9 +73,24 @@ def _reset_for_tests() -> None:
     last_tick_error = None
 
 
+def _optional_float(value: Optional[str]) -> Optional[float]:
+    try:
+        return float(value) if value not in (None, "") else None
+    except ValueError:
+        return None
+
+
 @lru_cache(maxsize=1)
 def station_table() -> Dict[str, Dict[str, object]]:
-    """ICAO id → {name, lat, lon, elevation_m}. Empty (with an ERROR) if unreadable."""
+    """
+    ICAO id → {name, lat, lon, elevation_m, iata, civil}. Empty (with an ERROR)
+    if unreadable.
+
+    `civil` is True for a station with an IATA code, i.e. a passenger airport,
+    whose observers are IMD's aerodrome meteorological office. Phase 4's
+    evidence line says "IMD" only for those: some Indian METAR stations are
+    military airfields (services/evidence.py).
+    """
     try:
         with STATIONS_CSV.open(newline="", encoding="utf-8") as handle:
             return {
@@ -83,6 +98,9 @@ def station_table() -> Dict[str, Dict[str, object]]:
                     "name": row["name"],
                     "lat": float(row["lat"]),
                     "lon": float(row["lon"]),
+                    "elevation_m": _optional_float(row.get("elevation_m")),
+                    "iata": (row.get("iata") or "").strip() or None,
+                    "civil": bool((row.get("iata") or "").strip()),
                 }
                 for row in csv.DictReader(handle)
             }
