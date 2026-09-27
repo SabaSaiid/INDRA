@@ -499,3 +499,263 @@ def model_evidence(
                         reason=line + f" in {label}", **common)
 
     return offline(f"no weather evidence is defined for {etype}", window=label)
+
+
+# ── Station evidence from METAR (T2) ──────────────────────────────────────────
+#
+# An airport observation is a measurement: an observer's visibility estimate,
+# a thermometer, an anemometer. Where one is near, it is the evidence, and the
+# model is shown beside it.
+#
+# * **Which stations:** METAR stations within 50 km whose observations fall in
+#   the window (the query is pipeline._metar_observations; this is the scoring).
+# * **Distance:** up to 25 km counts in full; 25–50 km is multiplied by 0.8.
+# * **Which station decides:** for a measured quantity (visibility, wind,
+#   temperature) the **nearest** station with a value; for a phenomenon
+#   reported as a code (TS, GR, DS, RA) the station with the **strongest**
+#   report after the distance factor, the nearer on a tie.
+# * **"IMD" only for civil aerodromes.** Some Indian METAR stations are military
+#   airfields. The station table carries no civil/military column, so a
+#   station with an IATA code (a passenger airport) is named "IMD airport
+#   observation" and any other plain "airport observation". A joint-use
+#   airfield with an IATA code is the known imperfection of that proxy.
+
+STATION_FULL_KM = 25.0
+STATION_MAX_KM = 50.0
+STATION_FAR_FACTOR = 0.8
+
+RAIN_FAMILY_TYPES = frozenset({
+    "URBAN_FLOOD", "RAINFALL", "RIVER_BREACH", "CLOUDBURST", "LANDSLIDE", "CYCLONE_INUNDATION",
+})
+# Measured quantities: the station's number replaces the model's.
+SCALAR_TYPES = frozenset({"FOG", "STRONG_WIND", "HEATWAVE", "COLD_WAVE"})
+
+
+def distance_factor(distance_km: float) -> float:
+    if distance_km <= STATION_FULL_KM:
+        return 1.0
+    if distance_km <= STATION_MAX_KM:
+        return STATION_FAR_FACTOR
+    return 0.0
+
+
+def _bases(codes: Iterable[str]) -> set:
+    """Present-weather codes without their intensity: RA+ → RA, TS- → TS."""
+    return {str(c).rstrip("+-") for c in codes or ()}
+
+
+def group_stations(
+    observations: Iterable[Mapping[str, Any]], window: Window
+) -> List[Dict[str, Any]]:
+    """
+    One summary per station of its observations inside the window, nearest
+    first. Each observation is a station_readings row as a dict: station_code,
+    station_name, distance_km, recorded_at, temperature_c, wind_kmh, gust_kmh,
+    visibility_m, weather_codes, convective_cloud, and, from the station
+    table, civil and elevation_m.
+    """
+    by_station: Dict[str, Dict[str, Any]] = {}
+    for obs in observations:
+        at = obs.get("recorded_at")
+        if at is None or not window.contains(at):
+            continue
+        distance = float(obs.get("distance_km") or 0.0)
+        if distance > STATION_MAX_KM:
+            continue
+        code = str(obs.get("station_code"))
+        s = by_station.setdefault(code, {
+            "station": code,
+            "name": obs.get("station_name") or code,
+            "distance_km": round(distance, 1),
+            "civil": bool(obs.get("civil")),
+            "elevation_m": obs.get("elevation_m"),
+            "observations": 0,
+            "codes": [],
+            "convective": False,
+            "max_temp_c": None, "max_temp_at": None,
+            "min_temp_c": None, "min_temp_at": None,
+            "min_visibility_m": None, "min_visibility_at": None,
+            "max_wind_kmh": None, "max_wind_at": None,
+            "first_at": None, "last_at": None,
+            "code_at": {},
+        })
+        at = _utc(at)
+        s["observations"] += 1
+        s["first_at"] = min(filter(None, [s["first_at"], at]))
+        s["last_at"] = max(filter(None, [s["last_at"], at]))
+        for c in obs.get("weather_codes") or []:
+            if c not in s["codes"]:
+                s["codes"].append(c)
+            s["code_at"].setdefault(c, at)
+        if obs.get("convective_cloud"):
+            s["convective"] = True
+            s["code_at"].setdefault("CB", at)
+
+        def keep(key: str, value: Optional[float], lowest: bool) -> None:
+            if value is None:
+                return
+            current = s[key]
+            better = current is None or (value < current if lowest else value > current)
+            if better:
+                s[key] = float(value)
+                s[_AT_KEYS[key]] = at
+
+        keep("max_temp_c", obs.get("temperature_c"), False)
+        keep("min_temp_c", obs.get("temperature_c"), True)
+        keep("min_visibility_m", obs.get("visibility_m"), True)
+        wind = max(
+            [v for v in (obs.get("gust_kmh"), obs.get("wind_kmh")) if v is not None], default=None
+        )
+        keep("max_wind_kmh", wind, False)
+
+    stations = sorted(by_station.values(), key=lambda s: (s["distance_km"], s["station"]))
+    for s in stations:
+        s["codes"] = sorted(s["codes"])
+    return stations
+
+
+_AT_KEYS = {
+    "max_temp_c": "max_temp_at",
+    "min_temp_c": "min_temp_at",
+    "min_visibility_m": "min_visibility_at",
+    "max_wind_kmh": "max_wind_at",
+}
+
+
+def _ist(at: Optional[datetime]) -> str:
+    return _utc(at).astimezone(IST).strftime("%H:%M IST") if at else "an unknown time"
+
+
+def _station_score(event_type: str, s: Mapping[str, Any], hill_hint: Optional[bool]) -> Optional[Tuple[float, str, Optional[float], str, Optional[datetime]]]:
+    """(raw score, variable, value, what was seen, when) for one station, or None."""
+    bases = _bases(s["codes"])
+    if event_type == "FOG":
+        vis = s["min_visibility_m"]
+        if vis is None and "FG" not in bases:
+            return None
+        score = visibility_score(vis) if vis is not None else 0.0
+        if "FG" in bases:
+            score = max(score, 0.4)
+        seen = ", ".join(filter(None, ["FG" if "FG" in bases else None,
+                                        f"visibility {vis:,.0f} m" if vis is not None else None]))
+        return score, "minimum visibility", vis, seen, s["min_visibility_at"] or s["code_at"].get("FG")
+    if event_type in ("THUNDERSTORM", "LIGHTNING"):
+        if "TS" in bases:
+            return 1.0, "present weather", None, "TS (thunderstorm at the aerodrome)", _first_code_at(s, "TS")
+        if any(b.startswith("VCTS") for b in bases):
+            return 0.8, "present weather", None, "VCTS (thunderstorm in the vicinity)", _first_code_at(s, "VCTS")
+        if s["convective"]:
+            return 0.5, "cloud", None, "CB/TCU cloud only", s["code_at"].get("CB")
+        return 0.0, "present weather", None, "no thunderstorm, TS or CB reported", s["last_at"]
+    if event_type == "HAILSTORM":
+        if bases & {"GR", "GS"}:
+            return 1.0, "present weather", None, "GR/GS (hail)", _first_code_at(s, "GR") or _first_code_at(s, "GS")
+        return 0.0, "present weather", None, "no hail reported", s["last_at"]
+    if event_type == "DUST_STORM":
+        if bases & {"DS", "SS"}:
+            return 1.0, "present weather", None, "DS (dust storm)", _first_code_at(s, "DS") or _first_code_at(s, "SS")
+        if bases & {"DU", "SA", "VCDS", "VCSS"}:
+            return 0.6, "present weather", None, "DU/SA (dust or sand)", s["last_at"]
+        return 0.0, "present weather", None, "no dust reported", s["last_at"]
+    if event_type in ("STRONG_WIND", "CYCLONE"):
+        wind = s["max_wind_kmh"]
+        squall = "SQ" in bases
+        if wind is None and not squall:
+            return None
+        score = gust_score(wind) if wind is not None else 0.0
+        if squall:
+            score = max(score, 0.8)
+        if event_type == "CYCLONE":
+            score = min(PARTIAL_EVIDENCE_CAP, score)
+        seen = ", ".join(filter(None, ["SQ (squall)" if squall else None,
+                                        f"wind to {wind:.0f} km/h" if wind is not None else None]))
+        return score, "maximum gust", wind, seen, s["max_wind_at"]
+    if event_type == "HEATWAVE":
+        t = s["max_temp_c"]
+        if t is None:
+            return None
+        hill = hill_hint if hill_hint is not None else is_hill(s.get("elevation_m"))
+        return heat_score(t, hill), "maximum temperature", t, f"maximum {t:.1f} °C", s["max_temp_at"]
+    if event_type == "COLD_WAVE":
+        t = s["min_temp_c"]
+        if t is None:
+            return None
+        return cold_score(t), "minimum temperature", t, f"minimum {t:.1f} °C", s["min_temp_at"]
+    if event_type in RAIN_FAMILY_TYPES:
+        heavy = "RA+" in s["codes"] or ("TS" in bases and "RA" in bases)
+        if heavy:
+            score, seen = 0.8, "heavy rain or rain with thunder"
+        elif bases & {"RA", "DZ", "SH"}:
+            score, seen = 0.6, "rain reported"
+        else:
+            score, seen = 0.0, "no rain reported"
+        if event_type in PARTIAL_TYPES:
+            score = min(PARTIAL_EVIDENCE_CAP, score)
+        codes = ", ".join(s["codes"]) or "no present weather"
+        return score, "present weather (qualitative: a METAR carries no rainfall amount)", None, \
+            f"{seen} ({codes})", s["last_at"]
+    return None
+
+
+def _first_code_at(s: Mapping[str, Any], base: str) -> Optional[datetime]:
+    times = [at for code, at in s["code_at"].items() if str(code).rstrip("+-").startswith(base)]
+    return min(times) if times else None
+
+
+def station_line(s: Mapping[str, Any], seen: str, at: Optional[datetime]) -> str:
+    """'IMD airport observation VIDP (Delhi IGI, 14 km): FG, visibility 150 m at 05:30 IST'."""
+    kind = "IMD airport observation" if s.get("civil") else "Airport observation"
+    return f"{kind} {s['station']} ({s['name']}, {s['distance_km']:.0f} km): {seen} at {_ist(at)}"
+
+
+def station_evidence(
+    event_type: Optional[str],
+    stations: Sequence[Mapping[str, Any]],
+    window: Window,
+    *,
+    hill_hint: Optional[bool] = None,
+) -> Optional[Evidence]:
+    """
+    The airport evidence for this hazard, or None when no station within 50 km
+    observed in the window (or none reported this hazard's variable).
+    `hill_hint` is the model grid's hill test at the event, which is where the
+    heatwave is claimed; the station's own elevation is used only without it.
+    """
+    etype = event_type or "URBAN_FLOOD"
+    if etype == "UNCLASSIFIED":
+        return None
+    scored = []
+    for s in stations:
+        result = _station_score(etype, s, hill_hint)
+        if result is None:
+            continue
+        raw, variable, value, seen, at = result
+        factor = distance_factor(s["distance_km"])
+        if factor <= 0.0:
+            continue
+        scored.append((round(raw * factor, 4), raw, factor, variable, value, seen, at, s))
+    if not scored:
+        return None
+    if etype in SCALAR_TYPES or etype == "CYCLONE":
+        chosen = min(scored, key=lambda x: (x[7]["distance_km"], x[7]["station"]))
+    else:
+        chosen = max(scored, key=lambda x: (x[0], -x[7]["distance_km"]))
+    score, raw, factor, variable, value, seen, at, s = chosen
+    line = station_line(s, seen, at)
+    if factor < 1.0:
+        line += f" (× {factor} for {s['distance_km']:.0f} km)"
+    return Evidence(
+        score, "computed", variable, value, window=window.label(), source=AIRPORT_METAR,
+        reason=line,
+        detail={
+            "station": s["station"],
+            "name": s["name"],
+            "distance_km": s["distance_km"],
+            "distance_factor": factor,
+            "civil": s["civil"],
+            "raw_score": raw,
+            "observations": s["observations"],
+            "codes": s["codes"],
+            "stations_considered": len(stations),
+        },
+    )
