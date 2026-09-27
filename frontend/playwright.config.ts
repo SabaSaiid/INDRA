@@ -63,6 +63,12 @@ export default defineConfig({
     timeout: 300_000,
     env: {
       NEXT_PUBLIC_API_BASE_URL: API,
+      // The alerts page also reads the separate Alert Engine (PR #38), which the
+      // E2E stack does not run. Pointed at the E2E backend, its calls find
+      // nothing and the page shows its empty state, and fixtures.ts can keep
+      // refusing every other origin.
+      NEXT_PUBLIC_ALERT_ENGINE_BASE_URL: API,
+      NEXT_PUBLIC_ALERT_ENGINE_WS_URL: `${new URL(API).origin.replace(/^http/, 'ws')}/ws/alerts`,
       NEXT_DIST_DIR: '.next-e2e',
     },
   },
