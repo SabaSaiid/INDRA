@@ -41,3 +41,14 @@ judgement call. The rules are `hazards_v1.md`'s, plus:
   a report of rain (`none`).
 - **An impossible number** (240 °C, 620 km/h) still names the hazard the post claims; the
   `implausible_value` flag, not the hazard label, is what should catch it.
+
+## `hazards_real_v2.csv`, the independent sample
+
+v1 was read on 27 Sep to find BUG-108 … BUG-112, and the rules were fixed after that, so v1 no
+longer measures anything independently. **v2** was drawn the same day, after the fixes, with
+`--seed 27092026 --exclude hazards_real_v1.csv`: 100 of 2,801 candidates, 41 in Hindi, no row shared
+with v1. One phone number in a rescue request was replaced with `<phone>` (the sampler now does this
+itself). v2 was labelled the same way, by Claude, with the conventions above, before the tagger was
+run on any of its rows, and committed before measuring. One row (p097, a headline cut off before
+its hazard word) is `skip`. **v2's figure is the one to quote**, with the same caveat: labelled by
+Claude, not a person.
