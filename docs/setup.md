@@ -40,7 +40,7 @@ The defaults work for local development. The values worth knowing:
 | `DATABASE_URL` | `…@localhost:5433/indra_db` | **Port 5433**, not 5432, so it cannot clash with a local Postgres |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:19092` | Redpanda |
 | `REDIS_URL` | `redis://localhost:6379/0` | |
-| `SECRET_KEY` | a value committed in `.env.example` | Signs every login token. **Replace it on any server someone else can reach** (`openssl rand -hex 32`): with the committed value, anyone who has the repository can mint a valid token without a password |
+| `SECRET_KEY` | a value committed in `.env.example` | Signs every login token. **Replace it on any server someone else can reach** (`openssl rand -hex 32`): with the committed value, anyone who has the repository can mint a valid token without a password. Since 27 Sep, `ENVIRONMENT=production` refuses the committed value, or any key under 32 characters, and the backend will not start (BUG-120) |
 | `SACHET_POLLER_ENABLED` | `true` | Polls NDMA's SACHET CAP feed every 5 min into `agency_alerts` |
 | `STATION_POLLER_ENABLED` | `true` | Polls Open-Meteo every 10 min into `station_readings` |
 | `METAR_POLLER_ENABLED`, `MASTODON_POLLER_ENABLED`, `NEWS_POLLER_ENABLED` | `false` | Phase 2's feeds: airport weather, #IMD posts, news headlines. No keys needed; turn them on to collect |
