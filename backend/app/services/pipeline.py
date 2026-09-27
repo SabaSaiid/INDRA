@@ -855,7 +855,9 @@ async def _cluster_reports(db: AsyncSession, report_ids: Sequence[UUID]) -> List
             text("""
                 SELECT id, raw_text, CAST(source_type AS text), hazard_primary, citizen_hazard,
                        reporter_hash, credibility_score, COALESCE(flags, '{}'::text[]),
-                       COALESCE(source_meta->>'publisher_domain', source_meta->>'publisher')
+                       COALESCE(source_meta->>'publisher_domain', source_meta->>'publisher'),
+                       COALESCE(observed_at, created_at),
+                       source_meta->>'publisher_domain', source_meta->>'publisher'
                 FROM raw_reports
                 WHERE id = ANY(CAST(:ids AS uuid[]))
                   AND duplicate_of IS NULL
@@ -875,7 +877,128 @@ async def _cluster_reports(db: AsyncSession, report_ids: Sequence[UUID]) -> List
             "credibility": float(r[6]) if r[6] is not None else 0.0,
             "flags": list(r[7] or []),
             "publisher": r[8],
+            # Phase 4: when it was observed (the evidence window), and the
+            # publisher's domain and name apart (T6 counts domains, prints names).
+            "at": r[9],
+            "publisher_domain": r[10],
+            "publisher_name": r[11],
         }
+        for r in rows
+    ]
+
+
+# ── Phase 4: what the evidence queries read ────────────────────────────────────
+
+async def _metar_observations(
+    db: AsyncSession, lat: float, lng: float, start: datetime, end: datetime
+) -> List[Dict[str, Any]]:
+    """
+    Every airport observation within 50 km of a point between start and end,
+    with its distance and, from the station table, whether the aerodrome is
+    civil and its elevation (T2). Empty on any failure, which is "no station",
+    never an error: the model evidence still applies.
+    """
+    from app.services.evidence import STATION_MAX_KM
+    from app.workers.metar_poller import station_table
+
+    try:
+        async with db.begin_nested():
+            rows = (await db.execute(
+                text("""
+                    SELECT station_code, station_name, recorded_at, temperature_c, wind_kmh,
+                           gust_kmh, visibility_m, COALESCE(weather_codes, '{}'::text[]),
+                           COALESCE(convective_cloud, false),
+                           ST_Distance(
+                               station_location::geography,
+                               ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+                           ) / 1000.0
+                    FROM station_readings
+                    WHERE feed = 'metar'
+                      AND station_location IS NOT NULL
+                      AND recorded_at BETWEEN CAST(:start AS timestamptz) AND CAST(:end AS timestamptz)
+                      AND ST_DWithin(
+                            station_location::geography,
+                            ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                            :metres
+                          )
+                    ORDER BY 10, recorded_at
+                """),
+                {"lat": lat, "lng": lng, "start": start, "end": end,
+                 "metres": STATION_MAX_KM * 1000.0},
+            )).fetchall()
+    except Exception as e:
+        logger.warning(f"METAR lookup failed, model evidence only: {type(e).__name__}: {e}")
+        return []
+
+    table = station_table()
+    out = []
+    for r in rows:
+        known = table.get(r[0]) or {}
+        out.append({
+            "station_code": r[0],
+            "station_name": r[1],
+            "recorded_at": r[2],
+            "temperature_c": r[3],
+            "wind_kmh": r[4],
+            "gust_kmh": r[5],
+            "visibility_m": r[6],
+            "weather_codes": list(r[7] or []),
+            "convective_cloud": bool(r[8]),
+            "distance_km": float(r[9]),
+            "civil": bool(known.get("civil")),
+            "elevation_m": known.get("elevation_m"),
+        })
+    return out
+
+
+# How many district headlines T6 reads at most for one event.
+NEWS_CONTEXT_LIMIT = 200
+
+
+async def _district_warning_news(
+    db: AsyncSession,
+    *,
+    exclude_ids: Sequence[UUID],
+    family: Optional[str],
+    district: Optional[str],
+    start: datetime,
+    end: datetime,
+) -> List[Dict[str, Any]]:
+    """
+    Warning-tense headlines of the event's hazard family and district inside
+    the evidence window that are not in its cluster (T6): news context the
+    clustering rightly kept out of the event's geometry. Empty without a
+    family or a district, or on failure.
+    """
+    if not family or not district:
+        return []
+    try:
+        async with db.begin_nested():
+            rows = (await db.execute(
+                text("""
+                    SELECT source_meta->>'publisher_domain', source_meta->>'publisher'
+                    FROM raw_reports
+                    WHERE CAST(source_type AS text) = 'NEWS_MEDIA'
+                      AND duplicate_of IS NULL
+                      AND hazard_family = :family
+                      AND lower(district) = lower(:district)
+                      AND 'not_an_observation' = ANY(COALESCE(flags, '{}'::text[]))
+                      AND COALESCE(observed_at, created_at)
+                            BETWEEN CAST(:start AS timestamptz) AND CAST(:end AS timestamptz)
+                      AND NOT (id = ANY(CAST(:ids AS uuid[])))
+                    ORDER BY created_at
+                    LIMIT :limit
+                """),
+                {
+                    "family": family, "district": district, "start": start, "end": end,
+                    "ids": [str(i) for i in exclude_ids], "limit": NEWS_CONTEXT_LIMIT,
+                },
+            )).fetchall()
+    except Exception as e:
+        logger.warning(f"District news lookup failed: {type(e).__name__}: {e}")
+        return []
+    return [
+        {"publisher_domain": r[0], "publisher": r[1], "forecast": True, "in_cluster": False}
         for r in rows
     ]
 
