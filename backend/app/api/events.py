@@ -571,7 +571,8 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
             ST_Y(center_point) as lat, ST_X(center_point) as lng,
             ST_AsGeoJSON(boundary_polygon) as boundary_geojson,
             verification_receipt, verified_at,
-            district, state, place_precision
+            district, state, place_precision,
+            CAST(verdict AS text), claimed_by, claimed_at
         FROM verified_events
         WHERE event_code = :event_code
            OR id = CAST(:event_uuid AS uuid)
@@ -613,6 +614,10 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
                 "city": row[13],
                 "state": row[14],
                 "place_precision": row[15],
+                # Phase 4: what the evidence says (T4), and who is reviewing
+                # it (T7; null when nobody holds an unexpired claim).
+                "verdict": row[16],
+                "claim": claim_view(row[17], row[18]),
             }
     except Exception as e:
         logger.warning(f"Database query failed in get_event_detail: {e}")
@@ -622,6 +627,33 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
 
     return empty_or_503(f"GET /api/events/{event_id}", _not_found, db_error)
+
+
+# ── Review claims (Phase 4 T7) ─────────────────────────────────────────────────
+
+CLAIM_MINUTES = 15
+
+
+def claim_expires_at(claimed_at: Optional[datetime]) -> Optional[datetime]:
+    return claimed_at + timedelta(minutes=CLAIM_MINUTES) if claimed_at else None
+
+
+def claim_active(claimed_by: Optional[str], claimed_at: Optional[datetime], now: datetime) -> bool:
+    """A claim holds for CLAIM_MINUTES after it was taken; nothing clears it on expiry."""
+    return bool(claimed_by) and claimed_at is not None and now < claim_expires_at(claimed_at)
+
+
+def claim_view(claimed_by: Optional[str], claimed_at: Optional[datetime]) -> Optional[Dict[str, Any]]:
+    """{operator_id, claimed_at, expires_at} for an unexpired claim, else None."""
+    from app.services import clock
+
+    if not claim_active(claimed_by, claimed_at, clock.now()):
+        return None
+    return {
+        "operator_id": claimed_by,
+        "claimed_at": claimed_at.isoformat(),
+        "expires_at": claim_expires_at(claimed_at).isoformat(),
+    }
 
 
 # ── Human review ───────────────────────────────────────────────────────────────
