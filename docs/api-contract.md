@@ -298,6 +298,7 @@ tracking"*. Every parameter is optional and they combine with AND. Lists are com
 | `family` | `water` · `convective` · `thermal` · `visibility` |
 | `review_status` | one or more statuses. **`REJECTED` appears only when named** |
 | `severity` | one or more of `ADVISORY` · `MODERATE` · `HIGH` · `CRITICAL`. The old single value still works |
+| `verdict` | **Phase 4 (written, not yet tested).** one or more of `CORROBORATED` · `CONTRADICTED` · `UNCONFIRMED`. An event scored before receipt v2 has no verdict and matches none |
 | `state`, `district` | exact name, any case (`bihar` matches `Bihar`) |
 | `source_type` | events with at least one report from these sources, e.g. `OFFICIAL_DISPATCH` |
 | `min_confidence` | 0–1 |
@@ -311,7 +312,7 @@ tracking"*. Every parameter is optional and they combine with AND. Lists are com
 **The body is still a list**, newest first. **The number of matching events is in the
 `X-Total-Count` header**, which CORS exposes to the dashboard's origin. Each item has the keys it
 always had, plus `event_type` (the enum — key icons on this, not on the display label `eventType`)
-and `family`.
+and `family`, and since Phase 4 `verdict` (`null` for an event last scored before receipt v2).
 
 Captured 23 Sep:
 
@@ -664,6 +665,10 @@ Captured 23 Sep (one event in the database):
  "date_min":"2026-09-23","date_max":"2026-09-23",
  "generated_at":"2026-09-23T14:35:54.192358+00:00"}
 ```
+
+**Phase 4 (written, not yet tested):** `verdicts`, `[{"value": "CORROBORATED", "count": n}, …]`
+in the order CORROBORATED, UNCONFIRMED, CONTRADICTED, over non-rejected events that have a
+verdict.
 
 Empty database: every list `[]` and both dates `null`. Cached for **60 s** (Redis key
 `meta:filters`, with an in-memory fallback), so a new event can take up to a minute to appear in the
