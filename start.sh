@@ -389,6 +389,17 @@ ensure_docker_infra() {
     fi
 }
 
+ensure_db_migrations() {
+    if [[ -x "$PYTHON_CMD" && -f "$BACKEND_DIR/alembic.ini" ]]; then
+        echo "${CYAN}Syncing database schema (alembic upgrade head)...${RESET}"
+        if (cd "$BACKEND_DIR" && "$PYTHON_CMD" -m alembic upgrade head); then
+            echo "${GREEN}✓ Database schema is up to date.${RESET}"
+        else
+            echo "${YELLOW}⚠ Database migration skipped or failed (check database connection).${RESET}"
+        fi
+    fi
+}
+
 # --- Subcommand: setup ---
 cmd_setup() {
     print_banner
@@ -441,6 +452,7 @@ cmd_start() {
     fi
 
     ensure_docker_infra
+    ensure_db_migrations
 
     # Start Next.js Frontend
     start_frontend_bg
@@ -514,6 +526,7 @@ cmd_backend() {
     fi
 
     ensure_docker_infra
+    ensure_db_migrations
 
     local API_URL="http://localhost:$PORT"
     local DOCS_URL="http://localhost:$PORT/docs"
@@ -572,6 +585,7 @@ cmd_bg() {
     fi
 
     ensure_docker_infra
+    ensure_db_migrations
 
     # Start Frontend
     start_frontend_bg
