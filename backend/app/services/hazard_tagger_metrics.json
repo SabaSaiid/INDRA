@@ -442,22 +442,22 @@
   "real_posts": {
     "by_language": {
       "en": {
-        "f1": 0.8977,
+        "f1": 0.9186,
         "fn": 3,
-        "fp": 15,
-        "precision": 0.8404,
+        "fp": 11,
+        "precision": 0.8778,
         "recall": 0.9634,
         "support": 82,
         "tp": 79
       },
       "hi": {
-        "f1": 0.729,
-        "fn": 18,
-        "fp": 11,
-        "precision": 0.78,
-        "recall": 0.6842,
+        "f1": 0.9828,
+        "fn": 0,
+        "fp": 2,
+        "precision": 0.9661,
+        "recall": 1.0,
         "support": 57,
-        "tp": 39
+        "tp": 57
       }
     },
     "by_stratum": {
@@ -467,22 +467,25 @@
       "vietnam_lu": 5
     },
     "claim": "measured on real #IMD and weather posts and headlines collected from 24 Sep 2026",
+    "file": "backend/tests/fixtures/hazards_real_v1.csv",
     "file_sha256": "409ba593e4b4b57cc61573ab5383a6fb0bcc4cf9a3c23f5efb60bda090ba722b",
+    "independent": false,
     "labelled_by": "Claude, 27 Sep 2026, at Aditya's request; not a person (see hazards_real_v1.md)",
-    "macro_f1": 0.7539,
+    "macro_f1": 0.8582,
     "macro_f1_over": 13,
     "micro": {
-      "f1": 0.8339,
-      "fn": 21,
-      "fp": 26,
-      "precision": 0.8194,
-      "recall": 0.8489,
+      "f1": 0.9444,
+      "fn": 3,
+      "fp": 13,
+      "precision": 0.9128,
+      "recall": 0.9784,
       "support": 139,
-      "tp": 118
+      "tp": 136
     },
     "negatives": 48,
-    "negatives_tagged": 11,
-    "negatives_tagged_share": 0.2292,
+    "negatives_tagged": 3,
+    "negatives_tagged_share": 0.0625,
+    "note": "read on 27 Sep to find BUG-108 … BUG-112, and the rules were fixed after; this re-measurement is therefore not independent. Its measurement before the fix (commit 31ea810) was micro-F1 0.8339, English 0.8977, Hindi 0.729. Quote real_posts_v2.",
     "per_hazard": {
       "CLOUDBURST": {
         "f1": 1.0,
@@ -521,22 +524,22 @@
         "tp": 0
       },
       "DUST_STORM": {
-        "f1": 0.3077,
+        "f1": 0.8,
         "fn": 0,
-        "fp": 9,
-        "precision": 0.1818,
+        "fp": 1,
+        "precision": 0.6667,
         "recall": 1.0,
         "support": 2,
         "tp": 2
       },
       "FOG": {
-        "f1": 0.9677,
-        "fn": 1,
+        "f1": 1.0,
+        "fn": 0,
         "fp": 0,
         "precision": 1.0,
-        "recall": 0.9375,
+        "recall": 1.0,
         "support": 16,
-        "tp": 15
+        "tp": 16
       },
       "HAILSTORM": {
         "f1": null,
@@ -548,13 +551,13 @@
         "tp": 0
       },
       "HEATWAVE": {
-        "f1": 0.8571,
-        "fn": 2,
+        "f1": 0.9333,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 0.75,
+        "recall": 0.875,
         "support": 8,
-        "tp": 6
+        "tp": 7
       },
       "LANDSLIDE": {
         "f1": 0.6667,
@@ -575,13 +578,13 @@
         "tp": 3
       },
       "RAINFALL": {
-        "f1": 0.902,
-        "fn": 1,
-        "fp": 9,
-        "precision": 0.8364,
-        "recall": 0.9787,
+        "f1": 0.94,
+        "fn": 0,
+        "fp": 6,
+        "precision": 0.8868,
+        "recall": 1.0,
         "support": 47,
-        "tp": 46
+        "tp": 47
       },
       "RIVER_BREACH": {
         "f1": null,
@@ -593,54 +596,41 @@
         "tp": 0
       },
       "STRONG_WIND": {
-        "f1": 0.6,
-        "fn": 8,
+        "f1": 0.963,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 0.4286,
+        "recall": 0.9286,
         "support": 14,
-        "tp": 6
+        "tp": 13
       },
       "THUNDERSTORM": {
-        "f1": 0.6429,
-        "fn": 8,
+        "f1": 0.9444,
+        "fn": 0,
         "fp": 2,
-        "precision": 0.8182,
-        "recall": 0.5294,
+        "precision": 0.8947,
+        "recall": 1.0,
         "support": 17,
-        "tp": 9
+        "tp": 17
       },
       "URBAN_FLOOD": {
-        "f1": 0.8571,
+        "f1": 0.9091,
         "fn": 0,
-        "fp": 5,
-        "precision": 0.75,
+        "fp": 3,
+        "precision": 0.8333,
         "recall": 1.0,
         "support": 15,
         "tp": 15
       }
     },
-    "primary_accuracy": 0.8269,
+    "primary_accuracy": 0.9231,
     "primary_rows": 52,
     "rows": 100,
     "rows_drawn": 100,
     "rows_skipped": 0,
     "rows_wrong": [
-      "p012",
-      "p013",
-      "p019",
-      "p020",
-      "p021",
-      "p023",
-      "p024",
-      "p025",
       "p026",
-      "p027",
-      "p029",
-      "p034",
       "p036",
-      "p038",
-      "p039",
       "p045",
       "p053",
       "p058",
@@ -648,20 +638,18 @@
       "p060",
       "p061",
       "p064",
-      "p066",
       "p067",
-      "p071",
-      "p073",
       "p077",
       "p079",
-      "p081",
-      "p082",
-      "p091",
-      "p099"
+      "p091"
     ],
     "status": "labelled",
-    "tense_accuracy": 0.7857,
+    "tense_accuracy": 1.0,
     "tense_rows": 28
+  },
+  "real_posts_v2": {
+    "note": "run scripts/sample_real_posts.py on the server, then label it",
+    "status": "not drawn yet"
   },
   "reference_year": 2026,
   "tagger": "app/services/hazard_tagger.py (rules and dictionaries; no model)"
