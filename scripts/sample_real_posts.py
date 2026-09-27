@@ -26,7 +26,8 @@ so the same database gives the same sample. Refuses to overwrite a file that
 already has a label in it: that labelling is an hour of someone's work.
 
 **Privacy.** Only the post's text is written, with @mentions replaced by
-"@user": no author, no handle, no link to the post. These are public posts,
+"@user" and Indian phone numbers with "<phone>": no author, no handle, no
+number, no link to the post. These are public posts,
 but the file lives in the repository.
 """
 
@@ -57,6 +58,8 @@ MAX_VIETNAM = 5
 COLUMNS = ["id", "report_id", "source_type", "publisher", "language", "stratum", "text", "hazards", "tense",
            "notes"]
 _MENTION_RE = re.compile(r"@[\w.]+(?:@[\w.-]+)?")
+# A rescue request carries a private number; the file lives in the repository.
+_PHONE_RE = re.compile(r"(?<!\d)(?:\+?91[\s-]?)?[6-9]\d{9}(?!\d)")
 
 QUERY = """
     SELECT id, CAST(source_type AS text), platform,
@@ -177,7 +180,7 @@ def main() -> int:
                 "publisher": r["publisher"] or "",
                 "language": r["language"] or "",
                 "stratum": stratum,
-                "text": _MENTION_RE.sub("@user", " ".join((r["text"] or "").split())),
+                "text": _PHONE_RE.sub("<phone>", _MENTION_RE.sub("@user", " ".join((r["text"] or "").split()))),
                 "hazards": "",
                 "tense": "",
                 "notes": "",
