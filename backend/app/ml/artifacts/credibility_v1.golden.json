@@ -1,0 +1,22 @@
+{
+  "checks": {
+    "duplicate_not_equated_with_misleading": true,
+    "external_apis_absent": true,
+    "extreme_not_equated_with_misleading": true,
+    "grouped_leakage_checks_passed": true,
+    "hidden_label_isolation_passed": true,
+    "multilingual_results_present": true,
+    "network_access_disabled": true,
+    "open_weight_models_absent": true,
+    "pretrained_models_absent": true,
+    "production_training_gate_closed": true,
+    "semantic_target_is_misleading_risk_evidence": true,
+    "synthetic_development_gate_open": true,
+    "test_not_accessed_for_selection": true,
+    "truth_probability_is_prohibited": true,
+    "uncertain_not_fitted_as_target": true
+  },
+  "production_validation": "NOT_VALIDATED",
+  "schema_version": "1.0",
+  "status": "PASS"
+}

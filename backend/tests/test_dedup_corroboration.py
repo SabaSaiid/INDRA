@@ -9,28 +9,28 @@ words are two witnesses, which is exactly the evidence Report Density scores.
 Catching paraphrases would throw witnesses away.
 
 What dedup should catch is the same message sent again — a resubmission,
-punctuation or case changed, an "URGENT:" prefix, a forward. Measured with the
-production MiniLM model:
+punctuation or case changed, an "URGENT:" prefix, a forward. The numbers below
+are historical measurements with the retired MiniLM model:
 
     independent witnesses   0.8229  0.8359  0.9093  0.8633  0.8084
     resubmissions           0.9287  0.9891  0.9881  0.9115  0.9330
 
-At 0.88 every resubmission is caught and four witness pairs of five are kept.
-Lowering to 0.85 would have suppressed two of the five. The fifth pair —
+At 0.88 every historical resubmission was caught and four witness pairs of five
+were kept. The current frozen local matcher has its own threshold; a narrow
+literal-repost rule preserves the identical URGENT/Fwd cases without retuning it.
+The fifth historical pair —
 "Kankarbagh underpass completely submerged, cars stuck" against "Cars are stuck
-in the flooded Kankarbagh underpass", 0.9093 — is suppressed today, and that
+in the flooded Kankarbagh underpass", 0.9093 — was suppressed then, and that
 is the real limit: wording cannot tell "the same person again" from "a second
 person describing the same thing". That needs a reporter identity, which the
 anonymous citizen channel does not collect. It is recorded, not asserted.
 
-These tests pin both sides, so moving the threshold either way fails loudly.
+These tests pin both sides against the current local backend path.
 """
 
 import pytest
 
-from tests.conftest import PATNA_LAT, PATNA_LNG, T0, requires_embeddings
-
-pytestmark = requires_embeddings
+from tests.conftest import PATNA_LAT, PATNA_LNG, T0
 
 INDEPENDENT_WITNESSES = [
     ("Water entering ground floor shops near Kankarbagh main road",

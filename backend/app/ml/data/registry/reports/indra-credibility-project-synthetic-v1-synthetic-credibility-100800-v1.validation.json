@@ -1,0 +1,197 @@
+{
+  "report_version": "dataset-validation-report-v1",
+  "schema_version": "1.0",
+  "generated_at": "2026-09-24T00:00:00Z",
+  "dataset_id": "indra-credibility-project-synthetic-v1",
+  "dataset_version": "synthetic-credibility-100800-v1",
+  "component": "CREDIBILITY",
+  "local_path": "../../../../../data/labelled/credibility/synthetic_v1/synthetic_credibility_annotations.jsonl",
+  "format": "JSONL",
+  "registered_content_sha256": "de07316a82cac3c408b3d67be40d5199c9c1d50e8c0cb3d0684b227a3f3722a1",
+  "content_sha256": "de07316a82cac3c408b3d67be40d5199c9c1d50e8c0cb3d0684b227a3f3722a1",
+  "hash_matches_registry": true,
+  "valid": true,
+  "validation_status": "VALID",
+  "checks": [
+    {
+      "code": "FILE_INTEGRITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "CONTENT_HASH",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "ENCODING_AND_UNICODE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "SCHEMA_AND_REQUIRED_FIELDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "NULL_AND_REQUIRED_VALUES",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_RECORDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_IMAGES",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "CONTRADICTORY_LABELS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "COORDINATE_VALIDITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "TIMESTAMP_VALIDITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "GROUP_IDENTIFIERS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "LABEL_DISTRIBUTION",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    }
+  ],
+  "leakage": {
+    "exact_duplicate_leakage": {
+      "code": "EXACT_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "near_duplicate_leakage": {
+      "code": "NEAR_DUPLICATE_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": true,
+      "details": [
+        "NEAR_DUPLICATE_SCAN_LIMIT_EXCEEDED"
+      ]
+    },
+    "group_leakage": {
+      "code": "GROUP_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "temporal_leakage": {
+      "code": "TEMPORAL_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "temporal ordering is not a required split rule for this component"
+      ]
+    },
+    "label_leakage": {
+      "code": "LABEL_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "cross_split_overlap": {
+      "code": "CROSS_SPLIT_OVERLAP",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "overall_status": "INSUFFICIENT_EVIDENCE"
+  },
+  "errors": [],
+  "warnings": [
+    "No repeated annotations are available for inter-annotator agreement."
+  ],
+  "row_or_image_count": 100800,
+  "label_count": 100800,
+  "label_distribution": {
+    "AUTHENTIC": 36000,
+    "MISLEADING": 57600,
+    "UNCERTAIN": 7200
+  },
+  "split_counts": {
+    "train": 70560,
+    "validation": 15120,
+    "test": 15120
+  },
+  "split_label_counts": {
+    "train": {
+      "AUTHENTIC": 25200,
+      "MISLEADING": 40320,
+      "UNCERTAIN": 5040
+    },
+    "validation": {
+      "AUTHENTIC": 5400,
+      "MISLEADING": 8640,
+      "UNCERTAIN": 1080
+    },
+    "test": {
+      "AUTHENTIC": 5400,
+      "MISLEADING": 8640,
+      "UNCERTAIN": 1080
+    }
+  },
+  "grouping_coverage": 1.0,
+  "component_readiness": {
+    "label_counts": {
+      "AUTHENTIC": 36000,
+      "MISLEADING": 57600,
+      "UNCERTAIN": 7200
+    },
+    "authentic_count": 36000,
+    "misleading_count": 57600,
+    "uncertain_count": 7200,
+    "annotator_counts": {
+      "project-scenario-specification-v1": 100800
+    },
+    "adjudication_coverage": null
+  },
+  "approval_blockers": {
+    "TRAINING": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "LEAKAGE_INSUFFICIENT_EVIDENCE"
+    ],
+    "VALIDATION": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "LEAKAGE_INSUFFICIENT_EVIDENCE"
+    ],
+    "TEST": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "LEAKAGE_INSUFFICIENT_EVIDENCE"
+    ]
+  }
+}

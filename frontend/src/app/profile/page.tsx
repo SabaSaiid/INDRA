@@ -45,8 +45,10 @@ import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import { roleLabel, sessionExpiryLabel } from '@/lib/auth';
 import { fetchTeams } from '@/lib/api';
 import { useSidebar } from '@/lib/useSidebar';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -233,7 +235,7 @@ export default function ProfilePage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-black text-text-primary tracking-tight">Operator Profile</h1>
+                <h1 className="text-2xl font-black text-text-primary tracking-tight">{t('nav.operator')}</h1>
               </div>
               <p className="text-sm text-text-secondary mt-1">
                 Identity, role, duty status and the actions this operator has taken in the audit ledger.

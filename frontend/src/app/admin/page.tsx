@@ -29,6 +29,7 @@ import Topbar from '@/components/Topbar';
 import { useSidebar } from '@/lib/useSidebar';
 import { useSession } from '@/lib/auth';
 import { fadeIn, staggerContainer } from '@/lib/motion';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   fetchHealth,
   fetchOperators,
@@ -65,6 +66,7 @@ function when(ts: string | null): string {
 }
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -133,7 +135,7 @@ export default function AdminPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="w-5 h-5 text-emerald-400" />
-                <h1 className="text-xl font-bold font-mono">ADMIN — SYSTEM &amp; GOVERNANCE</h1>
+                <h1 className="text-xl font-bold font-mono">{t('nav.admin_panel')}</h1>
               </div>
               <p className="text-xs text-slate-400">
                 Live dependency checks, operator accounts and the hash-chained audit ledger.
@@ -148,7 +150,7 @@ export default function AdminPage() {
                 }`}
               >
                 <span className={`w-2 h-2 rounded-full ${overall ? overall.dot : 'bg-rose-500'}`} />
-                {loading && !health ? 'CHECKING…' : overall ? overall.label : 'BACKEND UNREACHABLE'}
+                {loading && !health ? `${t('common.loading').toUpperCase()}…` : overall ? overall.label : 'BACKEND UNREACHABLE'}
               </div>
               <button
                 onClick={load}

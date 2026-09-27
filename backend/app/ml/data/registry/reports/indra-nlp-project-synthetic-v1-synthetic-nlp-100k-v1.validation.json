@@ -1,0 +1,229 @@
+{
+  "report_version": "dataset-validation-report-v1",
+  "schema_version": "1.0",
+  "generated_at": "2026-09-23T00:00:00Z",
+  "dataset_id": "indra-nlp-project-synthetic-v1",
+  "dataset_version": "synthetic-nlp-100k-v1",
+  "component": "NLP",
+  "local_path": "../../../../../data/labelled/nlp/synthetic_v1/synthetic_nlp_dataset.jsonl",
+  "format": "JSONL",
+  "registered_content_sha256": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+  "content_sha256": "6a4b5157f4fa67a5933ebb230cf6a73539647e130fe224d9aa0fdb397e904f76",
+  "hash_matches_registry": true,
+  "valid": true,
+  "validation_status": "VALID",
+  "checks": [
+    {
+      "code": "FILE_INTEGRITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "CONTENT_HASH",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "ENCODING_AND_UNICODE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "SCHEMA_AND_REQUIRED_FIELDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "NULL_AND_REQUIRED_VALUES",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_RECORDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_IMAGES",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "CONTRADICTORY_LABELS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "COORDINATE_VALIDITY",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "TIMESTAMP_VALIDITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "GROUP_IDENTIFIERS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "LABEL_DISTRIBUTION",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    }
+  ],
+  "leakage": {
+    "exact_duplicate_leakage": {
+      "code": "EXACT_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "near_duplicate_leakage": {
+      "code": "NEAR_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": [
+        "verified by hash-bound Phase 17 scalable synthetic leakage report"
+      ]
+    },
+    "group_leakage": {
+      "code": "GROUP_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "temporal_leakage": {
+      "code": "TEMPORAL_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "temporal ordering is not a required split rule for this component"
+      ]
+    },
+    "label_leakage": {
+      "code": "LABEL_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "cross_split_overlap": {
+      "code": "CROSS_SPLIT_OVERLAP",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "overall_status": "PASS"
+  },
+  "errors": [],
+  "warnings": [],
+  "row_or_image_count": 100000,
+  "label_count": 100000,
+  "label_distribution": {
+    "CLOUDBURST": 20000,
+    "CYCLONE_INUNDATION": 20000,
+    "NOT_RELEVANT": 20000,
+    "RIVER_BREACH": 20000,
+    "URBAN_FLOOD": 20000
+  },
+  "split_counts": {
+    "train": 80000,
+    "validation": 10000,
+    "test": 10000
+  },
+  "split_label_counts": {
+    "train": {
+      "CLOUDBURST": 16000,
+      "CYCLONE_INUNDATION": 16000,
+      "NOT_RELEVANT": 16000,
+      "RIVER_BREACH": 16000,
+      "URBAN_FLOOD": 16000
+    },
+    "validation": {
+      "CLOUDBURST": 2000,
+      "CYCLONE_INUNDATION": 2000,
+      "NOT_RELEVANT": 2000,
+      "RIVER_BREACH": 2000,
+      "URBAN_FLOOD": 2000
+    },
+    "test": {
+      "CLOUDBURST": 2000,
+      "CYCLONE_INUNDATION": 2000,
+      "NOT_RELEVANT": 2000,
+      "RIVER_BREACH": 2000,
+      "URBAN_FLOOD": 2000
+    }
+  },
+  "grouping_coverage": 1.0,
+  "component_readiness": {
+    "class_counts": {
+      "CLOUDBURST": 20000,
+      "CYCLONE_INUNDATION": 20000,
+      "NOT_RELEVANT": 20000,
+      "RIVER_BREACH": 20000,
+      "URBAN_FLOOD": 20000
+    },
+    "language_counts": {
+      "English": 33334,
+      "Hindi": 33333,
+      "Hinglish": 33333
+    },
+    "train_validation_test_counts": {
+      "test": 10000,
+      "train": 80000,
+      "validation": 10000
+    },
+    "subgroup_sizes": {
+      "test::English": 3334,
+      "test::Hindi": 3333,
+      "test::Hinglish": 3333,
+      "train::English": 26667,
+      "train::Hindi": 26666,
+      "train::Hinglish": 26667,
+      "validation::English": 3333,
+      "validation::Hindi": 3334,
+      "validation::Hinglish": 3333
+    },
+    "duplicate_texts": [],
+    "label_conflicts": [],
+    "synthetic_release_evidence": "VALID",
+    "synthetic_quality_report_sha256": "e38bb32164bce82c9b42986810586da63d09af5acf3291573bed46c2e18a2416",
+    "synthetic_manifest_sha256": "aae4dc14efbdf50dedd25fb6803c1865f78afe14278864e4fd05bb9bbf66061e",
+    "synthetic_scenario_metadata_sha256": "9d87d4d59a3d576a76e603edc1cf509ac4cf6d0ceaf99003448b31f6641cb79f",
+    "synthetic_near_duplicate_method": "unicode-normalized location/number-masked token-bigram SimHash; 4x16-bit LSH candidate search; Hamming distance <= 3",
+    "synthetic_leakage_status": "PASS",
+    "synthetic_hard_negative_rows": 20000,
+    "synthetic_evidence_scope": "DEVELOPMENT_ONLY"
+  },
+  "approval_blockers": {
+    "TRAINING": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "SYNTHETIC_LABELS_DEVELOPMENT_ONLY"
+    ],
+    "VALIDATION": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "SYNTHETIC_LABELS_DEVELOPMENT_ONLY"
+    ],
+    "TEST": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ADJUDICATION_REQUIRED",
+      "SYNTHETIC_LABELS_DEVELOPMENT_ONLY"
+    ]
+  }
+}

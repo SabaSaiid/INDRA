@@ -3,6 +3,7 @@
 **What this is:** how to get the stack running from a fresh clone. Verified end to end on
 21 Sep 2026; migration head and health gate re-checked 22 Sep. Updated 25 Sep: operator
 accounts and their passwords, the disposable E2E backend, and no demo mode.
+The AI/ML layer's frozen local adapter arrived with PR #39 (26 Sep).
 
 If you only want to *run the demo*, this page plus [`demo-runbook.md`](demo-runbook.md) is
 everything.
@@ -121,12 +122,13 @@ open http://localhost:8000/docs                 # interactive API docs
 
 | `/healthz` | HTTP | Meaning |
 |---|---|---|
-| `healthy` | 200 | all four dependencies up |
-| `degraded` | 200 | Redis or Open-Meteo down — **fine**, neither is load-bearing |
-| `unhealthy` | 503 | Postgres or Kafka down — a report would be lost |
+| `healthy` | 200 | critical services and optional checks up |
+| `degraded` | 200 | Redis, Open-Meteo, object store, or delayed outbox — reports remain stored |
+| `unhealthy` | 503 | Postgres or Kafka down; Kafka-bound reports wait in the transactional outbox |
 
-First start loads the MiniLM embedding model (~13 s). It is warmed on a background thread, so the
-API answers immediately; wait for `✓ Embedding model warm` before timing anything.
+First start authorizes the frozen local duplicate artifact on a background thread. No MiniLM,
+remote checkpoint, or network-based ML warm-up is performed. Kafka's process producer and outbox
+relay also start during lifespan; a broker outage does not discard a stored report.
 
 ### Operator accounts
 
@@ -181,6 +183,9 @@ cd backend
 The suite runs against its own **`indra_test`** database and cannot touch your development data:
 it refuses to run against `indra_db`, creates `indra_test` if missing, and gives the accounts there
 passwords of its own that exist nowhere else.
+Without Docker (on Windows, say), a native PostgreSQL/PostGIS on this machine works the same
+way, as long as the database is `indra_test` or `indra_test_<suffix>`: the guard refuses any
+other name, and any host but this one unless `INDRA_ALLOW_REMOTE_TEST_DB=1`.
 
 ---
 

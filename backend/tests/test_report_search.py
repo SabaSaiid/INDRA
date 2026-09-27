@@ -345,3 +345,58 @@ async def test_exports_are_exposed_to_the_dashboard_origin(api, tokens):
     r = await api.get("/api/reports/export?format=csv",
                       headers={**tokens["analyst"], "Origin": origin})
     assert "Content-Disposition" in r.headers["access-control-expose-headers"]
+
+
+# ── Phase 3 T4, T8: search by hazard and by flag ───────────────────────────────
+
+@pytest_asyncio.fixture
+async def hazardous(db):
+    ids = {
+        "heat_citizen": await _citizen(db, "46 degree hai, loo chal rahi hai", district="Delhi", state="Delhi"),
+        # The text names no hazard; the citizen picked one.
+        "heat_pick": await _citizen(db, "Please send help to our street", citizen_hazard="HEATWAVE"),
+        "heat_post": await _post(db, "Scorching heat in Delhi, 45 degree #heatwave"),
+        "flood_citizen": await _citizen(db, "Knee deep water in Kankarbagh colony"),
+        # Rain that floods a road: tagged with both, primary URBAN_FLOOD.
+        "rain_and_flood": await _citizen(db, "Heavy rain since morning, Boring Road waterlogged"),
+        "forecast": await _post(db, "IMD: heavy rain likely in Patna tomorrow", platform="google_news",
+                                source_type="NEWS_MEDIA", meta={"publisher": "The Hindu"}),
+        "advert": await _citizen(db, "SELLING UMBRELLAS!!! CALL 9812345678"),
+    }
+    return {k: str(v) for k, v in ids.items()}
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("hazard=HEATWAVE", {"heat_citizen", "heat_pick", "heat_post"}),
+        ("hazard=URBAN_FLOOD", {"flood_citizen", "rain_and_flood"}),
+        # Any tagged hazard, not only the primary: the waterlogged road names rain too.
+        ("hazard=RAINFALL", {"rain_and_flood", "forecast"}),
+        ("flag=not_an_observation", {"forecast"}),
+        ("flag=promotional", {"advert"}),
+        ("hazard=HEATWAVE&source_type=SOCIAL_MEDIA", {"heat_post"}),
+    ],
+)
+async def test_search_by_hazard_and_flag(api, tokens, hazardous, query, expected):
+    assert _ids(await _search(api, tokens, query)) == {hazardous[k] for k in expected}
+
+
+async def test_an_item_carries_its_hazards_and_flags(api, tokens, hazardous):
+    items = {i["id"]: i for i in (await _search(api, tokens)).json()}
+    both = items[hazardous["rain_and_flood"]]
+    assert both["hazard_primary"] == "URBAN_FLOOD"
+    assert both["hazards"] == ["URBAN_FLOOD", "RAINFALL"]  # type names, in precedence order
+    assert both["flags"] == []
+    assert items[hazardous["advert"]]["flags"] == ["promotional", "shouting"]
+
+
+async def test_a_forecast_is_held(api, tokens, hazardous):
+    """A forecast never makes a cluster (T8), so search counts it as held."""
+    assert hazardous["forecast"] in _ids(await _search(api, tokens, "status=held"))
+
+
+@pytest.mark.parametrize("query", ["hazard=TORNADO", "flag=suspicious"])
+async def test_an_unknown_hazard_or_flag_is_422(api, tokens, query):
+    r = await api.get(f"/api/reports/search?{query}", headers=tokens["analyst"])
+    assert r.status_code == 422

@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "scope": "RELEASE_ELIGIBLE_LABELLED_DATASETS",
+  "components": {
+    "NLP": {
+      "dataset_present": true,
+      "dataset_version": "reports-v1-development-synthetic",
+      "dataset_hash": "3178b8d980d9ea8d5bea9089d0535aeaeebfc80a4cbca9349d27d2fa1bab031d",
+      "label_count": 300,
+      "annotator_count": null,
+      "train_count": 210,
+      "validation_count": null,
+      "test_count": 90,
+      "group_count": null,
+      "leakage_status": "PARTIAL_PASS_EXACT_TEXT_ONLY",
+      "provenance_status": "DOCUMENTED_DEVELOPMENT_SYNTHETIC_NO_FORMAL_ANNOTATOR_PROVENANCE",
+      "independence_status": "NOT_ESTABLISHED"
+    },
+    "DUPLICATE": {
+      "dataset_present": false,
+      "dataset_version": null,
+      "dataset_hash": null,
+      "label_count": null,
+      "annotator_count": null,
+      "train_count": null,
+      "validation_count": null,
+      "test_count": null,
+      "group_count": null,
+      "leakage_status": "NOT_EVALUATED_NO_RELEASE_DATASET",
+      "provenance_status": "NOT_AVAILABLE",
+      "independence_status": "NOT_ESTABLISHED"
+    },
+    "EVENT": {
+      "dataset_present": false,
+      "dataset_version": null,
+      "dataset_hash": null,
+      "label_count": null,
+      "annotator_count": null,
+      "train_count": null,
+      "validation_count": null,
+      "test_count": null,
+      "group_count": null,
+      "leakage_status": "NOT_EVALUATED_NO_RELEASE_DATASET",
+      "provenance_status": "NOT_AVAILABLE",
+      "independence_status": "NOT_ESTABLISHED"
+    },
+    "CREDIBILITY": {
+      "dataset_present": false,
+      "dataset_version": null,
+      "dataset_hash": null,
+      "label_count": null,
+      "annotator_count": null,
+      "train_count": null,
+      "validation_count": null,
+      "test_count": null,
+      "group_count": null,
+      "leakage_status": "NOT_EVALUATED_NO_RELEASE_DATASET",
+      "provenance_status": "NOT_AVAILABLE",
+      "independence_status": "NOT_ESTABLISHED"
+    },
+    "IMAGE": {
+      "dataset_present": false,
+      "dataset_version": null,
+      "dataset_hash": null,
+      "label_count": null,
+      "annotator_count": null,
+      "train_count": null,
+      "validation_count": null,
+      "test_count": null,
+      "group_count": null,
+      "leakage_status": "NOT_EVALUATED_NO_RELEASE_DATASET",
+      "provenance_status": "NOT_AVAILABLE",
+      "independence_status": "NOT_ESTABLISHED"
+    },
+    "ANOMALY": {
+      "dataset_present": false,
+      "dataset_version": null,
+      "dataset_hash": null,
+      "label_count": null,
+      "annotator_count": null,
+      "train_count": null,
+      "validation_count": null,
+      "test_count": null,
+      "group_count": null,
+      "leakage_status": "NOT_EVALUATED_NO_RELEASE_DATASET",
+      "provenance_status": "NOT_AVAILABLE",
+      "independence_status": "NOT_ESTABLISHED"
+    }
+  }
+}

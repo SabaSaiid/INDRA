@@ -1,0 +1,286 @@
+{
+  "report_version": "dataset-validation-report-v1",
+  "schema_version": "1.0",
+  "generated_at": "2026-09-24T09:00:00Z",
+  "dataset_id": "indra-synthetic-anomaly-v1",
+  "dataset_version": "1.0.0",
+  "component": "ANOMALY",
+  "local_path": "../../../../../data/labelled/anomaly/synthetic_v1/annotations.jsonl",
+  "format": "JSONL",
+  "registered_content_sha256": "206114139d5a253858be0a1b6a7ff1eb9946634c519c9a7bacf73cf1648b6151",
+  "content_sha256": "206114139d5a253858be0a1b6a7ff1eb9946634c519c9a7bacf73cf1648b6151",
+  "hash_matches_registry": true,
+  "valid": true,
+  "validation_status": "VALID",
+  "checks": [
+    {
+      "code": "FILE_INTEGRITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "CONTENT_HASH",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "ENCODING_AND_UNICODE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "SCHEMA_AND_REQUIRED_FIELDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "NULL_AND_REQUIRED_VALUES",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_RECORDS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "DUPLICATE_IMAGES",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "CONTRADICTORY_LABELS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "COORDINATE_VALIDITY",
+      "status": "PASS",
+      "required": false,
+      "details": []
+    },
+    {
+      "code": "TIMESTAMP_VALIDITY",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "GROUP_IDENTIFIERS",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    {
+      "code": "LABEL_DISTRIBUTION",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    }
+  ],
+  "leakage": {
+    "exact_duplicate_leakage": {
+      "code": "EXACT_DUPLICATE_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "near_duplicate_leakage": {
+      "code": "NEAR_DUPLICATE_LEAKAGE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "required": false,
+      "details": [
+        "near-duplicate detection is not supported for this schema"
+      ]
+    },
+    "group_leakage": {
+      "code": "GROUP_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "temporal_leakage": {
+      "code": "TEMPORAL_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "label_leakage": {
+      "code": "LABEL_LEAKAGE",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "cross_split_overlap": {
+      "code": "CROSS_SPLIT_OVERLAP",
+      "status": "PASS",
+      "required": true,
+      "details": []
+    },
+    "overall_status": "PASS"
+  },
+  "errors": [],
+  "warnings": [
+    "No target has independent repeated annotations; agreement was not calculated."
+  ],
+  "row_or_image_count": 100000,
+  "label_count": 100000,
+  "label_distribution": {
+    "ANOMALY": 56251,
+    "NORMAL": 43749
+  },
+  "split_counts": {
+    "train": 70000,
+    "validation": 15000,
+    "test": 15000
+  },
+  "split_label_counts": {
+    "train": {
+      "ANOMALY": 39375,
+      "NORMAL": 30625
+    },
+    "validation": {
+      "ANOMALY": 8438,
+      "NORMAL": 6562
+    },
+    "test": {
+      "ANOMALY": 8438,
+      "NORMAL": 6562
+    }
+  },
+  "grouping_coverage": 1.0,
+  "component_readiness": {
+    "stations": {
+      "station-02f79ff4e78cded2": 469,
+      "station-0356d36d4f943c29": 470,
+      "station-0439d1d1b96be214": 2186,
+      "station-050c7cc923aaeb6a": 469,
+      "station-09eb51b9d7a02512": 468,
+      "station-0bcf7013682dc534": 469,
+      "station-0d4e0a07ff4b5bd0": 468,
+      "station-0ef4c85656572527": 468,
+      "station-0f6f9fd11c3a08fc": 468,
+      "station-10d624d396d12f90": 470,
+      "station-1453aafbed2d7267": 470,
+      "station-16b34f032ac9bdbe": 468,
+      "station-17706554588cd9ff": 469,
+      "station-17c3bf4d0504f1a6": 2188,
+      "station-183c12fa47a0f697": 469,
+      "station-1ba54caa40e70e7e": 2187,
+      "station-1c7c52e2972b09f9": 2189,
+      "station-203862def258c8f6": 468,
+      "station-21579e23e8dc6d05": 469,
+      "station-278119ddded3e447": 2188,
+      "station-2e3cc801114b09b2": 469,
+      "station-3a9751110281841e": 469,
+      "station-3b145c12937c4bda": 470,
+      "station-3c9ccdbc592669e9": 2187,
+      "station-4103b9333c403a32": 2188,
+      "station-47716f47e29b8e0a": 468,
+      "station-4ab16d0dd993229d": 2186,
+      "station-4b857817d528ec93": 468,
+      "station-5065e5fe5db10b51": 469,
+      "station-525bc69225160a8b": 470,
+      "station-55b3929498ee6e3c": 2187,
+      "station-58a6ec70f2df96e1": 2188,
+      "station-593281c48f1cfc09": 2188,
+      "station-5ac8718e8edbfaa3": 2189,
+      "station-5f1b657d413ad647": 470,
+      "station-64455f952c9c5d2c": 470,
+      "station-68702d3875552129": 2188,
+      "station-68c0fed0d0670837": 467,
+      "station-6d20a4f588fa042f": 468,
+      "station-6e1d435ee71269da": 469,
+      "station-6eed1a119afb1b11": 468,
+      "station-6fbce517dec22044": 467,
+      "station-716faf2785fff952": 467,
+      "station-7231d5c836590b3d": 2186,
+      "station-7750e84c2eaf2302": 2188,
+      "station-7e9ee4a5efcb23fa": 2187,
+      "station-7ff8ae3fbb844dcd": 469,
+      "station-8691db35039573eb": 468,
+      "station-878bd790e13f65b8": 2189,
+      "station-8ac3c8e23996e5b2": 468,
+      "station-8e13e822e74598f8": 469,
+      "station-902321899c1e2b66": 468,
+      "station-9036e00ddaa85ecb": 468,
+      "station-915e81e98328914b": 470,
+      "station-92872ecf8e7d8ebc": 469,
+      "station-995d12b445c8d062": 469,
+      "station-9deca5c254e54c6a": 2186,
+      "station-9e0c53a6691645bf": 469,
+      "station-a5add675d7cd422f": 2188,
+      "station-a6458b07f6a0d2fa": 2187,
+      "station-a6a12c6d941f4899": 470,
+      "station-a8acdfaf8bd51d51": 2189,
+      "station-a9fbc9b972b103dc": 468,
+      "station-ac1ed4fbfe677f78": 469,
+      "station-ac5f39bef454070d": 470,
+      "station-ac6fe7b61c5fce1e": 469,
+      "station-afcc548231b4073b": 2186,
+      "station-b519952715b95211": 469,
+      "station-b854a13930e03728": 2188,
+      "station-b9a551a3c38dc190": 469,
+      "station-bb0c22f60aeb7013": 2187,
+      "station-c8382463dd8e26a8": 467,
+      "station-c954f9da3c2dfb31": 469,
+      "station-c976f5ec00543940": 2187,
+      "station-ca198c571eb69588": 468,
+      "station-cc5f63c649309990": 2186,
+      "station-d1c5740f54d1c1d7": 470,
+      "station-d29a0ad96970c8b2": 468,
+      "station-d43fb56af89601fb": 2189,
+      "station-d79796251b64e2ce": 2187,
+      "station-d80ea8216e37bb3b": 2188,
+      "station-d832a6f057d59a1b": 2189,
+      "station-d8630265cbe6b4df": 469,
+      "station-dbc2cdb9d6c6395f": 469,
+      "station-e3d9cd8041104422": 468,
+      "station-e694d0ab16b1011d": 469,
+      "station-e7e706d14e3fd661": 469,
+      "station-eb59a983310fdeaa": 469,
+      "station-f05ee4ac81bd7edc": 2187,
+      "station-f5d05e9d6d2cce43": 469,
+      "station-f7da73f730604e5b": 468,
+      "station-f9061d87059ea072": 2187,
+      "station-fa986c760495350b": 470,
+      "station-fb0d6c2204e060dc": 468,
+      "station-fc02bdfc5a947011": 469,
+      "station-fec14227c6cf3114": 469
+    },
+    "observation_count": 100000,
+    "time_span": {
+      "start": "2010-01-01T00:45:00+00:00",
+      "end": "2041-09-17T17:46:00+00:00"
+    },
+    "sampling_density_median_seconds": null,
+    "missingness_count": null,
+    "domain_labels": {
+      "DATA_QUALITY_ANOMALY": 31247,
+      "WEATHER_BEHAVIOR_ANOMALY": 25004
+    },
+    "temporal_coverage": 100000
+  },
+  "approval_blockers": {
+    "TRAINING": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ANOMALY_LABELS_REQUIRED"
+    ],
+    "VALIDATION": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ANOMALY_LABELS_REQUIRED"
+    ],
+    "TEST": [
+      "DEVELOPMENT_ONLY_DATASET",
+      "HUMAN_ANOMALY_LABELS_REQUIRED"
+    ]
+  }
+}

@@ -1,0 +1,1974 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "nlp-development-validation-v1",
+  "status": "FROZEN_FOR_FINAL_TEST",
+  "development_only": true,
+  "production_status": "NOT_PRODUCTION_READY",
+  "production_validation": "NOT_VALIDATED",
+  "created_at": "2026-09-23T05:12:53.455095+00:00",
+  "dataset": {
+    "dataset_id": "indra-nlp-reports-v1-synthetic",
+    "dataset_version": "reports-v1-development-synthetic",
+    "dataset_sha256": "3178b8d980d9ea8d5bea9089d0535aeaeebfc80a4cbca9349d27d2fa1bab031d",
+    "registry_path": "D:\\INDRA\\backend\\app\\ml\\data\\registry\\datasets.json",
+    "classification": "DEVELOPMENT_ONLY",
+    "synthetic": true
+  },
+  "split": {
+    "schema_version": "1.0",
+    "split_version": "nlp-development-split-v1",
+    "method": "deterministic sklearn train_test_split with event_type stratification",
+    "source_split": "existing train rows only",
+    "random_seed": 42,
+    "validation_fraction": 0.2,
+    "dataset_sha256": "3178b8d980d9ea8d5bea9089d0535aeaeebfc80a4cbca9349d27d2fa1bab031d",
+    "source_development_count": 210,
+    "train_count": 168,
+    "validation_count": 42,
+    "final_test_count": 90,
+    "train_sha256": "61b648cbca7a9d87bde7421ac14a00d1d7750b35e4a18d11f71340454b30a268",
+    "validation_sha256": "3c29e91f4243e0b5f543270e3df3b3b8d06e546de8395f83d8026d02d0a70101",
+    "final_test_sha256": "6082b1a16b0326e7932f5610ce99c873112c216b4c422f9a98dda360b0166813",
+    "final_test_source_order_sha256": "9404db546620ec734efb38464aa1a7d5b7ddfab8f217facc5785d461a3c6c88a",
+    "train_record_ids": [
+      "r002",
+      "r004",
+      "r005",
+      "r007",
+      "r008",
+      "r010",
+      "r012",
+      "r013",
+      "r014",
+      "r017",
+      "r021",
+      "r023",
+      "r024",
+      "r025",
+      "r027",
+      "r028",
+      "r030",
+      "r031",
+      "r034",
+      "r035",
+      "r037",
+      "r039",
+      "r042",
+      "r043",
+      "r044",
+      "r045",
+      "r047",
+      "r049",
+      "r052",
+      "r053",
+      "r054",
+      "r056",
+      "r059",
+      "r060",
+      "r064",
+      "r067",
+      "r070",
+      "r072",
+      "r074",
+      "r076",
+      "r077",
+      "r078",
+      "r079",
+      "r083",
+      "r084",
+      "r086",
+      "r089",
+      "r091",
+      "r092",
+      "r094",
+      "r095",
+      "r096",
+      "r097",
+      "r102",
+      "r103",
+      "r105",
+      "r106",
+      "r107",
+      "r108",
+      "r109",
+      "r110",
+      "r111",
+      "r113",
+      "r114",
+      "r115",
+      "r116",
+      "r117",
+      "r121",
+      "r122",
+      "r124",
+      "r125",
+      "r126",
+      "r127",
+      "r129",
+      "r132",
+      "r133",
+      "r136",
+      "r137",
+      "r138",
+      "r140",
+      "r145",
+      "r146",
+      "r147",
+      "r150",
+      "r152",
+      "r155",
+      "r157",
+      "r158",
+      "r161",
+      "r162",
+      "r164",
+      "r165",
+      "r166",
+      "r167",
+      "r169",
+      "r173",
+      "r175",
+      "r177",
+      "r178",
+      "r179",
+      "r181",
+      "r185",
+      "r190",
+      "r191",
+      "r192",
+      "r193",
+      "r196",
+      "r199",
+      "r200",
+      "r201",
+      "r203",
+      "r204",
+      "r205",
+      "r207",
+      "r208",
+      "r211",
+      "r212",
+      "r213",
+      "r214",
+      "r219",
+      "r223",
+      "r225",
+      "r226",
+      "r228",
+      "r229",
+      "r231",
+      "r233",
+      "r234",
+      "r235",
+      "r236",
+      "r237",
+      "r238",
+      "r239",
+      "r240",
+      "r242",
+      "r243",
+      "r244",
+      "r245",
+      "r246",
+      "r251",
+      "r254",
+      "r255",
+      "r256",
+      "r257",
+      "r258",
+      "r260",
+      "r261",
+      "r265",
+      "r266",
+      "r269",
+      "r270",
+      "r271",
+      "r272",
+      "r279",
+      "r282",
+      "r283",
+      "r286",
+      "r287",
+      "r289",
+      "r290",
+      "r291",
+      "r293",
+      "r294",
+      "r295",
+      "r296",
+      "r297",
+      "r298",
+      "r300"
+    ],
+    "validation_record_ids": [
+      "r001",
+      "r015",
+      "r018",
+      "r038",
+      "r040",
+      "r041",
+      "r046",
+      "r055",
+      "r062",
+      "r065",
+      "r069",
+      "r075",
+      "r081",
+      "r082",
+      "r098",
+      "r100",
+      "r118",
+      "r130",
+      "r134",
+      "r148",
+      "r151",
+      "r153",
+      "r154",
+      "r171",
+      "r174",
+      "r176",
+      "r183",
+      "r189",
+      "r195",
+      "r202",
+      "r210",
+      "r217",
+      "r218",
+      "r221",
+      "r241",
+      "r250",
+      "r253",
+      "r259",
+      "r276",
+      "r278",
+      "r285",
+      "r299"
+    ],
+    "final_test_record_ids_in_source_order": [
+      "r003",
+      "r006",
+      "r009",
+      "r011",
+      "r016",
+      "r019",
+      "r020",
+      "r022",
+      "r026",
+      "r029",
+      "r032",
+      "r033",
+      "r036",
+      "r048",
+      "r050",
+      "r051",
+      "r057",
+      "r058",
+      "r061",
+      "r063",
+      "r066",
+      "r068",
+      "r071",
+      "r073",
+      "r080",
+      "r085",
+      "r087",
+      "r088",
+      "r090",
+      "r093",
+      "r099",
+      "r101",
+      "r104",
+      "r112",
+      "r119",
+      "r120",
+      "r123",
+      "r128",
+      "r131",
+      "r135",
+      "r139",
+      "r141",
+      "r142",
+      "r143",
+      "r144",
+      "r149",
+      "r156",
+      "r159",
+      "r160",
+      "r163",
+      "r168",
+      "r170",
+      "r172",
+      "r180",
+      "r182",
+      "r184",
+      "r186",
+      "r187",
+      "r188",
+      "r194",
+      "r197",
+      "r198",
+      "r206",
+      "r209",
+      "r215",
+      "r216",
+      "r220",
+      "r222",
+      "r224",
+      "r227",
+      "r230",
+      "r232",
+      "r247",
+      "r248",
+      "r249",
+      "r252",
+      "r262",
+      "r263",
+      "r264",
+      "r267",
+      "r268",
+      "r273",
+      "r274",
+      "r275",
+      "r277",
+      "r280",
+      "r281",
+      "r284",
+      "r288",
+      "r292"
+    ],
+    "class_distribution": {
+      "source_development": {
+        "CLOUDBURST": 42,
+        "CYCLONE_INUNDATION": 42,
+        "NOT_RELEVANT": 42,
+        "RIVER_BREACH": 42,
+        "URBAN_FLOOD": 42
+      },
+      "train": {
+        "CLOUDBURST": 33,
+        "CYCLONE_INUNDATION": 34,
+        "NOT_RELEVANT": 34,
+        "RIVER_BREACH": 33,
+        "URBAN_FLOOD": 34
+      },
+      "validation": {
+        "CLOUDBURST": 9,
+        "CYCLONE_INUNDATION": 8,
+        "NOT_RELEVANT": 8,
+        "RIVER_BREACH": 9,
+        "URBAN_FLOOD": 8
+      },
+      "final_test": {
+        "CLOUDBURST": 18,
+        "CYCLONE_INUNDATION": 18,
+        "NOT_RELEVANT": 18,
+        "RIVER_BREACH": 18,
+        "URBAN_FLOOD": 18
+      }
+    },
+    "language_distribution": {
+      "train": {
+        "en": 107,
+        "hi": 29,
+        "hinglish": 32
+      },
+      "validation": {
+        "en": 27,
+        "hi": 4,
+        "hinglish": 11
+      },
+      "final_test": {
+        "en": 67,
+        "hi": 8,
+        "hinglish": 15
+      }
+    },
+    "final_test_policy": "PROTECTED / NOT AVAILABLE TO CONFIGURATION_SELECTION",
+    "split_definition_sha256": "2f45282137d68096082d1ec21bb0318ecfc7523409fce2da719d9bd092dcb3ac"
+  },
+  "selection_rule": {
+    "rule_version": "constrained-not-relevant-recall-v1",
+    "primary_constraint": {
+      "metric": "validation NOT_RELEVANT recall",
+      "minimum": 0.8
+    },
+    "preservation_constraint": {
+      "metric": "validation macro F1",
+      "minimum": 0.75
+    },
+    "optimization": "fallback maximizes NOT_RELEVANT recall among macro-F1-preserving candidates; otherwise maximizes macro F1",
+    "selection_path": "NO_CONFIGURATION_MET_MACRO_F1_PRESERVATION_FLOOR",
+    "eligible_configuration_ids": [],
+    "test_set_used": false
+  },
+  "selected_configuration": {
+    "configuration_id": "D_CHAR125_BALANCED_C1",
+    "char_ngram_range": [
+      3,
+      5
+    ],
+    "word_ngram_range": [
+      1,
+      2
+    ],
+    "character_weight": 1.25,
+    "word_weight": 0.75,
+    "class_weight": "BALANCED",
+    "regularization_c": 1.0
+  },
+  "selected_validation_metrics": {
+    "component": "nlp_classifier",
+    "evaluation_status": "DATA_AVAILABLE",
+    "classes": [
+      "CLOUDBURST",
+      "CYCLONE_INUNDATION",
+      "NOT_RELEVANT",
+      "RIVER_BREACH",
+      "URBAN_FLOOD"
+    ],
+    "sample_count": 42,
+    "accuracy": 0.7142857142857143,
+    "macro_precision": 0.7123015873015872,
+    "macro_recall": 0.711111111111111,
+    "macro_f1": 0.7106209150326797,
+    "per_class_metrics": {
+      "CLOUDBURST": {
+        "precision": 0.8888888888888888,
+        "recall": 0.8888888888888888,
+        "f1": 0.8888888888888888,
+        "support": 9
+      },
+      "CYCLONE_INUNDATION": {
+        "precision": 0.7142857142857143,
+        "recall": 0.625,
+        "f1": 0.6666666666666666,
+        "support": 8
+      },
+      "NOT_RELEVANT": {
+        "precision": 0.6666666666666666,
+        "recall": 0.75,
+        "f1": 0.7058823529411765,
+        "support": 8
+      },
+      "RIVER_BREACH": {
+        "precision": 0.6666666666666666,
+        "recall": 0.6666666666666666,
+        "f1": 0.6666666666666666,
+        "support": 9
+      },
+      "URBAN_FLOOD": {
+        "precision": 0.625,
+        "recall": 0.625,
+        "f1": 0.625,
+        "support": 8
+      }
+    },
+    "confusion_matrix": [
+      [
+        8,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        5,
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        0,
+        6,
+        0,
+        1
+      ],
+      [
+        0,
+        2,
+        0,
+        6,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        2,
+        5
+      ]
+    ],
+    "not_relevant_recall": 0.75,
+    "subgroup_metrics": {
+      "en": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 27,
+        "accuracy": 0.8518518518518519,
+        "macro_precision": 0.885,
+        "macro_recall": 0.8466666666666667,
+        "macro_f1": 0.8456643356643356,
+        "confusion_matrix": [
+          [
+            6,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            3,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            5,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            4,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            5
+          ]
+        ]
+      },
+      "hi": {
+        "status": "INSUFFICIENT_DATA",
+        "sample_count": 4
+      },
+      "hinglish": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 11,
+        "accuracy": 0.45454545454545453,
+        "macro_precision": 0.45,
+        "macro_recall": 0.5333333333333333,
+        "macro_f1": 0.4276190476190475,
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            2,
+            0
+          ]
+        ]
+      }
+    },
+    "error_analysis": {
+      "false_positives": [
+        {
+          "record_id": "r130",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+        },
+        {
+          "record_id": "r189",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+        },
+        {
+          "record_id": "r217",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "RIVER_BREACH",
+          "language": "en",
+          "text": "Seawater gushed into the low-lying Gosaba island villages, thousands in shelters"
+        },
+        {
+          "record_id": "r195",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Swell waves entering the fishing harbour in Kochi, boats being tied up"
+        },
+        {
+          "record_id": "r299",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CLOUDBURST",
+          "language": "hi",
+          "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+        },
+        {
+          "record_id": "r250",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+        },
+        {
+          "record_id": "r100",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hinglish",
+          "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+        },
+        {
+          "record_id": "r118",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hi",
+          "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+        },
+        {
+          "record_id": "r065",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Yamuna crossing the warning mark at Old Railway Bridge, no flooding in the city yet"
+        },
+        {
+          "record_id": "r040",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+        },
+        {
+          "record_id": "r041",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+        },
+        {
+          "record_id": "r055",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+        }
+      ],
+      "false_negatives": [
+        {
+          "record_id": "r130",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+        },
+        {
+          "record_id": "r189",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+        },
+        {
+          "record_id": "r217",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "RIVER_BREACH",
+          "language": "en",
+          "text": "Seawater gushed into the low-lying Gosaba island villages, thousands in shelters"
+        },
+        {
+          "record_id": "r195",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Swell waves entering the fishing harbour in Kochi, boats being tied up"
+        },
+        {
+          "record_id": "r299",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CLOUDBURST",
+          "language": "hi",
+          "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+        },
+        {
+          "record_id": "r250",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+        },
+        {
+          "record_id": "r100",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hinglish",
+          "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+        },
+        {
+          "record_id": "r118",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hi",
+          "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+        },
+        {
+          "record_id": "r065",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Yamuna crossing the warning mark at Old Railway Bridge, no flooding in the city yet"
+        },
+        {
+          "record_id": "r040",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+        },
+        {
+          "record_id": "r041",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+        },
+        {
+          "record_id": "r055",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+        }
+      ],
+      "most_confused_class_pairs": [
+        {
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "count": 2
+        },
+        {
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "count": 2
+        },
+        {
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "count": 1
+        },
+        {
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "NOT_RELEVANT",
+          "count": 1
+        },
+        {
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "RIVER_BREACH",
+          "count": 1
+        },
+        {
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "URBAN_FLOOD",
+          "count": 1
+        },
+        {
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CLOUDBURST",
+          "count": 1
+        },
+        {
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "count": 1
+        },
+        {
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "URBAN_FLOOD",
+          "count": 1
+        },
+        {
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "count": 1
+        }
+      ],
+      "not_relevant_errors": [
+        {
+          "record_id": "r130",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+        },
+        {
+          "record_id": "r189",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+        },
+        {
+          "record_id": "r299",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CLOUDBURST",
+          "language": "hi",
+          "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+        },
+        {
+          "record_id": "r250",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "URBAN_FLOOD",
+          "language": "en",
+          "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+        },
+        {
+          "record_id": "r040",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+        }
+      ],
+      "hindi_errors": [
+        {
+          "record_id": "r299",
+          "true_label": "NOT_RELEVANT",
+          "predicted_label": "CLOUDBURST",
+          "language": "hi",
+          "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+        },
+        {
+          "record_id": "r118",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hi",
+          "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+        }
+      ],
+      "hinglish_errors": [
+        {
+          "record_id": "r130",
+          "true_label": "CLOUDBURST",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+        },
+        {
+          "record_id": "r189",
+          "true_label": "CYCLONE_INUNDATION",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+        },
+        {
+          "record_id": "r100",
+          "true_label": "RIVER_BREACH",
+          "predicted_label": "CYCLONE_INUNDATION",
+          "language": "hinglish",
+          "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+        },
+        {
+          "record_id": "r040",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "NOT_RELEVANT",
+          "language": "hinglish",
+          "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+        },
+        {
+          "record_id": "r041",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+        },
+        {
+          "record_id": "r055",
+          "true_label": "URBAN_FLOOD",
+          "predicted_label": "RIVER_BREACH",
+          "language": "hinglish",
+          "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+        }
+      ],
+      "hindi_hinglish_errors": {
+        "hinglish": [
+          {
+            "record_id": "r130",
+            "true_label": "CLOUDBURST",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+          },
+          {
+            "record_id": "r189",
+            "true_label": "CYCLONE_INUNDATION",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+          },
+          {
+            "record_id": "r100",
+            "true_label": "RIVER_BREACH",
+            "predicted_label": "CYCLONE_INUNDATION",
+            "language": "hinglish",
+            "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+          },
+          {
+            "record_id": "r040",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+          },
+          {
+            "record_id": "r041",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hinglish",
+            "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+          },
+          {
+            "record_id": "r055",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hinglish",
+            "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+          }
+        ],
+        "hi": [
+          {
+            "record_id": "r299",
+            "true_label": "NOT_RELEVANT",
+            "predicted_label": "CLOUDBURST",
+            "language": "hi",
+            "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+          },
+          {
+            "record_id": "r118",
+            "true_label": "RIVER_BREACH",
+            "predicted_label": "CYCLONE_INUNDATION",
+            "language": "hi",
+            "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+          }
+        ]
+      },
+      "examples_grouped_by_actual_and_predicted": {
+        "CLOUDBURST -> NOT_RELEVANT": [
+          {
+            "record_id": "r130",
+            "true_label": "CLOUDBURST",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Upar gaon mein achanak bahut baarish hui, nala mitti wala ho gaya hai"
+          }
+        ],
+        "CYCLONE_INUNDATION -> NOT_RELEVANT": [
+          {
+            "record_id": "r189",
+            "true_label": "CYCLONE_INUNDATION",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Cyclone ki warning aayi hai Digha ke liye, hotel khaali karaye ja rahe hain"
+          }
+        ],
+        "CYCLONE_INUNDATION -> RIVER_BREACH": [
+          {
+            "record_id": "r217",
+            "true_label": "CYCLONE_INUNDATION",
+            "predicted_label": "RIVER_BREACH",
+            "language": "en",
+            "text": "Seawater gushed into the low-lying Gosaba island villages, thousands in shelters"
+          }
+        ],
+        "CYCLONE_INUNDATION -> URBAN_FLOOD": [
+          {
+            "record_id": "r195",
+            "true_label": "CYCLONE_INUNDATION",
+            "predicted_label": "URBAN_FLOOD",
+            "language": "en",
+            "text": "Swell waves entering the fishing harbour in Kochi, boats being tied up"
+          }
+        ],
+        "NOT_RELEVANT -> CLOUDBURST": [
+          {
+            "record_id": "r299",
+            "true_label": "NOT_RELEVANT",
+            "predicted_label": "CLOUDBURST",
+            "language": "hi",
+            "text": "राजस्थान में लू का प्रकोप जारी, तापमान 47 डिग्री पहुंचा"
+          }
+        ],
+        "NOT_RELEVANT -> URBAN_FLOOD": [
+          {
+            "record_id": "r250",
+            "true_label": "NOT_RELEVANT",
+            "predicted_label": "URBAN_FLOOD",
+            "language": "en",
+            "text": "Flooding reported in Dhaka's Mirpur area with knee-deep water on the roads"
+          }
+        ],
+        "RIVER_BREACH -> CYCLONE_INUNDATION": [
+          {
+            "record_id": "r100",
+            "true_label": "RIVER_BREACH",
+            "predicted_label": "CYCLONE_INUNDATION",
+            "language": "hinglish",
+            "text": "Kamla nadi ne bandh tod diya, das gaon doob gaye hain"
+          },
+          {
+            "record_id": "r118",
+            "true_label": "RIVER_BREACH",
+            "predicted_label": "CYCLONE_INUNDATION",
+            "language": "hi",
+            "text": "नदी का पानी छत तक पहुंच गया है, लोग पेड़ों पर चढ़कर जान बचा रहे हैं"
+          }
+        ],
+        "RIVER_BREACH -> URBAN_FLOOD": [
+          {
+            "record_id": "r065",
+            "true_label": "RIVER_BREACH",
+            "predicted_label": "URBAN_FLOOD",
+            "language": "en",
+            "text": "Yamuna crossing the warning mark at Old Railway Bridge, no flooding in the city yet"
+          }
+        ],
+        "URBAN_FLOOD -> NOT_RELEVANT": [
+          {
+            "record_id": "r040",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "NOT_RELEVANT",
+            "language": "hinglish",
+            "text": "Poori colony doob gayi hai, bijli kaat di gayi, koi naav bhejo please"
+          }
+        ],
+        "URBAN_FLOOD -> RIVER_BREACH": [
+          {
+            "record_id": "r041",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hinglish",
+            "text": "Silk Board ke paas gaadiyan doob gayi hain, log gaadi chhod ke nikal rahe hain"
+          },
+          {
+            "record_id": "r055",
+            "true_label": "URBAN_FLOOD",
+            "predicted_label": "RIVER_BREACH",
+            "language": "hinglish",
+            "text": "Gardan tak paani hai, log chhat pe hain, 2 din se khana nahi mila, madad bhejo"
+          }
+        ]
+      }
+    },
+    "warnings": []
+  },
+  "selected_train_metrics": {
+    "component": "nlp_classifier",
+    "evaluation_status": "DATA_AVAILABLE",
+    "classes": [
+      "CLOUDBURST",
+      "CYCLONE_INUNDATION",
+      "NOT_RELEVANT",
+      "RIVER_BREACH",
+      "URBAN_FLOOD"
+    ],
+    "sample_count": 168,
+    "accuracy": 1.0,
+    "macro_precision": 1.0,
+    "macro_recall": 1.0,
+    "macro_f1": 1.0,
+    "per_class_metrics": {
+      "CLOUDBURST": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 33
+      },
+      "CYCLONE_INUNDATION": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 34
+      },
+      "NOT_RELEVANT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 34
+      },
+      "RIVER_BREACH": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 33
+      },
+      "URBAN_FLOOD": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 34
+      }
+    },
+    "confusion_matrix": [
+      [
+        33,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        34,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        34,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        33,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        34
+      ]
+    ],
+    "not_relevant_recall": 1.0,
+    "subgroup_metrics": {
+      "en": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 107,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "confusion_matrix": [
+          [
+            21,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            20,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            22,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            22,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            22
+          ]
+        ]
+      },
+      "hi": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 29,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "confusion_matrix": [
+          [
+            7,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            6,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            6,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            5,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            5
+          ]
+        ]
+      },
+      "hinglish": {
+        "status": "DATA_AVAILABLE",
+        "sample_count": 32,
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "confusion_matrix": [
+          [
+            5,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            8,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            6,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            6,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            7
+          ]
+        ]
+      }
+    },
+    "error_analysis": {
+      "false_positives": [],
+      "false_negatives": [],
+      "most_confused_class_pairs": [],
+      "not_relevant_errors": [],
+      "hindi_errors": [],
+      "hinglish_errors": [],
+      "hindi_hinglish_errors": {},
+      "examples_grouped_by_actual_and_predicted": {}
+    },
+    "warnings": []
+  },
+  "multilingual_train": {
+    "en": {
+      "status": "DATA_AVAILABLE",
+      "sample_count": 107,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "confusion_matrix": [
+        [
+          21,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          20,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          22,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          22,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          22
+        ]
+      ]
+    },
+    "hi": {
+      "status": "DATA_AVAILABLE",
+      "sample_count": 29,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "confusion_matrix": [
+        [
+          7,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          6,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          6,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          5,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          5
+        ]
+      ]
+    },
+    "hinglish": {
+      "status": "DATA_AVAILABLE",
+      "sample_count": 32,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "confusion_matrix": [
+        [
+          5,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          8,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          6,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          6,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          7
+        ]
+      ]
+    }
+  },
+  "multilingual_validation": {
+    "en": {
+      "status": "DATA_AVAILABLE",
+      "sample_count": 27,
+      "accuracy": 0.8518518518518519,
+      "macro_precision": 0.885,
+      "macro_recall": 0.8466666666666667,
+      "macro_f1": 0.8456643356643356,
+      "confusion_matrix": [
+        [
+          6,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          5,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          4,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          5
+        ]
+      ]
+    },
+    "hi": {
+      "status": "INSUFFICIENT_DATA",
+      "sample_count": 4
+    },
+    "hinglish": {
+      "status": "DATA_AVAILABLE",
+      "sample_count": 11,
+      "accuracy": 0.45454545454545453,
+      "macro_precision": 0.45,
+      "macro_recall": 0.5333333333333333,
+      "macro_f1": 0.4276190476190475,
+      "confusion_matrix": [
+        [
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ]
+    }
+  },
+  "class_weight_result": {
+    "comparison": {
+      "best_none": {
+        "status": "EVALUATED",
+        "configuration_id": "D_CHAR125_NONE_C1",
+        "validation": {
+          "sample_count": 42,
+          "accuracy": 0.7142857142857143,
+          "macro_precision": 0.7123015873015872,
+          "macro_recall": 0.711111111111111,
+          "macro_f1": 0.7106209150326797,
+          "not_relevant_recall": 0.75,
+          "confusion_matrix": [
+            [
+              8,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              5,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              0,
+              6,
+              0,
+              1
+            ],
+            [
+              0,
+              2,
+              0,
+              6,
+              1
+            ],
+            [
+              0,
+              0,
+              1,
+              2,
+              5
+            ]
+          ]
+        }
+      },
+      "best_balanced": {
+        "status": "EVALUATED",
+        "configuration_id": "D_CHAR125_BALANCED_C1",
+        "validation": {
+          "sample_count": 42,
+          "accuracy": 0.7142857142857143,
+          "macro_precision": 0.7123015873015872,
+          "macro_recall": 0.711111111111111,
+          "macro_f1": 0.7106209150326797,
+          "not_relevant_recall": 0.75,
+          "confusion_matrix": [
+            [
+              8,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              5,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              0,
+              6,
+              0,
+              1
+            ],
+            [
+              0,
+              2,
+              0,
+              6,
+              1
+            ],
+            [
+              0,
+              0,
+              1,
+              2,
+              5
+            ]
+          ]
+        }
+      }
+    },
+    "selected_class_weight": "BALANCED",
+    "conclusion": "BALANCED_SELECTED_BY_FROZEN_VALIDATION_RULE",
+    "automatic_preference_for_balanced": false
+  },
+  "same_protocol_previous_configuration_comparison": {
+    "comparison_status": "VALID_SAME_SPLIT_RECREATION",
+    "previous_configuration_proxy": "A_EQUAL_NONE_C1",
+    "note": "The committed v1 model used all 210 development rows, so it cannot be evaluated on this derived validation split without leakage. Its feature/classifier configuration was therefore recreated on the Phase 14 train split for the valid validation comparison.",
+    "previous_configuration_validation": {
+      "sample_count": 42,
+      "accuracy": 0.6904761904761905,
+      "macro_precision": 0.6861904761904761,
+      "macro_recall": 0.6861111111111111,
+      "macro_f1": 0.6850877192982455,
+      "not_relevant_recall": 0.625,
+      "confusion_matrix": [
+        [
+          8,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          1,
+          1,
+          1
+        ],
+        [
+          2,
+          0,
+          5,
+          0,
+          1
+        ],
+        [
+          0,
+          2,
+          0,
+          6,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          2,
+          5
+        ]
+      ]
+    },
+    "selected_configuration_validation": {
+      "sample_count": 42,
+      "accuracy": 0.7142857142857143,
+      "macro_precision": 0.7123015873015872,
+      "macro_recall": 0.711111111111111,
+      "macro_f1": 0.7106209150326797,
+      "not_relevant_recall": 0.75,
+      "confusion_matrix": [
+        [
+          8,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          0,
+          6,
+          0,
+          1
+        ],
+        [
+          0,
+          2,
+          0,
+          6,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          2,
+          5
+        ]
+      ]
+    }
+  },
+  "calibration": {
+    "schema_version": "1.0",
+    "evaluation_scope": "VALIDATION_ONLY",
+    "status": "CALIBRATED_ON_VALIDATION",
+    "production_calibration": "NOT_VALIDATED",
+    "candidate_method": "scalar temperature scaling",
+    "selected_method": "TEMPERATURE_SCALING",
+    "temperature": 0.250000009346556,
+    "optimization": {
+      "success": true,
+      "message": "Solution found.",
+      "bounds": [
+        0.25,
+        4.0
+      ],
+      "objective": "multiclass log loss"
+    },
+    "validation_split_sha256": "3c29e91f4243e0b5f543270e3df3b3b8d06e546de8395f83d8026d02d0a70101",
+    "metrics": {
+      "log_loss_before": 1.218443297569186,
+      "log_loss_after_candidate": 0.7833805885861674,
+      "multiclass_brier_before": 0.6111024343289588,
+      "multiclass_brier_after_candidate": 0.39744557749333403
+    },
+    "reliability_before": {
+      "bin_count": 5,
+      "expected_calibration_error": 0.38446941063252865,
+      "bins": [
+        {
+          "lower_inclusive": 0.0,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.2,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.2,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.4,
+          "sample_count": 33,
+          "mean_confidence": 0.291866076141848,
+          "empirical_accuracy": 0.6363636363636364,
+          "absolute_gap": 0.34449756022178835
+        },
+        {
+          "lower_inclusive": 0.4,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.6000000000000001,
+          "sample_count": 8,
+          "mean_confidence": 0.44546677876535057,
+          "empirical_accuracy": 1.0,
+          "absolute_gap": 0.5545332212346494
+        },
+        {
+          "lower_inclusive": 0.6000000000000001,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.8,
+          "sample_count": 1,
+          "mean_confidence": 0.6569700106300085,
+          "empirical_accuracy": 1.0,
+          "absolute_gap": 0.3430299893699915
+        },
+        {
+          "lower_inclusive": 0.8,
+          "upper_inclusive": 1.0,
+          "upper_exclusive": null,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        }
+      ]
+    },
+    "reliability_after_candidate": {
+      "bin_count": 5,
+      "expected_calibration_error": 0.11168137605997588,
+      "bins": [
+        {
+          "lower_inclusive": 0.0,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.2,
+          "sample_count": 0,
+          "mean_confidence": null,
+          "empirical_accuracy": null,
+          "absolute_gap": null
+        },
+        {
+          "lower_inclusive": 0.2,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.4,
+          "sample_count": 5,
+          "mean_confidence": 0.3329690213304449,
+          "empirical_accuracy": 0.4,
+          "absolute_gap": 0.0670309786695551
+        },
+        {
+          "lower_inclusive": 0.4,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.6000000000000001,
+          "sample_count": 16,
+          "mean_confidence": 0.5037197775434625,
+          "empirical_accuracy": 0.625,
+          "absolute_gap": 0.12128022245653747
+        },
+        {
+          "lower_inclusive": 0.6000000000000001,
+          "upper_inclusive": null,
+          "upper_exclusive": 0.8,
+          "sample_count": 6,
+          "mean_confidence": 0.6989120124774963,
+          "empirical_accuracy": 0.5,
+          "absolute_gap": 0.19891201247749635
+        },
+        {
+          "lower_inclusive": 0.8,
+          "upper_inclusive": 1.0,
+          "upper_exclusive": null,
+          "sample_count": 15,
+          "mean_confidence": 0.9185661821998911,
+          "empirical_accuracy": 1.0,
+          "absolute_gap": 0.08143381780010894
+        }
+      ]
+    },
+    "label_predictions_unchanged": true,
+    "limitations": [
+      "Calibration was fitted and measured on the same small validation split.",
+      "This is development evidence and not field or production calibration."
+    ]
+  },
+  "frozen_configuration": {
+    "preprocessing_version": "nlp-text-normalization-v1",
+    "feature_version": "nlp-features-v2",
+    "feature_configuration": {
+      "character_tfidf_ngram_range": [
+        3,
+        5
+      ],
+      "word_tfidf_ngram_range": [
+        1,
+        2
+      ],
+      "sublinear_tf": true,
+      "norm": "l2",
+      "lowercase": false
+    },
+    "feature_weights": {
+      "character": 1.25,
+      "word": 0.75
+    },
+    "classifier": {
+      "kind": "logistic_regression",
+      "solver": "lbfgs",
+      "regularization_c": 1.0,
+      "class_weight": "BALANCED",
+      "max_iterations": 2000
+    },
+    "calibration": {
+      "method": "TEMPERATURE_SCALING",
+      "status": "CALIBRATED_ON_VALIDATION",
+      "temperature": 0.250000009346556,
+      "validation_split_sha256": "3c29e91f4243e0b5f543270e3df3b3b8d06e546de8395f83d8026d02d0a70101",
+      "validation_log_loss_before": 1.218443297569186,
+      "validation_log_loss_after": 0.7833805885861674,
+      "validation_brier_before": 0.6111024343289588,
+      "validation_brier_after": 0.39744557749333403,
+      "validation_ece_before": 0.38446941063252865,
+      "validation_ece_after": 0.11168137605997588
+    },
+    "random_seed": 42,
+    "split_version": "nlp-development-split-v1",
+    "split_definition_sha256": "2f45282137d68096082d1ec21bb0318ecfc7523409fce2da719d9bd092dcb3ac"
+  },
+  "frozen_configuration_sha256": "450bb35b4a8c82b90a13df0ee978bd7abd63345b084c3b1a4d76ec933b7567ab",
+  "artifact": {
+    "path": "D:\\INDRA\\backend\\app\\ml\\artifacts\\nlp_classifier_v2.json",
+    "artifact_name": "nlp_classifier_v2.json",
+    "artifact_version": "nlp-classifier-artifact-v2",
+    "model_version": "nlp-classifier-v2-development",
+    "sha256": "ec827431e59116b534c01aba5359410c1a241e8b5c98534339c0ef0d126c560b",
+    "creation_timestamp": "2026-09-23T05:12:53.455095+00:00",
+    "library_versions": {
+      "python": "3.14.3",
+      "numpy": "2.4.3",
+      "scikit_learn": "1.8.0",
+      "scipy": "1.17.1"
+    }
+  },
+  "validation_error_report": {
+    "path": "D:\\INDRA\\backend\\app\\ml\\artifacts\\nlp_classifier_v2.validation_errors.json",
+    "sha256": "ca0ac1c003ccf0aac7fbcd285c03b33df0415fc5373dc52daa1e4fdafeb26125"
+  },
+  "final_test": {
+    "status": "NOT_ACCESSED_FOR_EVALUATION",
+    "required_evaluation_label": "FINAL_UNTOUCHED_TEST_EVALUATION",
+    "sample_count": 90,
+    "split_sha256": "6082b1a16b0326e7932f5610ce99c873112c216b4c422f9a98dda360b0166813",
+    "source_order_sha256": "9404db546620ec734efb38464aa1a7d5b7ddfab8f217facc5785d461a3c6c88a",
+    "configuration_changes_permitted_after_freeze": false
+  },
+  "policy": {
+    "local_libraries_only": true,
+    "runtime_downloads": false,
+    "external_inference": false,
+    "live_backend_modified": false
+  },
+  "known_limitations": [
+    "The 300-row corpus is synthetic and has no incident grouping field.",
+    "The validation split is small, especially for Hindi and Hinglish.",
+    "Calibration uses the same validation split used for configuration selection.",
+    "No independent real-world or multilingual field validation exists."
+  ]
+}

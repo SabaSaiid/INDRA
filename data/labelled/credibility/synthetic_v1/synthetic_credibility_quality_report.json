@@ -1,0 +1,116 @@
+{
+  "report_version": "synthetic-credibility-quality-report-v1",
+  "valid": true,
+  "generated_at": "2026-09-24T00:00:00Z",
+  "dataset_sha256": "1ceab01ae23d7c99eec3f98a0bbad479ae5b66b63f56298a5d713d5218140a87",
+  "split_sha256": "7142901293a1ac0c0cf5fbc6972168025def9cbdcde8fb27d5ffb46cf352b742",
+  "annotation_sha256": "de07316a82cac3c408b3d67be40d5199c9c1d50e8c0cb3d0684b227a3f3722a1",
+  "file_hashes": {
+    "ground_truth_train": "e0a7e3bb1b80bfc42b3b8a7dc48c6993f2d276023147d0445ff02d58acc191d5",
+    "ground_truth_validation": "6fea30e1bd9ef2b964cf84700fd93cb9c70d22ec1e53cd17a3a692ead481efba",
+    "ground_truth_test": "fad14f89a0b69b17d3f328ef7ab71c693a84ca99deb48fdf1751856b8b8d2ea3",
+    "detector_inputs_train": "1ec67965d3aaef5394a4a9dc08661acc24ad34c5fcd8d18ff7325f87d8bb4de1",
+    "detector_inputs_validation": "a587cec4801633edb1366b659065230b668082eb342c48000d1b69d9763047c3",
+    "detector_inputs_test": "e1f15638b76bcc5c3bd74d7dd260177c5b4ce745f3db1d3569efaaf5f20a48dd",
+    "annotations": "de07316a82cac3c408b3d67be40d5199c9c1d50e8c0cb3d0684b227a3f3722a1"
+  },
+  "generator_version": "synthetic-credibility-generator-v1",
+  "scenario_version": "synthetic-credibility-scenarios-v1",
+  "split_version": "synthetic-credibility-grouped-splits-v1",
+  "template_version": "synthetic-credibility-templates-v1",
+  "seed": 210021,
+  "report_count": 100800,
+  "split_counts": {
+    "train": 70560,
+    "validation": 15120,
+    "test": 15120
+  },
+  "label_counts": {
+    "AUTHENTIC": 36000,
+    "MISLEADING": 57600,
+    "UNCERTAIN": 7200
+  },
+  "split_label_counts": {
+    "train": {
+      "AUTHENTIC": 25200,
+      "MISLEADING": 40320,
+      "UNCERTAIN": 5040
+    },
+    "validation": {
+      "AUTHENTIC": 5400,
+      "MISLEADING": 8640,
+      "UNCERTAIN": 1080
+    },
+    "test": {
+      "AUTHENTIC": 5400,
+      "MISLEADING": 8640,
+      "UNCERTAIN": 1080
+    }
+  },
+  "scenario_counts": {
+    "AUTHENTIC_CONSISTENT": 7200,
+    "AUTHENTIC_EXTREME_BUT_PLAUSIBLE": 7200,
+    "AUTHENTIC_WITH_INCOMPLETE_METADATA": 7200,
+    "CONTRADICTORY_EVENT_CONTEXT": 7200,
+    "CONTRADICTORY_LOCATION": 7200,
+    "CONTRADICTORY_TIME": 7200,
+    "IMPOSSIBLE_METADATA": 7200,
+    "LEGITIMATE_DUPLICATE": 7200,
+    "LEGITIMATE_EVENT_CONFLICT": 7200,
+    "MISLEADING_CONTEXT": 7200,
+    "MISLEADING_OMISSION": 7200,
+    "REPEATED_COPYING": 7200,
+    "SOURCE_BEHAVIOR_ANOMALY": 7200,
+    "UNCERTAIN_AMBIGUOUS": 7200
+  },
+  "language_counts": {
+    "English": 33600,
+    "Hindi": 33600,
+    "Hinglish": 33600
+  },
+  "hard_negative_counts": {
+    "AUTHENTIC_EXTREME_BUT_PLAUSIBLE": 7200,
+    "AUTHENTIC_WITH_INCOMPLETE_METADATA": 7200,
+    "LEGITIMATE_DUPLICATE": 7200,
+    "LEGITIMATE_EVENT_CONFLICT": 7200,
+    "MISLEADING_CONTEXT": 7200,
+    "MISLEADING_OMISSION": 7200,
+    "SOURCE_BEHAVIOR_ANOMALY": 7200
+  },
+  "leakage_checks": {
+    "status": "PASS",
+    "report_family_cross_split": 0,
+    "canonical_event_cross_split": 0,
+    "template_cross_split": 0,
+    "parameter_combination_cross_split": 0,
+    "exact_normalized_text_cross_split": 0,
+    "grouped_split": true,
+    "random_row_split": false
+  },
+  "isolation_checks": {
+    "status": "PASS",
+    "forbidden_field_occurrences": 0,
+    "truth_and_input_physically_separate": true
+  },
+  "invariant_checks": {
+    "scenario_identity_supplies_ground_truth": true,
+    "rule_detector_not_used_for_labels": true,
+    "learned_detector_not_used_for_labels": true,
+    "hidden_fields_absent_from_detector_input": true,
+    "all_inputs_available_at_assessment_time": true,
+    "uncertain_is_annotation_state": true,
+    "truth_probability_not_claimed": true
+  },
+  "errors": [],
+  "warnings": [
+    "Synthetic results are development evidence, not field authenticity performance.",
+    "The target is misleading-risk evidence, never truth probability.",
+    "Controlled duplicate context is project-authored and does not invoke duplicate matcher v1."
+  ],
+  "provenance": "PROJECT_AUTHORED",
+  "data_kind": "SYNTHETIC",
+  "classification": "DEVELOPMENT_ONLY",
+  "semantic_target": "MISLEADING_RISK_EVIDENCE",
+  "truth_probability_claimed": false,
+  "production_validation": "NOT_VALIDATED"
+}

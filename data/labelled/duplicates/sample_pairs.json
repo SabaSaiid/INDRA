@@ -1,0 +1,41 @@
+{
+  "fixture_status": "UNIT_TEST_ONLY",
+  "records": [
+    {
+      "pair_id": "unit-pair-001",
+      "report_a_id": "00000000-0000-0000-0000-000000000001",
+      "report_b_id": "00000000-0000-0000-0000-000000000002",
+      "label": "DUPLICATE",
+      "annotator_id": "unit-fixture",
+      "annotation_timestamp": "2026-09-21T12:00:00Z",
+      "annotation_reason": "same incident wording and event group",
+      "label_provenance": "UNIT_TEST_ONLY",
+      "event_id_when_known": "unit-event-001",
+      "text_relationship": "paraphrase"
+    },
+    {
+      "pair_id": "unit-pair-002",
+      "report_a_id": "00000000-0000-0000-0000-000000000003",
+      "report_b_id": "00000000-0000-0000-0000-000000000004",
+      "label": "NOT_DUPLICATE",
+      "annotator_id": "unit-fixture",
+      "annotation_timestamp": "2026-09-21T12:00:00Z",
+      "annotation_reason": "different incident groups despite nearby locations",
+      "label_provenance": "UNIT_TEST_ONLY",
+      "event_id_when_known": "unit-event-002",
+      "text_relationship": "unrelated"
+    },
+    {
+      "pair_id": "unit-pair-003",
+      "report_a_id": "00000000-0000-0000-0000-000000000005",
+      "report_b_id": "00000000-0000-0000-0000-000000000006",
+      "label": "UNCERTAIN",
+      "annotator_id": "unit-fixture",
+      "annotation_timestamp": "2026-09-21T12:00:00Z",
+      "annotation_reason": "insufficient context for a binary decision",
+      "label_provenance": "UNIT_TEST_ONLY",
+      "event_id_when_known": "unit-event-003",
+      "text_relationship": "unknown"
+    }
+  ]
+}

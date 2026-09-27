@@ -74,3 +74,15 @@ logs:
 
 clean:
 	@./start.sh clean
+# ── Alert Engine ──────────────────────────────────────────────────────────────
+alert-engine-demo:
+	@echo "Starting Alert Engine in DEMO mode (port 8001)..."
+	@pip install -q -r alert_engine/requirements.txt
+	ALERT_ENGINE_MODE=demo python -m alert_engine.main
+
+alert-engine-live:
+	@echo "Starting Alert Engine in LIVE mode (port 8001)..."
+	@pip install -q -r alert_engine/requirements.txt
+	ALERT_ENGINE_MODE=live python -m alert_engine.main
+
+alert-engine: alert-engine-demo

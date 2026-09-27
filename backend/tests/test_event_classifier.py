@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from app.ml import event_classifier as ec
+from app.ml.data.nlp_annotations import SEALED_SOURCE_DATASET_SHA256
 from tests.conftest import requires_embeddings
 
 
@@ -63,7 +64,13 @@ def test_metrics_file_records_the_measurement(committed_metrics):
 def test_committed_metrics_match_the_dataset_file(committed_metrics):
     import hashlib
 
-    assert committed_metrics["dataset_sha256"] == hashlib.sha256(ec.DATASET_PATH.read_bytes()).hexdigest()
+    raw = ec.DATASET_PATH.read_bytes()
+    # The sealed NLP registry hashes the exact CRLF checkout; the older metrics
+    # recorded the Git LF blob. Verify both without changing either artifact.
+    assert hashlib.sha256(raw).hexdigest() == SEALED_SOURCE_DATASET_SHA256
+    assert committed_metrics["dataset_sha256"] == hashlib.sha256(
+        raw.replace(b"\r\n", b"\n")
+    ).hexdigest()
 
 
 def test_artefact_is_small():

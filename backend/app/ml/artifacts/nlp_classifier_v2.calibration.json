@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "evaluation_scope": "VALIDATION_ONLY",
+  "status": "CALIBRATED_ON_VALIDATION",
+  "production_calibration": "NOT_VALIDATED",
+  "candidate_method": "scalar temperature scaling",
+  "selected_method": "TEMPERATURE_SCALING",
+  "temperature": 0.250000009346556,
+  "optimization": {
+    "success": true,
+    "message": "Solution found.",
+    "bounds": [
+      0.25,
+      4.0
+    ],
+    "objective": "multiclass log loss"
+  },
+  "validation_split_sha256": "3c29e91f4243e0b5f543270e3df3b3b8d06e546de8395f83d8026d02d0a70101",
+  "metrics": {
+    "log_loss_before": 1.218443297569186,
+    "log_loss_after_candidate": 0.7833805885861674,
+    "multiclass_brier_before": 0.6111024343289588,
+    "multiclass_brier_after_candidate": 0.39744557749333403
+  },
+  "reliability_before": {
+    "bin_count": 5,
+    "expected_calibration_error": 0.38446941063252865,
+    "bins": [
+      {
+        "lower_inclusive": 0.0,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.2,
+        "sample_count": 0,
+        "mean_confidence": null,
+        "empirical_accuracy": null,
+        "absolute_gap": null
+      },
+      {
+        "lower_inclusive": 0.2,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.4,
+        "sample_count": 33,
+        "mean_confidence": 0.291866076141848,
+        "empirical_accuracy": 0.6363636363636364,
+        "absolute_gap": 0.34449756022178835
+      },
+      {
+        "lower_inclusive": 0.4,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.6000000000000001,
+        "sample_count": 8,
+        "mean_confidence": 0.44546677876535057,
+        "empirical_accuracy": 1.0,
+        "absolute_gap": 0.5545332212346494
+      },
+      {
+        "lower_inclusive": 0.6000000000000001,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.8,
+        "sample_count": 1,
+        "mean_confidence": 0.6569700106300085,
+        "empirical_accuracy": 1.0,
+        "absolute_gap": 0.3430299893699915
+      },
+      {
+        "lower_inclusive": 0.8,
+        "upper_inclusive": 1.0,
+        "upper_exclusive": null,
+        "sample_count": 0,
+        "mean_confidence": null,
+        "empirical_accuracy": null,
+        "absolute_gap": null
+      }
+    ]
+  },
+  "reliability_after_candidate": {
+    "bin_count": 5,
+    "expected_calibration_error": 0.11168137605997588,
+    "bins": [
+      {
+        "lower_inclusive": 0.0,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.2,
+        "sample_count": 0,
+        "mean_confidence": null,
+        "empirical_accuracy": null,
+        "absolute_gap": null
+      },
+      {
+        "lower_inclusive": 0.2,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.4,
+        "sample_count": 5,
+        "mean_confidence": 0.3329690213304449,
+        "empirical_accuracy": 0.4,
+        "absolute_gap": 0.0670309786695551
+      },
+      {
+        "lower_inclusive": 0.4,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.6000000000000001,
+        "sample_count": 16,
+        "mean_confidence": 0.5037197775434625,
+        "empirical_accuracy": 0.625,
+        "absolute_gap": 0.12128022245653747
+      },
+      {
+        "lower_inclusive": 0.6000000000000001,
+        "upper_inclusive": null,
+        "upper_exclusive": 0.8,
+        "sample_count": 6,
+        "mean_confidence": 0.6989120124774963,
+        "empirical_accuracy": 0.5,
+        "absolute_gap": 0.19891201247749635
+      },
+      {
+        "lower_inclusive": 0.8,
+        "upper_inclusive": 1.0,
+        "upper_exclusive": null,
+        "sample_count": 15,
+        "mean_confidence": 0.9185661821998911,
+        "empirical_accuracy": 1.0,
+        "absolute_gap": 0.08143381780010894
+      }
+    ]
+  },
+  "label_predictions_unchanged": true,
+  "limitations": [
+    "Calibration was fitted and measured on the same small validation split.",
+    "This is development evidence and not field or production calibration."
+  ]
+}

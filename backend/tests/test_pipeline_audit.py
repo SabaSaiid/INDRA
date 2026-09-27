@@ -2,15 +2,20 @@
 T3 + T4 (Day 3) — the pipeline's audit rows, and merges that respect human decisions.
 
 Weather is pinned at 0.35 / 15.6 mm as in test_pipeline.py. With that pin,
-streaming CLUSTER_TEXTS one report at a time scores (re-measured 20 Sep, after
-confidence became coverage-aware):
+streaming CLUSTER_TEXTS one report at a time scores (re-measured 26 Sep, after
+Phase 3 T8 made the density factor count independent witnesses):
 
-    2 reports 0.5393 → 3: 0.5654 → 4: 0.5871 → 5: 0.6052
+    2 reports 0.5374 → 3: 0.5617 → 4: 0.5830 → 5: 0.6006
+
+The five reports come from five unverified reporters with credibility 0.595,
+0.565, 0.555, 0.57 and 0.565, so n_eff is 1.9333 / 2.8583 / 3.8083 / 4.75,
+each report counting credibility / 0.60 of a witness. The 20 Sep ladder, which
+counted reports, was 0.5393 / 0.5654 / 0.5871 / 0.6052.
 
 `factor_coverage` is 0.80 at every step — vision (0.15) and anomaly (0.05) are
-permanently offline and are now excluded from the weighted mean instead of being
-scored 0.0, so each figure is its `total_weighted` (0.4314 / 0.4523 / 0.4697 /
-0.4842 — the old pins) divided by 0.80.
+permanently offline and are excluded from the weighted mean instead of being
+scored 0.0, so each figure is its `total_weighted` (0.4299 / 0.4494 / 0.4664 /
+0.4805) divided by 0.80.
 
 All four remain QUARANTINED at the default thresholds: re-normalisation fixed the
 scale, not the gates.
@@ -104,19 +109,19 @@ async def test_default_thresholds_write_one_row_per_status_change(db):
     assert first["details"]["from_status"] is None
     assert first["details"]["to_status"] == "QUARANTINED"
     assert first["details"]["report_count"] == 2
-    assert first["details"]["confidence_score"] == pytest.approx(0.5393, abs=1e-4)
+    assert first["details"]["confidence_score"] == pytest.approx(0.5374, abs=1e-4)
 
-    # 0.6052 clears HUMAN_REVIEW_THRESHOLD (0.60) on the fifth report.
+    # 0.6006 clears HUMAN_REVIEW_THRESHOLD (0.60) on the fifth report.
     assert second["details"]["from_status"] == "QUARANTINED"
     assert second["details"]["to_status"] == "PENDING_HUMAN_REVIEW"
     assert second["details"]["report_count"] == 5
-    assert second["details"]["confidence_score"] == pytest.approx(0.6052, abs=1e-4)
+    assert second["details"]["confidence_score"] == pytest.approx(0.6006, abs=1e-4)
 
     assert await audit.verify_chain(db) == {"valid": True, "checked": 2, "broken_at_seq": None}
 
 
 async def test_a_status_change_on_merge_writes_a_second_row(db, monkeypatch):
-    # 0.55 sits between the n=2 score (0.5393) and the n=3 score (0.5654), so the
+    # 0.55 sits between the n=2 score (0.5374) and the n=3 score (0.5617), so the
     # third report is what crosses the gate. The old value here was 0.45, which
     # every score in the ladder now clears — the test would have passed
     # vacuously with a single ESCALATE row and no transition to observe.
@@ -133,9 +138,9 @@ async def test_a_status_change_on_merge_writes_a_second_row(db, monkeypatch):
 
     first, second = rows
     assert first["details"]["report_count"] == 2
-    assert first["details"]["confidence_score"] == pytest.approx(0.5393, abs=1e-4)
+    assert first["details"]["confidence_score"] == pytest.approx(0.5374, abs=1e-4)
     assert second["details"]["report_count"] == 3
-    assert second["details"]["confidence_score"] == pytest.approx(0.5654, abs=1e-4)
+    assert second["details"]["confidence_score"] == pytest.approx(0.5617, abs=1e-4)
     assert second["details"]["from_status"] == "QUARANTINED"
     assert second["details"]["to_status"] == "PENDING_HUMAN_REVIEW"
 
@@ -199,7 +204,7 @@ async def test_merges_keep_a_human_approval(db):
     status, severity, quadrant, score, _ = await event_row(db, event_id)
     assert status == "HUMAN_APPROVED"
     assert quadrant == "Confirmed Minor Event"
-    assert score == pytest.approx(0.6052, abs=1e-4)
+    assert score == pytest.approx(0.6006, abs=1e-4)
 
 
 async def test_merges_keep_a_severity_override(db):
@@ -275,7 +280,7 @@ async def test_without_a_human_decision_status_is_recomputed(db):
 
     The claim is "recomputed, not frozen", and it is now demonstrated by a status
     that actually moves: reports 3 and 4 leave it QUARANTINED, report 5 takes the
-    score to 0.6052 and the gate at 0.60 escalates it. Previously every step
+    score to 0.6006 and the gate at 0.60 escalates it. Previously every step
     stayed QUARANTINED, so the test could not distinguish "recomputed" from
     "never touched".
     """

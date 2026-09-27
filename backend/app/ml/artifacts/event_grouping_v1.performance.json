@@ -1,0 +1,10 @@
+{
+  "batch_count": 1650,
+  "benchmark_scope": "LOCAL_SYNTHETIC_GROUPING_EXECUTION_NOT_OPERATIONAL_LATENCY",
+  "candidate_comparisons": 70600,
+  "detector_reported_grouping_seconds": 0.1826663,
+  "evaluation_wall_seconds": 0.6817977,
+  "operational_latency_claimed": false,
+  "report_count": 16500,
+  "reports_per_wall_second": 24200.7269898366
+}

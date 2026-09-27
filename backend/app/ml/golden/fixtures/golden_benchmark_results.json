@@ -1,0 +1,103 @@
+{
+  "benchmark_version": "golden-performance-v1",
+  "schema_version": "1.0",
+  "recorded_at": "2026-09-22T00:00:00Z",
+  "fixture_status": "TEST_FIXTURE_ONLY",
+  "data_origin": "SYNTHETIC",
+  "validation_scope": "ENGINEERING_REGRESSION_NOT_PRODUCTION_VALIDATION",
+  "timing_method": "PERF_COUNTER_WALL_CLOCK",
+  "runtime": {
+    "python": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "artifact_loads": [
+    {
+      "artifact_name": "nlp_classifier_v1.json",
+      "intended_component": "nlp_classifier",
+      "load_seconds": 0.03397979999999734,
+      "sha256": "a12387cdfc753e92656f840ae7f22c35fac6d4d2179994b2b9c3ddc594789ba4",
+      "manifest_authorized": true,
+      "structural_validation_passed": true
+    },
+    {
+      "artifact_name": "duplicate_feature_state.json",
+      "intended_component": "duplicate_matcher",
+      "load_seconds": 0.0014062999998714076,
+      "sha256": "6d8aad9701700686f42deefa72ed8074ede836a4e9f0d2457db2c054636c2cdc",
+      "manifest_authorized": true,
+      "structural_validation_passed": true
+    }
+  ],
+  "measurements": [
+    {
+      "report_count": 1,
+      "result_count": 1,
+      "total_inference_seconds": 0.003428600000006554,
+      "per_component_seconds": {
+        "nlp_classifier": 0.0019253999998909421,
+        "duplicate_matcher": 0.00002369999992879457,
+        "event_detector": 0.00018109999973603408,
+        "fake_detector": 0.001201399999899877,
+        "image_analyzer": 0.00001970000039364095,
+        "anomaly_detector": 0.000014700000065204222
+      },
+      "semantic_output_sha256": "c262736231f40b08227b3c5de4e664d390e0d20a0330225ea42ac77dbb34ec8d",
+      "benchmark_scope": "LOCAL_ENGINEERING_REGRESSION_ONLY",
+      "production_throughput_claim": false
+    },
+    {
+      "report_count": 10,
+      "result_count": 10,
+      "total_inference_seconds": 0.016052599999966333,
+      "per_component_seconds": {
+        "nlp_classifier": 0.01380029999972976,
+        "duplicate_matcher": 0.0000946000009207637,
+        "event_detector": 0.0008228000001508917,
+        "fake_detector": 0.0007659999992029043,
+        "image_analyzer": 0.00008899999966160976,
+        "anomaly_detector": 0.00005760000067311921
+      },
+      "semantic_output_sha256": "32d8e058f79311050b178c3264caf58a6686914cce0fa3ce2ce3ab832c0c3eb6",
+      "benchmark_scope": "LOCAL_ENGINEERING_REGRESSION_ONLY",
+      "production_throughput_claim": false
+    },
+    {
+      "report_count": 100,
+      "result_count": 100,
+      "total_inference_seconds": 0.15415100000018356,
+      "per_component_seconds": {
+        "nlp_classifier": 0.1382365999979811,
+        "duplicate_matcher": 0.000919999998586718,
+        "event_detector": 0.00759299999981522,
+        "fake_detector": 0.0037126999973224883,
+        "image_analyzer": 0.0006120000011833326,
+        "anomaly_detector": 0.00043730000379582634
+      },
+      "semantic_output_sha256": "12c8a9d5505aa351eb805a68ef418d27c988fe051cd27cc586be092e9cd39cbb",
+      "benchmark_scope": "LOCAL_ENGINEERING_REGRESSION_ONLY",
+      "production_throughput_claim": false
+    }
+  ],
+  "resource_observations": {
+    "engine_instances": 1,
+    "component_instances": 6,
+    "nlp_artifact_identity_stable": true,
+    "duplicate_feature_state_identity_stable": true,
+    "engine_retains_report_results": false
+  },
+  "regression_guard": {
+    "policy": "GROSS_LOCAL_REGRESSION_ONLY",
+    "total_time_multiplier": 20.0,
+    "minimum_total_ceiling_seconds": 2.0,
+    "component_time_multiplier": 50.0,
+    "minimum_component_ceiling_seconds": 1.0,
+    "artifact_time_multiplier": 50.0,
+    "minimum_artifact_ceiling_seconds": 2.0,
+    "production_slo": false
+  },
+  "limitations": [
+    "Synthetic local engineering timing only; not production throughput.",
+    "Wall-clock measurements vary with hardware, operating system, and load.",
+    "No database, queue, network, API, image model, or learned anomaly model is included."
+  ]
+}

@@ -47,9 +47,15 @@ import {
   formatPlace,
   type ApiEvent,
   type AgencyAlert,
+  type EngineAlert,
+  fetchEngineAlerts,
+  acknowledgeEngineAlert,
+  resolveEngineAlert,
+  ALERT_ENGINE_WS,
 } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { eventReviewState } from '@/lib/eventState';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 type Level = 'RED' | 'ORANGE' | 'YELLOW';
 
@@ -172,6 +178,7 @@ const LEVEL_STYLE: Record<Level, { border: string; strip: string; badge: string 
 };
 
 export default function AlertsPage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -269,14 +276,14 @@ export default function AlertsPage() {
                   className="text-xl font-bold tracking-wide"
                   style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                 >
-                  Warnings &amp; Severe Events
+                  {t('nav.official_warnings')}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-rose-100 border border-white/20">
-                  {officialCount} official in force
+                  {officialCount} {t('kpis.delta_in_force')}
                 </span>
                 {indraCount > 0 && (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-amber-100 border border-white/20">
-                    {indraCount} severe INDRA events
+                    {indraCount} {t('chart.events')}
                   </span>
                 )}
               </div>
@@ -320,10 +327,10 @@ export default function AlertsPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               {([
-                { id: 'ALL', label: `ALL (${cards.length})` },
-                { id: 'RED', label: `RED (${count('RED')})` },
-                { id: 'ORANGE', label: `ORANGE (${count('ORANGE')})` },
-                { id: 'YELLOW', label: `YELLOW (${count('YELLOW')})` },
+                { id: 'ALL', label: `${t('common.view_all')} (${cards.length})` },
+                { id: 'RED', label: `${t('severity.CRITICAL')} (${count('RED')})` },
+                { id: 'ORANGE', label: `${t('severity.HIGH')} (${count('ORANGE')})` },
+                { id: 'YELLOW', label: `${t('severity.MODERATE')} (${count('YELLOW')})` },
               ] as const).map((lvl) => (
                 <button
                   key={lvl.id}
@@ -345,7 +352,7 @@ export default function AlertsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter by district, agency or hazard..."
+                placeholder={t('nav.search_placeholder')}
                 className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white border border-[#E8E2D4] text-xs text-[#1B2432] placeholder-[#A0988A] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-2xs"
               />
             </div>
@@ -355,12 +362,12 @@ export default function AlertsPage() {
           {loading && cards.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-[#E8E2D4]">
               <Loader2 className="w-8 h-8 text-[#B5482E] animate-spin mb-3" />
-              <p className="text-sm font-medium text-[#7A8599]">Loading warnings from the backend...</p>
+              <p className="text-sm font-medium text-[#7A8599]">{t('common.loading')}...</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="p-8 text-center bg-white rounded-2xl border border-[#E8E2D4] text-[#7A8599] text-sm">
               {cards.length === 0
-                ? 'No official warnings are in force and no severe INDRA events are open.'
+                ? t('chart.no_warnings_force')
                 : 'Nothing matches this filter.'}
             </div>
           ) : (
@@ -378,15 +385,15 @@ export default function AlertsPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <span className={`text-xs font-black font-mono px-2.5 py-0.5 rounded-md ${style.badge}`}>
-                          {c.level}
+                          {t.severity(c.level)}
                         </span>
                         {c.kind === 'official' ? (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#1B2432] text-white">
-                            OFFICIAL WARNING
+                            {t('nav.official_warnings')}
                           </span>
                         ) : (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#F7F3EA] text-[#4A5568] border border-[#E8E2D4]">
-                            INDRA EVENT · not an official warning
+                            {t('nav.incident_events')}
                           </span>
                         )}
                         <span className="text-xs text-[#4A5568] font-semibold">{c.source}</span>
@@ -432,14 +439,14 @@ export default function AlertsPage() {
                       <div className="mt-3 pt-2 border-t border-[#F0EBE0] flex items-center justify-between">
                         <span className="text-[11px] font-mono text-[#7A8599] flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
-                          Confidence {Math.round((c.confidenceScore || 0) * 100)}%
+                          {t('receipt.confidence_label')} {Math.round((c.confidenceScore || 0) * 100)}%
                         </span>
                         <button
                           onClick={() => setVerificationEventId(c.eventId!)}
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#F7F3EA] hover:bg-[#F0EBE0] text-[#1B2432] text-xs font-medium border border-[#E8E2D4] transition-colors"
                         >
                           <ShieldCheck className="w-3.5 h-3.5 text-[#B5482E]" />
-                          Inspect Verification Receipt
+                          {t('receipt.title')}
                           <ChevronRight className="w-3.5 h-3.5 text-[#A0988A]" />
                         </button>
                       </div>
@@ -449,6 +456,12 @@ export default function AlertsPage() {
               })}
             </motion.div>
           )}
+
+          {/* Alert Engine Additive Section */}
+          <div className="mt-12 pt-8 border-t border-[#E8E2D4]">
+            <AlertEngineSection />
+          </div>
+
         </main>
       </div>
 
@@ -457,6 +470,153 @@ export default function AlertsPage() {
         onClose={() => setVerificationEventId(null)}
         onEventUpdated={() => loadWarnings()}
       />
+    </div>
+  );
+}
+
+function AlertEngineSection() {
+  const [engineAlerts, setEngineAlerts] = useState<EngineAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
+
+  const loadAlerts = useCallback(async () => {
+    try {
+      const data = await fetchEngineAlerts();
+      setEngineAlerts(data);
+      setOffline(false);
+    } catch {
+      setOffline(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
+
+  useEffect(() => {
+    if (!ALERT_ENGINE_WS) return;
+    const ws = new WebSocket(ALERT_ENGINE_WS);
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (['ENGINE_ALERT_CREATED', 'ENGINE_ALERT_UPDATED', 'ENGINE_ALERT_RESOLVED'].includes(msg.type)) {
+          loadAlerts();
+        }
+      } catch (err) {}
+    };
+    return () => ws.close();
+  }, [loadAlerts]);
+
+  const handleAction = async (alertId: string, action: 'ack' | 'res') => {
+    let result;
+    if (action === 'ack') result = await acknowledgeEngineAlert(alertId);
+    if (action === 'res') result = await resolveEngineAlert(alertId, "Resolved by operator");
+    if (result && !result.success) {
+      alert(`Action failed: ${result.error}`);
+    }
+    loadAlerts();
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-white rounded-2xl border border-[#E8E2D4] text-center">
+        <Loader2 className="w-6 h-6 text-[#B5482E] animate-spin mx-auto mb-2" />
+        <p className="text-sm text-[#7A8599]">Checking Alert Engine...</p>
+      </div>
+    );
+  }
+
+  if (offline || (!loading && engineAlerts.length === 0 && offline)) {
+    return (
+      <div className="p-6 bg-rose-50 rounded-2xl border border-rose-100 text-center">
+        <AlertTriangle className="w-6 h-6 text-rose-500 mx-auto mb-2" />
+        <h3 className="text-sm font-bold text-rose-700">Alert Engine Offline</h3>
+        <p className="text-xs text-rose-600/80 mt-1">The independent Alert Engine service is currently unreachable.</p>
+      </div>
+    );
+  }
+
+  if (engineAlerts.length === 0) {
+    return (
+      <div className="p-6 bg-white rounded-2xl border border-[#E8E2D4] text-center">
+        <ShieldCheck className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+        <h3 className="text-sm font-bold text-[#1B2432]">Alert Engine Active</h3>
+        <p className="text-xs text-[#7A8599] mt-1">No active alerts generated by the engine at this time.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Radio className="w-5 h-5 text-indigo-500" />
+        <h2 className="text-lg font-bold text-[#1B2432]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+          INDRA Alert Engine
+        </h2>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
+          ADDITIVE SERVICE
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {engineAlerts.map(alert => (
+          <div key={alert.id} className="bg-white rounded-2xl border border-[#E8E2D4] p-4 shadow-sm relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-1 h-full ${alert.status === 'ACTIVE' ? 'bg-rose-500' : alert.status === 'ESCALATED' ? 'bg-purple-500' : 'bg-emerald-500'}`} />
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#F7F3EA] border border-[#E8E2D4]">
+                  {alert.rule_name || alert.rule_id}
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${alert.status === 'ACTIVE' ? 'bg-rose-100 text-rose-700' : alert.status === 'ESCALATED' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {alert.status}
+                </span>
+                {alert.mode === 'DEMO' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+                    DEMO ALERT
+                  </span>
+                )}
+                {alert.mode === 'LIVE' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                    LIVE ALERT
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-[#7A8599] font-mono">
+                {new Date(alert.updated_at).toLocaleTimeString()}
+              </span>
+            </div>
+            
+            <h3 className="font-bold text-[#1B2432] text-sm mb-1">{alert.message}</h3>
+            {alert.affected_area && (
+              <div className="flex items-center gap-1 text-xs text-[#4A5568] mb-3">
+                <MapPin className="w-3 h-3 text-[#A0988A]" />
+                {alert.affected_area}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#E8E2D4]">
+              <div className="text-[10px] text-[#7A8599]">
+                {alert.notification_status ? `Notification: ${alert.notification_status}` : 'No notification sent'}
+                {alert.acknowledged_by && ` • Ack by ${alert.acknowledged_by}`}
+              </div>
+              <div className="flex gap-2">
+                {!alert.acknowledged_by && ['ACTIVE', 'ESCALATED'].includes(alert.status) && (
+                  <button onClick={() => handleAction(alert.id, 'ack')} className="px-3 py-1 rounded-md text-xs font-semibold bg-[#F7F3EA] border border-[#E8E2D4] hover:bg-[#F0EBE0] text-[#1B2432]">
+                    Acknowledge
+                  </button>
+                )}
+                {['ACTIVE', 'ESCALATED'].includes(alert.status) && (
+                  <button onClick={() => handleAction(alert.id, 'res')} className="px-3 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">
+                    Resolve
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

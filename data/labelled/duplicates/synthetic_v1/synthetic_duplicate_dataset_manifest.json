@@ -1,0 +1,39 @@
+{
+  "classification": "DEVELOPMENT_ONLY",
+  "created_at": "2026-09-23T00:00:00+00:00",
+  "data_kind": "SYNTHETIC",
+  "dataset_file": "synthetic_duplicate_pairs.jsonl",
+  "dataset_id": "indra-duplicate-project-synthetic-v1",
+  "dataset_sha256": "ad664bf69755a141f44c82615e7653f28ae5abadc028cb50d6566ee2f13e7231",
+  "dataset_version": "synthetic-duplicate-100k-v1",
+  "external_apis": [],
+  "generator_version": "synthetic-duplicate-generator-v1",
+  "holdout_strategy": "GROUPED_GENERATOR_LEVEL_SEPARATION",
+  "label_counts": {
+    "DUPLICATE": 45000,
+    "NOT_DUPLICATE": 45000,
+    "UNCERTAIN": 10000
+  },
+  "label_source": "GENERATOR_SCENARIO_IDENTITY",
+  "manifest_version": "synthetic-duplicate-dataset-manifest-v1",
+  "matcher_used_for_labels": false,
+  "models_trained": [],
+  "network_access": false,
+  "open_weight_models": [],
+  "pretrained_models": [],
+  "production_validation": "NOT_VALIDATED",
+  "provenance": "PROJECT_AUTHORED",
+  "quality_report_file": "synthetic_duplicate_quality_report.json",
+  "quality_report_sha256": "ae81eb09ae5e7e1322588b8224dbdd0e0d699a4b918455633753690e6c39f60d",
+  "random_row_split": false,
+  "scenario_version": "synthetic-duplicate-scenarios-v1",
+  "seed": 190019,
+  "split_counts": {
+    "test": 15000,
+    "train": 70000,
+    "validation": 15000
+  },
+  "split_version": "synthetic-duplicate-generator-splits-v1",
+  "template_version": "synthetic-duplicate-templates-v1",
+  "total_pairs": 100000
+}

@@ -11,6 +11,7 @@ import { ArrowRight } from 'lucide-react';
 import { formatIst } from '@/lib/utils';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // Source styling and abbreviations
 const sourceConfig: Record<string, { color: string; bg: string; abbr: string }> = {
@@ -43,6 +44,7 @@ function sortKey(item: FeedItem): string {
 }
 
 export default function LiveFeed() {
+  const { t } = useTranslation();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   // Operator reviews come only over the socket; the feed endpoint has no
   // stream for them. Kept apart so a refetch does not wipe them.
@@ -127,11 +129,11 @@ export default function LiveFeed() {
           density="compact"
           title={
             <span className="flex items-center gap-1.5" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-              <span>Live Feed</span>
+              <span>{t('dashboard.live_feed')}</span>
               {connected && (
                 <span className="flex items-center gap-1 text-[9px] font-mono text-emerald-600 font-normal">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  LIVE
+                  {t('kpis.live_label')}
                 </span>
               )}
             </span>
@@ -141,7 +143,7 @@ export default function LiveFeed() {
               href="/reports"
               className="flex items-center gap-1 text-[10px] font-medium text-[#7A8599] hover:text-[#1B2432] transition-colors"
             >
-              <span>View all</span>
+              <span>{t('common.view_all')}</span>
               <ArrowRight className="w-3 h-3" />
             </Link>
           }
@@ -158,7 +160,7 @@ export default function LiveFeed() {
             <ErrorState label="the live feed" error={error} compact />
           ) : loaded && items.length === 0 ? (
             <EmptyState
-              title="Nothing yet"
+              title={t('dashboard.no_reports')}
               hint="Reports, events and official warnings stream in here as they arrive."
               compact
             />
@@ -168,6 +170,14 @@ export default function LiveFeed() {
             const accent =
               item.source === 'warning' ? WARNING_COLOR[item.severity ?? ''] ?? cfg.color : cfg.color;
             const when = item.at ? formatIst(item.at) : item.time;
+            const localizedSource = (() => {
+              const lower = (item.sourceLabel || '').toLowerCase();
+              if (lower.includes('citizen')) return t('kpis.citizen_reports');
+              if (lower.includes('official') || lower.includes('warning') || lower.includes('alert')) return t('nav.official_warnings');
+              if (lower.includes('review') || lower.includes('operator')) return t('receipt.commander_review');
+              if (lower.includes('event')) return t('nav.incident_events');
+              return item.sourceLabel;
+            })();
 
             return (
               <motion.div key={item.id} variants={listItemSlideIn}>
@@ -192,7 +202,7 @@ export default function LiveFeed() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="text-[10px] font-semibold text-[#1B2432] flex-shrink-0 max-w-[40%] truncate">
-                        {item.sourceLabel}
+                        {localizedSource}
                       </span>
                       <span className="text-[9px] text-[#4A5568] truncate flex-1 min-w-0">
                         {item.message}

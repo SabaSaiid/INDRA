@@ -1,0 +1,937 @@
+{
+  "schema_version": "1.0",
+  "analysis_split": "validation",
+  "test_rows_accessed": false,
+  "global_thresholds": {
+    "text_threshold": 0.6,
+    "combined_threshold": 0.65
+  },
+  "subgroup_thresholds_created": false,
+  "analyses": {
+    "language": [
+      {
+        "subgroup": "en",
+        "rows": 4504,
+        "duplicate_prevalence": 0.49955595026642985,
+        "global_configuration_metrics": {
+          "evaluated_rows": 4504,
+          "duplicate_prevalence": 0.49955595026642985,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 2250,
+            "false_duplicate": 0,
+            "true_non_duplicate": 2254,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.58251559864932,
+          "p75": 0.8074049779149385,
+          "p90": 0.8891018167184859
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 4504,
+          "duplicate_prevalence": 0.49955595026642985,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 2250,
+            "false_duplicate": 0,
+            "true_non_duplicate": 2254,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "hi",
+        "rows": 4499,
+        "duplicate_prevalence": 0.5001111358079573,
+        "global_configuration_metrics": {
+          "evaluated_rows": 4499,
+          "duplicate_prevalence": 0.5001111358079573,
+          "precision": 0.9656652360515021,
+          "recall": 1.0,
+          "f1": 0.982532751091703,
+          "false_positive_rate": 0.035571365051133834,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 2250,
+            "false_duplicate": 80,
+            "true_non_duplicate": 2169,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6480387802537916,
+          "p75": 0.8034610750895522,
+          "p90": 0.9045370622756689
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 4499,
+          "duplicate_prevalence": 0.5001111358079573,
+          "precision": 0.9656652360515021,
+          "recall": 1.0,
+          "f1": 0.982532751091703,
+          "false_positive_rate": 0.035571365051133834,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 2250,
+            "false_duplicate": 80,
+            "true_non_duplicate": 2169,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "hinglish",
+        "rows": 4497,
+        "duplicate_prevalence": 0.5003335557038026,
+        "global_configuration_metrics": {
+          "evaluated_rows": 4497,
+          "duplicate_prevalence": 0.5003335557038026,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 2250,
+            "false_duplicate": 0,
+            "true_non_duplicate": 2247,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6324726892362906,
+          "p75": 0.7729657315990842,
+          "p90": 0.874843306369123
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 4497,
+          "duplicate_prevalence": 0.5003335557038026,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 2250,
+            "false_duplicate": 0,
+            "true_non_duplicate": 2247,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      }
+    ],
+    "event_type": [
+      {
+        "subgroup": "CLOUDBURST",
+        "rows": 3372,
+        "duplicate_prevalence": 0.501779359430605,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3372,
+          "duplicate_prevalence": 0.501779359430605,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1692,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1680,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6284371133026725,
+          "p75": 0.7863137289137755,
+          "p90": 0.9079322020096354
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3372,
+          "duplicate_prevalence": 0.501779359430605,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1692,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1680,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "CYCLONE_INUNDATION",
+        "rows": 3354,
+        "duplicate_prevalence": 0.4991055456171735,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3354,
+          "duplicate_prevalence": 0.4991055456171735,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1674,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1680,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.5734672847741358,
+          "p75": 0.7867724921935467,
+          "p90": 0.8984147884186234
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3354,
+          "duplicate_prevalence": 0.4991055456171735,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1674,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1680,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "RIVER_BREACH",
+        "rows": 3381,
+        "duplicate_prevalence": 0.5004436557231589,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3381,
+          "duplicate_prevalence": 0.5004436557231589,
+          "precision": 0.9548532731376975,
+          "recall": 1.0,
+          "f1": 0.976905311778291,
+          "false_positive_rate": 0.047365304914150384,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1692,
+            "false_duplicate": 80,
+            "true_non_duplicate": 1609,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6414531839445787,
+          "p75": 0.7866579543256911,
+          "p90": 0.8892906090393323
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3381,
+          "duplicate_prevalence": 0.5004436557231589,
+          "precision": 0.9548532731376975,
+          "recall": 1.0,
+          "f1": 0.976905311778291,
+          "false_positive_rate": 0.047365304914150384,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1692,
+            "false_duplicate": 80,
+            "true_non_duplicate": 1609,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "URBAN_FLOOD",
+        "rows": 3393,
+        "duplicate_prevalence": 0.4986737400530504,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3393,
+          "duplicate_prevalence": 0.4986737400530504,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1692,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1701,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.5903851558139835,
+          "p75": 0.782488028629891,
+          "p90": 0.8870084944781265
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3393,
+          "duplicate_prevalence": 0.4986737400530504,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1692,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1701,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      }
+    ],
+    "source_type": [
+      {
+        "subgroup": "CITIZEN_APP",
+        "rows": 3438,
+        "duplicate_prevalence": 0.5026178010471204,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3438,
+          "duplicate_prevalence": 0.5026178010471204,
+          "precision": 0.9879931389365352,
+          "recall": 1.0,
+          "f1": 0.9939603106125972,
+          "false_positive_rate": 0.012280701754385965,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1728,
+            "false_duplicate": 21,
+            "true_non_duplicate": 1689,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999923129922378
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6388592662947787,
+          "p75": 0.7841328087436539,
+          "p90": 0.890735310384318
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3438,
+          "duplicate_prevalence": 0.5026178010471204,
+          "precision": 0.9879931389365352,
+          "recall": 1.0,
+          "f1": 0.9939603106125972,
+          "false_positive_rate": 0.012280701754385965,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1728,
+            "false_duplicate": 21,
+            "true_non_duplicate": 1689,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999923129922378
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "DISTRICT_HELPLINE",
+        "rows": 3390,
+        "duplicate_prevalence": 0.504424778761062,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3390,
+          "duplicate_prevalence": 0.504424778761062,
+          "precision": 0.989010989010989,
+          "recall": 1.0,
+          "f1": 0.994475138121547,
+          "false_positive_rate": 0.01130952380952381,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1710,
+            "false_duplicate": 19,
+            "true_non_duplicate": 1661,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999915036791335
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6420752389948734,
+          "p75": 0.7864342534687012,
+          "p90": 0.8911815035138909
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3390,
+          "duplicate_prevalence": 0.504424778761062,
+          "precision": 0.989010989010989,
+          "recall": 1.0,
+          "f1": 0.994475138121547,
+          "false_positive_rate": 0.01130952380952381,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1710,
+            "false_duplicate": 19,
+            "true_non_duplicate": 1661,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999915036791335
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "FIELD_OFFICER",
+        "rows": 3336,
+        "duplicate_prevalence": 0.49640287769784175,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3336,
+          "duplicate_prevalence": 0.49640287769784175,
+          "precision": 0.9880668257756563,
+          "recall": 1.0,
+          "f1": 0.9939975990396159,
+          "false_positive_rate": 0.011904761904761904,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1656,
+            "false_duplicate": 20,
+            "true_non_duplicate": 1660,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999916281114267
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6157162515526287,
+          "p75": 0.7843234407296925,
+          "p90": 0.8908699948625283
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3336,
+          "duplicate_prevalence": 0.49640287769784175,
+          "precision": 0.9880668257756563,
+          "recall": 1.0,
+          "f1": 0.9939975990396159,
+          "false_positive_rate": 0.011904761904761904,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1656,
+            "false_duplicate": 20,
+            "true_non_duplicate": 1660,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999916281114267
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "SENSOR_RELAY",
+        "rows": 3336,
+        "duplicate_prevalence": 0.49640287769784175,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3336,
+          "duplicate_prevalence": 0.49640287769784175,
+          "precision": 0.9880668257756563,
+          "recall": 1.0,
+          "f1": 0.9939975990396159,
+          "false_positive_rate": 0.011904761904761904,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1656,
+            "false_duplicate": 20,
+            "true_non_duplicate": 1660,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999949065046942
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.613372087356338,
+          "p75": 0.7847970020570026,
+          "p90": 0.8906529090705257
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3336,
+          "duplicate_prevalence": 0.49640287769784175,
+          "precision": 0.9880668257756563,
+          "recall": 1.0,
+          "f1": 0.9939975990396159,
+          "false_positive_rate": 0.011904761904761904,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1656,
+            "false_duplicate": 20,
+            "true_non_duplicate": 1660,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999949065046942
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      }
+    ],
+    "distance_bucket": [
+      {
+        "subgroup": "GT_0_25_TO_1_KM",
+        "rows": 2757,
+        "duplicate_prevalence": 0.6503445774392456,
+        "global_configuration_metrics": {
+          "evaluated_rows": 2757,
+          "duplicate_prevalence": 0.6503445774392456,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1793,
+            "false_duplicate": 0,
+            "true_non_duplicate": 964,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.6699225369187507,
+          "p75": 0.7423153198300898,
+          "p90": 0.7952970774053882
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 2757,
+          "duplicate_prevalence": 0.6503445774392456,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 1793,
+            "false_duplicate": 0,
+            "true_non_duplicate": 964,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "GT_1_TO_5_KM",
+        "rows": 1928,
+        "duplicate_prevalence": 0.0,
+        "global_configuration_metrics": {
+          "evaluated_rows": 1928,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1928,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.0,
+          "p75": 0.0,
+          "p90": 0.0
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 1928,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 1928,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "GT_5_KM",
+        "rows": 964,
+        "duplicate_prevalence": 0.0,
+        "global_configuration_metrics": {
+          "evaluated_rows": 964,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 964,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.0,
+          "p75": 0.0,
+          "p90": 0.0
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 964,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 964,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "LE_0_25_KM",
+        "rows": 7851,
+        "duplicate_prevalence": 0.6313845370016559,
+        "global_configuration_metrics": {
+          "evaluated_rows": 7851,
+          "duplicate_prevalence": 0.6313845370016559,
+          "precision": 0.9841175302759579,
+          "recall": 1.0,
+          "f1": 0.991995197118271,
+          "false_positive_rate": 0.027643400138217002,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 4957,
+            "false_duplicate": 80,
+            "true_non_duplicate": 2814,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999999186388706
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.5150858364001972,
+          "p50": 0.6975101264390328,
+          "p75": 0.8722886891276507,
+          "p90": 0.9434271986847861
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 7851,
+          "duplicate_prevalence": 0.6313845370016559,
+          "precision": 0.9841175302759579,
+          "recall": 1.0,
+          "f1": 0.991995197118271,
+          "false_positive_rate": 0.027643400138217002,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 4957,
+            "false_duplicate": 80,
+            "true_non_duplicate": 2814,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999999186388706
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      }
+    ],
+    "time_bucket": [
+      {
+        "subgroup": "GT_15_TO_60_MIN",
+        "rows": 659,
+        "duplicate_prevalence": 0.0,
+        "global_configuration_metrics": {
+          "evaluated_rows": 659,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 659,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.0,
+          "p75": 0.0,
+          "p90": 0.0
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 659,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 659,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "GT_5_TO_15_MIN",
+        "rows": 3210,
+        "duplicate_prevalence": 0.9361370716510904,
+        "global_configuration_metrics": {
+          "evaluated_rows": 3210,
+          "duplicate_prevalence": 0.9361370716510904,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 3005,
+            "false_duplicate": 0,
+            "true_non_duplicate": 205,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.6489123680635059,
+          "p25": 0.6726813301039394,
+          "p50": 0.7010298846816454,
+          "p75": 0.7812912670236389,
+          "p90": 0.8098551206481767
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 3210,
+          "duplicate_prevalence": 0.9361370716510904,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 3005,
+            "false_duplicate": 0,
+            "true_non_duplicate": 205,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 1.0
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "GT_60_MIN",
+        "rows": 4162,
+        "duplicate_prevalence": 0.0,
+        "global_configuration_metrics": {
+          "evaluated_rows": 4162,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 4162,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.0,
+          "p50": 0.0,
+          "p75": 0.0,
+          "p90": 0.0
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.65,
+        "diagnostic_threshold_delta": 0.0,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 4162,
+          "duplicate_prevalence": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 0,
+            "false_duplicate": 0,
+            "true_non_duplicate": 4162,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": null
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      },
+      {
+        "subgroup": "LE_5_MIN",
+        "rows": 5469,
+        "duplicate_prevalence": 0.6847686962881697,
+        "global_configuration_metrics": {
+          "evaluated_rows": 5469,
+          "duplicate_prevalence": 0.6847686962881697,
+          "precision": 0.9790849673202614,
+          "recall": 1.0,
+          "f1": 0.9894319682959049,
+          "false_positive_rate": 0.04640371229698376,
+          "false_negative_rate": 0.0,
+          "confusion_matrix": {
+            "true_duplicate": 3745,
+            "false_duplicate": 80,
+            "true_non_duplicate": 1644,
+            "missed_duplicate": 0
+          },
+          "pr_auc_average_precision": 0.9999998574738741
+        },
+        "evidence_score_quantiles": {
+          "p10": 0.0,
+          "p25": 0.5589155264313677,
+          "p50": 0.7784194683083085,
+          "p75": 0.8901835597865135,
+          "p90": 0.9465424710047242
+        },
+        "diagnostic_subgroup_optimal_combined_threshold": 0.7,
+        "diagnostic_threshold_delta": 0.04999999999999993,
+        "diagnostic_optimal_metrics": {
+          "evaluated_rows": 5469,
+          "duplicate_prevalence": 0.6847686962881697,
+          "precision": 0.9997326917936381,
+          "recall": 0.9986648865153538,
+          "f1": 0.999198503873898,
+          "false_positive_rate": 0.000580046403712297,
+          "false_negative_rate": 0.0013351134846461949,
+          "confusion_matrix": {
+            "true_duplicate": 3740,
+            "false_duplicate": 1,
+            "true_non_duplicate": 1723,
+            "missed_duplicate": 5
+          },
+          "pr_auc_average_precision": 0.9999998574738741
+        },
+        "large_divergence_flag": false,
+        "threshold_applied": "GLOBAL_ONLY"
+      }
+    ]
+  },
+  "large_divergence_flags": 0,
+  "interpretation": "Subgroup optima are diagnostic only; one global configuration remains frozen.",
+  "production_validation": "NOT_VALIDATED"
+}

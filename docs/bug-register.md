@@ -1,5 +1,12 @@
 # INDRA — Bug Register
 
+> Historical backend defect record. MiniLM and "vision/anomaly missing" findings below describe
+> the state when discovered, not the current frozen six-component AI/ML subsystem. The newer
+> `origin/main` backend fixes and additions remain recorded here. For current AI/ML claims and
+> merged-branch verification, use [ML architecture](ML_ARCHITECTURE.md) and
+> [ML validation](ML_VALIDATION_REPORT.md); do not treat old cold-MiniLM measurements as a live
+> runtime dependency.
+
 **What this is:** every defect found in the backend (layers 1, 2, 3, 5, 6, 7, 8a) since the
 16 Sep 2026 sprint began, through Phase 1 (23 Sep) and the 24 Sep triage of the frontend team's
 backend report, what was done about it, and — for the ones still open — the honest sentence
@@ -10,7 +17,9 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 25 Sep 2026, after the demo-data removal (BUG-045 fixed, BUG-093 … BUG-100).**
+**Last updated: 27 Sep 2026: the demo-data removal of 25 Sep (BUG-045 fixed, BUG-093 … BUG-100), then
+Phase 3's testing pass and three real-post samples (BUG-081, BUG-090 … BUG-092, BUG-101 … BUG-114 fixed;
+BUG-115 … BUG-118 open).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1626,6 +1635,8 @@ is retried by seeking back to it, and the third failure publishes it with its er
 crash from "no event" without making `process_report` raise, which every caller relies on.
 Commits: `b40b7d0`, `87c5c5d`, `f73f5c8`, `6e97592`, `84e33d1`. To be marked `FIXED` when the T8
 tests in the phase file pass.
+**24 Sep: `FIXED`.** The T8 consumer tests pass (retry twice, dead-letter on the third, commit only
+after, nothing committed when the dead-letter topic is unreachable), PR #35.
 
 # Phase 3 — 25 Sep 2026 (branch `aditya_25sept`, written, not yet tested)
 
@@ -1637,6 +1648,9 @@ with a flood, and the candidate set grew with the table. `cluster_around(report)
 SQL (unassigned, clusterable, same family or untagged, inside the family's window, within 3 × eps)
 and runs DBSCAN over that set. Commits `b1d4e52`, `c8e8025`. `FIXED` when T5's cases pass,
 including the 10,000-row timing.
+**26 Sep: `FIXED`.** T5's table passes (`test_hazard_clustering.py`). With 10,000 old unassigned
+reports in the table, `cluster_around` takes a median **7.2 ms** (worst 7.7 ms of 7 runs); the old
+whole-table method took **296 ms** on the same rows.
 
 ### BUG-091 — Every report's credibility was computed at ingest and read by nothing
 **S2** · Layer 6 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T8)
@@ -1645,6 +1659,8 @@ Report Density counted reports, so five from one device were five witnesses. It 
 `n_eff = Σ_distinct reporters min(1, best credibility / 0.60)`, the misleading-text flags lower
 credibility, and a news publisher counts once. Commits `2b0131e`, `9a4c91d`, `eefdf69`, `778e301`,
 `c8e8025`.
+**26 Sep: `FIXED`.** `test_report_flags.py` and the `coordinated` cases pass: five clean citizen
+reports count 4.75 witnesses, five from one device 1.0, three devices sending one text 1.5.
 
 ### BUG-092 — Every event was stored as `URBAN_FLOOD`
 **S2** · Layer 6 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T6)
@@ -1652,6 +1668,9 @@ credibility, and a news publisher counts once. Commits `2b0131e`, `9a4c91d`, `ee
 The type was hard-coded at insert. It is now the majority of the reports' tagged hazards, ties by
 precedence, UNCLASSIFIED (never auto-published) with no votes; a commander can override it on the
 record. Commits `ddeef6e`, `c8e8025`, `36d231b`.
+**26 Sep: `FIXED`.** Each of the PS's seven categories makes one event of its own type by a 5–0
+vote (`test_hazard_scenarios.py`); UNCLASSIFIED and posts-only events stay with a human even at
+0.99 (`test_event_typing.py`).
 
 # Demo-data removal — 25 Sep 2026 (branch `aditya_remove_demo_data`)
 
@@ -1746,3 +1765,145 @@ KPIs, teams), the dashboard's `DEMO_PULSE` type, `run_hazard_demo.py`, `run_patn
 `burst_reports.py`, `seed_national_data.py`, `./start.sh demo` and `make demo`. Every read now answers
 no rows with the empty result, an unknown id with 404 and a database error with 503, through
 `core/empty.py::empty_or_503()`; a `DEMO_MODE` line left in an old `.env` is ignored.
+# Phase 3 testing pass — 26 Sep 2026 (branch `aditya_26sep`)
+
+Numbered from BUG-101, because the unmerged 25 Sep demo-data branch already uses BUG-093 … BUG-100.
+
+### BUG-101 — Merging main dropped PR #39's ML block from a re-typed event's receipt
+**S3** · Layer 6 · **`FIXED`** `9919f48`
+
+Phase 3 re-scores an event under a commander's type and rebuilds the receipt; PR #39 added
+`ml_event_grouping` only after the first score, so every re-typed event lost it. Now set on both.
+Test: `test_a_commanders_type_survives_later_reports`.
+
+### BUG-102 — The tagger missed "bhishan garmi" and "shitlahar", the plan's own spellings
+**S3** · Layer 3 · **`FIXED`** `924496d`
+
+The Hinglish regexes matched "bheshan" and "sheet lehar" but not the lexicon's own words. Found
+on the fixture; the first measurement (gate passed, macro-F1 0.9913) is kept in `89e66fe`.
+
+### BUG-103 — A rain reading with no depth left the receipt's severity axis blank
+**S3** · Layer 6 · **`FIXED`** `758568a`
+
+A RAINFALL event quoting "64.4 mm" showed `axis: water_depth, value: null`. The rain reading is now
+the axis shown when no depth is quoted.
+
+### BUG-104 — A commander's type override split the incident into two events
+**S2** · Layer 6 · **`FIXED`** `f81cb63`
+
+After a commander re-typed a flood event as FOG, the next flood reports at the same place made a
+second URBAN_FLOOD event, because the merge matched only the event's (now visibility) family. The
+merge also accepts the family the reports voted (`override.machine_vote`); a heatwave cluster still
+never joins a flood event. Tests in `test_hazard_clustering.py`.
+
+### BUG-105 — `sample_real_posts.py` had never run
+**S3** · scripts · **`FIXED`** `0349a75`
+
+asyncpg refused `--since` as a string. Parsed to a datetime; the sample was then drawn (100 rows of
+2,198, 38 in Hindi).
+
+### BUG-106 — Two of PR #39's tests fail on every Mac and Linux checkout
+**S3** · Layer 4 · **`OPEN`**, handed to the ML owner
+
+`test_datasheet_hash_matches_the_file` and `test_committed_metrics_match_the_dataset_file` compare the
+raw file's SHA-256 with a CRLF checkout's hash; git stores `data/labelled/reports_v1.csv` as LF. The
+only 2 failures in the 1,475-test suite. Fix: hash the LF form, or pin the file's line endings.
+
+### BUG-107 — Phase 2's 24-hour collection had never run
+**S2** · infra · **`FIXED`** 27 Sep
+
+The server was stopped at 19:59 on 24 Sep, 18 minutes after the Phase 2 deploy, and stayed off
+until 26 Sep. It then ran from 26 Sep 11:38 to 27 Sep 12:08, which collected the first full day:
+26 Sep 11:40 → 27 Sep 11:40, 745 headlines, 41 posts, 3,015 METAR observations from 113 stations,
+every feed `ok`, and all 786 stream messages in the lake.
+
+
+# Phase 3 real-post measurement — 27 Sep 2026
+
+Found by measuring the tagger on 100 real posts and headlines (labelled by Claude, see
+`backend/tests/fixtures/hazards_real_v1.md`). All `OPEN`: fixing them on the sample they were found
+on would make its figure dishonest, so they are to be fixed on the fixture's `dev` rows and measured
+on a fresh real sample. BUG-088 (the Vietnamese "लू") is **fixed**: all 5 such items came out untagged.
+
+### BUG-108 — Hindi "आंधी-बारिश" (a rain squall) is tagged a dust storm
+**S2** · Layer 3 · **`OPEN`**
+
+The lexicon maps आंधी to DUST_STORM; with rain in a monsoon headline it is a squall (thunderstorm,
+strong wind). 8 of the 100 posts; DUST_STORM precision 0.18 on real text.
+
+### BUG-109 — Hindi negation reads "टला नहीं" (hasn't gone) and "में भी नहीं डिगा" as denials
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-110 — "चलेगी लू" (verb first) is not recognised as a heatwave
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-111 — "कोहरे में डूबेगा" (drowned in fog) is tagged a flood
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-112 — Humour posts that only carry #ChennaiRains are tagged rain
+**S3** · Layer 3 · **`OPEN`**
+
+7 of the 100 posts. Once posts cluster they can make a posts-only event, which is capped at
+`PENDING_HUMAN_REVIEW` and never published, but is noise in the review queue.
+
+**27 Sep, after the fixes:** BUG-108 … BUG-111 are **`FIXED`** (`4c40ed2`) and BUG-112 is fixed
+for posts tagged as jokes. Measured on a second, independent 100 real posts (`hazards_real_v2.csv`,
+labelled by Claude before measuring): micro-F1 **0.913**, Hindi **0.914** (0.729 on the first sample
+before the fixes), DUST_STORM F1 0.95 (0.31 before). What is left:
+
+### BUG-113 — Hashtags name a hazard on posts that are not reports
+**S3** · Layer 3 · **`OPEN`**
+
+A haiku tagged #fog, a satire tagged #Heatwave, a motorbike called "Cyclone RX600", a painting tagged
+#DelhiRains: 8 of the 100. Most of the 28% of non-hazard posts that get tagged. Bounded: a
+posts-only event is never published without a human.
+
+### BUG-114 — More Hindi forms the tagger misses
+**S3** · Layer 3 · **`OPEN`**
+
+"लू का वार", "लू की स्थिति" (heatwave); "आंधी-पानी" (पानी as rain); "सड़कों पर भरा पानी" (the verb
+before पानी); "80 KM की रफ्तार से चलेंगी हवाएं" (a wind speed in Hindi). 5 of the 100. Also
+"flood threat" / "flood concerns" read as a flood (2), and 7 tense misses.
+
+**27 Sep, afternoon (branch `aditya_27sep_b`):** BUG-113 and BUG-114 **`FIXED`** (`d086fee`,
+`2ac3d91`, `759cb33`, `221bc07`; tests `d80aaf2`). A hashtag counts only as a word in a sentence or
+beside weather words, a reading or a named hazard; a photo's tags and an all-tag post still count;
+creative writing names nothing; "Cyclone" before a model code is a product. The Hindi forms above
+are read, a threat is a forecast (kept in a forecast, dropped beside something happening now), and
+plural colour alerts, "now through" and "caused" set the tense correctly. The fixture is unchanged
+(macro-F1 0.9952). On a **third, independent sample** (`hazards_real_v3.csv`, labelled by Claude
+before measuring): micro-F1 **0.954**, the same as `main` scores on it, with non-hazard posts tagged
+down from 15.4% to 12.8% and Hindi up from 0.940 to 0.949. v3's 16 wrong rows are below, not tuned on.
+
+# Phase 3 third real-post sample — 27 Sep 2026
+
+### BUG-115 — Hindi heat warnings with a word between लू and the alert
+**S3** · Layer 3 · **`OPEN`**
+
+"लू का ऑरेंज अलर्ट" and "लू और उमस भरे मौसम की चेतावनी" name no heatwave: the लू companions are word
+pairs, so a colour between का and अलर्ट, or "लू और …", is not one. 2 of v3's 100 (both forecasts).
+
+### BUG-116 — A rainfall figure beside only hashtags names nothing (a regression of BUG-113's fix)
+**S3** · Layer 3 · **`OPEN`**
+
+"Colaba logged 222mm in just 48 hours … #MumbaiRains #IMDUpdate": "mm" with no rain word within five
+tokens is not read as a rainfall reading, so the post has no weather word of its own and the tag
+list is dropped. Before the fix it was RAINFALL through the hashtag. 1 of v3's 100.
+
+### BUG-117 — Tense: a year in a hashtag, a date earlier this year, a Hindi future
+**S3** · Layer 3 · **`OPEN`**
+
+"#ChennaiFloods2025" makes "Chennai braces for heavy rainfall" a past story; "on April 1st 2026 we
+had a huge storm" (September 2026) is read as happening; "जारी रहेगा बारिश का दौर?" (will the rain
+go on?) is not a forecast; "IMD warns of … till Tuesday" beside a cyclone that "swirls" now reads as
+a forecast. 4 of v3's 100; tense right on 85% of rows.
+
+### BUG-118 — Hazard words that are not the hazard happening
+**S3** · Layer 3 · **`OPEN`**
+
+"respite from the sweltering heat" → HEATWAVE; "a 15% rain deficit" → RAINFALL; "cyclonic
+circulation" → CYCLONE; "Is rain coming?" → RAINFALL; "नदी में डूबने से मौतें" (drowned in a river)
+→ URBAN_FLOOD; preparing "to deal with flash floods" → URBAN_FLOOD; and wind damage written verb
+first ("तेज आंधी से गिरा … होर्डिंग", "आंधी से बिजली का तार गिरा") is missed as STRONG_WIND. 8 of v3's
+100. Like BUG-113, these reach only a commander's review queue: a posts-only event is never
+published without a human.

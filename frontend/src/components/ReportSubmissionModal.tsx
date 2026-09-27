@@ -19,6 +19,7 @@ import {
   type ReportSubmission,
 } from '@/lib/api';
 import { useSession, hasRole, COMMAND_ROLES } from '@/lib/auth';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface Props {
   open: boolean;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Props) {
+  const { t } = useTranslation();
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [text, setText] = useState('');
@@ -122,8 +124,8 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                   <AlertTriangle className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-[#3C2415]">Report Incident</h2>
-                  <p className="text-[10px] text-[#8C7A6B]">Submit a citizen weather/disaster report</p>
+                  <h2 className="text-sm font-bold text-[#3C2415]">{t('nav.report_incident')}</h2>
+                  <p className="text-[10px] text-[#8C7A6B]">INDRA Crisis Intelligence Network</p>
                 </div>
               </div>
               <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-[#E8E2D4] transition-colors">
@@ -230,7 +232,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                   className="w-full py-2.5 rounded-lg bg-[#B5482E] text-white text-xs font-semibold hover:bg-[#8C3420] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {submitting ? 'Submitting report…' : asOfficial && canFileOfficial ? 'File Official Dispatch' : 'Submit Report'}
+                  {submitting ? t('common.loading') : asOfficial && canFileOfficial ? 'File Official Dispatch' : t('nav.report_incident')}
                 </button>
               </>
             )}
@@ -240,7 +242,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                 onClick={handleClose}
                 className="w-full py-2.5 rounded-lg bg-[#3C2415] text-white text-xs font-semibold hover:bg-[#5C3B27] transition-colors"
               >
-                Close
+                {t('common.close')}
               </button>
             )}
           </div>

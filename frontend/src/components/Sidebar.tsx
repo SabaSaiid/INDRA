@@ -25,6 +25,7 @@ import {
   LogIn,
   User,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -40,6 +41,7 @@ export default function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { connected } = useIndraWebSocket();
   const { session, profile } = useOperatorProfile();
   const [signInOpen, setSignInOpen] = useState(false);
@@ -86,18 +88,69 @@ export default function Sidebar({
   // No dot for a status the profile does not carry: never a default 'On Duty'.
   const activeStatusCfg = profile ? dutyStatusConfig[profile.duty_status as DutyStatus] ?? null : null;
 
+  // Resolve localized label for any navigation item
+  const getNavItemLabel = (item: NavItem): string => {
+    const navKeyMap: Record<string, string> = {
+      'dashboard': 'nav.dashboard',
+      'live-map': 'nav.live_map',
+      'events': 'nav.incident_events',
+      'alerts': 'nav.early_warnings',
+      'reports': 'nav.field_reports',
+      'analytics': 'nav.analytics',
+      'datasets': 'nav.geospatial_feeds',
+      'teams': 'nav.teams_hub',
+      'profile': 'nav.operator_profile',
+      'admin': 'nav.admin_command',
+      'settings': 'nav.platform_settings',
+    };
+
+    const targetKey = navKeyMap[item.id] || `nav.${item.id.replace(/-/g, '_')}`;
+    const translated = t(targetKey);
+    if (translated && translated !== targetKey) {
+      return translated;
+    }
+
+    // Secondary fallback mappings
+    if (item.id === 'alerts') {
+      const fb = t('nav.official_warnings');
+      if (fb && fb !== 'nav.official_warnings') return fb;
+    }
+    if (item.id === 'teams') {
+      const fb = t('nav.response_teams');
+      if (fb && fb !== 'nav.response_teams') return fb;
+    }
+    if (item.id === 'profile') {
+      const fb = t('nav.operator');
+      if (fb && fb !== 'nav.operator') return fb;
+    }
+    if (item.id === 'admin') {
+      const fb = t('nav.admin_panel');
+      if (fb && fb !== 'nav.admin_panel') return fb;
+    }
+    if (item.id === 'settings') {
+      const fb = t('nav.system_settings');
+      if (fb && fb !== 'nav.system_settings') return fb;
+    }
+
+    return item.label;
+  };
+
   // ── Nav item renderer ───────────────────────────────────────────────────────
   const renderNavItem = (item: NavItem, isMobile = false) => {
     const isActive = isItemActive(item);
     const Icon = item.icon;
     const isCollapsedState = collapsed && !isMobile;
+    const navLabel = getNavItemLabel(item);
+    const badgeText = item.badge
+      ? (item.badge.text === 'LIVE' ? (t('kpis.live_label') || item.badge.text) : item.badge.text)
+      : null;
 
     return (
       <div key={item.id} className="relative group">
         <Link
           href={item.href}
           onClick={isMobile ? onMobileClose : undefined}
-          title={item.label}
+          title={navLabel}
           className={cn(
             'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 outline-none select-none',
             isCollapsedState ? 'justify-center px-2' : 'justify-between',
@@ -143,13 +196,13 @@ export default function Sidebar({
 
             {!isCollapsedState && (
               <span
-                title={item.label}
+                title={navLabel}
                 className={cn(
-                  'truncate block text-[13px]',
+                  'truncate block text-[13px] leading-normal py-0.5',
                   isActive ? 'font-semibold text-white' : 'font-medium text-slate-300 group-hover:text-white'
                 )}
               >
-                {item.label}
+                {navLabel}
               </span>
             )}
           </div>
@@ -158,7 +211,7 @@ export default function Sidebar({
           {!isCollapsedState && item.badge && (
             <span
               className={cn(
-                'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-none border flex-shrink-0 ml-auto z-10',
+                'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-normal border flex-shrink-0 ml-auto z-10',
                 item.badge.variant === 'live'
                   && 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_6px_rgba(16,185,129,0.15)]',
                 item.badge.variant === 'critical'
@@ -169,7 +222,7 @@ export default function Sidebar({
                   && 'bg-slate-700/60 text-slate-300 border-slate-600/50'
               )}
             >
-              {item.badge.text}
+              {badgeText}
             </span>
           )}
         </Link>
@@ -190,19 +243,19 @@ export default function Sidebar({
               <div className="relative z-10 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-[12px] text-white">
-                    {item.label}
+                    {navLabel}
                   </span>
                   {item.badge && (
                     <span
                       className={cn(
-                        'text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-none',
+                        'text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-normal',
                         item.badge.variant === 'live' && 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
                         item.badge.variant === 'critical' && 'bg-rose-500/25 text-rose-300 border-rose-500/40',
                         item.badge.variant === 'warning' && 'bg-amber-500/20 text-amber-300 border-amber-500/30',
                         item.badge.variant === 'neutral' && 'bg-slate-700 text-slate-300 border-slate-600'
                       )}
                     >
-                      {item.badge.text}
+                      {badgeText}
                     </span>
                   )}
                 </div>
@@ -328,7 +381,7 @@ export default function Sidebar({
                   <button
                     onClick={() => toggleSection(section.id)}
                     className="w-full px-1.5 pt-2 pb-1 flex items-center gap-1.5 text-[10.5px] font-semibold tracking-wider uppercase text-slate-500 hover:text-slate-300 transition-colors text-left group/sec"
-                    title={isSectionCollapsed ? `Expand ${section.label}` : `Collapse ${section.label}`}
+                    title={isSectionCollapsed ? `Expand ${t(`nav.section_${section.id}`)}` : `Collapse ${t(`nav.section_${section.id}`)}`}
                   >
                     <ChevronDown
                       className={cn(
@@ -336,7 +389,7 @@ export default function Sidebar({
                         isSectionCollapsed && '-rotate-90'
                       )}
                     />
-                    <span className="transition-colors">{section.label}</span>
+                    <span className="transition-colors">{t(`nav.section_${section.id}`)}</span>
                   </button>
                 ) : (
                   <div className="h-px mx-1.5 my-2 bg-white/[0.08]" />
@@ -372,7 +425,7 @@ export default function Sidebar({
           {!isCollapsedState && (
             <div className="flex items-center justify-between px-1 mb-1.5">
               <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500">
-                Operator
+                {t('nav.operator')}
               </span>
               {callsign && (
                 <span
@@ -517,7 +570,7 @@ export default function Sidebar({
               title="Platform Settings (⌘,)"
             >
               <Settings className="w-3.5 h-3.5 hover:rotate-45 transition-transform duration-300" />
-              <span>Platform Settings</span>
+              <span>{t('nav.platform_settings')}</span>
             </Link>
           )}
         </div>

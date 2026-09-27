@@ -1,0 +1,298 @@
+{
+  "baseline_reference": "credibility_v1.baseline_validation.json",
+  "configuration_selected_without_test": true,
+  "development_performance_gate": {
+    "checks": {
+      "duplicate_not_equated_with_misleading": true,
+      "extreme_not_equated_with_misleading": true,
+      "false_positive_rate_at_most_0_15": true,
+      "macro_f1_at_least_0_75": true,
+      "misleading_precision_at_least_0_80": true,
+      "misleading_recall_at_least_0_80": true
+    },
+    "passed": true,
+    "production_validation": "NOT_VALIDATED",
+    "scope": "SYNTHETIC_DEVELOPMENT_ONLY"
+  },
+  "model": {
+    "calibration": {
+      "brier_score": 0.0,
+      "expected_calibration_error_10_bins": 1.64e-08,
+      "log_loss": 1.64e-08
+    },
+    "classification": {
+      "accuracy": 1.0,
+      "confusion_matrix": {
+        "AUTHENTIC": {
+          "AUTHENTIC": 5400,
+          "MISLEADING": 0,
+          "UNCERTAIN": 0
+        },
+        "MISLEADING": {
+          "AUTHENTIC": 0,
+          "MISLEADING": 8640,
+          "UNCERTAIN": 0
+        },
+        "UNCERTAIN": {
+          "AUTHENTIC": 0,
+          "MISLEADING": 0,
+          "UNCERTAIN": 1080
+        }
+      },
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "macro_f1": 1.0,
+      "misleading_precision": 1.0,
+      "misleading_recall": 1.0,
+      "per_label": {
+        "AUTHENTIC": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 5400
+        },
+        "MISLEADING": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 8640
+        },
+        "UNCERTAIN": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 1080
+        }
+      },
+      "row_count": 15120
+    },
+    "hard_negative_results": {
+      "duplicate_not_equated_with_misleading": true,
+      "extreme_not_equated_with_misleading": true,
+      "scenarios": {
+        "AUTHENTIC_EXTREME_BUT_PLAUSIBLE": {
+          "actual_label": "AUTHENTIC",
+          "correct_rate": 1.0,
+          "false_misleading_rate": 0.0,
+          "predicted_distribution": {
+            "AUTHENTIC": 1080
+          },
+          "row_count": 1080
+        },
+        "AUTHENTIC_WITH_INCOMPLETE_METADATA": {
+          "actual_label": "AUTHENTIC",
+          "correct_rate": 1.0,
+          "false_misleading_rate": 0.0,
+          "predicted_distribution": {
+            "AUTHENTIC": 1080
+          },
+          "row_count": 1080
+        },
+        "LEGITIMATE_DUPLICATE": {
+          "actual_label": "AUTHENTIC",
+          "correct_rate": 1.0,
+          "false_misleading_rate": 0.0,
+          "predicted_distribution": {
+            "AUTHENTIC": 1080
+          },
+          "row_count": 1080
+        },
+        "LEGITIMATE_EVENT_CONFLICT": {
+          "actual_label": "AUTHENTIC",
+          "correct_rate": 1.0,
+          "false_misleading_rate": 0.0,
+          "predicted_distribution": {
+            "AUTHENTIC": 1080
+          },
+          "row_count": 1080
+        },
+        "MISLEADING_CONTEXT": {
+          "actual_label": "MISLEADING",
+          "correct_rate": 1.0,
+          "misleading_recall": 1.0,
+          "predicted_distribution": {
+            "MISLEADING": 1080
+          },
+          "row_count": 1080
+        },
+        "MISLEADING_OMISSION": {
+          "actual_label": "MISLEADING",
+          "correct_rate": 1.0,
+          "misleading_recall": 1.0,
+          "predicted_distribution": {
+            "MISLEADING": 1080
+          },
+          "row_count": 1080
+        },
+        "SOURCE_BEHAVIOR_ANOMALY": {
+          "actual_label": "MISLEADING",
+          "correct_rate": 1.0,
+          "misleading_recall": 1.0,
+          "predicted_distribution": {
+            "MISLEADING": 1080
+          },
+          "row_count": 1080
+        }
+      },
+      "scope": "validation"
+    },
+    "multilingual_results": {
+      "languages": {
+        "English": {
+          "accuracy": 1.0,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1800,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2880,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 0,
+              "UNCERTAIN": 360
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 1.0,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1800
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2880
+            },
+            "UNCERTAIN": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 360
+            }
+          },
+          "row_count": 5040
+        },
+        "Hindi": {
+          "accuracy": 1.0,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1800,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2880,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 0,
+              "UNCERTAIN": 360
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 1.0,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1800
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2880
+            },
+            "UNCERTAIN": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 360
+            }
+          },
+          "row_count": 5040
+        },
+        "Hinglish": {
+          "accuracy": 1.0,
+          "confusion_matrix": {
+            "AUTHENTIC": {
+              "AUTHENTIC": 1800,
+              "MISLEADING": 0,
+              "UNCERTAIN": 0
+            },
+            "MISLEADING": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 2880,
+              "UNCERTAIN": 0
+            },
+            "UNCERTAIN": {
+              "AUTHENTIC": 0,
+              "MISLEADING": 0,
+              "UNCERTAIN": 360
+            }
+          },
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "macro_f1": 1.0,
+          "misleading_precision": 1.0,
+          "misleading_recall": 1.0,
+          "per_label": {
+            "AUTHENTIC": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 1800
+            },
+            "MISLEADING": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 2880
+            },
+            "UNCERTAIN": {
+              "f1": 1.0,
+              "precision": 1.0,
+              "recall": 1.0,
+              "support": 360
+            }
+          },
+          "row_count": 5040
+        }
+      },
+      "macro_f1_range": 0.0,
+      "scope": "validation",
+      "weakest_language": "English"
+    },
+    "score_semantics": "CALIBRATED_MISLEADING_RISK_EVIDENCE_PROBABILITY",
+    "truth_probability": false
+  },
+  "phase": "21 — CREDIBILITY VALIDATION",
+  "production_validation": "NOT_VALIDATED",
+  "schema_version": "1.0",
+  "semantic_target": "MISLEADING_RISK_EVIDENCE",
+  "split": "validation",
+  "truth_probability": false,
+  "validation_role_counts": {
+    "calibration": 3688,
+    "model_selection": 7600,
+    "threshold_selection": 3832
+  }
+}

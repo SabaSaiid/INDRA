@@ -40,6 +40,7 @@ import {
 } from '@/lib/api';
 import { useSession, hasRole, roleLabel, COMMAND_ROLES, LEDGER_ROLES } from '@/lib/auth';
 import { eventReviewState } from '@/lib/eventState';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // Issue 3 fix: per-hazard plausible maximum impact radius (km).
 // NOTE TO BACKEND TEAM: impact_radius_km likely has a units bug upstream
@@ -109,6 +110,7 @@ interface Props {
 }
 
 export default function EventVerificationModal({ eventId, onClose, onEventUpdated }: Props) {
+  const { t } = useTranslation();
   const session = useSession();
   const [detail, setDetail] = useState<EventDetail | null>(null);
   const [provenance, setProvenance] = useState<ProvenanceData | null>(null);
@@ -120,6 +122,15 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewResult, setReviewResult] = useState<{ success: boolean; message: string } | null>(null);
   const [reportsExpanded, setReportsExpanded] = useState(false);
+
+  const FACTOR_LABEL_MAP: Record<string, string> = {
+    'Weather Station Corroboration': t('receipt.factor_weather'),
+    'Report Density Analysis': t('receipt.factor_citizen'),
+    'Spatial Coherence Score': t('receipt.factor_proximity'),
+    'Computer Vision Analysis': t('receipt.factor_image'),
+    'Source Reliability Index': t('receipt.factor_source'),
+    'Anomaly Detection Signal': t('receipt.factor_historical'),
+  };
 
   // The same role rules the backend enforces, read from the signed-in session.
   const canReview = hasRole(session, COMMAND_ROLES);
@@ -217,7 +228,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   <Shield className="w-4 h-4 text-[#E8DCC8]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-[#3C2415] font-mono tracking-wide">VERIFICATION RECEIPT</h2>
+                  <h2 className="text-sm font-bold text-[#3C2415] font-mono tracking-wide">{t('receipt.title').toUpperCase()}</h2>
                   <p className="text-[10px] text-[#8C7A6B]">{detail?.event_code || provenance?.event?.event_code || '—'}</p>
                 </div>
               </div>
@@ -230,7 +241,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-6 h-6 animate-spin text-[#B5482E]" />
-              <span className="ml-2 text-sm text-[#8C7A6B]">Loading verification data…</span>
+              <span className="ml-2 text-sm text-[#8C7A6B]">{t('common.loading')}</span>
             </div>
           ) : (
             <div className="px-5 py-4 space-y-4">
@@ -239,15 +250,15 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: sevStyle.bg, color: sevStyle.text, border: `1px solid ${sevStyle.border}` }}>
-                      {severity}
+                      {t.severity(severity)}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: statusStyle.bg, color: statusStyle.color }}>
-                      {statusStyle.label}
+                      {t.status(reviewStatus)}
                     </span>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-black text-[#3C2415] font-mono">{confidencePct}%</div>
-                    <div className="text-[10px] text-[#8C7A6B]">Confidence</div>
+                    <div className="text-[10px] text-[#8C7A6B]">{t('receipt.confidence_label')}</div>
                     {coverage !== null && (
                       <div data-testid="factor-coverage" className="text-[10px] font-semibold text-[#6B5E53]">
                         coverage {Math.round(coverage * 100)}% of the model
@@ -289,7 +300,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                     onClick={() => setActiveTab(tab)}
                     className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold transition-all ${activeTab === tab ? 'bg-white text-[#3C2415] shadow-sm' : 'text-[#8C7A6B] hover:text-[#6B5E53]'}`}
                   >
-                    {tab === 'receipt' ? '6-Factor Receipt' : tab === 'reports' ? `Reports${provenance ? ` (${provenance.reports.length})` : ''}` : `Audit${provenance ? ` (${provenance.audit.length})` : ''}`}
+                    {tab === 'receipt' ? t('receipt.title') : tab === 'reports' ? `${t('nav.field_reports')}${provenance ? ` (${provenance.reports.length})` : ''}` : `Audit${provenance ? ` (${provenance.audit.length})` : ''}`}
                   </button>
                 ))}
               </div>
@@ -311,7 +322,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                               {cfg.icon}
                             </div>
                             <div>
-                              <div className="text-xs font-semibold text-[#3C2415]">{f.factor}</div>
+                              <div className="text-xs font-semibold text-[#3C2415]">{FACTOR_LABEL_MAP[f.factor] || f.factor}</div>
                               <div className="text-[10px] text-[#8C7A6B]">Weight: {f.weight_pct}%</div>
                             </div>
                           </div>
@@ -453,7 +464,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 <div className="bg-white rounded-xl border border-[#E8E2D4] p-4 space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#3C2415] uppercase">
                     <Radio className="w-3.5 h-3.5 text-[#B5482E]" />
-                    Commander Decision
+                    {t('receipt.commander_review')}
                     {session && <span className="text-[9px] font-normal normal-case text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">Signed in as {session.username}</span>}
                   </div>
 
@@ -464,14 +475,14 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                           onClick={() => setReviewAction('approve')}
                           className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('receipt.approve_btn')}
                         </button>
                       )}
                       <button
                         onClick={() => setReviewAction('reject')}
                         className="flex-1 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5"
                       >
-                        <XCircle className="w-3.5 h-3.5" /> Reject
+                        <XCircle className="w-3.5 h-3.5" /> {t('receipt.reject_btn')}
                       </button>
                       <button
                         onClick={() => setReviewAction('override_severity')}
@@ -484,7 +495,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-[#3C2415] capitalize">{reviewAction.replace(/_/g, ' ')}</span>
-                        <button onClick={() => { setReviewAction(null); setReviewReason(''); }} className="text-[10px] text-[#B5482E] hover:underline">Cancel</button>
+                        <button onClick={() => { setReviewAction(null); setReviewReason(''); }} className="text-[10px] text-[#B5482E] hover:underline">{t('common.cancel')}</button>
                       </div>
                       {reviewAction === 'override_severity' && (
                         <select

@@ -32,6 +32,13 @@ import {
   Activity,
   Server,
   RefreshCw,
+  Bell,
+  Mail,
+  Phone,
+  Lock,
+  MapPin,
+  EyeOff,
+  Timer,
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -51,12 +58,16 @@ import {
   type UiDensity,
   type SeverityThreshold,
   type RefreshInterval,
+  type IdleLockMinutes,
 } from '@/lib/useSettings';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { fetchHealth, type HealthReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/lib/i18n/types';
 
 export default function SettingsPage() {
+  const { t, language, setLanguage } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -79,7 +90,7 @@ export default function SettingsPage() {
       });
     return () => { cancelled = true; };
   }, []);
-  const [activeSection, setActiveSection] = useState<'all' | 'map' | 'alerts' | 'units' | 'hud' | 'network' | 'backup'>('all');
+  const [activeSection, setActiveSection] = useState<'all' | 'map' | 'alerts' | 'units' | 'hud' | 'network' | 'notifications' | 'aor' | 'security' | 'backup'>('all');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const showToast = (msg: string) => {
@@ -169,7 +180,7 @@ export default function SettingsPage() {
                   className="text-lg lg:text-xl font-bold tracking-tight text-white"
                   style={{ fontFamily: 'Fraunces, Georgia, serif' }}
                 >
-                  Mission Preferences &amp; Platform Configuration
+                  {t('nav.system_settings')}
                 </h1>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-white/10 text-slate-300 border border-white/15">
                   SIH26069 • SIXTH SENSE
@@ -201,7 +212,10 @@ export default function SettingsPage() {
               { id: 'map', label: '🗺️ Tactical GIS' },
               { id: 'alerts', label: '🔊 Audio & Refresh' },
               { id: 'units', label: '📐 Units & Grid' },
-              { id: 'hud', label: '🖥️ Command HUD' },
+              { id: 'hud', label: '🖥️ Appearance' },
+              { id: 'notifications', label: '🔔 Notifications' },
+              { id: 'aor', label: '📍 Area of Ops' },
+              { id: 'security', label: '🔒 Session Security' },
               { id: 'network', label: '🌐 Network' },
               { id: 'backup', label: '⚙️ Backup & Diagnostics' },
             ].map((cat) => (
@@ -676,6 +690,44 @@ export default function SettingsPage() {
                   </span>
                 </div>
 
+                {/* Interface Language & Script */}
+                <div>
+                  <label className="text-xs font-semibold text-[#1E2A3B] flex items-center gap-1.5 mb-1.5">
+                    <Globe className="w-3.5 h-3.5 text-[#B5482E]" />
+                    Interface Language / बहुभाषी प्रणाली (12 Languages)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {(Object.entries(SUPPORTED_LANGUAGES) as [SupportedLanguage, typeof SUPPORTED_LANGUAGES[SupportedLanguage]][]).map(([code, meta]) => {
+                      const isSelected = language === code;
+                      return (
+                        <button
+                          key={code}
+                          onClick={() => {
+                            setLanguage(code);
+                            showToast(`Language switched to ${meta.name} (${meta.nativeName})`);
+                          }}
+                          className={cn(
+                            'p-2.5 rounded-xl border text-left flex items-center justify-between transition-all',
+                            isSelected
+                              ? 'bg-[#182235] text-white border-[#182235] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold truncate" style={{ fontFamily: meta.fontFamily }}>
+                              {meta.nativeName}
+                            </p>
+                            <p className={cn('text-[10px] truncate', isSelected ? 'text-slate-300' : 'text-[#7A8599]')}>
+                              {meta.name}
+                            </p>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Theme Mode */}
                 <div>
                   <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
@@ -763,7 +815,7 @@ export default function SettingsPage() {
                   <div className="p-3 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold text-[#1E2A3B]">Reduced Motion Mode</p>
-                      <p className="text-[10px] text-[#7A8599]">Disable complex spring animations for ruggedized field hardware</p>
+                      <p className="text-[10px] text-[#7A8599]">Disable animations for slower devices or accessibility</p>
                     </div>
                     <button
                       onClick={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
@@ -784,7 +836,302 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {/* 5. DATA SOURCE */}
+            {/* 5. NOTIFICATIONS */}
+            {(activeSection === 'all' || activeSection === 'notifications') && (
+              <motion.div
+                variants={fadeIn}
+                initial="hidden"
+                animate="visible"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center">
+                      <Bell className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Notifications &amp; Alerts Delivery
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Control where critical alerts reach you</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
+                    ALERTS
+                  </span>
+                </div>
+
+                {/* In-app toasts */}
+                <div className="bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl divide-y divide-[#E8E2D4]">
+                  <div className="p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-[#1E2A3B]">In-app toast notifications</p>
+                      <p className="text-[10px] text-[#7A8599]">Show a banner inside the dashboard for new events</p>
+                    </div>
+                    <button
+                      onClick={() => updateSettings({ notifyInApp: !settings.notifyInApp })}
+                      className={cn(
+                        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                        settings.notifyInApp ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm',
+                          settings.notifyInApp ? 'translate-x-4' : 'translate-x-0'
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Email toggle */}
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-[#1E2A3B] flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5" />
+                          Email notifications
+                        </p>
+                        {/* TODO(backend): POST /api/notifications/subscribe { channel: 'email', address } */}
+                        <p className="text-[10px] text-amber-600 font-mono">⚠ Requires backend email delivery endpoint (not yet live)</p>
+                      </div>
+                      <button
+                        onClick={() => updateSettings({ notifyEmail: !settings.notifyEmail })}
+                        className={cn(
+                          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                          settings.notifyEmail ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm',
+                            settings.notifyEmail ? 'translate-x-4' : 'translate-x-0'
+                          )}
+                        />
+                      </button>
+                    </div>
+                    {settings.notifyEmail && (
+                      <input
+                        type="email"
+                        placeholder="your@email.gov.in"
+                        value={settings.notifyEmailAddress}
+                        onChange={(e) => updateSettings({ notifyEmailAddress: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#E8E2D4] bg-white text-[#1E2A3B] placeholder-[#A0AABB] focus:outline-none focus:border-[#B5482E]"
+                      />
+                    )}
+                  </div>
+
+                  {/* SMS toggle */}
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-[#1E2A3B] flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5" />
+                          SMS / WhatsApp alerts
+                        </p>
+                        {/* TODO(backend): POST /api/notifications/subscribe { channel: 'sms', phone } via Twilio / MSG91 */}
+                        <p className="text-[10px] text-amber-600 font-mono">⚠ Requires backend SMS gateway (not yet live)</p>
+                      </div>
+                      <button
+                        onClick={() => updateSettings({ notifyPhoneEnabled: !settings.notifyPhoneEnabled })}
+                        className={cn(
+                          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                          settings.notifyPhoneEnabled ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm',
+                            settings.notifyPhoneEnabled ? 'translate-x-4' : 'translate-x-0'
+                          )}
+                        />
+                      </button>
+                    </div>
+                    {settings.notifyPhoneEnabled && (
+                      <input
+                        type="tel"
+                        placeholder="+91 98765 43210"
+                        value={settings.notifyPhone}
+                        onChange={(e) => updateSettings({ notifyPhone: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#E8E2D4] bg-white text-[#1E2A3B] placeholder-[#A0AABB] focus:outline-none focus:border-[#B5482E]"
+                      />
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* 6. AREA OF RESPONSIBILITY */}
+            {(activeSection === 'all' || activeSection === 'aor') && (
+              <motion.div
+                variants={fadeIn}
+                initial="hidden"
+                animate="visible"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Area of Responsibility (AOR)
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Scope dashboard alerts to a specific state</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
+                    AOR FILTER
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-[#7A8599]">
+                  When a state is selected, only events, alerts, and reports from that state appear in the live feed
+                  and alerts sidebar. Map view remains all-India.
+                </p>
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-xs font-medium">
+                  {[
+                    { code: null, label: 'All India' },
+                    { code: 'AP', label: 'Andhra Pradesh' },
+                    { code: 'AR', label: 'Arunachal' },
+                    { code: 'AS', label: 'Assam' },
+                    { code: 'BR', label: 'Bihar' },
+                    { code: 'CG', label: 'Chhattisgarh' },
+                    { code: 'GA', label: 'Goa' },
+                    { code: 'GJ', label: 'Gujarat' },
+                    { code: 'HR', label: 'Haryana' },
+                    { code: 'HP', label: 'Himachal' },
+                    { code: 'JH', label: 'Jharkhand' },
+                    { code: 'KA', label: 'Karnataka' },
+                    { code: 'KL', label: 'Kerala' },
+                    { code: 'MP', label: 'Madhya Pradesh' },
+                    { code: 'MH', label: 'Maharashtra' },
+                    { code: 'MN', label: 'Manipur' },
+                    { code: 'ML', label: 'Meghalaya' },
+                    { code: 'MZ', label: 'Mizoram' },
+                    { code: 'NL', label: 'Nagaland' },
+                    { code: 'OD', label: 'Odisha' },
+                    { code: 'PB', label: 'Punjab' },
+                    { code: 'RJ', label: 'Rajasthan' },
+                    { code: 'SK', label: 'Sikkim' },
+                    { code: 'TN', label: 'Tamil Nadu' },
+                    { code: 'TS', label: 'Telangana' },
+                    { code: 'TR', label: 'Tripura' },
+                    { code: 'UP', label: 'Uttar Pradesh' },
+                    { code: 'UK', label: 'Uttarakhand' },
+                    { code: 'WB', label: 'West Bengal' },
+                  ].map((s) => {
+                    const isSelected = settings.aorState === s.code;
+                    return (
+                      <button
+                        key={s.code ?? 'all'}
+                        onClick={() => updateSettings({ aorState: s.code })}
+                        className={cn(
+                          'py-2 px-2 rounded-xl border text-center transition-all',
+                          isSelected
+                            ? 'bg-[#182235] text-white border-[#182235] font-bold shadow-sm'
+                            : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
+                        )}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {settings.aorState && (
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-xs text-amber-700">
+                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <span>
+                      AOR filter is active ({settings.aorState}). Events outside this state are hidden from the live feed.
+                      {/* TODO(backend): GET /api/events?state={settings.aorState} — backend filter endpoint needed */}
+                      <span className="block font-mono mt-0.5 text-amber-500">Note: backend state-filter endpoint not yet implemented; filter is UI-only.</span>
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* 7. SESSION SECURITY */}
+            {(activeSection === 'all' || activeSection === 'security') && (
+              <motion.div
+                variants={fadeIn}
+                initial="hidden"
+                animate="visible"
+                className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-5 shadow-sm space-y-4"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E2D4]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0EBE0] text-[#B5482E] border border-[#E8E2D4] flex items-center justify-center">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                        Session &amp; Access Security
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599]">Idle lock and password management</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
+                    SECURITY
+                  </span>
+                </div>
+
+                {/* Idle lock timer */}
+                <div>
+                  <label className="text-xs font-semibold text-[#1E2A3B] flex items-center gap-1.5 mb-1.5">
+                    <Timer className="w-3.5 h-3.5 text-[#B5482E]" />
+                    Auto-lock after idle
+                  </label>
+                  <p className="text-[10px] text-[#7A8599] mb-2">
+                    Show a lock screen after the selected period of inactivity. Requires a click to resume.
+                  </p>
+                  <div className="grid grid-cols-4 gap-1.5 font-mono text-xs">
+                    {([
+                      { id: 0, label: 'Disabled' },
+                      { id: 5, label: '5 min' },
+                      { id: 15, label: '15 min' },
+                      { id: 30, label: '30 min' },
+                    ] as { id: IdleLockMinutes; label: string }[]).map((opt) => {
+                      const isSelected = settings.idleLockMinutes === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => updateSettings({ idleLockMinutes: opt.id })}
+                          className={cn(
+                            'py-2 px-1 text-center rounded-xl border transition-all',
+                            isSelected
+                              ? 'bg-[#182235] text-white font-bold border-[#182235] shadow-sm'
+                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Change password */}
+                <div className="p-3.5 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl">
+                  <p className="text-xs font-semibold text-[#1E2A3B] flex items-center gap-1.5 mb-0.5">
+                    <EyeOff className="w-3.5 h-3.5" />
+                    Change Password
+                  </p>
+                  {/* TODO(backend): POST /api/auth/change-password { currentPassword, newPassword } */}
+                  <p className="text-[10px] text-amber-600 font-mono mb-2">
+                    ⚠ Password change requires a backend authentication endpoint (not yet live).
+                  </p>
+                  <p className="text-[10px] text-[#7A8599]">
+                    Contact your INDRA system administrator to reset credentials.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* 8 (was 5). FIELD STATION & DATA SOURCE */}
             {(activeSection === 'all' || activeSection === 'network') && (
               <motion.div
                 variants={fadeIn}

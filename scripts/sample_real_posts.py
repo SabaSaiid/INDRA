@@ -26,7 +26,8 @@ so the same database gives the same sample. Refuses to overwrite a file that
 already has a label in it: that labelling is an hour of someone's work.
 
 **Privacy.** Only the post's text is written, with @mentions replaced by
-"@user": no author, no handle, no link to the post. These are public posts,
+"@user" and Indian phone numbers with "<phone>": no author, no handle, no
+number, no link to the post. These are public posts,
 but the file lives in the repository.
 """
 
@@ -38,6 +39,7 @@ import csv
 import random
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +58,8 @@ MAX_VIETNAM = 5
 COLUMNS = ["id", "report_id", "source_type", "publisher", "language", "stratum", "text", "hazards", "tense",
            "notes"]
 _MENTION_RE = re.compile(r"@[\w.]+(?:@[\w.-]+)?")
+# A rescue request carries a private number; the file lives in the repository.
+_PHONE_RE = re.compile(r"(?<!\d)(?:\+?91[\s-]?)?[6-9]\d{9}(?!\d)")
 
 QUERY = """
     SELECT id, CAST(source_type AS text), platform,
@@ -123,7 +127,8 @@ async def _fetch(since: str):
     engine = create_async_engine(get_settings().DATABASE_URL, echo=False)
     try:
         async with engine.connect() as conn:
-            result = await conn.execute(text(QUERY), {"since": since})
+            # asyncpg binds a timestamptz from a datetime, never from a string.
+            result = await conn.execute(text(QUERY), {"since": datetime.fromisoformat(since)})
             return [
                 {"id": str(r[0]), "source_type": r[1], "platform": r[2], "publisher": r[3], "language": r[4],
                  "text": r[5], "url": r[6]}
@@ -144,6 +149,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--since", default=DEFAULT_SINCE, help="collected at or after (ISO 8601)")
+    parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument("--exclude", type=Path, action="append", default=[],
+                        help="an earlier sample CSV whose rows must not be drawn again (repeatable)")
     args = parser.parse_args()
 
     if _already_labelled(args.out):
@@ -151,7 +159,12 @@ def main() -> int:
         return 1
 
     rows = asyncio.run(_fetch(args.since))
-    sample = draw(rows, random.Random(SEED))
+    seen = set()
+    for earlier in args.exclude:
+        with earlier.open(encoding="utf-8", newline="") as f:
+            seen |= {r["report_id"] for r in csv.DictReader(f)}
+    rows = [r for r in rows if r["id"] not in seen]
+    sample = draw(rows, random.Random(args.seed))
     if len(sample) < 2 * PER_SOURCE:
         print(f"warning: only {len(sample)} rows available since {args.since}", file=sys.stderr)
 
@@ -167,7 +180,7 @@ def main() -> int:
                 "publisher": r["publisher"] or "",
                 "language": r["language"] or "",
                 "stratum": stratum,
-                "text": _MENTION_RE.sub("@user", " ".join((r["text"] or "").split())),
+                "text": _PHONE_RE.sub("<phone>", _MENTION_RE.sub("@user", " ".join((r["text"] or "").split()))),
                 "hazards": "",
                 "tense": "",
                 "notes": "",

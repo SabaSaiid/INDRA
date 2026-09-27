@@ -1,0 +1,126 @@
+{
+  "ablation_version": "event-grouping-ablation-v1",
+  "ablations": [
+    {
+      "ablation": "spatial only",
+      "metrics": {
+        "event_count_error": -226,
+        "event_level_f1": 0.8608945425,
+        "event_matching_f1": 0.9521322889,
+        "event_matching_precision": 0.9086378738,
+        "event_matching_recall": 1.0,
+        "false_merge_rate": 0.0913621262,
+        "false_split_rate": 0.0
+      },
+      "signals": {
+        "spatial": true,
+        "temporal": false,
+        "type_compatibility": false
+      }
+    },
+    {
+      "ablation": "temporal only",
+      "metrics": {
+        "event_count_error": -750,
+        "event_level_f1": 0.4827586207,
+        "event_matching_f1": 0.8731045491,
+        "event_matching_precision": 0.7747875354,
+        "event_matching_recall": 1.0,
+        "false_merge_rate": 0.2252124646,
+        "false_split_rate": 0.0
+      },
+      "signals": {
+        "spatial": false,
+        "temporal": true,
+        "type_compatibility": false
+      }
+    },
+    {
+      "ablation": "type compatibility only",
+      "metrics": {
+        "event_count_error": -675,
+        "event_level_f1": 0.3389830508,
+        "event_matching_f1": 0.827362882,
+        "event_matching_precision": 0.7424627679,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.2575372321,
+        "false_split_rate": 0.0658135283
+      },
+      "signals": {
+        "spatial": false,
+        "temporal": false,
+        "type_compatibility": true
+      }
+    },
+    {
+      "ablation": "spatial + temporal",
+      "metrics": {
+        "event_count_error": -76,
+        "event_level_f1": 0.9546178344,
+        "event_matching_f1": 0.9833707865,
+        "event_matching_precision": 0.967285588,
+        "event_matching_recall": 1.0,
+        "false_merge_rate": 0.032714412,
+        "false_split_rate": 0.0
+      },
+      "signals": {
+        "spatial": true,
+        "temporal": true,
+        "type_compatibility": false
+      }
+    },
+    {
+      "ablation": "spatial + type",
+      "metrics": {
+        "event_count_error": -38,
+        "event_level_f1": 0.7996839194,
+        "event_matching_f1": 0.9259343148,
+        "event_matching_precision": 0.9178266727,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0821733273,
+        "false_split_rate": 0.0658135283
+      },
+      "signals": {
+        "spatial": true,
+        "temporal": false,
+        "type_compatibility": true
+      }
+    },
+    {
+      "ablation": "temporal + type",
+      "metrics": {
+        "event_count_error": -525,
+        "event_level_f1": 0.4590163934,
+        "event_matching_f1": 0.8525547445,
+        "event_matching_precision": 0.7840429613,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.2159570387,
+        "false_split_rate": 0.0658135283
+      },
+      "signals": {
+        "spatial": false,
+        "temporal": true,
+        "type_compatibility": true
+      }
+    },
+    {
+      "ablation": "full system",
+      "metrics": {
+        "event_count_error": 112,
+        "event_level_f1": 0.8917881811,
+        "event_matching_f1": 0.9576013118,
+        "event_matching_precision": 0.9822200865,
+        "event_matching_recall": 0.9341864717,
+        "false_merge_rate": 0.0177799135,
+        "false_split_rate": 0.0658135283
+      },
+      "signals": {
+        "spatial": true,
+        "temporal": true,
+        "type_compatibility": true
+      }
+    }
+  ],
+  "selection_split": "validation",
+  "test_rows_accessed": false
+}

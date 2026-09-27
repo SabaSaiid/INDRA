@@ -20,6 +20,8 @@ import {
 import type { MapLayer } from '@/lib/ui-config';
 import { cn } from '@/lib/utils';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useSettings } from '@/lib/useSettings';
 import {
   Globe,
   Map as MapIcon,
@@ -323,11 +325,13 @@ export default function GlobeEventMap({
   const autoOrbitAnimRef = useRef<number | null>(null);
   const renderProminentPinsRef = useRef<() => void>(() => {});
 
+  const { t } = useTranslation();
+  const { settings } = useSettings();
   const [mounted, setMounted] = useState(false);
   const [webGLSupported, setWebGLSupported] = useState(true);
-  const [isGlobe, setIsGlobe] = useState(true);
-  const isGlobeRef = useRef(true);
-  const [basemap, setBasemap] = useState<BasemapMode>('satellite');
+  const [isGlobe, setIsGlobe] = useState(() => settings.mapProjection !== 'mercator');
+  const isGlobeRef = useRef(settings.mapProjection !== 'mercator');
+  const [basemap, setBasemap] = useState<BasemapMode>(() => settings.defaultBasemap as BasemapMode);
   const [timeRange, setTimeRange] = useState('7d');
   // Starts empty, and stays empty until the API returns markers.
   const [markers, setMarkers] = useState<MapMarker[]>([]);
@@ -1462,7 +1466,7 @@ export default function GlobeEventMap({
               title={connected ? 'Live updates connected' : 'Live updates offline — reconnecting'}
             />
             <span className="text-sm font-semibold text-slate-800 truncate">
-              {variant === 'preview' ? 'Tactical Geospatial Grid' : '3D Weather Intelligence Grid'}
+              {t('map.title')}
             </span>
             {/* Issue 8: clarify this is a severity filter, not a total count */}
             {markersForDisplay.filter(m => m.severity === 'critical' || m.severity === 'high').length > 0 && (
@@ -1540,7 +1544,7 @@ export default function GlobeEventMap({
                 className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-primary hover:bg-primary-hover text-white transition-all"
                 title="Open Live Tactical Map"
               >
-                <span className="hidden sm:inline">Live Map</span>
+                <span className="hidden sm:inline">{t('map.title')}</span>
                 <ChevronRight className="w-3 h-3" />
               </Link>
             ) : (

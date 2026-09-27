@@ -1,0 +1,20 @@
+{
+  "categories": {
+    "FALSE_MISLEADING": {
+      "count": 0,
+      "examples": [],
+      "rate": 0.0,
+      "reason_groups": {},
+      "scenarios": {}
+    },
+    "MISSED_MISLEADING": {
+      "count": 0,
+      "examples": [],
+      "rate": 0.0,
+      "reason_groups": {},
+      "scenarios": {}
+    }
+  },
+  "method": "DETERMINISTIC_LOCAL_GROUPING_NO_EXTERNAL_AI",
+  "scope": "validation"
+}

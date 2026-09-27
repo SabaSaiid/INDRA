@@ -146,6 +146,8 @@ async def test_commander_approves_a_quarantined_event(api, db, tokens, broadcast
         "severity": "MODERATE",
         "quadrant": "Confirmed Minor Event",
         "confidence_score": pytest.approx(0.4314),
+        # Phase 3 T6: the type rides along, so a type override reaches the screen.
+        "event_type": "URBAN_FLOOD",
     }
     assert msg["review"]["action"] == "approve"
     assert msg["review"]["operator_id"] == COMMANDER_OP

@@ -1,0 +1,2734 @@
+{
+  "configuration_changed_after_error_analysis": false,
+  "degradation_subgroups": {
+    "blurred": {
+      "hamming_loss": 0.0172694515,
+      "macro_f1": 0.9747501057,
+      "micro_f1": 0.9738680884,
+      "micro_precision": 0.9780950836,
+      "micro_recall": 0.9696774712,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 146,
+            "false_positive": 125,
+            "true_negative": 4902,
+            "true_positive": 2320
+          },
+          "f1": 0.9448177561,
+          "precision": 0.9488752556,
+          "recall": 0.9407948094,
+          "support": 2466
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 5,
+            "false_positive": 2,
+            "true_negative": 4979,
+            "true_positive": 2507
+          },
+          "f1": 0.9986058554,
+          "precision": 0.9992028697,
+          "recall": 0.9980095541,
+          "support": 2512
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 20,
+            "false_positive": 30,
+            "true_negative": 5650,
+            "true_positive": 1793
+          },
+          "f1": 0.9862486249,
+          "precision": 0.9835436094,
+          "recall": 0.9889685604,
+          "support": 1813
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 146,
+            "false_positive": 72,
+            "true_negative": 3715,
+            "true_positive": 3560
+          },
+          "f1": 0.9702916326,
+          "precision": 0.9801762115,
+          "recall": 0.9606044253,
+          "support": 3706
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 60,
+            "false_positive": 41,
+            "true_negative": 5516,
+            "true_positive": 1876
+          },
+          "f1": 0.9737866597,
+          "precision": 0.9786124152,
+          "recall": 0.9690082645,
+          "support": 1936
+        }
+      },
+      "sample_count": 7493,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9272654478
+    },
+    "compressed": {
+      "hamming_loss": 0.0169527145,
+      "macro_f1": 0.9763384492,
+      "micro_f1": 0.9747653806,
+      "micro_precision": 0.9729392173,
+      "micro_recall": 0.976598412,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 38,
+            "false_positive": 58,
+            "true_negative": 1808,
+            "true_positive": 951
+          },
+          "f1": 0.951951952,
+          "precision": 0.9425173439,
+          "recall": 0.9615773509,
+          "support": 989
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1931,
+            "true_positive": 923
+          },
+          "f1": 0.9994585815,
+          "precision": 0.9989177489,
+          "recall": 1.0,
+          "support": 923
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 17,
+            "false_positive": 2,
+            "true_negative": 2170,
+            "true_positive": 666
+          },
+          "f1": 0.9859363434,
+          "precision": 0.997005988,
+          "recall": 0.9751098097,
+          "support": 683
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 34,
+            "false_positive": 54,
+            "true_negative": 1371,
+            "true_positive": 1396
+          },
+          "f1": 0.9694444444,
+          "precision": 0.9627586207,
+          "recall": 0.9762237762,
+          "support": 1430
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 23,
+            "false_positive": 15,
+            "true_negative": 2079,
+            "true_positive": 738
+          },
+          "f1": 0.9749009247,
+          "precision": 0.9800796813,
+          "recall": 0.9697766097,
+          "support": 761
+        }
+      },
+      "sample_count": 2855,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9264448336
+    },
+    "low_light": {
+      "hamming_loss": 0.0155131776,
+      "macro_f1": 0.9734689692,
+      "micro_f1": 0.9744350282,
+      "micro_precision": 0.9798324102,
+      "micro_recall": 0.9690967833,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 85,
+            "false_positive": 58,
+            "true_negative": 3365,
+            "true_positive": 1159
+          },
+          "f1": 0.9418935392,
+          "precision": 0.9523418242,
+          "recall": 0.9316720257,
+          "support": 1244
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 5,
+            "false_positive": 1,
+            "true_negative": 3468,
+            "true_positive": 1193
+          },
+          "f1": 0.9974916388,
+          "precision": 0.9991624791,
+          "recall": 0.9958263773,
+          "support": 1198
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 25,
+            "false_positive": 17,
+            "true_negative": 2763,
+            "true_positive": 1862
+          },
+          "f1": 0.9888475836,
+          "precision": 0.9909526344,
+          "recall": 0.9867514573,
+          "support": 1887
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 71,
+            "false_positive": 46,
+            "true_negative": 2763,
+            "true_positive": 1787
+          },
+          "f1": 0.9683012734,
+          "precision": 0.9749045281,
+          "recall": 0.9617868676,
+          "support": 1858
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 34,
+            "false_positive": 20,
+            "true_negative": 3715,
+            "true_positive": 898
+          },
+          "f1": 0.9708108108,
+          "precision": 0.9782135076,
+          "recall": 0.9635193133,
+          "support": 932
+        }
+      },
+      "sample_count": 4667,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9389329334
+    },
+    "occluded": {
+      "hamming_loss": 0.0191358025,
+      "macro_f1": 0.9717496045,
+      "micro_f1": 0.9712874344,
+      "micro_precision": 0.9754030591,
+      "micro_recall": 0.9672063948,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 69,
+            "false_positive": 53,
+            "true_negative": 1894,
+            "true_positive": 900
+          },
+          "f1": 0.9365244537,
+          "precision": 0.944386149,
+          "recall": 0.9287925697,
+          "support": 969
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 3,
+            "false_positive": 1,
+            "true_negative": 1913,
+            "true_positive": 999
+          },
+          "f1": 0.998001998,
+          "precision": 0.999,
+          "recall": 0.997005988,
+          "support": 1002
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 11,
+            "false_positive": 17,
+            "true_negative": 2205,
+            "true_positive": 683
+          },
+          "f1": 0.9799139168,
+          "precision": 0.9757142857,
+          "recall": 0.9841498559,
+          "support": 694
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 51,
+            "false_positive": 36,
+            "true_negative": 1399,
+            "true_positive": 1430
+          },
+          "f1": 0.9704784527,
+          "precision": 0.9754433834,
+          "recall": 0.9655638082,
+          "support": 1481
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 26,
+            "false_positive": 12,
+            "true_negative": 2171,
+            "true_positive": 707
+          },
+          "f1": 0.9738292011,
+          "precision": 0.983310153,
+          "recall": 0.9645293315,
+          "support": 733
+        }
+      },
+      "sample_count": 2916,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9214677641
+    }
+  },
+  "false_negatives": {
+    "FLOODED_SCENE": [
+      {
+        "image_id": "synimg-validation-006979-635256db4c",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0009388304
+      },
+      {
+        "image_id": "synimg-validation-004372-e729830706",
+        "scene_class": "FLOOD_WITHOUT_HEAVY_RAIN",
+        "score": 0.0012509246
+      },
+      {
+        "image_id": "synimg-validation-004495-4847e9447a",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0050144823
+      },
+      {
+        "image_id": "synimg-validation-002203-354ad10de5",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0099535777
+      },
+      {
+        "image_id": "synimg-validation-011755-9cf622efb7",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.010767416
+      },
+      {
+        "image_id": "synimg-validation-009319-6a8943e3b9",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0130397324
+      },
+      {
+        "image_id": "synimg-validation-000907-dda3cf2773",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0130612016
+      },
+      {
+        "image_id": "synimg-validation-013879-9b774d0976",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0170788578
+      },
+      {
+        "image_id": "synimg-validation-000871-72c4c441b2",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0183036393
+      },
+      {
+        "image_id": "synimg-validation-004367-b330a7168e",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0183772396
+      },
+      {
+        "image_id": "synimg-validation-004604-4c7336a33f",
+        "scene_class": "FLOOD_AND_STANDING_WATER",
+        "score": 0.018658811
+      },
+      {
+        "image_id": "synimg-validation-000736-965474a9e2",
+        "scene_class": "FLOOD_WITHOUT_HEAVY_RAIN",
+        "score": 0.0213669857
+      },
+      {
+        "image_id": "synimg-validation-010243-6acabfbec9",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0224930068
+      },
+      {
+        "image_id": "synimg-validation-005024-6f2f5c616e",
+        "scene_class": "FLOOD_AND_STANDING_WATER",
+        "score": 0.0236338787
+      },
+      {
+        "image_id": "synimg-validation-008047-df9e43421b",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0263272384
+      },
+      {
+        "image_id": "synimg-validation-013303-d98c0f8c37",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0276074702
+      },
+      {
+        "image_id": "synimg-validation-008179-559cde3e32",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0294246524
+      },
+      {
+        "image_id": "synimg-validation-004243-6722255bcb",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0335688187
+      },
+      {
+        "image_id": "synimg-validation-000556-edebda3db2",
+        "scene_class": "FLOOD_WITHOUT_HEAVY_RAIN",
+        "score": 0.035342684
+      },
+      {
+        "image_id": "synimg-validation-000847-123e234e7e",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0367151263
+      },
+      {
+        "image_id": "synimg-validation-008971-bdcc48208c",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0373876058
+      },
+      {
+        "image_id": "synimg-validation-014239-1d561d7caa",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0389099278
+      },
+      {
+        "image_id": "synimg-validation-003455-5c41512df9",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0389408332
+      },
+      {
+        "image_id": "synimg-validation-014539-d0a7724fee",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0393255392
+      },
+      {
+        "image_id": "synimg-validation-002179-c78ed696d8",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0397217545
+      },
+      {
+        "image_id": "synimg-validation-003028-ec541ce62e",
+        "scene_class": "FLOOD_WITHOUT_HEAVY_RAIN",
+        "score": 0.0401094126
+      },
+      {
+        "image_id": "synimg-validation-009223-439a8db706",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0403939573
+      },
+      {
+        "image_id": "synimg-validation-002492-4e8abc2862",
+        "scene_class": "FLOOD_AND_STANDING_WATER",
+        "score": 0.0403952165
+      },
+      {
+        "image_id": "synimg-validation-010771-4095b8e448",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0437608453
+      },
+      {
+        "image_id": "synimg-validation-004531-17b238149f",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0453370993
+      },
+      {
+        "image_id": "synimg-validation-014083-facd3dc595",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0460685735
+      },
+      {
+        "image_id": "synimg-validation-010315-bf4b98bf9a",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0467822368
+      },
+      {
+        "image_id": "synimg-validation-013003-a40442b766",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0479180602
+      },
+      {
+        "image_id": "synimg-validation-013555-88a4d2f02d",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0502678845
+      },
+      {
+        "image_id": "synimg-validation-000163-ed281ae0f4",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0506195062
+      },
+      {
+        "image_id": "synimg-validation-007403-78b9063003",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0527203521
+      },
+      {
+        "image_id": "synimg-validation-009139-f8e91da2aa",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0543008466
+      },
+      {
+        "image_id": "synimg-validation-013492-ffc8656a82",
+        "scene_class": "FLOOD_WITHOUT_HEAVY_RAIN",
+        "score": 0.0566589399
+      },
+      {
+        "image_id": "synimg-validation-002851-affe72d433",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0567948873
+      },
+      {
+        "image_id": "synimg-validation-012259-ebbe4c3725",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0573070585
+      },
+      {
+        "image_id": "synimg-validation-012511-21f3bf8f06",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0578128988
+      },
+      {
+        "image_id": "synimg-validation-009799-a78b6ae107",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0582630505
+      },
+      {
+        "image_id": "synimg-validation-005984-da22fffb32",
+        "scene_class": "FLOOD_AND_STANDING_WATER",
+        "score": 0.0585368956
+      },
+      {
+        "image_id": "synimg-validation-010435-d506c97582",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0589463728
+      },
+      {
+        "image_id": "synimg-validation-001687-d49d876510",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0615385264
+      },
+      {
+        "image_id": "synimg-validation-002803-4bb85ea100",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0619611572
+      },
+      {
+        "image_id": "synimg-validation-003643-8744605a76",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0625457954
+      },
+      {
+        "image_id": "synimg-validation-012607-63b112643d",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0635803219
+      },
+      {
+        "image_id": "synimg-validation-008671-d6c21e8254",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0648133657
+      },
+      {
+        "image_id": "synimg-validation-000259-7767558d3c",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0661494645
+      }
+    ],
+    "HEAVY_RAIN_VISUAL": [
+      {
+        "image_id": "synimg-validation-005297-8f3ad56857",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.016218461
+      },
+      {
+        "image_id": "synimg-validation-007135-446ecafb76",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0933742235
+      },
+      {
+        "image_id": "synimg-validation-012574-0c5a6d64fa",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.1239103779
+      },
+      {
+        "image_id": "synimg-validation-014539-d0a7724fee",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.2781424549
+      },
+      {
+        "image_id": "synimg-validation-010327-3038ef27a2",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.3155230093
+      }
+    ],
+    "NORMAL_SCENE": [
+      {
+        "image_id": "synimg-validation-014593-b59268d239",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.0038485764
+      },
+      {
+        "image_id": "synimg-validation-006314-d918f83863",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.00396995
+      },
+      {
+        "image_id": "synimg-validation-014462-ce118b0351",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.006777134
+      },
+      {
+        "image_id": "synimg-validation-014930-26b547a888",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.0178792756
+      },
+      {
+        "image_id": "synimg-validation-003734-cd79fe7dea",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.0205862537
+      },
+      {
+        "image_id": "synimg-validation-006720-5e9f3b2dcf",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.0232613664
+      },
+      {
+        "image_id": "synimg-validation-003949-b322523c30",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.0237504135
+      },
+      {
+        "image_id": "synimg-validation-014102-0ff9026501",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.0285950656
+      },
+      {
+        "image_id": "synimg-validation-005714-309cd1da00",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.0303176582
+      },
+      {
+        "image_id": "synimg-validation-002090-0508a0ba53",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.0496871294
+      },
+      {
+        "image_id": "synimg-validation-012324-698458a161",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.0618197552
+      },
+      {
+        "image_id": "synimg-validation-003120-01788e80bd",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.0641470707
+      },
+      {
+        "image_id": "synimg-validation-003062-29b3401f31",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.0659247393
+      },
+      {
+        "image_id": "synimg-validation-008618-34073c6e65",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.0728772986
+      },
+      {
+        "image_id": "synimg-validation-011065-4cb37d361e",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.0771448155
+      },
+      {
+        "image_id": "synimg-validation-003685-4696135a4c",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.077323825
+      },
+      {
+        "image_id": "synimg-validation-011784-4b18bb8b68",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.0829784655
+      },
+      {
+        "image_id": "synimg-validation-014004-550a66b57c",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.0840264419
+      },
+      {
+        "image_id": "synimg-validation-013621-d095918535",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.1067363698
+      },
+      {
+        "image_id": "synimg-validation-003494-69d800aeca",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.1120655992
+      },
+      {
+        "image_id": "synimg-validation-013286-a0be9c7b2e",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.1127998233
+      },
+      {
+        "image_id": "synimg-validation-000506-cb40847ba0",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.1346022544
+      },
+      {
+        "image_id": "synimg-validation-010778-ea10b03395",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.1393794232
+      },
+      {
+        "image_id": "synimg-validation-013056-9f2fba6189",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.149999499
+      },
+      {
+        "image_id": "synimg-validation-009445-b1614f2821",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.1669033983
+      },
+      {
+        "image_id": "synimg-validation-003374-8029d48fea",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.1931398422
+      },
+      {
+        "image_id": "synimg-validation-007921-b40b4bd871",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.2251261118
+      },
+      {
+        "image_id": "synimg-validation-000722-765a098d90",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.2384333776
+      },
+      {
+        "image_id": "synimg-validation-003686-cc3b642301",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.2418187233
+      },
+      {
+        "image_id": "synimg-validation-005028-fa37523b91",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.2703925099
+      },
+      {
+        "image_id": "synimg-validation-004418-861d69f793",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.299171896
+      },
+      {
+        "image_id": "synimg-validation-002365-47af6f7e93",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.3046066508
+      },
+      {
+        "image_id": "synimg-validation-005545-e6ad67e69a",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.3982523569
+      },
+      {
+        "image_id": "synimg-validation-002953-0163d6c941",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.4289509559
+      },
+      {
+        "image_id": "synimg-validation-005689-fc89e8cf68",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.434702031
+      }
+    ],
+    "STANDING_WATER": [
+      {
+        "image_id": "synimg-validation-006837-88c8a625ab",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0005792436
+      },
+      {
+        "image_id": "synimg-validation-008229-c089a74124",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0016241163
+      },
+      {
+        "image_id": "synimg-validation-003417-e5f55991c9",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0018645003
+      },
+      {
+        "image_id": "synimg-validation-011565-8ce305abfb",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0022427604
+      },
+      {
+        "image_id": "synimg-validation-005577-7eb6bc010c",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0028536329
+      },
+      {
+        "image_id": "synimg-validation-004803-ade016b07e",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.0033132574
+      },
+      {
+        "image_id": "synimg-validation-009249-98e057b29a",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0033340797
+      },
+      {
+        "image_id": "synimg-validation-001197-0672ba2bfb",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0034019637
+      },
+      {
+        "image_id": "synimg-validation-003147-ca7cb21607",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.003816358
+      },
+      {
+        "image_id": "synimg-validation-000753-f98dc1863b",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0043370228
+      },
+      {
+        "image_id": "synimg-validation-006141-fde3d688bd",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0047161529
+      },
+      {
+        "image_id": "synimg-validation-004245-67879a60a4",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0053848154
+      },
+      {
+        "image_id": "synimg-validation-002061-2af39c5de6",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0068438586
+      },
+      {
+        "image_id": "synimg-validation-009891-19fce3b316",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.0072002145
+      },
+      {
+        "image_id": "synimg-validation-003921-16b8ccccae",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0081767024
+      },
+      {
+        "image_id": "synimg-validation-004367-b330a7168e",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0085717013
+      },
+      {
+        "image_id": "synimg-validation-005619-35aa060c9b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.010905209
+      },
+      {
+        "image_id": "synimg-validation-002709-bbcd72923a",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0110237663
+      },
+      {
+        "image_id": "synimg-validation-001905-e64560b4a9",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0113955628
+      },
+      {
+        "image_id": "synimg-validation-003443-b2c0c2ea88",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0115060458
+      },
+      {
+        "image_id": "synimg-validation-008181-88a984d07b",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.011547651
+      },
+      {
+        "image_id": "synimg-validation-001107-d0d96deed4",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.0116785332
+      },
+      {
+        "image_id": "synimg-validation-012783-658256044e",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.0127943289
+      },
+      {
+        "image_id": "synimg-validation-007401-7f3031102e",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0142398285
+      },
+      {
+        "image_id": "synimg-validation-009369-97e7650d88",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.017822267
+      },
+      {
+        "image_id": "synimg-validation-003369-d932a19b23",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0184994618
+      },
+      {
+        "image_id": "synimg-validation-005427-a5c76e3eb8",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.0192000092
+      },
+      {
+        "image_id": "synimg-validation-004635-19666f4745",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.0198863259
+      },
+      {
+        "image_id": "synimg-validation-008295-d6bc10269a",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.0200267663
+      },
+      {
+        "image_id": "synimg-validation-001353-24c9e42aee",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0201577212
+      },
+      {
+        "image_id": "synimg-validation-001559-41804365b4",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0210098498
+      },
+      {
+        "image_id": "synimg-validation-008073-36e8c9876d",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0223098513
+      },
+      {
+        "image_id": "synimg-validation-000957-0c3de61cdf",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0233551717
+      },
+      {
+        "image_id": "synimg-validation-009621-d333e38515",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0284725941
+      },
+      {
+        "image_id": "synimg-validation-008961-45e9f324ad",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0286177366
+      },
+      {
+        "image_id": "synimg-validation-006237-2f1ecbd530",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0294623615
+      },
+      {
+        "image_id": "synimg-validation-007403-78b9063003",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0312542158
+      },
+      {
+        "image_id": "synimg-validation-012611-7ea1200ade",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0320234535
+      },
+      {
+        "image_id": "synimg-validation-005767-3c0ea0f471",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0321410391
+      },
+      {
+        "image_id": "synimg-validation-010617-406c3ed899",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0341596917
+      },
+      {
+        "image_id": "synimg-validation-001683-ea63d661b0",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.034993589
+      },
+      {
+        "image_id": "synimg-validation-014539-d0a7724fee",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0367776071
+      },
+      {
+        "image_id": "synimg-validation-006981-a3d9b1b95c",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0387849146
+      },
+      {
+        "image_id": "synimg-validation-003129-ce89ae958e",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0394365531
+      },
+      {
+        "image_id": "synimg-validation-002685-c43b9c2e5b",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0418869512
+      },
+      {
+        "image_id": "synimg-validation-004545-3b49cf1382",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0437123171
+      },
+      {
+        "image_id": "synimg-validation-002217-95f03c09be",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0438230208
+      },
+      {
+        "image_id": "synimg-validation-008767-a5baf39945",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.0442619826
+      },
+      {
+        "image_id": "synimg-validation-005289-de8f09e8f3",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.0484938054
+      },
+      {
+        "image_id": "synimg-validation-004307-7efda84ac6",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0485471277
+      }
+    ],
+    "STORM_DAMAGE": [
+      {
+        "image_id": "synimg-validation-001751-5a235e8038",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0038920533
+      },
+      {
+        "image_id": "synimg-validation-010666-53d2068c79",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0044896579
+      },
+      {
+        "image_id": "synimg-validation-002322-352d7087d4",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.004912374
+      },
+      {
+        "image_id": "synimg-validation-013786-65993b6a19",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0063290969
+      },
+      {
+        "image_id": "synimg-validation-011134-740c11be47",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0083146729
+      },
+      {
+        "image_id": "synimg-validation-009491-5434411d2f",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0086280985
+      },
+      {
+        "image_id": "synimg-validation-013474-d158f055ab",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0092287723
+      },
+      {
+        "image_id": "synimg-validation-005543-d01cf8dd44",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0100178274
+      },
+      {
+        "image_id": "synimg-validation-005171-9d9166e4df",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0109061349
+      },
+      {
+        "image_id": "synimg-validation-005375-a60770ec5c",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.012665708
+      },
+      {
+        "image_id": "synimg-validation-001318-07072aad87",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.015823377
+      },
+      {
+        "image_id": "synimg-validation-009814-c322cbd63b",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0168208465
+      },
+      {
+        "image_id": "synimg-validation-003863-bcacc409ef",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0188747256
+      },
+      {
+        "image_id": "synimg-validation-002315-34a786822c",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0199936415
+      },
+      {
+        "image_id": "synimg-validation-001450-d139817c71",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0208651218
+      },
+      {
+        "image_id": "synimg-validation-002987-e0afaf6293",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0229402806
+      },
+      {
+        "image_id": "synimg-validation-010630-b6148d1ee8",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0236686071
+      },
+      {
+        "image_id": "synimg-validation-012826-448810818c",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.023924726
+      },
+      {
+        "image_id": "synimg-validation-013966-52f2c4eae9",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0288530309
+      },
+      {
+        "image_id": "synimg-validation-014206-2518ab7ecc",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0297681357
+      },
+      {
+        "image_id": "synimg-validation-000778-129e6de6f9",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0332503154
+      },
+      {
+        "image_id": "synimg-validation-008183-4682490952",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0363077618
+      },
+      {
+        "image_id": "synimg-validation-014207-b11c2b1ce1",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0405367973
+      },
+      {
+        "image_id": "synimg-validation-011674-60aa941438",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0452350579
+      },
+      {
+        "image_id": "synimg-validation-003790-3fd887d883",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0458995033
+      },
+      {
+        "image_id": "synimg-validation-012431-032eb1ed4e",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0492973845
+      },
+      {
+        "image_id": "synimg-validation-010390-ca12cffe0a",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0569460398
+      },
+      {
+        "image_id": "synimg-validation-005266-90b6f809e6",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0657576957
+      },
+      {
+        "image_id": "synimg-validation-001523-d440a8ba94",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.0714448455
+      },
+      {
+        "image_id": "synimg-validation-012574-0c5a6d64fa",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0714704334
+      },
+      {
+        "image_id": "synimg-validation-009582-3086c6766f",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.0796979155
+      },
+      {
+        "image_id": "synimg-validation-001234-871d3560c6",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0812976036
+      },
+      {
+        "image_id": "synimg-validation-008610-0c6b6fb72e",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.0920391659
+      },
+      {
+        "image_id": "synimg-validation-010230-84bd384a84",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.097990154
+      },
+      {
+        "image_id": "synimg-validation-008038-311efbf473",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0994463362
+      },
+      {
+        "image_id": "synimg-validation-010463-8501798851",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.1020714195
+      },
+      {
+        "image_id": "synimg-validation-014122-caeaab4119",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.1036385451
+      },
+      {
+        "image_id": "synimg-validation-000222-e09c9087cf",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.1105110711
+      },
+      {
+        "image_id": "synimg-validation-003635-60e00e64f8",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.1107269267
+      },
+      {
+        "image_id": "synimg-validation-007534-6aa4879a5c",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.1153647513
+      },
+      {
+        "image_id": "synimg-validation-006226-ebc3d250b7",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.1220372834
+      },
+      {
+        "image_id": "synimg-validation-006479-7cbb69ac21",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.1273380907
+      },
+      {
+        "image_id": "synimg-validation-002615-13429fafd0",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.1280899303
+      },
+      {
+        "image_id": "synimg-validation-014999-ed3651e08f",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.1290262991
+      },
+      {
+        "image_id": "synimg-validation-012827-2acf1d487c",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.1331727684
+      },
+      {
+        "image_id": "synimg-validation-002998-67aab84054",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.1444886882
+      },
+      {
+        "image_id": "synimg-validation-002910-cfda1d5336",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.1518417986
+      },
+      {
+        "image_id": "synimg-validation-012983-76c032c9aa",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.1532636735
+      },
+      {
+        "image_id": "synimg-validation-011386-4a296f2a0c",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.1538787993
+      },
+      {
+        "image_id": "synimg-validation-007642-335026536e",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.1546211574
+      }
+    ]
+  },
+  "false_positives": {
+    "FLOODED_SCENE": [
+      {
+        "image_id": "synimg-validation-008259-fd594aed87",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9981976614
+      },
+      {
+        "image_id": "synimg-validation-013719-89fb052ff9",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9951377155
+      },
+      {
+        "image_id": "synimg-validation-005715-a19e5497ae",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9910293838
+      },
+      {
+        "image_id": "synimg-validation-005871-8205716a1b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9896363485
+      },
+      {
+        "image_id": "synimg-validation-000123-dfa569fbce",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9882598485
+      },
+      {
+        "image_id": "synimg-validation-007227-55d5def03b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9833631534
+      },
+      {
+        "image_id": "synimg-validation-001419-ef2447f1d9",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9757053978
+      },
+      {
+        "image_id": "synimg-validation-004467-3bbc7904ec",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9746368909
+      },
+      {
+        "image_id": "synimg-validation-014715-63d5621cef",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.969166087
+      },
+      {
+        "image_id": "synimg-validation-001539-529b75a1f3",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9681160143
+      },
+      {
+        "image_id": "synimg-validation-011943-ad6aec29ce",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9559064365
+      },
+      {
+        "image_id": "synimg-validation-008343-0d378a92b3",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9525898149
+      },
+      {
+        "image_id": "synimg-validation-013143-6dc2306ab9",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9510870576
+      },
+      {
+        "image_id": "synimg-validation-010503-3018686f7c",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9485609249
+      },
+      {
+        "image_id": "synimg-validation-001527-311b5403fc",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9472340261
+      },
+      {
+        "image_id": "synimg-validation-002559-ecccabe53d",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9469713205
+      },
+      {
+        "image_id": "synimg-validation-005811-567080d77d",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9394355466
+      },
+      {
+        "image_id": "synimg-validation-013191-9b65372521",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9280290748
+      },
+      {
+        "image_id": "synimg-validation-000795-66fe599dd3",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9258341159
+      },
+      {
+        "image_id": "synimg-validation-013179-dadf853806",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9245003912
+      },
+      {
+        "image_id": "synimg-validation-014775-9238025635",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9135754004
+      },
+      {
+        "image_id": "synimg-validation-005439-82a45ea6d9",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9104322422
+      },
+      {
+        "image_id": "synimg-validation-011523-f448d4254f",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9097904789
+      },
+      {
+        "image_id": "synimg-validation-002985-e84646a35d",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.9095792462
+      },
+      {
+        "image_id": "synimg-validation-014391-fe1c9ec98a",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9082760461
+      },
+      {
+        "image_id": "synimg-validation-007299-1c94ea528e",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8933011459
+      },
+      {
+        "image_id": "synimg-validation-007647-56d2da8373",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8864042738
+      },
+      {
+        "image_id": "synimg-validation-013971-1481355c64",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.882862587
+      },
+      {
+        "image_id": "synimg-validation-003435-b51499dda9",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8827722221
+      },
+      {
+        "image_id": "synimg-validation-014679-f3fbb36152",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.87741055
+      },
+      {
+        "image_id": "synimg-validation-006123-bc28ef25bd",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8760968235
+      },
+      {
+        "image_id": "synimg-validation-006567-83695c40d2",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8699727072
+      },
+      {
+        "image_id": "synimg-validation-010923-2373ae9497",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8650580095
+      },
+      {
+        "image_id": "synimg-validation-003183-8ebe56e18b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8637447753
+      },
+      {
+        "image_id": "synimg-validation-007995-683a132bae",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.862368858
+      },
+      {
+        "image_id": "synimg-validation-011043-70c888eca1",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8549544888
+      },
+      {
+        "image_id": "synimg-validation-003591-d1124991e7",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8500741449
+      },
+      {
+        "image_id": "synimg-validation-008751-3e0fea8676",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8466073116
+      },
+      {
+        "image_id": "synimg-validation-003267-d26025572d",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8363517884
+      },
+      {
+        "image_id": "synimg-validation-005307-34b07b4761",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8328639364
+      },
+      {
+        "image_id": "synimg-validation-001311-d7ca89269d",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8286382906
+      },
+      {
+        "image_id": "synimg-validation-014583-0377cdf062",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8246577339
+      },
+      {
+        "image_id": "synimg-validation-013437-1e0bc2aad7",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.8236870816
+      },
+      {
+        "image_id": "synimg-validation-001758-cf1af62622",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8229471028
+      },
+      {
+        "image_id": "synimg-validation-004698-61fe5941ea",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8186639504
+      },
+      {
+        "image_id": "synimg-validation-003027-f7534b4927",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8147608735
+      },
+      {
+        "image_id": "synimg-validation-002646-149eb88cbe",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8129880473
+      },
+      {
+        "image_id": "synimg-validation-007785-3f8374528d",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.809390234
+      },
+      {
+        "image_id": "synimg-validation-014643-d1eeebd011",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8032179141
+      },
+      {
+        "image_id": "synimg-validation-002379-d7d55c71bd",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.7994054385
+      }
+    ],
+    "HEAVY_RAIN_VISUAL": [
+      {
+        "image_id": "synimg-validation-003949-b322523c30",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.8825676746
+      },
+      {
+        "image_id": "synimg-validation-006143-2f9ff80872",
+        "scene_class": "FLOOD_AND_STORM_DAMAGE",
+        "score": 0.856694876
+      },
+      {
+        "image_id": "synimg-validation-007302-7c48296ea2",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.6364054558
+      },
+      {
+        "image_id": "synimg-validation-003494-69d800aeca",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.4335921621
+      }
+    ],
+    "NORMAL_SCENE": [
+      {
+        "image_id": "synimg-validation-001107-d0d96deed4",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9972877338
+      },
+      {
+        "image_id": "synimg-validation-004803-ade016b07e",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9963607884
+      },
+      {
+        "image_id": "synimg-validation-008295-d6bc10269a",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.9853111984
+      },
+      {
+        "image_id": "synimg-validation-005297-8f3ad56857",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.975632896
+      },
+      {
+        "image_id": "synimg-validation-005427-a5c76e3eb8",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.967361054
+      },
+      {
+        "image_id": "synimg-validation-003147-ca7cb21607",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8985339062
+      },
+      {
+        "image_id": "synimg-validation-012783-658256044e",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8800137287
+      },
+      {
+        "image_id": "synimg-validation-002355-1b76c8d6a9",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8704491793
+      },
+      {
+        "image_id": "synimg-validation-002322-352d7087d4",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8702650344
+      },
+      {
+        "image_id": "synimg-validation-001683-ea63d661b0",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.847389472
+      },
+      {
+        "image_id": "synimg-validation-014379-c1d0ec9fff",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8191269299
+      },
+      {
+        "image_id": "synimg-validation-000015-545aa43ecc",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8101740783
+      },
+      {
+        "image_id": "synimg-validation-000423-150bcebde5",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.8020997912
+      },
+      {
+        "image_id": "synimg-validation-000222-e09c9087cf",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7995203486
+      },
+      {
+        "image_id": "synimg-validation-004604-4c7336a33f",
+        "scene_class": "FLOOD_AND_STANDING_WATER",
+        "score": 0.749416914
+      },
+      {
+        "image_id": "synimg-validation-004842-c4f2e1fdca",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7453398345
+      },
+      {
+        "image_id": "synimg-validation-006891-f93596162d",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.7398932723
+      },
+      {
+        "image_id": "synimg-validation-001395-194bb60e2d",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.7030820727
+      },
+      {
+        "image_id": "synimg-validation-009891-19fce3b316",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.6550392563
+      },
+      {
+        "image_id": "synimg-validation-004791-dfbffef14d",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.6391960385
+      },
+      {
+        "image_id": "synimg-validation-010230-84bd384a84",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.6357707187
+      },
+      {
+        "image_id": "synimg-validation-004635-19666f4745",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.6280842516
+      },
+      {
+        "image_id": "synimg-validation-007335-a70b2a7fa8",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.6024304567
+      },
+      {
+        "image_id": "synimg-validation-004227-cf091b493b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.5583673869
+      },
+      {
+        "image_id": "synimg-validation-013767-5f589f0ecb",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.544370235
+      },
+      {
+        "image_id": "synimg-validation-009582-3086c6766f",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.3729122605
+      },
+      {
+        "image_id": "synimg-validation-014199-589e6d31e6",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.3728236161
+      },
+      {
+        "image_id": "synimg-validation-001875-7bc8105fd0",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.3619493007
+      },
+      {
+        "image_id": "synimg-validation-005814-932cd280ba",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.3402290604
+      },
+      {
+        "image_id": "synimg-validation-008610-0c6b6fb72e",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.2895248707
+      },
+      {
+        "image_id": "synimg-validation-007899-a6557d2cdb",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.2846370293
+      },
+      {
+        "image_id": "synimg-validation-003063-d26f3b3141",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.2774552368
+      },
+      {
+        "image_id": "synimg-validation-002139-b27d721b92",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.2680885036
+      },
+      {
+        "image_id": "synimg-validation-002055-08e2099ecd",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.2436167908
+      },
+      {
+        "image_id": "synimg-validation-003195-abb090a48b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.2377523759
+      },
+      {
+        "image_id": "synimg-validation-009330-23b124b9be",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.2375132771
+      },
+      {
+        "image_id": "synimg-validation-004395-0b143415a4",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.2282431042
+      },
+      {
+        "image_id": "synimg-validation-001887-8ee3112a5b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.190435569
+      },
+      {
+        "image_id": "synimg-validation-010047-9380e24098",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.1788039912
+      },
+      {
+        "image_id": "synimg-validation-007135-446ecafb76",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.1163228313
+      },
+      {
+        "image_id": "synimg-validation-000363-aaa077e6ec",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.1012798255
+      },
+      {
+        "image_id": "synimg-validation-014439-100bdd754c",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.048332361
+      },
+      {
+        "image_id": "synimg-validation-012574-0c5a6d64fa",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.0473471942
+      },
+      {
+        "image_id": "synimg-validation-000126-f5a8dec905",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.001615368
+      }
+    ],
+    "STANDING_WATER": [
+      {
+        "image_id": "synimg-validation-004914-b810be806f",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.9950960036
+      },
+      {
+        "image_id": "synimg-validation-006810-3784840e72",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.9900649916
+      },
+      {
+        "image_id": "synimg-validation-013786-65993b6a19",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.9841637857
+      },
+      {
+        "image_id": "synimg-validation-012334-626b2493bb",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.9836262071
+      },
+      {
+        "image_id": "synimg-validation-010110-8a855acde6",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.9808722916
+      },
+      {
+        "image_id": "synimg-validation-001974-639057b705",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.9663797813
+      },
+      {
+        "image_id": "synimg-validation-008442-69bf713e9e",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.9511354255
+      },
+      {
+        "image_id": "synimg-validation-002953-0163d6c941",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.9492023643
+      },
+      {
+        "image_id": "synimg-validation-003834-9a7d971ca4",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.9243760779
+      },
+      {
+        "image_id": "synimg-validation-005689-fc89e8cf68",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.9243386251
+      },
+      {
+        "image_id": "synimg-validation-001758-cf1af62622",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.924027045
+      },
+      {
+        "image_id": "synimg-validation-002046-808d54b0ca",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.911051532
+      },
+      {
+        "image_id": "synimg-validation-003754-0730a8d656",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.896292559
+      },
+      {
+        "image_id": "synimg-validation-006546-2595ccef74",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.890134791
+      },
+      {
+        "image_id": "synimg-validation-005394-3e457c715f",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8728228973
+      },
+      {
+        "image_id": "synimg-validation-003354-6d9df0dc06",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8511820771
+      },
+      {
+        "image_id": "synimg-validation-003438-4a9cc2c371",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8381404968
+      },
+      {
+        "image_id": "synimg-validation-014262-ffc635d541",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8290635635
+      },
+      {
+        "image_id": "synimg-validation-014930-26b547a888",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.8253826976
+      },
+      {
+        "image_id": "synimg-validation-010878-9f0a6d610f",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8110756633
+      },
+      {
+        "image_id": "synimg-validation-005358-6b8ea8a705",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.8101005324
+      },
+      {
+        "image_id": "synimg-validation-006090-88e1476bdb",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7945247251
+      },
+      {
+        "image_id": "synimg-validation-011065-4cb37d361e",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.788337814
+      },
+      {
+        "image_id": "synimg-validation-001830-621e052b7f",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7753565021
+      },
+      {
+        "image_id": "synimg-validation-003734-cd79fe7dea",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.7638675788
+      },
+      {
+        "image_id": "synimg-validation-002090-0508a0ba53",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.7638143447
+      },
+      {
+        "image_id": "synimg-validation-013410-afe12b3c4e",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7486243193
+      },
+      {
+        "image_id": "synimg-validation-002550-51a6979132",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7480855821
+      },
+      {
+        "image_id": "synimg-validation-014593-b59268d239",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.7319761933
+      },
+      {
+        "image_id": "synimg-validation-000850-d7293a36fe",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.721474809
+      },
+      {
+        "image_id": "synimg-validation-013698-fddaf50a4c",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7199935275
+      },
+      {
+        "image_id": "synimg-validation-011418-0866cbe5d0",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7188241468
+      },
+      {
+        "image_id": "synimg-validation-003930-5e5f40ad87",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7025792435
+      },
+      {
+        "image_id": "synimg-validation-003120-01788e80bd",
+        "scene_class": "NORMAL_DRY",
+        "score": 0.7025213656
+      },
+      {
+        "image_id": "synimg-validation-004050-4a11560a3e",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.7021736019
+      },
+      {
+        "image_id": "synimg-validation-005545-e6ad67e69a",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.6997592114
+      },
+      {
+        "image_id": "synimg-validation-008922-f7d34f1129",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.6820012037
+      },
+      {
+        "image_id": "synimg-validation-001278-6dca321bb6",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.6601946974
+      },
+      {
+        "image_id": "synimg-validation-009054-9d9bf33d9d",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.6498720868
+      },
+      {
+        "image_id": "synimg-validation-005714-309cd1da00",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.6354071659
+      },
+      {
+        "image_id": "synimg-validation-008618-34073c6e65",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.6344531722
+      },
+      {
+        "image_id": "synimg-validation-013054-a6508572ef",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.6322577213
+      },
+      {
+        "image_id": "synimg-validation-007921-b40b4bd871",
+        "scene_class": "NORMAL_WET_SURFACE",
+        "score": 0.6202217399
+      },
+      {
+        "image_id": "synimg-validation-005686-57129a3885",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.6156133891
+      },
+      {
+        "image_id": "synimg-validation-014658-14c3c050a5",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.60456461
+      },
+      {
+        "image_id": "synimg-validation-014462-ce118b0351",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.6041469376
+      },
+      {
+        "image_id": "synimg-validation-005254-f9e5e4104d",
+        "scene_class": "RAIN_AND_STORM_DAMAGE",
+        "score": 0.6039629349
+      },
+      {
+        "image_id": "synimg-validation-006314-d918f83863",
+        "scene_class": "NORMAL_DARK",
+        "score": 0.5906364729
+      },
+      {
+        "image_id": "synimg-validation-013674-1c53f2ed12",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.5897514898
+      },
+      {
+        "image_id": "synimg-validation-003822-465573e736",
+        "scene_class": "STORM_DAMAGE_WITHOUT_FLOODING",
+        "score": 0.5883303862
+      }
+    ],
+    "STORM_DAMAGE": [
+      {
+        "image_id": "synimg-validation-012965-3aa4c65571",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.9892654864
+      },
+      {
+        "image_id": "synimg-validation-008767-a5baf39945",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.986566975
+      },
+      {
+        "image_id": "synimg-validation-005767-3c0ea0f471",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.9849685035
+      },
+      {
+        "image_id": "synimg-validation-000488-c31c7b7e63",
+        "scene_class": "FLOOD_AND_STANDING_WATER",
+        "score": 0.9598017488
+      },
+      {
+        "image_id": "synimg-validation-014633-44b682c761",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.9572446072
+      },
+      {
+        "image_id": "synimg-validation-005619-35aa060c9b",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.934793384
+      },
+      {
+        "image_id": "synimg-validation-007805-d081c3f380",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.9323240441
+      },
+      {
+        "image_id": "synimg-validation-004061-a98011c1d5",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.9201120994
+      },
+      {
+        "image_id": "synimg-validation-013615-ef44bb8e5b",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.9195396751
+      },
+      {
+        "image_id": "synimg-validation-004099-81ee0a50e8",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.910719421
+      },
+      {
+        "image_id": "synimg-validation-013941-ced89a7a80",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.8945306648
+      },
+      {
+        "image_id": "synimg-validation-002920-d8b261ef77",
+        "scene_class": "FLOOD_WITHOUT_HEAVY_RAIN",
+        "score": 0.8925624739
+      },
+      {
+        "image_id": "synimg-validation-004423-f2f048e68f",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.8901401536
+      },
+      {
+        "image_id": "synimg-validation-003871-9f8eaabde0",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.8861191769
+      },
+      {
+        "image_id": "synimg-validation-006907-d75c756f4d",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.8841163715
+      },
+      {
+        "image_id": "synimg-validation-002385-fcc279eae3",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.8640951439
+      },
+      {
+        "image_id": "synimg-validation-000749-bd23f88971",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.8619132649
+      },
+      {
+        "image_id": "synimg-validation-005549-65a77900ea",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.8605386384
+      },
+      {
+        "image_id": "synimg-validation-009089-4526b43f8d",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.8398628549
+      },
+      {
+        "image_id": "synimg-validation-005141-7c629194a1",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.8325686847
+      },
+      {
+        "image_id": "synimg-validation-003129-ce89ae958e",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.8293849945
+      },
+      {
+        "image_id": "synimg-validation-000453-f556cea19e",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.8186984054
+      },
+      {
+        "image_id": "synimg-validation-012005-97790356af",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.8110754096
+      },
+      {
+        "image_id": "synimg-validation-004627-1b48ad5d68",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.8007021226
+      },
+      {
+        "image_id": "synimg-validation-008753-9ae7c3ff54",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.7828540459
+      },
+      {
+        "image_id": "synimg-validation-011217-82e9723179",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.741171009
+      },
+      {
+        "image_id": "synimg-validation-003893-2724f46b18",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.7396879082
+      },
+      {
+        "image_id": "synimg-validation-005577-7eb6bc010c",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.7305097846
+      },
+      {
+        "image_id": "synimg-validation-005299-e54fa61017",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.7217018387
+      },
+      {
+        "image_id": "synimg-validation-004795-4cd5f4f713",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.7210492225
+      },
+      {
+        "image_id": "synimg-validation-007521-c36a411c45",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.7155699256
+      },
+      {
+        "image_id": "synimg-validation-004819-7baf8645ff",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.7124264839
+      },
+      {
+        "image_id": "synimg-validation-014467-a8c84f4bde",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.7076593244
+      },
+      {
+        "image_id": "synimg-validation-003317-8ece0154ed",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.6944351098
+      },
+      {
+        "image_id": "synimg-validation-002575-cb50c7aa2a",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.6891087357
+      },
+      {
+        "image_id": "synimg-validation-005649-ca752b9fe0",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.6753529341
+      },
+      {
+        "image_id": "synimg-validation-002145-37cd648f5e",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.6720108632
+      },
+      {
+        "image_id": "synimg-validation-010291-8a728eeb73",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.6668011393
+      },
+      {
+        "image_id": "synimg-validation-013913-d6e03e5c08",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.6221521297
+      },
+      {
+        "image_id": "synimg-validation-003365-4c9f39005f",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.6217513325
+      },
+      {
+        "image_id": "synimg-validation-003017-6372a7adae",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.6206604049
+      },
+      {
+        "image_id": "synimg-validation-008620-4de2b5f9de",
+        "scene_class": "FLOOD_WITHOUT_HEAVY_RAIN",
+        "score": 0.6049541316
+      },
+      {
+        "image_id": "synimg-validation-007269-974e3c0cff",
+        "scene_class": "RAIN_AND_STANDING_WATER",
+        "score": 0.5758932464
+      },
+      {
+        "image_id": "synimg-validation-009665-9f34b97645",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.5746999847
+      },
+      {
+        "image_id": "synimg-validation-013361-f573b0d955",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.5744389924
+      },
+      {
+        "image_id": "synimg-validation-013471-4e34f9e779",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.5702148174
+      },
+      {
+        "image_id": "synimg-validation-007685-ccc9a0931b",
+        "scene_class": "HEAVY_RAIN_WITHOUT_FLOODING",
+        "score": 0.5636074849
+      },
+      {
+        "image_id": "synimg-validation-009559-2ebff5ed93",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.559081419
+      },
+      {
+        "image_id": "synimg-validation-012595-9e5ac00d83",
+        "scene_class": "FLOOD_RAIN_STANDING_WATER",
+        "score": 0.555886207
+      },
+      {
+        "image_id": "synimg-validation-009807-6470cf21c5",
+        "scene_class": "STANDING_WATER_ONLY",
+        "score": 0.5550494526
+      }
+    ]
+  },
+  "hard_negative_results": {
+    "FLOOD_WITHOUT_HEAVY_RAIN": {
+      "hamming_loss": 0.00352,
+      "macro_f1": 0.3983870968,
+      "micro_f1": 0.9955841028,
+      "micro_precision": 0.9991941982,
+      "micro_recall": 0.992,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 20,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1230
+          },
+          "f1": 0.9919354839,
+          "precision": 1.0,
+          "recall": 0.984,
+          "support": 1250
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1250
+          },
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 1250
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 2,
+            "true_negative": 1248,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9824
+    },
+    "HEAVY_RAIN_WITHOUT_FLOODING": {
+      "hamming_loss": 0.00448,
+      "macro_f1": 0.199919968,
+      "micro_f1": 0.9889152811,
+      "micro_precision": 0.9788401254,
+      "micro_recall": 0.9992,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 1,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1249
+          },
+          "f1": 0.9995998399,
+          "precision": 1.0,
+          "recall": 0.9992,
+          "support": 1250
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 4,
+            "true_negative": 1246,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 22,
+            "true_negative": 1228,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9784
+    },
+    "NORMAL_DARK": {
+      "hamming_loss": 0.00544,
+      "macro_f1": 0.1986306887,
+      "micro_f1": 0.9864,
+      "micro_precision": 0.9864,
+      "micro_recall": 0.9864,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 17,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1233
+          },
+          "f1": 0.9931534434,
+          "precision": 1.0,
+          "recall": 0.9864,
+          "support": 1250
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 16,
+            "true_negative": 1234,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9864
+    },
+    "NORMAL_WET_SURFACE": {
+      "hamming_loss": 0.00352,
+      "macro_f1": 0.1991161109,
+      "micro_f1": 0.9912,
+      "micro_precision": 0.9912,
+      "micro_recall": 0.9912,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 11,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1239
+          },
+          "f1": 0.9955805544,
+          "precision": 1.0,
+          "recall": 0.9912,
+          "support": 1250
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 10,
+            "true_negative": 1240,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9912
+    },
+    "STANDING_WATER_ONLY": {
+      "hamming_loss": 0.03616,
+      "macro_f1": 0.1974068071,
+      "micro_f1": 0.9151014275,
+      "micro_precision": 0.8626062323,
+      "micro_recall": 0.9744,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 161,
+            "true_negative": 1089,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 0,
+            "true_negative": 1250,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 31,
+            "true_negative": 1219,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 32,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1218
+          },
+          "f1": 0.9870340357,
+          "precision": 1.0,
+          "recall": 0.9744,
+          "support": 1250
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 2,
+            "true_negative": 1248,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.8448
+    },
+    "STORM_DAMAGE_WITHOUT_FLOODING": {
+      "hamming_loss": 0.01712,
+      "macro_f1": 0.1989545637,
+      "micro_f1": 0.9585432003,
+      "micro_precision": 0.9293764087,
+      "micro_recall": 0.9896,
+      "per_label": {
+        "FLOODED_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 25,
+            "true_negative": 1225,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "HEAVY_RAIN_VISUAL": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 1,
+            "true_negative": 1249,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "NORMAL_SCENE": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 9,
+            "true_negative": 1241,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STANDING_WATER": {
+          "confusion": {
+            "false_negative": 0,
+            "false_positive": 59,
+            "true_negative": 1191,
+            "true_positive": 0
+          },
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 0
+        },
+        "STORM_DAMAGE": {
+          "confusion": {
+            "false_negative": 13,
+            "false_positive": 0,
+            "true_negative": 0,
+            "true_positive": 1237
+          },
+          "f1": 0.9947728187,
+          "precision": 1.0,
+          "recall": 0.9896,
+          "support": 1250
+        }
+      },
+      "sample_count": 1250,
+      "status": "DATA_AVAILABLE",
+      "subset_accuracy": 0.9336
+    }
+  },
+  "label_confusions": [
+    {
+      "count": 33,
+      "pair": "STANDING_WATER->NORMAL_SCENE"
+    },
+    {
+      "count": 33,
+      "pair": "NORMAL_SCENE->STANDING_WATER"
+    },
+    {
+      "count": 12,
+      "pair": "STANDING_WATER->STORM_DAMAGE"
+    },
+    {
+      "count": 10,
+      "pair": "STORM_DAMAGE->NORMAL_SCENE"
+    },
+    {
+      "count": 8,
+      "pair": "STORM_DAMAGE->STANDING_WATER"
+    },
+    {
+      "count": 7,
+      "pair": "FLOODED_SCENE->STORM_DAMAGE"
+    },
+    {
+      "count": 3,
+      "pair": "HEAVY_RAIN_VISUAL->NORMAL_SCENE"
+    },
+    {
+      "count": 2,
+      "pair": "NORMAL_SCENE->HEAVY_RAIN_VISUAL"
+    },
+    {
+      "count": 2,
+      "pair": "FLOODED_SCENE->NORMAL_SCENE"
+    },
+    {
+      "count": 1,
+      "pair": "HEAVY_RAIN_VISUAL->STORM_DAMAGE"
+    }
+  ],
+  "method": "DETERMINISTIC_LOCAL_LABEL_COMPARISON_NO_EXTERNAL_MODEL"
+}

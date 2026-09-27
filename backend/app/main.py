@@ -71,37 +71,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Outbox relay startup skipped (non-fatal): {e}")
 
-    # Warm the embedding model, off the event loop, without delaying readiness.
-    #
-    # MiniLM takes ~13 s to load and encode()'s first call is blocking CPU work.
-    # Paid on the first real report it froze the entire API — the T14 cold-start
-    # rehearsal saw GET /api/events time out completely, then answer in 0.03 s once
-    # the model was resident. Doing it here, in a thread, on a task nobody awaits,
-    # means /healthz answers immediately and the first citizen report pays nothing.
-    #
-    # Failure is deliberately non-fatal: with no model cache and no network, dedup
-    # falls back to Levenshtein and the platform still runs.
-    async def _warm_embeddings():
+    # Authorize and load the frozen local duplicate artifact off the event loop.
+    # Startup remains responsive; a load error is logged and duplicate inference
+    # itself fails closed if a report later needs the unavailable artifact.
+    async def _warm_local_duplicate_matcher():
         try:
-            from app.services.dedup import _get_embedding_model
+            from app.services.dedup import _get_local_matcher
 
-            model = await asyncio.to_thread(_get_embedding_model)
-            if model is None:
-                logger.warning(
-                    "Embedding model unavailable — dedup will use the Levenshtein "
-                    "fallback. Cosine similarity is off for this run."
-                )
-                return
-            # Keyword, not positional: encode()'s second positional argument is
-            # prompt_name in sentence-transformers 6.x, so passing True there
-            # raised "Prompt name 'True' not found". The warm-up then silently
-            # skipped, which the non-fatal WARNING is what caught.
-            await asyncio.to_thread(model.encode, "warmup", convert_to_numpy=True)
-            logger.info("✓ Embedding model warm — first report will not block")
+            await asyncio.to_thread(_get_local_matcher)
+            logger.info("Frozen local duplicate matcher ready")
         except Exception as e:
-            logger.warning(f"Embedding warm-up skipped (non-fatal): {e}")
+            logger.error("Frozen local duplicate matcher unavailable: %s", e)
 
-    warmup_task = asyncio.create_task(_warm_embeddings())
+    warmup_task = asyncio.create_task(_warm_local_duplicate_matcher())
 
     # The object store's two buckets, created if missing (Phase 2 T1). On a task
     # nobody awaits and wrapped, because the store is non-critical: an absent or

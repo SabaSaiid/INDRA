@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "status": "COMPLETED",
+  "evaluation_label": "FINAL_UNTOUCHED_TEST_EVALUATION",
+  "claimed_at": "2026-09-23T05:14:52.552527+00:00",
+  "completed_at": "2026-09-23T05:14:53.598294+00:00",
+  "evaluation_invocation_count": 1,
+  "rerun_permitted": false,
+  "test_examples_available_to_configuration_selection": false,
+  "configuration_changed_after_freeze": false,
+  "retrained_after_evaluation": false,
+  "development_manifest_sha256": "ef2916b0fb929ad558a4f1c26bd17470c02aeb4f9c3048b38a38976e680425a7",
+  "frozen_configuration_sha256": "450bb35b4a8c82b90a13df0ee978bd7abd63345b084c3b1a4d76ec933b7567ab",
+  "artifact_sha256": "ec827431e59116b534c01aba5359410c1a241e8b5c98534339c0ef0d126c560b",
+  "final_test_split_sha256": "6082b1a16b0326e7932f5610ce99c873112c216b4c422f9a98dda360b0166813",
+  "metrics_sha256": "ba63ac3b3b483899bafaa2563eda36747d92475842927fafa2124666235954c8",
+  "development_acceptance": "DEVELOPMENT_ACCEPTED",
+  "production_validation": "NOT_VALIDATED"
+}

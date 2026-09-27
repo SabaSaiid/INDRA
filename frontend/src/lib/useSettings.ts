@@ -17,6 +17,7 @@ export type ThemeMode = 'dark' | 'light' | 'high_contrast';
 export type UiDensity = 'compact' | 'standard';
 export type SeverityThreshold = 'ALL' | 'MODERATE_PLUS' | 'HIGH_PLUS' | 'CRITICAL_ONLY';
 export type RefreshInterval = 5 | 15 | 30 | 60 | 0; // 0 = manual
+export type IdleLockMinutes = 5 | 15 | 30 | 0; // 0 = disabled
 
 export interface IndraSettings {
   // 1. Tactical Geospatial & Map
@@ -49,7 +50,24 @@ export interface IndraSettings {
   glassmorphismEffects: boolean;
   reducedMotion: boolean;
 
-  // 5. Network & Field Station Mode
+  // 5. Notifications & Alerting
+  notifyInApp: boolean;
+  notifyEmail: boolean;
+  notifyEmailAddress: string;
+  notifyPhoneEnabled: boolean;
+  notifyPhone: string;
+
+  // 6. Per-hazard alert tuning
+  hazardAlertPrefs: Record<string, { minSeverity: SeverityThreshold; muted: boolean }>;
+
+  // 7. Area of Responsibility (AOR) filter
+  aorState: string | null; // null = all-India
+
+  // 8. Map source visibility
+  hiddenSources: string[];
+
+  // 9. Advanced coord / session security
+  idleLockMinutes: IdleLockMinutes;
 
   // Metadata
   lastSavedAt: string;
@@ -86,7 +104,24 @@ export const DEFAULT_SETTINGS: IndraSettings = {
   glassmorphismEffects: true,
   reducedMotion: false,
 
-  // Network & Field
+  // Notifications
+  notifyInApp: true,
+  notifyEmail: false,
+  notifyEmailAddress: '',
+  notifyPhoneEnabled: false,
+  notifyPhone: '',
+
+  // Per-hazard prefs (empty = all use minSeverityThreshold)
+  hazardAlertPrefs: {},
+
+  // AOR
+  aorState: null,
+
+  // Source visibility
+  hiddenSources: [],
+
+  // Advanced / security
+  idleLockMinutes: 0,
 
   lastSavedAt: new Date().toISOString(),
 };
@@ -207,6 +242,33 @@ export function playAlertSound(pattern: SirenPattern = 'warble_fast', volume = 0
       osc.stop(now + n.start + n.dur);
     });
   }
+}
+
+// ==============================================================================
+// Unit Formatting (for real readings, and the coordinate format example)
+// ==============================================================================
+export function formatRainfall(mm: number, unit: RainUnit = 'mm'): string {
+  if (unit === 'inches') {
+    return `${(mm / 25.4).toFixed(2)} in`;
+  }
+  return `${mm.toFixed(1)} mm`;
+}
+
+export function formatCoordinates(lat: number, lng: number, format: CoordFormat = 'dd'): string {
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lngDir = lng >= 0 ? 'E' : 'W';
+  const latAbs = Math.abs(lat);
+  const lngAbs = Math.abs(lng);
+  if (format === 'dms') {
+    const dms = (v: number) => {
+      const deg = Math.floor(v);
+      const min = Math.floor((v - deg) * 60);
+      const sec = Math.round(((v - deg) * 60 - min) * 60);
+      return `${deg}°${min}'${sec}"`;
+    };
+    return `${dms(latAbs)}${latDir}, ${dms(lngAbs)}${lngDir}`;
+  }
+  return `${latAbs.toFixed(4)}° ${latDir}, ${lngAbs.toFixed(4)}° ${lngDir}`;
 }
 
 /** A stored 'mgrs' (an option removed 25 Sep) or any unknown format reads as decimal degrees. */

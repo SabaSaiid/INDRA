@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { Layers, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export type DistributionTab = 'hazard' | 'severity';
 export type TimeRangeFilter = '24h' | '7d' | 'all';
@@ -31,10 +32,12 @@ interface EventDistributionChartProps {
 
 export default function EventDistributionChart({
   variant = 'card',
-  title = 'Event Distribution',
+  title,
   initialTab = 'hazard',
   className,
 }: EventDistributionChartProps) {
+  const { t } = useTranslation();
+  const cardTitle = title ?? t('dashboard.event_distribution');
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<DistributionTab>(initialTab);
   const [timeRange, setTimeRange] = useState<TimeRangeFilter>('7d');
@@ -152,12 +155,18 @@ export default function EventDistributionChart({
               source === src ? 'bg-white text-[#1B2432] font-bold shadow-2xs' : 'text-[#7A8599] hover:text-[#1B2432]'
             )}
           >
-            {src === 'events' ? 'Events' : 'Warnings'} {n}
+            {src === 'events' ? t('chart.events') : t('chart.warnings')} {n}
           </button>
         );
       })}
     </div>
   );
+
+  const getItemLabel = (name: string) => {
+    if (activeTab === 'hazard') return t.hazard(name);
+    if (activeTab === 'severity') return t.severity(name);
+    return name;
+  };
 
   const content = (
     <div className={cn('flex flex-col h-full min-h-0', className)}>
@@ -184,7 +193,7 @@ export default function EventDistributionChart({
             )}
             <span className="relative z-10 flex items-center gap-1">
               <Layers className="w-3 h-3 text-[#4A6670]" />
-              <span>By Hazard</span>
+              <span>{t('chart.by_hazard')}</span>
             </span>
           </button>
 
@@ -207,7 +216,7 @@ export default function EventDistributionChart({
             )}
             <span className="relative z-10 flex items-center gap-1">
               <ShieldAlert className="w-3 h-3 text-[#B8873A]" />
-              <span>By Severity</span>
+              <span>{t('chart.by_severity')}</span>
             </span>
           </button>
         </div>
@@ -215,7 +224,7 @@ export default function EventDistributionChart({
         {/* Time range pills — events only; a warning is either in force or not */}
         {variant === 'embedded' && sourceToggle}
         {source === 'warnings' ? (
-          <span className="text-[9px] font-mono text-[#7A8599] uppercase tracking-wider">In force now</span>
+          <span className="text-[9px] font-mono text-[#7A8599] uppercase tracking-wider">{t('chart.in_force_now')}</span>
         ) : (
         <div className="flex items-center gap-0.5 text-[9px] font-mono">
           {(['24h', '7d', 'all'] as const).map((r) => (
@@ -252,7 +261,7 @@ export default function EventDistributionChart({
       ) : shownLoaded && shown.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center">
           <EmptyState
-            title={source === 'events' ? 'No events in this range' : 'No official warnings in force'}
+            title={source === 'events' ? t('chart.no_events_range') : t('chart.no_warnings_force')}
             hint={
               source === 'events'
                 ? 'An event forms once two nearby reports corroborate each other.'
@@ -317,7 +326,7 @@ export default function EventDistributionChart({
           ) : total === 0 ? (
             <div className="w-[104px] h-[104px] rounded-full border border-dashed border-[#D5CDBC] flex flex-col items-center justify-center text-center p-2 bg-[#F7F3EA]/50">
               <span className="text-base font-bold text-[#A0988A] font-mono">0</span>
-              <span className="text-[8px] text-[#B0A898] uppercase tracking-wider">No events</span>
+              <span className="text-[8px] text-[#B0A898] uppercase tracking-wider">{t('chart.no_events_range')}</span>
             </div>
           ) : null}
 
@@ -333,7 +342,7 @@ export default function EventDistributionChart({
                     {activeItem.value}
                   </span>
                   <span className="text-[10px] font-semibold text-[#1B2432] truncate max-w-[68px] mt-0.5 leading-tight">
-                    {activeItem.name}
+                    {getItemLabel(activeItem.name)}
                   </span>
                   <span className="text-[9px] text-[#7A8599] font-mono leading-none mt-0.5">
                     {total > 0 ? Math.round((Number(activeItem.value) / total) * 100) : 0}%
@@ -345,7 +354,7 @@ export default function EventDistributionChart({
                     {total}
                   </span>
                   <span className="text-[9px] text-[#7A8599] font-medium uppercase tracking-wider mt-0.5 leading-none">
-                    {source === 'warnings' ? 'Warnings' : 'Events'}
+                    {source === 'warnings' ? t('chart.warnings') : t('chart.events')}
                   </span>
                 </div>
               )}
@@ -357,7 +366,7 @@ export default function EventDistributionChart({
         <div className="flex-1 min-w-0 space-y-0.5 max-h-[126px] overflow-y-auto custom-scrollbar pr-0.5">
           {total === 0 ? (
             <div className="text-[10px] text-[#A0988A] text-center italic py-6">
-              No incidents recorded in this time range.
+              {t('chart.no_events_range')}
             </div>
           ) : (
             shown.map((item, index) => {
@@ -383,7 +392,7 @@ export default function EventDistributionChart({
                       )}
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="truncate text-[#1B2432] text-[10px]">{item.name}</span>
+                    <span className="truncate text-[#1B2432] text-[10px]">{getItemLabel(item.name)}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
@@ -420,7 +429,7 @@ export default function EventDistributionChart({
           className="p-0 pb-1.5 mb-0 flex items-center justify-between"
           title={
             <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-              {title}
+              {cardTitle}
             </span>
           }
           action={sourceToggle}

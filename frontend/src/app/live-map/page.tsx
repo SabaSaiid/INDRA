@@ -11,12 +11,15 @@ import { fadeIn } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
 import { fetchEvents, fetchSummaryCounts, fetchTeams, fetchFieldReports } from '@/lib/api';
 
+import { useTranslation } from '@/lib/i18n/useTranslation';
+
 const GlobeEventMap = dynamic(() => import('@/components/client-only/GlobeEventMap'), {
   ssr: false,
   loading: () => <MapCardSkeleton />,
 });
 
 export default function LiveMapPage() {
+  const { t } = useTranslation();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -86,7 +89,7 @@ export default function LiveMapPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-mono font-semibold uppercase tracking-wider text-blue-300">
-                  Live map
+                  {t('nav.live_map')}
                 </span>
                 <span className="text-slate-600">•</span>
                 <span className="text-xs text-slate-400 font-mono">
@@ -95,7 +98,7 @@ export default function LiveMapPage() {
               </div>
               <h1 className="text-xl lg:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                 <Compass className="w-6 h-6 text-blue-400" />
-                Events, warnings and reports on one map
+                {t('map.title')}
               </h1>
               <p className="text-xs lg:text-sm text-slate-300 mt-0.5">
                 Fused events, official warnings that resolve to a district, and citizen reports not
@@ -107,22 +110,22 @@ export default function LiveMapPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-slate-300">Events (7 days):</span>
+                <span className="text-slate-300">{t('chart.events')} (7d):</span>
                 <span className="font-semibold text-white">{show(eventCount)}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
                 <Radio className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-slate-300">Official warnings:</span>
+                <span className="text-slate-300">{t('chart.warnings')}:</span>
                 <span className="font-semibold text-white">{show(warningCount)}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
                 <FileText className="w-3.5 h-3.5 text-amber-300" />
-                <span className="text-slate-300">Reports not yet in an event:</span>
+                <span className="text-slate-300">{t('kpis.citizen_reports')}:</span>
                 <span className="font-semibold text-white">{show(reportCount)}</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">
                 <Shield className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-slate-300">Teams deployed:</span>
+                <span className="text-slate-300">{t('common.duty_deployed')}:</span>
                 <span className="font-semibold text-white">{show(deployedCount)}</span>
               </div>
             </div>

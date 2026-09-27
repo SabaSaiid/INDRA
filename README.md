@@ -12,9 +12,17 @@
 
 ---
 
-**FastAPI** • **PostgreSQL + PostGIS** • **Uber H3** • **Redpanda / Kafka** • **Redis** • **Sentence-Transformers** • **Next.js**
+**FastAPI** • **PostgreSQL + PostGIS** • **Uber H3** • **Redpanda / Kafka** • **Redis** • **Local AI/ML** • **Next.js**
 
 </div>
+
+---
+
+## Current AI/ML status (25 Sep 2026)
+
+The backend now records typed **advisory** results from six frozen local synthetic-development components: five-class NLP, duplicate matching, deterministic event grouping, credibility, scratch-CNN image analysis, and anomaly detection. MiniLM and Sentence-Transformers are not live runtime dependencies; no hosted or pretrained model is used. The existing fusion score and human-review controls remain authoritative. Phase 20 event evidence was separately `REVALIDATED` on a family-disjoint synthetic benchmark; anomaly synthetic-generator dependence remains `HIGH`; all six components remain `NOT_VALIDATED` for production.
+
+The 21–22 Sep demonstration and sprint ledger below are historical backend snapshots. The latest `origin/main` Kafka producer, outbox relay, feeds, APIs, and schema changes are retained in this merge; merged-branch test results must be verified separately. See [ML architecture](docs/ML_ARCHITECTURE.md), [model card](docs/ML_MODEL_CARD.md), and [validation report](docs/ML_VALIDATION_REPORT.md) for the frozen subsystem. The alert-sending engine remains out of scope.
 
 ---
 
@@ -44,15 +52,15 @@ INDRA Platform:
 [Citizen report B] ┼──► [Geo / Fusion Layer] ──► [1 Verified Weather Event]
 [Citizen report C] ┘    • PostGIS + Uber H3 Hex    • Event ID:   INDRA-YYYYMMDD-NNN
                         • DBSCAN clustering        • Confidence: total_weighted / factor_coverage
-                        • MiniLM dedup             • Coverage:   0.80 (vision, anomaly offline)
+                        • frozen local dedup       • Coverage:   0.80 (vision, anomaly offline)
                         • Open-Meteo rainfall      • Status:     set by the published gates
                         • Rule-based severity      • Evidence:   every report, in provenance
 ```
 
-The right-hand column is the shape of every event, not one event's numbers. **Deep learning and anomaly
-detection are deliberately absent**: the only model in the data path is MiniLM sentence embeddings for
-deduplication. The AI/ML layer left this project's scope on 20 Sep, and the receipt marks its two
-factors `offline` on every event rather than substituting a number.
+The right-hand column is the shape of every event, not one event's numbers. **The receipt's vision and
+anomaly factors are `offline` on every event** rather than a substituted number. The AI/ML layer's frozen
+components (PR #39: a local duplicate matcher, a scratch image model and an anomaly baseline) write
+separate advisory evidence; their scores never enter the fusion factors.
 
 ---
 
@@ -87,15 +95,13 @@ that number. The score rises with independent corroboration and with real rainfa
 
 **`factor_coverage` is the honesty.** It is the share of the designed model that actually reported.
 `0.80` means two factors — `vision_analysis` (0.15) and `anomaly_detection` (0.05) — did not report at
-all, so the score is a mean over the 80% that did. Those two are **permanently offline**: the AI/ML
-layer left this project's scope on 20 Sep, and the receipt says so on every event rather than
-substituting a plausible number. **The score is never quoted without its coverage.**
+all, so the score is a mean over the 80% that did. They remain excluded from this **legacy fusion score** even though separate frozen image and anomaly advisory outputs now exist. **The score is never quoted without its coverage.**
 
 > **What was here before, and why it is gone.** This section previously showed "127 SCATTERED SIGNALS"
 > resolving to event `WX-EV-28231827-A` at "Confidence: 94% [AUTO-PUBLISHED]", built from "48 Social
 > media #IMD posts", "2 CWC River Level Gauges" and "10 Verified media photos". None of that existed.
 > On 21 Sep there was no IMD, CWC or social-media feed in this system — Open-Meteo was the only
-> external source, decided 16 Sep for want of API keys — image verification is offline, and the
+> external source, decided 16 Sep for want of API keys — no image evidence entered the score, and the
 > **94% never came from the scoring engine**. It was replaced on 21 Sep with the worked example
 > above. Official IMD, CWC and SDMA warnings (through NDMA's SACHET feed), airport METARs, Mastodon
 > posts and Google News headlines have been added since, and on 25 Sep the scripted reports, the
@@ -114,7 +120,7 @@ Disaster response demands separating **how dangerous an event is** (Severity) fr
 
 ---
 
-## 🏛️ The Three-Pillar Core Engine
+## 🏛️ The Three-Pillar Core Engine (target design)
 
 | 1. COLLECT | 2. UNDERSTAND | 3. VERIFY |
 | :--- | :--- | :--- |
@@ -126,9 +132,10 @@ Disaster response demands separating **how dangerous an event is** (Severity) fr
 > are read from NDMA's SACHET CAP feed every 5 minutes; no IMD or CWC sensor data or OpenWeather is
 > read, and the only social and news feeds are Mastodon `#IMD` posts and Google News headlines, when
 > those pollers are switched on. **UNDERSTAND:** coordinate validation (out-of-India → 422), district
-> geocoding, DBSCAN clustering (great-circle radius) and H3 indexing are real; Sentence-Transformers runs **for
-> duplicate matching only**, and the PyTorch/OpenCV and Isolation Forest components are not
-> implemented. **VERIFY:** the Verification Receipt, multi-source consensus, weather agreement
+> geocoding, DBSCAN clustering (great-circle radius) and H3 indexing are real; the duplicate matcher is a
+> frozen local feature model, not Sentence-Transformers; the image model is a scratch CNN and the anomaly
+> model a statistical baseline with a local scratch dual-logistic model, not Isolation Forest, and both
+> are advisory only. **VERIFY:** the Verification Receipt, multi-source consensus, weather agreement
 > and spatio-temporal proximity are real; the **SHA-256 audit trail is a working hash chain**
 > and the **human review queue has an auth-gated endpoint** (both Day 3). See the
 > Implementation Status ledger below.
@@ -186,12 +193,7 @@ clustering, and the dashboard audited for invented data ·
 25 Sep ✅ every demo, scripted and placeholder row removed, operator accounts with their own
 passwords in the database, and the browser tests moved onto a disposable database
 
-> **Scope, stated once and plainly.** Layers **4 (AI/ML)** and **8b (the alert engine)** left the
-> backend's scope on 20 Sep. They are **cancelled, not deferred**. The ML code already committed
-> stays frozen; `vision_analysis` and `anomaly_detection` are **permanently offline** in every
-> receipt, and the confidence score is re-normalised over the factors that actually report rather
-> than pretending the missing ones scored zero. Nothing in this repository, the API or the
-> dashboard claims an alert was sent.
+> **Scope update.** The alert-sending engine remains cancelled. The 20 Sep AI/ML cancellation is historical: six frozen local development components are now connected as typed advisory evidence. `vision_analysis` and `anomaly_detection` still do not receive fabricated fusion scores; missing inputs are `NOT_RUN`, and the confidence score is re-normalised over factors that actually report. Nothing here claims an alert was sent or a model was production validated.
 
 Legend: ✅ built · 🟡 partial · ⬛ out of scope
 
@@ -200,7 +202,7 @@ Legend: ✅ built · 🟡 partial · ⬛ out of scope
 | 1 | **Data Sources** | 🟡 3/6 | Citizen reports are live; Open-Meteo is **polled on a schedule** — every 10 minutes, 24 h accumulated rainfall for six cities into `station_readings`, attributed `OPEN_METEO`; and official IMD, CWC and SDMA CAP warnings are polled from **NDMA's SACHET feed** every 5 minutes into `agency_alerts`. Trusted field reports can be filed by a commander through an authenticated route. The IMD / OpenWeather / Twitter APIs are unread, decided 16 Sep for want of credentials. |
 | 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and a re-delivered message is not re-broadcast — now across a restart, since that memory moved to Redis. **Batch ingestion means the scheduled pollers** (SACHET, Open-Meteo, METAR, Mastodon, Google News), which fetch in batches every 5–15 minutes. There is no bulk import and no seed script: the synthetic seeder was deleted on 25 Sep. |
 | 3 | **Data Processing** | ✅ | Deduplication (a suppressed duplicate is marked and **never counted as corroboration**), out-of-India coordinates → **422, never stored**, forward and reverse geocoding over a 737-district gazetteer, a computed credibility score per report, and **cleaning + metadata extraction stored on every report** (`analysis`, migration `0005`). Depth, language and places are regex and dictionaries — rule-based, and the receipt says so. |
-| 4 | **AI / ML Layer** | ⬛ | **Out of scope since 20 Sep.** Sentence-Transformers (MiniLM) embeddings run for duplicate matching and nothing else. An event-type classifier was trained and **measured below its acceptance gate** (test macro-F1 0.787, NOT_RELEVANT recall 0.667), so it is offline and unwired. No vision, no anomaly detection — both **permanently `offline`** in every receipt. |
+| 4 | **AI / ML Layer** | ✅ development integration | Six frozen synthetic-development components produce typed advisory results. MiniLM is removed from the live runtime; the older below-gate event classifier remains quarantined. Image and anomaly models exist but do not supply calibrated legacy fusion factors. No production-validation claim. |
 | 5 | **Geo-Analytics** | ✅ | DBSCAN clustering with a great-circle 5 km radius (since 22 Sep; it was in degrees), Uber H3 res-8 indexing, a **boundary polygon on every event** that contains all of its reports, and `GET /api/geo/heatmap` aggregating res 6/7/8 with duplicates excluded. Risk zones are not built. |
 | 6 | **Event Fusion Engine** | ✅ | Correlation, duplicate merging, scoring and event construction run end to end. **No randomness.** Confidence is re-normalised over the factors that reported and the receipt publishes `factor_coverage` beside it. Severity comes from **what the reports say** — a depth axis and a corroboration axis, published thresholds, no model. Determinism is pinned by tests, and a human decision survives later merges. |
 | 7 | **Data Platform** | ✅ | PostgreSQL + PostGIS, an `audit_logs` **SHA-256 hash chain**, **Redis genuinely in use** (the Open-Meteo cache and the broadcast-dedup set, both with a memory fallback so losing it degrades nothing), and `station_readings` **holding real polled rows** for the first time. Object storage is configured but not deployed. |
@@ -212,11 +214,9 @@ Legend: ✅ built · 🟡 partial · ⬛ out of scope
 dedup → spatial clustering → deterministic confidence scoring (with real Open-Meteo rainfall, read
 from this platform's own polled table) → a persisted event with a boundary polygon and a
 hash-chained audit row → live WebSocket push, and a commander can approve it through an auth-gated
-review endpoint.* That path is covered by **948 automated tests** (948 passed, 2 skipped, run
-against a separate test database, and green with the network off), and the dashboard by 26
-browser tests.
+review endpoint.* The **pre-merge `origin/main` snapshot** reported 948 passed and 2 skipped backend tests plus 26 browser tests; those counts are not a claim about this merged branch until its tests finish.
 
-What is **not** built is the perception layer, most external feeds, and the entire alerting tier.
+What remains **unvalidated for production** is the perception layer; the alert-sending tier is not built.
 Where a confidence factor has no real signal behind it the receipt prints `offline` with a reason
 rather than inventing a number — **stating that a signal is absent is treated as strictly better
 than faking it.** The visible cost is that a fresh cluster of two to five citizen reports on a dry

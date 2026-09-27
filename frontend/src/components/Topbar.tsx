@@ -31,6 +31,8 @@ import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
 import NotificationPopover from './NotificationPopover';
 import SignInDialog from './SignInDialog';
+import LanguagePicker from './LanguagePicker';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface TopbarProps {
   onMobileMenuOpen: () => void;
@@ -42,6 +44,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const { session, profile, updateDuty, isUpdatingStatus } = useOperatorProfile();
+  const { t } = useTranslation();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // The profile exactly as the backend returned it. Until it arrives, the
@@ -75,12 +78,15 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
         e.preventDefault();
         setSettingsOpen((prev) => !prev);
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if (e.key === 'Escape' && settingsOpen) {
+        setSettingsOpen(false);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !settingsOpen) {
         e.preventDefault();
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) searchInput.focus();
       }
-      if (e.key === '/' && !isInput) {
+      if (e.key === '/' && !isInput && !settingsOpen) {
         e.preventDefault();
         const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
         if (searchInput) searchInput.focus();
@@ -88,7 +94,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [settingsOpen]);
 
   const handleDutyChange = async (newStatus: DutyStatus) => {
     updateDuty(newStatus);
@@ -126,7 +132,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search events, warnings, teams…"
+                  placeholder={t('nav.search_placeholder')}
                   className="w-full h-8 pl-9 pr-14 rounded-lg bg-[#F0EBE0]/80 border border-[#E8E2D4] text-xs sm:text-sm text-ink placeholder:text-[#7A8599] focus:outline-none focus:bg-[#FDFAF5] focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-inner"
                   aria-label="Search"
                 />
@@ -149,9 +155,15 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               id="report-incident-btn"
             >
               <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="hidden sm:inline">Report Incident</span>
+              <span className="hidden sm:inline">{t('nav.report_incident')}</span>
               <Plus className="w-3.5 h-3.5 sm:hidden" />
             </button>
+
+            {/* Divider */}
+            <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
+
+            {/* Language Picker */}
+            <LanguagePicker />
 
             {/* Divider */}
             <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
@@ -160,12 +172,18 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             <div className="flex items-center gap-0.5 bg-[#F0EBE0]/60 p-0.5 rounded-lg border border-[#E8E2D4]">
               <NotificationPopover />
               <button
-                onClick={() => setSettingsOpen(true)}
-                className="w-8 h-8 rounded-md flex items-center justify-center text-[#7A8599] hover:text-ink hover:bg-[#FDFAF5] transition-colors focus:outline-none focus:ring-1 focus:ring-[#B5482E]/30"
+                onClick={() => setSettingsOpen((prev) => !prev)}
+                className={cn(
+                  "w-8 h-8 rounded-md flex items-center justify-center transition-all focus:outline-none focus:ring-1 focus:ring-[#B5482E]/30 relative",
+                  settingsOpen
+                    ? "bg-[#B5482E]/15 text-[#B5482E] ring-1 ring-[#B5482E]/30 shadow-sm"
+                    : "text-[#7A8599] hover:text-ink hover:bg-[#FDFAF5]"
+                )}
                 aria-label="Platform Settings"
+                aria-expanded={settingsOpen}
                 title="System Settings & HUD Preferences (⌘,)"
               >
-                <Settings className="w-4 h-4 transition-transform duration-300 hover:rotate-45" />
+                <Settings className={cn("w-4 h-4 transition-transform duration-300", settingsOpen ? "rotate-90 text-[#B5482E]" : "hover:rotate-45")} />
               </button>
             </div>
 
@@ -268,7 +286,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                         <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
                           <span className="flex items-center gap-1.5 font-medium text-[#7A8599]">
                             <Radio className="w-3.5 h-3.5" />
-                            Radio Designation
+                            {t('common.radio_designation')}
                           </span>
                           <span className="font-semibold text-ink tracking-wider font-mono">
                             {callsign}
@@ -308,6 +326,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                           {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
                             const cfg = dutyStatusConfig[st];
                             const isSelected = profile.duty_status === st;
+                            const dutyLabel = st === 'ON_DUTY' ? t('common.duty_on') : st === 'OFF_DUTY' ? t('common.duty_off') : st === 'STANDBY' ? t('common.duty_standby') : t('common.duty_deployed');
                             return (
                               <button
                                 key={st}
@@ -321,7 +340,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                               >
                                 <span className="flex items-center gap-1.5">
                                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
-                                  {cfg.label}
+                                  {dutyLabel}
                                 </span>
                                 {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
                               </button>
@@ -373,7 +392,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       >
                         <span className="flex items-center gap-2">
                           <Users className="w-3.5 h-3.5 text-[#7A8599]" />
-                          Disaster Response Units &amp; Teams
+                          {t('nav.response_teams')}
                         </span>
                         <ChevronDown className="w-3 h-3 -rotate-90 text-[#B0A898]" />
                       </Link>
@@ -398,7 +417,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       >
                         <span className="flex items-center gap-2">
                           <Settings className="w-3.5 h-3.5 text-[#7A8599]" />
-                          Platform Settings &amp; HUD Config
+                          {t('nav.platform_settings')}
                         </span>
                         <span
                           className="text-[9px] text-[#7A8599] bg-[#E8E2D4] px-1 py-0.2 rounded border border-[#D8D0C4] font-mono"

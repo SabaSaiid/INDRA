@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "benchmark_scope": "LOCAL_ENGINEERING_ONLY_NOT_PRODUCTION_THROUGHPUT",
+  "data_split": "train",
+  "directed_candidate_construction": "Each governed training pair contributes A-to-B and B-to-A comparisons.",
+  "timing_method": "PERF_COUNTER_WALL_CLOCK",
+  "measurements": [
+    {
+      "candidate_count": 100,
+      "feature_transformation_seconds": 0.04274190000160161,
+      "similarity_computation_seconds": 0.051817100000334904,
+      "decision_seconds": 0.0023285999996005557,
+      "total_measured_stage_seconds": 0.09688760000153707,
+      "duplicate_decisions": 100
+    },
+    {
+      "candidate_count": 1000,
+      "feature_transformation_seconds": 0.3905159000023559,
+      "similarity_computation_seconds": 0.4657616999966194,
+      "decision_seconds": 0.022610000002259767,
+      "total_measured_stage_seconds": 0.8788876000012351,
+      "duplicate_decisions": 1000
+    },
+    {
+      "candidate_count": 10000,
+      "feature_transformation_seconds": 3.700325400017846,
+      "similarity_computation_seconds": 4.224784000003183,
+      "decision_seconds": 0.19335159997763185,
+      "total_measured_stage_seconds": 8.11846099999866,
+      "duplicate_decisions": 9973
+    },
+    {
+      "candidate_count": 100000,
+      "feature_transformation_seconds": 36.75990750006804,
+      "similarity_computation_seconds": 41.66650619995244,
+      "decision_seconds": 1.79682290005303,
+      "total_measured_stage_seconds": 80.2232366000735,
+      "duplicate_decisions": 64662
+    }
+  ],
+  "omitted_scales": [],
+  "available_directed_candidates": 140000,
+  "production_throughput_claim": false,
+  "limitations": [
+    "Measurements are host-specific local engineering observations.",
+    "They exclude candidate retrieval, network, persistence, and live-service overhead.",
+    "They are not latency SLOs or capacity claims."
+  ]
+}
