@@ -146,6 +146,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--since", default=DEFAULT_SINCE, help="collected at or after (ISO 8601)")
+    parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument("--exclude", type=Path, action="append", default=[],
+                        help="an earlier sample CSV whose rows must not be drawn again (repeatable)")
     args = parser.parse_args()
 
     if _already_labelled(args.out):
@@ -153,7 +156,12 @@ def main() -> int:
         return 1
 
     rows = asyncio.run(_fetch(args.since))
-    sample = draw(rows, random.Random(SEED))
+    seen = set()
+    for earlier in args.exclude:
+        with earlier.open(encoding="utf-8", newline="") as f:
+            seen |= {r["report_id"] for r in csv.DictReader(f)}
+    rows = [r for r in rows if r["id"] not in seen]
+    sample = draw(rows, random.Random(args.seed))
     if len(sample) < 2 * PER_SOURCE:
         print(f"warning: only {len(sample)} rows available since {args.since}", file=sys.stderr)
 
