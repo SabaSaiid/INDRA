@@ -58,6 +58,22 @@ class ReviewStatus(str, enum.Enum):
     HUMAN_APPROVED = "HUMAN_APPROVED"
 
 
+class Verdict(str, enum.Enum):
+    """
+    What the evidence says about an event (Phase 4 T4, migration 0020).
+
+    CONTRADICTED   the weather (or, for a cyclone, the absence of any warning)
+                   affirmatively says the opposite of the claim; a human decides
+    CORROBORATED   no contradiction, and an official warning or the weather
+                   evidence scores at least 0.6
+    UNCONFIRMED    neither: nothing independent either way
+    """
+
+    CORROBORATED = "CORROBORATED"
+    CONTRADICTED = "CONTRADICTED"
+    UNCONFIRMED = "UNCONFIRMED"
+
+
 class Quadrant(str, enum.Enum):
     CRITICAL_VERIFIED = "Critical Verified Event"
     UNVERIFIED_THREAT = "Unverified Threat"
@@ -85,6 +101,10 @@ class AuditAction(str, enum.Enum):
     # Added 24 Sep (migration 0015): an analyst exported reports or events.
     # Not a decision about an event, so its ledger row has no event_id.
     DATA_EXPORT = "DATA_EXPORT"
+    # Added 27 Sep (migration 0020, Phase 4 T5): evidence that arrived after
+    # the event (an IMD warning, an airport observation) changed its score,
+    # verdict or status. Details: {trigger, before, after}.
+    LATE_CORROBORATION = "LATE_CORROBORATION"
 
 
 class TeamStatus(str, enum.Enum):
