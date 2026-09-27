@@ -640,39 +640,6 @@ A snapshot is written on every score write: `created`, each `merge`, each `late:
 `late:backfill:receipt_v2`. A review is not a score change, so it appears as its audit row only.
 Draw "confidence over time" from the snapshots; the status history from both.
 
-## `/api/review` (Phase 4)
-
-### `GET /api/review/queue?tab=pending&limit=50&offset=0` — **requires a token**
-
-Auth: `ANALYST`, `COMMANDER` or `ADMIN` (claiming and deciding need `COMMANDER` or `ADMIN`).
-Written, not yet tested.
-
-| `tab` | Contents |
-|---|---|
-| `pending` | `PENDING_HUMAN_REVIEW` or `QUARANTINED`, never reviewed |
-| `contradicted` | verdict `CONTRADICTED`, never reviewed |
-| `suspicious` | at least one contributing report flagged (`promotional`, `past_event`, `implausible_value`, `exaggeration`, `shouting`, `forward_marker`, `coordinated`; a forecast's `not_an_observation` is not suspicious) |
-| `high_impact` | severity `HIGH` or `CRITICAL`, never reviewed |
-| `recent` | created in the last 2 hours |
-| `claimed` | someone holds an unexpired claim |
-
-"Never reviewed" means no commander has acted on it. `REJECTED` events are in no tab. **Order,
-published:** severity (critical first), then verdict (`CORROBORATED`, `UNCONFIRMED`,
-`CONTRADICTED`), then age, oldest first.
-
-```json
-{"tab": "pending", "total": 7, "limit": 50, "offset": 0, "order": "…",
- "items": [{"id": "…", "event_code": "…", "event_type": "HEATWAVE", "label": "Heatwave",
-            "family": "thermal", "severity": "HIGH", "confidence_score": 0.44,
-            "factor_coverage": 0.8, "verdict": "CONTRADICTED", "review_status": "PENDING_HUMAN_REVIEW",
-            "district": "…", "state": "…", "verified_at": "…", "age_minutes": 38.5,
-            "report_count": 5, "flagged_reports": 0, "contradictions": [{…}], "claim": null}]}
-```
-
-`?counts=true` returns `{"pending": 7, "contradicted": 2, "suspicious": 1, "high_impact": 4,
-"recent": 3, "claimed": 0}` in one call. An unknown `tab` is a `422` naming it; a database error
-`503`.
-
 ### `GET /api/events/{event_id}/provenance` — **requires a token**
 
 Auth: `ANALYST`, `COMMANDER` or `ADMIN`.
@@ -710,11 +677,49 @@ who filed an `OFFICIAL_DISPATCH`; it is `null` for a citizen report.
 | `GET /api/profile/me`, `PATCH /api/profile/me` | 401 | 401 | 200 | 200 | 200 | 200 |
 | `GET /api/reports/search`, `/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/events/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
+| `POST`/`DELETE /api/events/{id}/claim` (Phase 4, not yet pinned) | 401 | 401 | 403 | 403 | 200 | 200 |
+| `GET /api/events/{id}/history` (Phase 4, not yet pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
+| `GET /api/review/queue` (Phase 4, not yet pinned) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `POST /api/reports/submit` | 202 | 202 | 202 | 202 | 202 | 202 |
 | `GET /api/events` | 200 | 200 | 200 | 200 | 200 | 200 |
 
 `/api/profile/me`, read or edited, is **the token's own operator only**; there is no `?user=`
 parameter.
+
+---
+
+## `/api/review` (Phase 4)
+
+### `GET /api/review/queue?tab=pending&limit=50&offset=0` — **requires a token**
+
+Auth: `ANALYST`, `COMMANDER` or `ADMIN` (claiming and deciding need `COMMANDER` or `ADMIN`).
+Written, not yet tested.
+
+| `tab` | Contents |
+|---|---|
+| `pending` | `PENDING_HUMAN_REVIEW` or `QUARANTINED`, never reviewed |
+| `contradicted` | verdict `CONTRADICTED`, never reviewed |
+| `suspicious` | at least one contributing report flagged (`promotional`, `past_event`, `implausible_value`, `exaggeration`, `shouting`, `forward_marker`, `coordinated`; a forecast's `not_an_observation` is not suspicious) |
+| `high_impact` | severity `HIGH` or `CRITICAL`, never reviewed |
+| `recent` | created in the last 2 hours |
+| `claimed` | someone holds an unexpired claim |
+
+"Never reviewed" means no commander has acted on it. `REJECTED` events are in no tab. **Order,
+published:** severity (critical first), then verdict (`CORROBORATED`, `UNCONFIRMED`,
+`CONTRADICTED`), then age, oldest first.
+
+```json
+{"tab": "pending", "total": 7, "limit": 50, "offset": 0, "order": "…",
+ "items": [{"id": "…", "event_code": "…", "event_type": "HEATWAVE", "label": "Heatwave",
+            "family": "thermal", "severity": "HIGH", "confidence_score": 0.44,
+            "factor_coverage": 0.8, "verdict": "CONTRADICTED", "review_status": "PENDING_HUMAN_REVIEW",
+            "district": "…", "state": "…", "verified_at": "…", "age_minutes": 38.5,
+            "report_count": 5, "flagged_reports": 0, "contradictions": [{…}], "claim": null}]}
+```
+
+`?counts=true` returns `{"pending": 7, "contradicted": 2, "suspicious": 1, "high_impact": 4,
+"recent": 3, "claimed": 0}` in one call. An unknown `tab` is a `422` naming it; a database error
+`503`.
 
 ---
 
