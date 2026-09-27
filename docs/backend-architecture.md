@@ -1,19 +1,18 @@
 # INDRA — Backend Architecture
 
-**What this is:** how the backend is put together — module boundaries, what each one owns, and
-the exact path a citizen report takes from an HTTP request to a pin on the dashboard. Deeper than
-[`ARCHITECTURE.md`](ARCHITECTURE.md), which covers the whole nine-layer system; this file is only
-`backend/`.
+| | |
+|---|---|
+| **Scope** | `backend/`: layers 1–3, 5, 6, 7 and 8a. The whole system is in [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| **Applies to** | `main` after Phase 4 (PR #47), migration head `0020_verification_v2` |
+| **Last reviewed** | 28 Sep 2026, against the code. The Phase 4 suite ran on 27 Sep |
 
-**Last verified against the code and a running stack: 22 Sep 2026.** Updated 25 Sep from the code
-for the demo-data removal: accounts in `user_profiles`, `core/empty.py`, the E2E mode and the
-current background tasks. Since 26 Sep the AI/ML layer's sidecar uses six frozen local
-synthetic-development components as advisory evidence, and MiniLM is no longer a live dependency
-(PR #39; see [ML architecture](ML_ARCHITECTURE.md) and [validation](ML_VALIDATION_REPORT.md)).
+How the backend is put together: module boundaries, what each module owns, and the exact path a
+citizen report takes from an HTTP request to a pin on the dashboard.
 
-Scope note, once: layers **4 (AI/ML)** and **8b (the alert engine)** left this backend's scope on
-20 Sep. Their owners have since added code of their own (PR #39's components, PR #38's separate
-`alert_engine/` service); nothing below is waiting on them.
+Two neighbouring layers have their own owners and documents. Layer 4 (AI/ML) is six frozen local
+components that write advisory results and never a fusion factor
+([ML architecture](ML_ARCHITECTURE.md)). Layer 8b (alerts) is the standalone service in
+`alert_engine/` ([integration](ALERT_ENGINE_INTEGRATION.md)). Nothing below waits on either.
 
 ---
 
@@ -34,7 +33,8 @@ outbox relay / process Kafka producer ──► indra.raw.reports (Redpanda)
    ├─ 1. dedup            frozen local Phase 19 matcher AND ≤ 1 km AND ≤ 15 min
    │                      a duplicate is marked duplicate_of and stops here
    ├─ advisory ML         typed UnifiedMLResult at raw_reports.analysis.ml
-   ├─ 2. cluster          DBSCAN, great-circle eps 5 km, min 2 samples (off the event loop)
+   ├─ 2. cluster          DBSCAN per hazard family, great-circle radius (5 km for water,
+   │                      up to 25 km for heat), min 2 samples (off the event loop)
    ├─ 3. stats            centroid, radius, max pairwise distance, in metres
    ├─ 4. evidence         Phase 4: the hazard's own variable — an airport METAR within 50 km,
    │                      else Open-Meteo (one hourly request per res-7 cell); floods keep the
@@ -42,7 +42,7 @@ outbox relay / process Kafka producer ──► indra.raw.reports (Redpanda)
    │                      the published contradiction table; news counted by publisher
    ├─ 5. score            receipt v2 (7 factors), re-normalised over the factors that reported,
    │                      and a verdict: CORROBORATED · CONTRADICTED · UNCONFIRMED
-   ├─ 6. severity         max(depth axis, corroboration axis), from the report texts
+   ├─ 6. severity         max(content axis, corroboration axis), from the report texts
    └─ 7. persist          ONE transaction: event + boundary polygon + report links + audit row
    │
    ├──► WebSocket  VERIFIED_EVENT
@@ -81,37 +81,59 @@ backend/app/
 │                        non-E2E database, topic, consumer group or with the lake on.
 ├── api/                 one router per domain, each prefixed /api/<domain>
 │   ├── dashboard.py     GET /summary
-│   ├── events.py        GET "" (the PS's date/event/location/status filters, X-Total-Count),
-│   │                    /distribution, /{id}, PATCH /{id}/review, GET /{id}/provenance
+│   ├── events.py        GET "" (date/type/location/status/verdict filters, X-Total-Count),
+│   │                    /distribution, /export, /{id}, PATCH /{id}/review,
+│   │                    POST|DELETE /{id}/claim (15 min), GET /{id}/history, /{id}/provenance
+│   ├── review.py        GET /api/review/queue: pending, contradicted, suspicious,
+│   │                    high_impact and recent tabs, with counts and claim state
 │   ├── reports.py       GET /trend, GET /recent, POST /submit (anonymous, always
 │   │                    CITIZEN_APP), POST /official (COMMANDER/ADMIN → OFFICIAL_DISPATCH),
 │   │                    GET /track/{docket} (open; status only, never text or place)
-│   ├── meta.py          GET /filters — the filter bar's options with counts, cached 60 s
+│   ├── report_search.py GET /api/reports/search and /export (ANALYST+; the export is audited)
+│   ├── query_params.py  the shared list-parameter rules of the filtered routes
+│   ├── meta.py          GET /filters (cached 60 s) and /sources (each feed's heartbeat)
 │   ├── feed.py          GET /recent
-│   ├── geo.py           GET /heatmap
+│   ├── geo.py           GET /heatmap, /stations
+│   ├── stations.py      GET /api/stations/latest: the newest airport observations
 │   ├── auth.py          POST /token — an account's username and password; one 401 for an
 │   │                    unknown user, a wrong password or an account with none set
 │   ├── teams.py         team records; create and dispatch need COMMANDER/ADMIN
 │   ├── profile.py       operator records; /me is the token's own, read or edited
 │   ├── alerts.py        GET /agency, /agency/{id}/polygon — official SACHET warnings
-│   └── audit.py         GET /recent — newest ledger rows, whole chain verified
+│   ├── audit.py         GET /recent — newest ledger rows, whole chain verified
+│   └── e2e_identity.py  GET /api/e2e/identity, mounted only with ENVIRONMENT=e2e
 ├── models/              SQLAlchemy ORM, one file per table, plus enums.py for every
 │                        controlled vocabulary (SourceType, Severity, ReviewStatus,
 │                        Quadrant, Agency, AuditAction, OperatorRole, …)
 ├── services/            where the intelligence lives
 │   ├── ingest.py        store_report(): the report and its outbox message in one
 │   │                    transaction, then an immediate publish if the producer is up.
-│   │                    Dockets, and the HMAC reporter pseudonym.
+│   │                    Dockets, and the HMAC reporter pseudonym. Pollers use it too.
 │   ├── kafka.py         the process's one Kafka producer. Requests never connect;
 │   │                    the outbox relay (re)starts it.
-│   ├── hazards.py       the hazard taxonomy: 16 event types, 4 families, precedence,
-│   │                    labels and gradients, in one table.
-│   ├── pipeline.py      the orchestrator above. Fails soft: one bad report cannot
-│   │                    kill the consumer loop. Stamps processed_at on every report
-│   │                    it finishes with.
-│   ├── fusion_engine.py compute_receipt / assign_quadrant / determine_review_status.
+│   ├── pipeline.py      the orchestrator above, plus rescore_event() for late
+│   │                    corroboration and the v2 backfill. Fails soft: one bad report
+│   │                    cannot kill the consumer loop. Stamps processed_at.
+│   ├── fusion_engine.py compute_receipt / assign_quadrant / determine_review_status /
+│   │                    review_caps (contradicted, unclassified, posts_only).
+│   ├── evidence.py      Phase 4: each hazard's own weather variable, METAR within 50 km
+│   │                    before the Open-Meteo model; the published contradiction table.
+│   ├── official_warnings.py  Phase 4: the SACHET warnings in force that cover an event.
+│   ├── late_corroboration.py Phase 4: re-scores open events when a warning or a
+│   │                    significant airport observation arrives after them.
+│   ├── clock.py         "now" for every evidence-window decision, so a re-score and a
+│   │                    test read the same clock.
+│   ├── hazards.py       the hazard taxonomy: 16 event types, 4 families (radius and
+│   │                    time window each), precedence, labels and gradients, in one table.
+│   ├── hazard_tagger.py Phase 3: which hazards a text describes, in English, Hindi and
+│   │                    Hinglish, with negation, tense and the numbers it quotes.
+│   ├── report_flags.py  Phase 3: misleading-text flags and their credibility effect.
+│   ├── event_typing.py  Phase 3: an event's type by majority vote, ties by precedence.
+│   ├── corroboration.py Phase 3: effective independent reporters (n_eff) and news
+│   │                    counted by publisher.
+│   ├── severity_rules.py Phase 3: the content axis, graded on each family's own measure.
 │   ├── dedup.py         frozen local Phase 19 matcher with backend spatial/time gates.
-│   ├── ml_adapter.py    PostGIS history reads and typed advisory ML persistence.
+│   ├── ml_adapter.py    PostGIS history reads and typed advisory ML persistence (layer 4).
 │   ├── geo_clustering.py DBSCAN (haversine), H3 assignment, cluster stats, report→event linking.
 │   ├── geocoding.py     India bounds check; forward and reverse geocoding over the
 │   │                    737-district gazetteer (data/geo/india_districts.csv).
@@ -119,6 +141,13 @@ backend/app/
 │   ├── text_processing.py cleaning, language detection, depth and place extraction.
 │   │                    Regex and dictionaries. No model.
 │   ├── weather.py       Open-Meteo 24 h accumulation → IMD daily-category curve.
+│   ├── cap_parser.py    CAP 1.2 documents from SACHET → agency_alerts rows.
+│   ├── metar.py         METAR parsing (layer 1).
+│   ├── news_rss.py      Google News RSS parsing: bytes in, items out.
+│   ├── feed_status.py   the feed registry and each poller's heartbeat.
+│   ├── objectstore.py   a thin S3 client over whatever S3_ENDPOINT_URL names.
+│   ├── lake.py          the data lake's raw ("bronze") layer layout and writers.
+│   ├── exports.py       streaming CSV and GeoJSON exports.
 │   ├── cache.py         Redis, with an in-memory fallback. Never load-bearing.
 │   ├── audit.py         the SHA-256 hash chain.
 │   ├── event_publisher.py verified events → indra.verified.events
@@ -182,17 +211,23 @@ reasoning for each is in the docstring beside it.
 
 ### Severity is read, not counted
 
-`max()` of two axes over the **non-duplicate** reports, taking the higher:
+`max()` of two axes over the **non-duplicate** reports, taking the higher
+(`services/severity_rules.py`, Phase 3):
 
 | Axis | Rule |
 |---|---|
-| Depth (deepest quoted in any report) | ≥ 120 cm CRITICAL · ≥ 60 HIGH · ≥ 20 MODERATE · else ADVISORY |
+| Content: water | deepest quoted depth ≥ 120 cm CRITICAL · ≥ 60 HIGH · ≥ 20 MODERATE; or 24 h rain on IMD's categories (≥ 204.5 mm · ≥ 115.6 · ≥ 64.5) |
+| Content: thermal | IMD plains criteria: heat ≥ 47 °C · ≥ 45 · ≥ 40; cold ≤ 2 °C · ≤ 4 · ≤ 10 |
+| Content: visibility | IMD fog classes: < 50 m · < 200 · < 500 |
+| Content: convective | Beaufort wind: ≥ 89 km/h · ≥ 62 · ≥ 39 |
+| Impact floor | stranded, rescue, heatstroke, trees uprooted → at least HIGH; drowned, died, house collapsed → CRITICAL. A denied impact sets none |
 | Corroboration (report count) | ≥ 10 HIGH · ≥ 5 MODERATE · else ADVISORY |
 
 The count axis **never reaches CRITICAL**: a count is evidence that something is happening, not of
 how bad it is. The depth cuts are operational — 20 cm stops a two-wheeler, 60 cm floats a small
-car, 120 cm turns wading into a rescue — and are numbers a nodal officer can argue with, which is
-the point. The receipt names the winning axis and the phrase it read.
+car, 120 cm turns wading into a rescue — and every other cut is a published IMD or Beaufort
+threshold, numbers a nodal officer can argue with, which is the point. The receipt names the
+winning axis and the phrase it read.
 
 ---
 
@@ -200,18 +235,20 @@ the point. The receipt names the winning axis and the phrase it read.
 
 | Store | What it holds | What happens without it |
 |---|---|---|
-| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, `outbox`, teams, and `user_profiles`, which are also the sign-in accounts | submit returns 503, sign-in returns 503, `/healthz` 503. **Critical** |
+| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, `event_snapshots`, `outbox`, teams, and `user_profiles`, which are also the sign-in accounts | submit returns 503, sign-in returns 503, `/healthz` 503. **Critical** |
 | **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit still returns 202 (`queued: false, will_retry: true`) and the report waits in the outbox; the relay publishes it within seconds of Redpanda returning. `/healthz` 503. **Critical**, but no longer lossy (BUG-060) |
-| **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s), the broadcast-dedup set (`bcast:{id}`, TTL 24 h) and the filter options (`meta:filters`, 60 s) | all fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
+| **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s), the broadcast-dedup set (`bcast:{id}`, TTL 24 h) the filter options (`meta:filters`, 60 s), and which event–evidence pairs late corroboration has already evaluated | all fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
 | **Object storage** | the raw archive of every report-stream message (Phase 2), when `S3_ACCESS_KEY`/`S3_SECRET_KEY` are set | the lake archiver stays off, `/healthz` 200 `degraded`. **Never load-bearing** |
 
-Nineteen migrations, `0001` … `0019`. Phase 1 added four: `0011` the hazard and source enum values,
+Twenty migrations, `0001` … `0020`. Phase 1 added four: `0011` the hazard and source enum values,
 `0012` the report intake columns (`observed_at`, `reporter_hash`, `docket`, `platform`,
 `external_id`, `source_meta`, `citizen_hazard`, `processed_at`), `0013` the outbox, `0014` the event
 filter indexes and the long-missing index on `raw_reports.event_id`. Phases 2 and 3 added `0015`
 to `0017`. The 25 Sep demo removal added two: `0018` clears the badge numbers, callsigns, team role
 and citizen agency that `0008` invented for the four seeded accounts, and `0019` adds
-`user_profiles.password_hash`, seeded with nothing. Alembic runs every pending
+`user_profiles.password_hash`, seeded with nothing. Phase 4 added `0020_verification_v2`: the
+event verdict, review claims, `event_snapshots` and the `LATE_CORROBORATION` audit action; after
+it, `scripts/rescore_events.py` gives every stored event a v2 receipt (idempotent). Alembic runs every pending
 migration in one transaction, so a migration never uses an enum value added in the same run. `audit_logs` carries a row-level trigger rejecting `UPDATE` and `DELETE`. On a fresh
 volume, Postgres is reported healthy only once it listens on TCP, which is after `indra_db` exists
 (BUG-028); `./start.sh infra up` waits for that.
@@ -224,7 +261,8 @@ genesis `"0"*64`. Appended under `pg_advisory_xact_lock` inside the caller's tra
 twenty concurrent writers cannot fork it. The pipeline writes `AUTO_VERIFY` / `ESCALATE` /
 `QUARANTINE` on create and on a status-changing merge — **not per report**, so the ledger records
 decisions rather than traffic. A reviewer writes `HUMAN_APPROVE` / `HUMAN_REJECT` /
-`MANUAL_OVERRIDE`.
+`MANUAL_OVERRIDE`; an analyst's export writes `DATA_EXPORT` (no event id); a re-score from late
+evidence writes `LATE_CORROBORATION` with `{trigger, before, after}`.
 
 > **Honest limit:** editing, deleting or reordering a row is detected at that row. Rows cut off
 > the **end**, or a `TRUNCATE`, leave a valid chain. Detecting that needs an external anchor for
@@ -288,10 +326,13 @@ off, after migrating the database and giving every account the password in
 
 ```bash
 cd backend
-.venv/bin/pytest -q                                   # rerun on the merged branch; pre-merge counts are historical
+.venv/bin/pytest -q                                   # everything; needs docker compose up
 .venv/bin/pytest -q -m "not integration"              # no Docker needed
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```
+
+Latest recorded run, 27 Sep 2026, on the tree now on `main`: **1,788 passed, 10 skipped, 2 failed**;
+both failures are layer 4's CRLF hash tests (BUG-106), handed to its owner.
 
 The suite runs against its own **`indra_test`** database and cannot touch dev data. Its login
 tests give `indra_test`'s accounts passwords of their own; none is written in `app/`. Integration
