@@ -15,7 +15,8 @@ import json
 import pytest
 
 from app.core.config import get_settings
-from app.services.pipeline import score_cluster
+from app.services.evidence import MODEL_UNAVAILABLE, Evidence
+from app.services.pipeline import _legacy_evidence, score_cluster
 
 # A fixed 5-report citizen cluster, ~1.9 km across, centred on Kankarbagh.
 FIXTURE_STATS = {
@@ -48,9 +49,20 @@ def _pinned_settings(monkeypatch):
     monkeypatch.setattr(s, "HUMAN_REVIEW_THRESHOLD", 0.70)
 
 
-def _score(stats=FIXTURE_STATS, sources=CITIZENS, weather=0.35, mm=15.6, texts=FIXTURE_TEXTS):
+# Production's steady state since Phase 4: SACHET polled, no warning covers the
+# cluster, so the official factor is online at 0.0 and coverage is 0.80.
+NO_WARNING = Evidence(
+    0.0, "computed", "official warning", 0.0, source="sachet_cap",
+    reason="no official warning in force covers this event",
+)
+
+
+def _score(stats=FIXTURE_STATS, sources=CITIZENS, weather=0.35, mm=15.6, texts=FIXTURE_TEXTS,
+           official=NO_WARNING):
+    evidence = _legacy_evidence("URBAN_FLOOD", weather, mm, "open_meteo_live")
+    evidence["official"] = official
     return score_cluster(
-        dict(stats), list(sources), weather, mm, report_texts=list(texts)
+        dict(stats), list(sources), weather, mm, report_texts=list(texts), evidence=evidence
     )
 
 
@@ -86,10 +98,10 @@ def test_same_fixture_twice_with_network_down_is_identical_and_offline():
         )
         assert weather["score"] == 0.0
         assert weather["state"] == "offline"
-        assert weather["evidence"] == "Telemetry factor offline"
+        assert weather["evidence"] == MODEL_UNAVAILABLE
         # Excluded from the mean, so the cost shows up as lost coverage:
-        # 1.00 − vision 0.15 − anomaly 0.05 − weather 0.25 = 0.55.
-        assert result["receipt"]["factor_coverage"] == 0.55
+        # 1.00 − vision 0.15 − anomaly 0.05 − weather 0.20 = 0.60 (receipt v2).
+        assert result["receipt"]["factor_coverage"] == 0.60
 
 
 def test_a_hundred_runs_give_one_distinct_score():
@@ -126,7 +138,7 @@ def test_every_factor_is_computed_or_offline(weather):
 
     factor_states = {k: v for k, v in provenance.items() if k != "severity"}
     assert set(factor_states) == {
-        "report_density", "spatial_coherence", "weather_station",
+        "report_density", "spatial_coherence", "weather_station", "official_warning",
         "vision_analysis", "source_reliability", "anomaly_detection",
     }
     assert set(factor_states.values()) <= {"computed", "offline"}
@@ -140,26 +152,31 @@ def test_fixture_value_is_pinned():
     The actual number for the fixture, written down. If a curve or weight
     changes this fails, which is the point: a score change must be deliberate.
 
+    Receipt v2 (Phase 4, 27 Sep):
+
       density(5)          0.5483 × 0.20 = 0.1097
-      coherence(1.9 km)   0.9135 × 0.20 = 0.1827
+      coherence(1.9 km)   0.9135 × 0.15 = 0.1370
       reliability citizen 0.60   × 0.15 = 0.0900
-      weather 15.6 mm     0.35   × 0.25 = 0.0875
+      weather 15.6 mm     0.35   × 0.20 = 0.0700
+      official warning    0.0    × 0.10 = 0.0000  (SACHET current, none covers it)
       vision, anomaly     offline       = —      (excluded, not zeroed)
-                            total_weighted  0.4699
-                            factor_coverage 0.80  (0.25+0.20+0.20+0.15)
+                            total_weighted  0.4067
+                            factor_coverage 0.80  (0.20+0.10+0.20+0.15+0.15)
 
-      confidence = 0.4699 / 0.80 = 0.5874
+      confidence = 0.4067 / 0.80 = 0.5084
 
-    Read that last line out loud: the event measured 0.4699 points out of the
-    0.80 of the model that could report, so it scores 0.5874 — and the receipt
+    Read that last line out loud: the event measured 0.4067 points out of the
+    0.80 of the model that could report, so it scores 0.5084 — and the receipt
     publishes both numbers so the score is never quoted without its coverage.
-    Before 20 Sep this was 0.4699, because the two permanently offline factors
-    were charged their full 0.20.
+    Under v1 (no official factor, weather 0.25, coherence 0.20) it was
+    0.4699 / 0.80 = 0.5874: "no warning covers this" now costs the event, as a
+    measured absence of official corroboration should. Before 20 Sep it was
+    0.4699, because the two permanently offline factors were charged 0.20.
     """
     result = _score()
-    assert result["confidence"] == 0.5874
+    assert result["confidence"] == 0.5084
     assert result["receipt"]["factor_coverage"] == 0.80
-    assert result["receipt"]["total_weighted"] == 0.4699
+    assert result["receipt"]["total_weighted"] == 0.4067
     # Still quarantined: five unverified citizen reports and 15.6 mm of rain is
     # not a verified disaster. The scale was fixed, not the gates.
     assert result["review_status"].value == "QUARANTINED"
@@ -173,12 +190,12 @@ def test_dropping_a_weak_factor_raises_the_mean_and_lowers_coverage():
     Weather scores 0.35 here, well below the cluster's other signals. Take the
     Open-Meteo feed away and the mean of what remains is higher:
 
-      with weather     0.4699 / 0.80 = 0.5874
-      without weather  0.3824 / 0.55 = 0.6953
+      with weather     0.4067 / 0.80 = 0.5084
+      without weather  0.3367 / 0.60 = 0.5612
 
     A nodal officer will reasonably ask: "your internet died and the system got
-    more confident?" The answer is that 0.6953 means *0.70 of the 55% of the
-    model we could measure* — not 0.70 of the available evidence. That is exactly
+    more confident?" The answer is that 0.5612 means *0.56 of the 60% of the
+    model we could measure* — not 0.56 of the available evidence. That is exactly
     why `factor_coverage` must be rendered beside the score and never quoted
     alone, and why the honest remedy is a coverage floor on auto-publishing
     rather than pretending a missing feed scored zero.
@@ -187,10 +204,10 @@ def test_dropping_a_weak_factor_raises_the_mean_and_lowers_coverage():
     without_weather = _score(weather=None, mm=None)
 
     assert with_weather["receipt"]["factor_coverage"] == 0.80
-    assert without_weather["receipt"]["factor_coverage"] == 0.55
+    assert without_weather["receipt"]["factor_coverage"] == 0.60
 
-    assert with_weather["confidence"] == 0.5874
-    assert without_weather["confidence"] == 0.6953
+    assert with_weather["confidence"] == 0.5084
+    assert without_weather["confidence"] == 0.5612
     assert without_weather["confidence"] > with_weather["confidence"]
 
     # Coverage fell even though the score rose — the pair is the honest reading.
