@@ -505,6 +505,69 @@ Confidence ≥ 0.90 publishes; ≥ 0.60 goes to review; below that the event is 
 * **`weather.note`**: for a hazard rainfall cannot corroborate (heat, cold, fog, dust, wind) the
   weather factor is `offline` rather than scoring a dry day against it, and the note says why.
 
+#### Phase 4: receipt v2 (written, not yet tested)
+
+`receipt_version: 2`. Seven factors, weights still summing to 1.00:
+
+| `key` | `factor` label | v1 | v2 |
+|---|---|---|---|
+| `weather_station` | Weather Station Corroboration | 0.25 | **0.20** |
+| `official_warning` | Official Warning (IMD/SDMA via SACHET) | — | **0.10** |
+| `report_density` | Report Density Analysis | 0.20 | 0.20 |
+| `spatial_coherence` | Spatial Coherence Score | 0.20 | **0.15** |
+| `vision_analysis` | Computer Vision Analysis (offline, layer 4) | 0.15 | 0.15 |
+| `source_reliability` | Source Reliability Index | 0.15 | 0.15 |
+| `anomaly_detection` | Anomaly Detection Signal (offline, layer 4) | 0.05 | 0.05 |
+
+With vision and anomaly offline, **`factor_coverage` is still 0.80**; with SACHET stale as well,
+0.70. `total_weighted / factor_coverage = confidence_score` still holds exactly. Each factor row
+gains `key`, and the two independent factors gain `source`:
+
+```json
+{"key": "weather_station", "factor": "Weather Station Corroboration", "weight_pct": 20.0,
+ "state": "computed", "score": 0.85, "weighted_points": 0.17, "source": "airport_metar",
+ "evidence": "IMD airport observation VIDP (Indira Gandhi Intl, 14 km): FG, visibility 150 m at 11:00 IST; Open-Meteo model: minimum visibility 400 m at 05:00 UTC in 03:00–09:00 UTC (08:30–14:30 IST)"}
+```
+
+New top-level blocks:
+
+```json
+"evidence": {
+  "weather_station": {"score": 0.85, "state": "computed", "variable": "minimum visibility",
+                      "value": 150, "window": "03:00–09:00 UTC (08:30–14:30 IST)",
+                      "source": "airport_metar", "contradiction": false, "reason": "…",
+                      "detail": {"station": {…}, "model": {…}, "lines": ["…", "…"]}},
+  "official_warning": {"score": 0.85, "source": "sachet_cap",
+                       "reason": "IMD Patna: Severe Heavy Rainfall warning in force until 28 Sep 08:30 IST (SACHET CAP, matched by polygon)",
+                       "detail": {"in_force_covering": [{"identifier": "…", "sender": "…", "event": "…",
+                                  "raw_severity": "Severe", "score": 0.85, "families": ["water"],
+                                  "matches_hazard": true, …}]}}},
+"evidence_window": {"start": "…", "end": "…", "rule": "the observed span ± 3 h", "label": "…"},
+"contradictions": [{"factor": "weather_station", "rule": "maximum below 35 °C (plains)",
+                    "reason": "airport VIDP (…, 14 km) measured a maximum of 26.7 °C in …"}],
+"verdict": {"value": "CONTRADICTED", "rule": "…", "reason": "…", "official_warning": 0.0,
+            "weather": 0.0, "contradictions": 1},
+"news_basis": {"score": 0.75, "count": 3, "publishers": ["Telangana Today", "The Hindu", "Times of India"],
+               "line": "reported by 3 independent publishers: …", …},
+"late_corroboration": {"trigger": "sachet:<identifier>@<sent>", "at": "…", "before": {…}}
+```
+
+* **`evidence.*.source`**: `airport_metar` (an aerodrome's METAR within 50 km; "IMD" is said only
+  for civil airports), `open_meteo_model`, `sachet_cap`, or `none` (offline).
+* **Every hazard reads its own variable** — temperature for heat and cold, visibility for fog,
+  gusts for wind, weather code and CAPE for thunderstorms, dust for a dust storm, the peak hour for a
+  cloudburst, 24 h rainfall for floods (unchanged). `weather.note` is gone: no hazard is
+  `offline` merely because rainfall cannot speak to it.
+* **`contradictions`**: non-empty only when the evidence affirmatively says the opposite (the
+  published table is in `backend/app/services/evidence.py`). The weather factor then scores 0.0,
+  online, and `routing.caps` gains `contradicted`. **Never an automatic rejection.**
+* **`verdict`**: `CONTRADICTED` if any contradiction; else `CORROBORATED` if `official_warning` or
+  the weather evidence is ≥ 0.6; else `UNCONFIRMED`. Also stored as the event's `verdict` column.
+* **`news_basis`**: news counts as corroborated (0.75 in Source Reliability) only from two or more
+  independent publishers; one publisher is 0.55.
+* **`late_corroboration`**: present when the event was re-scored because a warning or an airport
+  observation arrived after it; `before` is the confidence, verdict, status and severity it had.
+
 ### `PATCH /api/events/{event_id}/review` — **requires a token**
 
 Auth: `COMMANDER` or `ADMIN`.
