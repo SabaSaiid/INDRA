@@ -17,10 +17,11 @@ ingest calls it) and writes `backend/app/services/hazard_tagger_metrics.json`:
   precision ≥ 0.85 and recall ≥ 0.80 for each of the PS's seven categories,
   macro-F1 ≥ 0.80 across all 15, and at most 10% of negatives tagged. If a
   category misses, tune on `dev` and re-measure; never lower the gate.
-* **The real posts** `backend/tests/fixtures/hazards_real_v1.csv`, once they
-  are labelled by hand (`sample_real_posts.py` draws them). Published whatever
+* **The real posts** `backend/tests/fixtures/hazards_real_v1.csv` … `_v3.csv`,
+  once they are labelled (`sample_real_posts.py` draws them). Published whatever
   they are: they are the honest figure, not a gate. A row the labeller could
-  not place is skipped and counted.
+  not place is skipped and counted. A sample read to find faults is marked not
+  independent; the newest unread one is the figure to quote.
 
 **Deterministic.** No timestamps, sorted keys, fixed rounding, and the year the
 past-tense rule compares against is pinned (REFERENCE_YEAR), so the same code
@@ -47,13 +48,20 @@ from app.services.text_processing import extract_metadata  # noqa: E402
 FIXTURE = REPO_ROOT / "backend" / "tests" / "fixtures" / "hazards_v1.csv"
 REAL = REPO_ROOT / "backend" / "tests" / "fixtures" / "hazards_real_v1.csv"
 REAL_V2 = REPO_ROOT / "backend" / "tests" / "fixtures" / "hazards_real_v2.csv"
-# v1 was read to find BUG-108 … BUG-112 and the rules were then fixed, so its
-# re-measurement is no longer independent. Its first measurement, before the
-# fix, is kept in git (31ea810): micro-F1 0.8339. v2 is the one to quote.
+REAL_V3 = REPO_ROOT / "backend" / "tests" / "fixtures" / "hazards_real_v3.csv"
+# Each sample, once read to find faults that were then fixed, stops being
+# independent; its first measurement stays in git. v1 was read for BUG-108 …
+# BUG-112 (31ea810: micro-F1 0.8339), v2 for BUG-113 and BUG-114 (bc9622c:
+# 0.913). v3 is the one to quote.
 REAL_V1_NOTE = (
     "read on 27 Sep to find BUG-108 … BUG-112, and the rules were fixed after; this re-measurement is "
     "therefore not independent. Its measurement before the fix (commit 31ea810) was micro-F1 0.8339, "
-    "English 0.8977, Hindi 0.729. Quote real_posts_v2."
+    "English 0.8977, Hindi 0.729. Quote real_posts_v3."
+)
+REAL_V2_NOTE = (
+    "read on 27 Sep to find BUG-113 and BUG-114, and the rules were fixed after; this re-measurement is "
+    "therefore not independent. Its measurement before the fix (commit bc9622c) was micro-F1 0.913, "
+    "English 0.912, Hindi 0.914, 28% of non-hazard posts tagged. Quote real_posts_v3."
 )
 OUT = REPO_ROOT / "backend" / "app" / "services" / "hazard_tagger_metrics.json"
 
@@ -258,7 +266,8 @@ def build() -> Dict:
         },
         "gate_on_test": gate(test),
         "real_posts": _real_section(REAL, REAL_V1_NOTE),
-        "real_posts_v2": _real_section(REAL_V2),
+        "real_posts_v2": _real_section(REAL_V2, REAL_V2_NOTE),
+        "real_posts_v3": _real_section(REAL_V3),
     }
 
 
@@ -276,9 +285,9 @@ def main() -> int:
     for h, c in gate_result["ps_seven"].items():
         print(f"  {h:<13} P={c['precision']} R={c['recall']} {'pass' if c['pass'] else 'MISS'}")
     print(f"  macro-F1 {gate_result['macro_f1']['value']}  negatives tagged {gate_result['negatives_tagged']['value']}")
-    v2 = metrics["real_posts_v2"]
-    print(f"  gate: {'PASS' if gate_result['pass'] else 'FAIL'}; real posts v2: {v2['status']}"
-          + (f", micro-F1 {v2['micro']['f1']}" if v2.get("status") == "labelled" else ""))
+    v3 = metrics["real_posts_v3"]
+    print(f"  gate: {'PASS' if gate_result['pass'] else 'FAIL'}; real posts v3: {v3['status']}"
+          + (f", micro-F1 {v3['micro']['f1']}" if v3.get("status") == "labelled" else ""))
     return 1 if args.check and not gate_result["pass"] else 0
 
 

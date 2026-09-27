@@ -485,7 +485,7 @@
     "negatives": 48,
     "negatives_tagged": 3,
     "negatives_tagged_share": 0.0625,
-    "note": "read on 27 Sep to find BUG-108 … BUG-112, and the rules were fixed after; this re-measurement is therefore not independent. Its measurement before the fix (commit 31ea810) was micro-F1 0.8339, English 0.8977, Hindi 0.729. Quote real_posts_v2.",
+    "note": "read on 27 Sep to find BUG-108 … BUG-112, and the rules were fixed after; this re-measurement is therefore not independent. Its measurement before the fix (commit 31ea810) was micro-F1 0.8339, English 0.8977, Hindi 0.729. Quote real_posts_v3.",
     "per_hazard": {
       "CLOUDBURST": {
         "f1": 1.0,
@@ -650,22 +650,22 @@
   "real_posts_v2": {
     "by_language": {
       "en": {
-        "f1": 0.9123,
-        "fn": 3,
-        "fp": 12,
-        "precision": 0.8667,
-        "recall": 0.963,
+        "f1": 0.9383,
+        "fn": 5,
+        "fp": 5,
+        "precision": 0.9383,
+        "recall": 0.9383,
         "support": 81,
-        "tp": 78
+        "tp": 76
       },
       "hi": {
-        "f1": 0.9143,
-        "fn": 8,
-        "fp": 1,
-        "precision": 0.9796,
-        "recall": 0.8571,
+        "f1": 0.991,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.9821,
         "support": 56,
-        "tp": 48
+        "tp": 55
       }
     },
     "by_stratum": {
@@ -677,21 +677,23 @@
     "claim": "measured on real #IMD and weather posts and headlines collected from 24 Sep 2026",
     "file": "backend/tests/fixtures/hazards_real_v2.csv",
     "file_sha256": "989c13944f30e761536184f76ba0e2cfb6590ae9a1965f4b23ba797b9e881171",
+    "independent": false,
     "labelled_by": "Claude, 27 Sep 2026, at Aditya's request; not a person (see hazards_real_v1.md)",
-    "macro_f1": 0.8692,
+    "macro_f1": 0.9441,
     "macro_f1_over": 12,
     "micro": {
-      "f1": 0.913,
-      "fn": 11,
-      "fp": 13,
-      "precision": 0.9065,
-      "recall": 0.9197,
+      "f1": 0.9597,
+      "fn": 6,
+      "fp": 5,
+      "precision": 0.9632,
+      "recall": 0.9562,
       "support": 137,
-      "tp": 126
+      "tp": 131
     },
     "negatives": 39,
-    "negatives_tagged": 11,
-    "negatives_tagged_share": 0.2821,
+    "negatives_tagged": 3,
+    "negatives_tagged_share": 0.0769,
+    "note": "read on 27 Sep to find BUG-113 and BUG-114, and the rules were fixed after; this re-measurement is therefore not independent. Its measurement before the fix (commit bc9622c) was micro-F1 0.913, English 0.912, Hindi 0.914, 28% of non-hazard posts tagged. Quote real_posts_v3.",
     "per_hazard": {
       "CLOUDBURST": {
         "f1": 1.0,
@@ -712,10 +714,10 @@
         "tp": 0
       },
       "CYCLONE": {
-        "f1": 0.6667,
+        "f1": 1.0,
         "fn": 0,
-        "fp": 1,
-        "precision": 0.5,
+        "fp": 0,
+        "precision": 1.0,
         "recall": 1.0,
         "support": 1,
         "tp": 1
@@ -730,22 +732,22 @@
         "tp": 0
       },
       "DUST_STORM": {
-        "f1": 0.9474,
+        "f1": 1.0,
         "fn": 0,
-        "fp": 1,
-        "precision": 0.9,
+        "fp": 0,
+        "precision": 1.0,
         "recall": 1.0,
         "support": 9,
         "tp": 9
       },
       "FOG": {
-        "f1": 0.8333,
-        "fn": 0,
-        "fp": 2,
-        "precision": 0.7143,
-        "recall": 1.0,
+        "f1": 0.8889,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.8,
         "support": 5,
-        "tp": 5
+        "tp": 4
       },
       "HAILSTORM": {
         "f1": null,
@@ -757,13 +759,13 @@
         "tp": 0
       },
       "HEATWAVE": {
-        "f1": 0.625,
-        "fn": 2,
-        "fp": 4,
-        "precision": 0.5556,
-        "recall": 0.7143,
+        "f1": 0.9333,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.875,
+        "recall": 1.0,
         "support": 7,
-        "tp": 5
+        "tp": 7
       },
       "LANDSLIDE": {
         "f1": 1.0,
@@ -802,69 +804,265 @@
         "tp": 1
       },
       "STRONG_WIND": {
-        "f1": 0.8966,
-        "fn": 3,
+        "f1": 0.9677,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 0.8125,
+        "recall": 0.9375,
         "support": 16,
-        "tp": 13
+        "tp": 15
       },
       "THUNDERSTORM": {
-        "f1": 0.9,
-        "fn": 3,
+        "f1": 0.9268,
+        "fn": 2,
         "fp": 1,
-        "precision": 0.9474,
-        "recall": 0.8571,
+        "precision": 0.95,
+        "recall": 0.9048,
         "support": 21,
-        "tp": 18
+        "tp": 19
       },
       "URBAN_FLOOD": {
-        "f1": 0.9231,
-        "fn": 1,
-        "fp": 2,
-        "precision": 0.9,
-        "recall": 0.9474,
+        "f1": 0.9744,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.95,
+        "recall": 1.0,
         "support": 19,
-        "tp": 18
+        "tp": 19
       }
     },
-    "primary_accuracy": 0.9167,
+    "primary_accuracy": 0.95,
     "primary_rows": 60,
     "rows": 99,
     "rows_drawn": 100,
     "rows_skipped": 1,
     "rows_wrong": [
       "p003",
-      "p005",
-      "p011",
-      "p013",
-      "p019",
       "p020",
-      "p021",
-      "p024",
-      "p040",
-      "p044",
+      "p042",
       "p046",
-      "p051",
       "p052",
-      "p055",
-      "p057",
       "p059",
       "p061",
       "p063",
-      "p064",
-      "p067",
       "p069",
       "p072",
-      "p078",
+      "p079",
       "p081",
-      "p089",
-      "p098"
+      "p089"
     ],
     "status": "labelled",
-    "tense_accuracy": 0.7222,
+    "tense_accuracy": 0.8889,
     "tense_rows": 18
+  },
+  "real_posts_v3": {
+    "by_language": {
+      "en": {
+        "f1": 0.9565,
+        "fn": 2,
+        "fp": 6,
+        "precision": 0.9362,
+        "recall": 0.9778,
+        "support": 90,
+        "tp": 88
+      },
+      "hi": {
+        "f1": 0.9492,
+        "fn": 4,
+        "fp": 2,
+        "precision": 0.9655,
+        "recall": 0.9333,
+        "support": 60,
+        "tp": 56
+      }
+    },
+    "by_stratum": {
+      "hindi": 25,
+      "non_india_flood": 5,
+      "random": 65,
+      "vietnam_lu": 5
+    },
+    "claim": "measured on real #IMD and weather posts and headlines collected from 24 Sep 2026",
+    "file": "backend/tests/fixtures/hazards_real_v3.csv",
+    "file_sha256": "5abcced057ed501e99f5df481f206afc3186611ef25558987d8ff99bcb7075a1",
+    "labelled_by": "Claude, 27 Sep 2026, at Aditya's request; not a person (see hazards_real_v1.md)",
+    "macro_f1": 0.9185,
+    "macro_f1_over": 10,
+    "micro": {
+      "f1": 0.9536,
+      "fn": 6,
+      "fp": 8,
+      "precision": 0.9474,
+      "recall": 0.96,
+      "support": 150,
+      "tp": 144
+    },
+    "negatives": 39,
+    "negatives_tagged": 5,
+    "negatives_tagged_share": 0.1282,
+    "per_hazard": {
+      "CLOUDBURST": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "COLD_WAVE": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "CYCLONE": {
+        "f1": 0.8889,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.8,
+        "recall": 1.0,
+        "support": 4,
+        "tp": 4
+      },
+      "CYCLONE_INUNDATION": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "DUST_STORM": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 6,
+        "tp": 6
+      },
+      "FOG": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 12,
+        "tp": 12
+      },
+      "HAILSTORM": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "HEATWAVE": {
+        "f1": 0.6667,
+        "fn": 2,
+        "fp": 1,
+        "precision": 0.75,
+        "recall": 0.6,
+        "support": 5,
+        "tp": 3
+      },
+      "LANDSLIDE": {
+        "f1": 0.8,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.6667,
+        "support": 3,
+        "tp": 2
+      },
+      "LIGHTNING": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 2,
+        "tp": 2
+      },
+      "RAINFALL": {
+        "f1": 0.9692,
+        "fn": 1,
+        "fp": 3,
+        "precision": 0.9545,
+        "recall": 0.9844,
+        "support": 64,
+        "tp": 63
+      },
+      "RIVER_BREACH": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "STRONG_WIND": {
+        "f1": 0.9412,
+        "fn": 2,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.8889,
+        "support": 18,
+        "tp": 16
+      },
+      "THUNDERSTORM": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 19,
+        "tp": 19
+      },
+      "URBAN_FLOOD": {
+        "f1": 0.9189,
+        "fn": 0,
+        "fp": 3,
+        "precision": 0.85,
+        "recall": 1.0,
+        "support": 17,
+        "tp": 17
+      }
+    },
+    "primary_accuracy": 0.9508,
+    "primary_rows": 61,
+    "rows": 100,
+    "rows_drawn": 100,
+    "rows_skipped": 0,
+    "rows_wrong": [
+      "p016",
+      "p017",
+      "p018",
+      "p019",
+      "p029",
+      "p031",
+      "p033",
+      "p038",
+      "p053",
+      "p060",
+      "p063",
+      "p065",
+      "p067",
+      "p068",
+      "p078",
+      "p089"
+    ],
+    "status": "labelled",
+    "tense_accuracy": 0.8519,
+    "tense_rows": 27
   },
   "reference_year": 2026,
   "tagger": "app/services/hazard_tagger.py (rules and dictionaries; no model)"
