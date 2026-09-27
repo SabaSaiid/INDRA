@@ -1,35 +1,27 @@
 # INDRA — Backend API Contract
 
-**What this is:** every endpoint the backend actually serves, its request shape, its response
-shape and every status code it can return. Written for whoever is calling this API — the
-dashboard, a teammate's script, or a judge with `curl`.
+Every endpoint the backend serves: its request shape, its response shape, every status code it
+can return and who may call it. Written for whoever calls this API: the dashboard, an integrator's
+script, or a reviewer with `curl`.
 
-**Last verified against the code and a running stack: 23 Sep 2026 (Phase 1).** The 24 Sep additions
-(feed streams, IST trend, `/api/reports/recent` fields, `/api/meta/sources`, `/api/geo/stations`) were
-checked by running their SQL on the team database; their pytest cases are written and not yet run.
-**Phase 2's additions (24 Sep, branch `aditya_24sep_c`) are written and not yet tested:** their
-shapes below are read from the code, none is *captured*, and each is marked "Phase 2". Every endpoint below
-was read out of its router, not out of an older document, and every example response marked
-*captured* was copied from `curl` against a running stack. If this file and the code disagree, the
-code is right and this file is a bug.
+| | |
+|---|---|
+| **Applies to** | `main` after Phase 4 (PR #47) |
+| **Last reviewed** | 28 Sep 2026, against the routers. Phases 1–4 are tested; Phase 4's endpoints and receipt on 27 Sep |
+| **Interactive docs** | `/docs` (Swagger UI) and `/openapi.json` on any running backend |
 
-**Every citizen report and event in the examples is a test submission** on a development database
-(21–23 Sep, mostly Patna, several of them posted by demo scripts deleted on 25 Sep). They never
-happened and are no longer stored; only their shape is the point. The official warnings, posts and
-airport observations quoted are real feed data.
+Every endpoint below was read out of its router. An example marked *captured* was copied from
+`curl` against a running stack; the others are read from the code. A tag such as "(Phase 2)" says
+when a field or route was added. **If this file and the code disagree, the code is right and this
+file has a defect.**
 
-**25 Sep, the demo-data removal (branch `aditya_remove_demo_data`):** accounts and their bcrypt
-hashes live in `user_profiles` (`/api/auth`), `GET /api/profile/me` needs a token,
-`/api/profile/preferences` is gone, `GET /api/info` has no `status`, `POST /api/teams` needs
-`members_count`, and every read answers an empty database with an empty result (*Empty and
-unavailable*, at the end). These sections are read from the code and the migration; none is
-captured yet.
+**The citizen reports and events in the examples are test submissions** on development databases
+(21–27 Sep). They never happened and are no longer stored; only their shape matters. The official
+warnings, posts and airport observations quoted are real feed data.
 
-Base URL in development: `http://localhost:8000`. On the team server, since 24 Sep:
-**`https://indra-sixthsense.duckdns.org`**, one name for the dashboard, the API and the WebSocket
-(`wss://indra-sixthsense.duckdns.org/ws/events`), with a Let's Encrypt certificate. The old
-`http://15.252.50.176:8000` still answers until the whole team has switched, and will then be closed.
-Interactive docs: `/docs`.
+**Base URL.** `http://localhost:8000` in development. On the team server, one HTTPS name serves
+the dashboard, the API and the WebSocket: `https://indra-sixthsense.duckdns.org`
+(`wss://indra-sixthsense.duckdns.org/ws/events`), behind Caddy with a Let's Encrypt certificate.
 
 ---
 
@@ -38,7 +30,9 @@ Interactive docs: `/docs`.
 | Group | Endpoints | Auth |
 |---|---|---|
 | `/api/dashboard` | KPI summary | open |
-| `/api/events` | list (**with the PS's filters**), distribution, detail, **review**, **provenance** | review and provenance require a token |
+| `/api/events` | list (**with the PS's filters** and `?verdict=`), distribution, detail, **review**, **provenance** | review and provenance require a token |
+| `/api/events` | **claim** / release, **history** (Phase 4) | claim: **commander** or admin; history: **analyst** or above |
+| `/api/review` | **queue**: pending, contradicted, suspicious, high-impact and recent tabs (Phase 4) | requires an **analyst** token |
 | `/api/events` | **export** (Phase 2) | requires an **analyst** token |
 | `/api/reports` | submit, **official**, **track**, trend, recent | `official` requires a token |
 | `/api/reports` | **search**, **export** (Phase 2) | require an **analyst** token |
@@ -259,7 +253,7 @@ under the DPDP Act.
   "hazard_primary": "RAINFALL", "hazards": ["RAINFALL"], "flags": ["not_an_observation"]}]
 ```
 
-**Phase 3 (written, not yet tested):** `hazard_primary` is the hazard the text is about (`null`
+**Phase 3:** `hazard_primary` is the hazard the text is about (`null`
 when it names none), `hazards` every hazard it is tagged with, in precedence order, and `flags` its
 misleading-text flags (`[]` when clean). `hazard` is still the category the citizen picked. In the
 CSV export the two lists are JSON arrays.
@@ -364,10 +358,10 @@ the table below (`"Flood"`); until 23 Sep an event the pipeline made was drawn a
 ### Event types
 
 Sixteen since 23 Sep (migration `0011`), described in one place: `app/services/hazards.py`.
-**Since Phase 3 (written, not yet tested) an event's type is the majority of its reports' tagged
-hazards** (`services/hazard_tagger.py`, rules in English, Hindi and Hinglish), ties by precedence;
-with no votes it is `UNCLASSIFIED`, which is never auto-published. Until Phase 3 is deployed every
-event the pipeline makes is still `URBAN_FLOOD`.
+**Since Phase 3 an event's type is the majority of its reports' tagged hazards**
+(`services/hazard_tagger.py`, rules in English, Hindi and Hinglish), ties by precedence; with no
+votes it is `UNCLASSIFIED`, which is never auto-published. Events stored before Phase 3 keep the
+`URBAN_FLOOD` they were given.
 
 Two types with the same precedence are ordered as listed: the specific one first (lightning and hail
 before the thunderstorm that brings them, a cloudburst or storm surge before the flood it causes).
@@ -465,7 +459,7 @@ Confidence ≥ 0.90 publishes; ≥ 0.60 goes to review; below that the event is 
 **unless it is `HIGH` or `CRITICAL`, which goes to review instead**, and `basis` is `severity`
 (BUG-067). Nothing is published without a human below 0.90, whatever its severity.
 
-#### Phase 3 additions to the receipt (written, not yet tested)
+#### Phase 3 additions to the receipt
 
 ```json
 "event_type_basis": {"rule": "majority of report hazards, ties by precedence",
@@ -1073,10 +1067,10 @@ connected browser.
 
 ---
 
-## Proposed — Phase 4, 5 and 6
+## Planned — Phases 5 and 6
 
-Phase 2's four are built (above), and Phase 4's four are written (above: the review queue,
-claiming, history and `?verdict=`; tested 27 Sep). **The rest are not built yet.** These are the
+Phase 2's four and Phase 4's four (the review queue, claiming, history and `?verdict=`) are built
+and documented above. **The endpoints below are not built yet.** These are the
 names later phases will use, published now so the dashboard can be built against them. Shapes will
 be fixed in this file when each one lands; until then treat everything but the path as
 provisional.
