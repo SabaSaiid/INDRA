@@ -51,6 +51,13 @@ Rules that are not just a word list
   THUNDERSTORM and STRONG_WIND. आंधी alone, or with dust, stays DUST_STORM.
   "आंधी-पानी" (storm and rain) is the same squall, and names the rain too: पानी
   counts as rain only right beside आंधी, where it cannot be a water tank.
+* **A threat is a forecast, never an observation** (BUG-114). "Flood threat",
+  "risk of flooding", "बाढ़ का खतरा" (threat, risk, fear, concern, scare, खतरा):
+  in a report that is otherwise a forecast, or names nothing else, the hazard
+  is kept and the tense is `forecast` ("heavy rain alert, landslide risk in
+  hills"). Beside something happening now it is dropped, because the report's
+  one tense would call it happening too ("rain continues for 40 hours; flood
+  threat in 32 districts" is rain, not a flood).
 * **"डूब" next to fog is a figure of speech** ("कोहरे में डूबेगा प्रदेश", a state
   "drowned" in fog, BUG-111): with कोहरा, धुंध or अंधेरा in the 4 tokens before,
   it names no flood.
@@ -553,6 +560,16 @@ _HASHTAG_NOT = re.compile(r"train|brain|drain|grain|terrain|ukrain|strain|rainbo
 
 # ── Context words ──────────────────────────────────────────────────────────────
 
+# A threat is a forecast (BUG-114): "flood threat", "risk of flooding", "बाढ़ का
+# खतरा". Forecast words ("possibility", "likely") are not in these: they only
+# set the tense, and leave the hazard in.
+_THREAT_AFTER = frozenset({"threat", "threats", "risk", "risks", "fear", "fears", "concern", "concerns",
+                           "scare", "scares", "worries", "khatra", "khatre", "khatara",
+                           fold("खतरा"), fold("खतरे")})
+_THREAT_BEFORE = frozenset({"threat", "threats", "risk", "risks", "fear", "fears", "danger", "concern",
+                            "concerns"})
+_POSTPOSITIONS_OF = frozenset({"ka", "ki", "ke", fold("का"), fold("की"), fold("के")})
+
 _EN_NEGATORS = frozenset({
     "no", "not", "never", "without", "nor", "cannot",
     "didn", "doesn", "don", "isn", "wasn", "weren", "aren", "hasn", "haven", "hadn",
@@ -933,6 +950,24 @@ def _denied(hit: _Hit, tokens: _Tokens) -> bool:
     return bool(_DID_NOT_HAPPEN_RE.match(following + " "))
 
 
+def _apprehended(hit: _Hit, tokens: _Tokens) -> bool:
+    """Is this mention a threat rather than the hazard? (BUG-114)"""
+    words = tokens.words
+    j = hit.last + 1
+    if j < len(words) and words[j] in _POSTPOSITIONS_OF:
+        j += 1
+    if j < len(words) and words[j] in _THREAT_AFTER:
+        # "खतरे के निशान" is the danger mark of a river, not a threat.
+        return not (j + 2 < len(words) and words[j + 1] in _POSTPOSITIONS_OF and words[j + 2].startswith(
+            ("nisha", fold("निशान"))
+        ))
+    for gap in (0, 1):             # "risk of flooding", "threat of heavy flooding"
+        k = hit.first - 2 - gap
+        if k >= 0 and words[k] in _THREAT_BEFORE and words[k + 1] == "of":
+            return True
+    return False
+
+
 def _tense(text: str, tokens: _Tokens, reference_year: int, hazard_ends: Sequence[int] = ()) -> Optional[str]:
     words = tokens.words
     observed = bool(_OBSERVED_RE.search(text)) or any(
@@ -1044,11 +1079,23 @@ def tag_hazards(
 
     kept: Dict[str, _Hit] = {}
     denied: Dict[str, _Hit] = {}
+    feared: Dict[str, _Hit] = {}
     for h in sorted(hits, key=lambda h: (h.first, h.hazard)):
+        if h.basis in ("en", "hinglish", "hi", "smog") and _apprehended(h, tokens):
+            feared.setdefault(h.hazard, h)
+            continue
         if h.basis in ("en", "hinglish", "hi", "smog", "hashtag") and _denied(h, tokens):
             denied.setdefault(h.hazard, h)
             continue
         kept.setdefault(h.hazard, h)
+
+    tense = _tense(folded, tokens, year, [h.last for h in kept.values() if h.basis != "hashtag"])
+    # A threat is a forecast. Beside something happening now the report's one
+    # tense would call it happening too, so there it is dropped (BUG-114).
+    if feared and (not kept or tense == "forecast"):
+        for t, h in feared.items():
+            kept.setdefault(t, h)
+        tense = "forecast"
 
     ordered = by_precedence(kept)
     primary = ordered[0] if ordered else None
@@ -1058,7 +1105,7 @@ def tag_hazards(
         ],
         "hazard_primary": primary,
         "hazard_family": family_of(primary) if primary else None,
-        "tense": _tense(folded, tokens, year, [kept[t].last for t in ordered if kept[t].basis != "hashtag"]),
+        "tense": tense,
         "negated": by_precedence(t for t in denied if t not in kept),
         **numbers,
         "implausible": numbers["implausible"] + (
