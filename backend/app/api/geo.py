@@ -34,7 +34,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.demo import demo_fallback
+from app.core.empty import empty_or_503
 
 logger = logging.getLogger("indra.api.geo")
 router = APIRouter(prefix="/api/geo", tags=["Geo"])
@@ -106,12 +106,7 @@ async def geo_heatmap(
         db_error = e
 
     if db_error is not None or not cells:
-        cells = demo_fallback(
-            "GET /api/geo/heatmap",
-            demo=lambda: [],
-            empty=lambda: [],
-            error=db_error,
-        )
+        cells = empty_or_503("GET /api/geo/heatmap", list, db_error)
 
     return {
         "resolution": resolution,

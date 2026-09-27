@@ -5,11 +5,15 @@ the exact path a citizen report takes from an HTTP request to a pin on the dashb
 [`ARCHITECTURE.md`](ARCHITECTURE.md), which covers the whole nine-layer system; this file is only
 `backend/`.
 
-**The main-branch backend snapshot was verified on 22 Sep 2026.** This merged code retains its
-newer Kafka producer, outbox relay, feeds, API routes, and migrations. Its AI/ML sidecar now uses
-six frozen local synthetic-development components as advisory evidence; MiniLM is no longer a
-live dependency. The alert-sending engine remains out of scope. See [ML architecture](ML_ARCHITECTURE.md)
-and [validation](ML_VALIDATION_REPORT.md); pre-merge test counts below are historical.
+**Last verified against the code and a running stack: 22 Sep 2026.** Updated 25 Sep from the code
+for the demo-data removal: accounts in `user_profiles`, `core/empty.py`, the E2E mode and the
+current background tasks. Since 26 Sep the AI/ML layer's sidecar uses six frozen local
+synthetic-development components as advisory evidence, and MiniLM is no longer a live dependency
+(PR #39; see [ML architecture](ML_ARCHITECTURE.md) and [validation](ML_VALIDATION_REPORT.md)).
+
+Scope note, once: layers **4 (AI/ML)** and **8b (the alert engine)** left this backend's scope on
+20 Sep. Their owners have since added code of their own (PR #39's components, PR #38's separate
+`alert_engine/` service); nothing below is waiting on them.
 
 ---
 
@@ -52,19 +56,25 @@ do not alter the legacy fusion decision. Alert dispatch is still not built.
 ```
 backend/app/
 ├── main.py              FastAPI entrypoint. Explicit CORS origin list (not "*").
-│                        Lifespan starts and cleanly stops the consumer, producer,
-│                        outbox relay, local matcher warm-up, and enabled pollers:
-│                          · the Kafka report consumer
+│                        Lifespan starts, and cleanly stops, the background tasks:
+│                          · the Kafka report consumer and the outbox relay
 │                          · the frozen local matcher warm-up (off the event loop)
-│                          · the Open-Meteo station poller
-│                        Serves GET /, /api/info, /healthz, WS /ws/events.
+│                          · the object-store bucket check
+│                          · the pollers: Open-Meteo stations, SACHET, METAR, Mastodon, Google News
+│                          · the lake archiver
+│                        Serves GET /, /api/info, /healthz, WS /ws/events, and only with
+│                        ENVIRONMENT=e2e, GET /api/e2e/identity (api/e2e_identity.py).
 ├── core/
 │   ├── config.py        pydantic-settings, reads the REPO-ROOT .env (not backend/.env).
 │   │                    Every threshold lives here: dedup gates, DBSCAN, H3 resolution,
-│   │                    review thresholds, poller interval and freshness gates, DEMO_MODE.
+│   │                    review thresholds, poller intervals and freshness gates.
 │   ├── database.py      async SQLAlchemy engine, get_db() dependency, init_db().
-│   ├── security.py      bcrypt + HS256 JWT (8 h), get_current_operator, require_roles().
-│   └── demo.py          demo_fallback() — the single gate every demo response goes through.
+│   ├── security.py      accounts: bcrypt against user_profiles.password_hash; HS256 JWT
+│   │                    (8 h), get_current_operator, require_roles(). Holds no password.
+│   ├── empty.py         empty_or_503() — the one place a read turns no rows into its empty
+│   │                    result and a database error into 503.
+│   └── e2e.py           the E2E backend's isolation guard: refuses to start on a
+│                        non-E2E database, topic, consumer group or with the lake on.
 ├── api/                 one router per domain, each prefixed /api/<domain>
 │   ├── dashboard.py     GET /summary
 │   ├── events.py        GET "" (the PS's date/event/location/status filters, X-Total-Count),
@@ -75,9 +85,10 @@ backend/app/
 │   ├── meta.py          GET /filters — the filter bar's options with counts, cached 60 s
 │   ├── feed.py          GET /recent
 │   ├── geo.py           GET /heatmap
-│   ├── auth.py          POST /token
+│   ├── auth.py          POST /token — an account's username and password; one 401 for an
+│   │                    unknown user, a wrong password or an account with none set
 │   ├── teams.py         team records; create and dispatch need COMMANDER/ADMIN
-│   ├── profile.py       operator records; a token edits only its own profile
+│   ├── profile.py       operator records; /me is the token's own, read or edited
 │   ├── alerts.py        GET /agency, /agency/{id}/polygon — official SACHET warnings
 │   └── audit.py         GET /recent — newest ledger rows, whole chain verified
 ├── models/              SQLAlchemy ORM, one file per table, plus enums.py for every
@@ -107,13 +118,18 @@ backend/app/
 │   ├── cache.py         Redis, with an in-memory fallback. Never load-bearing.
 │   ├── audit.py         the SHA-256 hash chain.
 │   ├── event_publisher.py verified events → indra.verified.events
-│   └── health.py        the five real checks behind /healthz, including the outbox backlog.
+│   └── health.py        the six real checks behind /healthz, including the outbox backlog
+│                        and the object store.
 ├── workers/
 │   ├── report_consumer.py  aiokafka consumer driving the pipeline.
 │   ├── outbox_relay.py     publishes every outbox row the request could not, every 2 s,
 │   │                       FOR UPDATE SKIP LOCKED, so no report is lost to a Kafka outage.
 │   ├── station_poller.py   the scheduled Open-Meteo feed into station_readings.
-│   └── sachet_poller.py    NDMA SACHET CAP warnings into agency_alerts, every 5 min.
+│   ├── sachet_poller.py    NDMA SACHET CAP warnings into agency_alerts, every 5 min.
+│   ├── metar_poller.py     airport observations into station_readings (off by default).
+│   ├── mastodon_poller.py  weather-tagged Mastodon posts into raw_reports (off by default).
+│   ├── news_poller.py      Google News weather headlines into raw_reports (off by default).
+│   └── lake_archiver.py    every report-stream message, raw, to the object store.
 └── ml/                  Six frozen local development components; the older below-gate
                          event_classifier.py remains quarantined legacy code.
 ```
@@ -173,16 +189,18 @@ the point. The receipt names the winning axis and the phrase it read.
 
 | Store | What it holds | What happens without it |
 |---|---|---|
-| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, `outbox`, teams, profiles | submit returns 503, `/healthz` 503. **Critical** |
+| **PostgreSQL + PostGIS** | everything of record: `raw_reports`, `verified_events`, `station_readings`, `agency_alerts`, `audit_logs`, `outbox`, teams, and `user_profiles`, which are also the sign-in accounts | submit returns 503, sign-in returns 503, `/healthz` 503. **Critical** |
 | **Redpanda** | `indra.raw.reports` in, `indra.verified.events` out | submit still returns 202 (`queued: false, will_retry: true`) and the report waits in the outbox; the relay publishes it within seconds of Redpanda returning. `/healthz` 503. **Critical**, but no longer lossy (BUG-060) |
 | **Redis** | the Open-Meteo cache (`wx:{cell}`, TTL 600 s), the broadcast-dedup set (`bcast:{id}`, TTL 24 h) and the filter options (`meta:filters`, 60 s) | all fall back to process memory, `/healthz` 200 `degraded`. **Never load-bearing** |
-| **Object storage** | nothing — configured in `.env`, not deployed | n/a |
+| **Object storage** | the raw archive of every report-stream message (Phase 2), when `S3_ACCESS_KEY`/`S3_SECRET_KEY` are set | the lake archiver stays off, `/healthz` 200 `degraded`. **Never load-bearing** |
 
-Sixteen migrations, `0001` … `0016`. Phase 1 added four: `0011` the hazard and source enum values,
+Nineteen migrations, `0001` … `0019`. Phase 1 added four: `0011` the hazard and source enum values,
 `0012` the report intake columns (`observed_at`, `reporter_hash`, `docket`, `platform`,
 `external_id`, `source_meta`, `citizen_hazard`, `processed_at`), `0013` the outbox, `0014` the event
-filter indexes and the long-missing index on `raw_reports.event_id`; `0015` added placeless feed
-status and `0016` added station observation support. Alembic runs every pending
+filter indexes and the long-missing index on `raw_reports.event_id`. Phases 2 and 3 added `0015`
+to `0017`. The 25 Sep demo removal added two: `0018` clears the badge numbers, callsigns, team role
+and citizen agency that `0008` invented for the four seeded accounts, and `0019` adds
+`user_profiles.password_hash`, seeded with nothing. Alembic runs every pending
 migration in one transaction, so a migration never uses an enum value added in the same run. `audit_logs` carries a row-level trigger rejecting `UPDATE` and `DELETE`. On a fresh
 volume, Postgres is reported healthy only once it listens on TCP, which is after `indra_db` exists
 (BUG-028); `./start.sh infra up` waits for that.
@@ -211,13 +229,17 @@ decisions rather than traffic. A reviewer writes `HUMAN_APPROVE` / `HUMAN_REJECT
 | Frozen local matcher warm-up | lifespan, in a thread | Local artifact load is non-fatal at startup; no MiniLM or remote checkpoint is loaded |
 | Station poller | lifespan, if `STATION_POLLER_ENABLED` | Every tick wrapped; a failure logs one WARNING and the next tick retries |
 | SACHET poller | lifespan, if `SACHET_POLLER_ENABLED` | Same: every tick wrapped, at most `SACHET_MAX_FETCHES_PER_TICK` CAP documents a tick |
+| METAR, Mastodon and Google News pollers | lifespan, each off unless its `*_POLLER_ENABLED` | Same, and each records a heartbeat that `/api/meta/sources` reads |
+| Outbox relay | lifespan | Publishes what a request could not, every 2 s; restarts the producer after an outage |
+| Lake archiver | lifespan, if `LAKE_ARCHIVE_ENABLED` and the object store is configured | Its own consumer group; logs one line and stays off without a store |
 
 All started tasks are cancelled and **awaited** at shutdown, which is what keeps
 `Task was destroyed but it is pending!` out of the logs.
 
 > **One backend process.** WebSocket fan-out is an in-process list, the poller has no leader
-> election, and two consumers on one broker re-deliver reports. This is a deliberate limit for a
-> demo stack, recorded as BUG-011, not an accident.
+> election, and two consumers on one broker re-deliver reports. This is a deliberate limit of this
+> single-server deployment, recorded as BUG-011, not an accident. The E2E backend is the one
+> sanctioned second process: its own database, topics and consumer group (below).
 
 ---
 
@@ -226,12 +248,28 @@ All started tasks are cancelled and **awaited** at shutdown, which is what keeps
 Everything tunable is in `core/config.py`, read from the **repo-root `.env`**. A `backend/.env`,
 if one exists, wins — which has bitten this project before.
 
-The settings worth knowing: `DEMO_MODE` (default **false**, and it must stay false for a demo),
-`DEDUP_COSINE_THRESHOLD` (0.88), `DBSCAN_EPS_KM` (5.0), `DBSCAN_MIN_SAMPLES` (2),
-`H3_HEX_RESOLUTION` (8), `AUTO_PUBLISH_THRESHOLD` (0.90), `HUMAN_REVIEW_THRESHOLD` (0.60),
-`STATION_POLLER_ENABLED`, `STATION_READING_MAX_AGE_MINUTES` (180),
-`SNAP_OUT_OF_BOUNDS_COORDINATES` (false — true lets junk reports cluster at India's centroid),
-`CORS_ORIGINS`.
+The settings worth knowing: `DEDUP_COSINE_THRESHOLD` (0.88), `DBSCAN_EPS_KM` (5.0),
+`DBSCAN_MIN_SAMPLES` (2), `H3_HEX_RESOLUTION` (8), `AUTO_PUBLISH_THRESHOLD` (0.90),
+`HUMAN_REVIEW_THRESHOLD` (0.60), `STATION_POLLER_ENABLED`, `STATION_READING_MAX_AGE_MINUTES` (180),
+`KAFKA_CONSUMER_GROUP` (`indra-report-processor`), `JWT_EXPIRY_HOURS` (8), `CORS_ORIGINS`.
+`DEMO_MODE` and `SNAP_OUT_OF_BOUNDS_COORDINATES` were deleted on 25 Sep; a line for either left in
+an old `.env` is ignored. A coordinate outside India is always a 422.
+
+**Accounts** are the rows of `user_profiles`. A password is a bcrypt hash in `password_hash`,
+set per environment with `scripts/set_operator_password.py [USERNAME ...] [--all] [--from-env VAR
+| --generate]`; `NULL` means the account cannot sign in, and no hash is seeded. After deploying
+`0019` to a server, run `alembic upgrade head` and then set the passwords, or nobody can sign in.
+The full contract is under `/api/auth` in [`api-contract.md`](api-contract.md).
+
+**E2E mode.** `ENVIRONMENT=e2e` is the backend the browser tests use. It refuses to start unless
+the `DATABASE_URL` database name ends in `_e2e`, `KAFKA_REPORTS_TOPIC`, `KAFKA_EVENTS_TOPIC` and
+`KAFKA_DLQ_TOPIC` start with `indra.e2e.`, `KAFKA_CONSUMER_GROUP` starts with `indra-e2e-` and
+`LAKE_ARCHIVE_ENABLED` is false (`core/e2e.py`, checked when `main.py` loads); only then does it
+serve `GET /api/e2e/identity`. `make e2e-backend` (`./start.sh e2e-backend`)
+starts one on `127.0.0.1:8100` against `indra_e2e`, with Redis db 15, the lake off and every poller
+off, after migrating the database and giving every account the password in
+`E2E_OPERATOR_PASSWORD` (its default is in `start.sh` and exists only in `indra_e2e`).
+`make e2e-reset` drops and recreates `indra_e2e` and refuses any name not ending in `_e2e`.
 
 ---
 
@@ -244,8 +282,10 @@ cd backend
 .venv/bin/pytest -q -m "not integration and not network"   # fully offline
 ```
 
-The suite runs against its own **`indra_test`** database and cannot touch dev data. Integration
-tests carry `@pytest.mark.integration`; anything hitting the network carries `network`.
+The suite runs against its own **`indra_test`** database and cannot touch dev data. Its login
+tests give `indra_test`'s accounts passwords of their own; none is written in `app/`. Integration
+tests carry `@pytest.mark.integration`; anything hitting the network carries `network`. The
+browser tests run against the E2E backend above, never the dev stack.
 
 **The suite is necessary and not sufficient.** Every one of the most serious defects found in this
 project was invisible to a green suite and was caught by running the thing end to end from an

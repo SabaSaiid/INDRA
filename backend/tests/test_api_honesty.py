@@ -4,8 +4,8 @@ must not be readable by any page on the internet.
 
 Four long-standing untruths, each with its own section below:
 
-1. GET /api/dashboard/summary invented KPIs on a DB error regardless of DEMO_MODE
-   (covered in tests/test_demo_mode.py, now that the endpoint is in its list).
+1. GET /api/dashboard/summary invented KPIs on a DB error
+   (covered in tests/test_empty_and_unavailable.py, now that the endpoint is in its list).
 2. The dedup gates were module constants, so they could not be tuned from .env.
 3. CORS was allow_origins=["*"] together with allow_credentials=True.
 4. GET /api/scenario and POST /api/demo/trigger served a fabricated event.
@@ -120,6 +120,39 @@ def test_the_fabricated_scenario_file_is_deleted():
     assert not (repo_root / "data" / "samples" / "patna_flood_scenario.json").exists()
 
 
+async def test_the_team_roster_claims_nothing_indra_does_not_do(api):
+    """
+    The roster bios repeated the scenario's "127 raw signals", named feeds that
+    do not exist (AWS gauges) and methods the code does not use (TF-IDF,
+    Bayesian fusion, anomaly detection, a convex hull).
+    """
+    r = await api.get("/api/teams/hackathon/sixth-sense")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert {"team_name", "problem_statement", "members"} <= set(body)
+    assert len(body["members"]) == 6
+    for member in body["members"]:
+        claims = f"{member['specialty']} {member['bio']}".lower()
+        for phrase in ("127 raw signals", "aws gauge", "tf-idf", "bayesian", "anomaly detection", "convex hull"):
+            assert phrase not in claims, (member["name"], phrase)
+
+
+async def test_platform_info_does_not_claim_to_be_operational(api):
+    """It said "operational" with Postgres down; /healthz is the real answer."""
+    body = (await api.get("/api/info")).json()
+
+    assert body["platform"] == "INDRA"
+    assert "status" not in body
+
+
+def test_the_openapi_description_claims_no_ai_fusion():
+    """Fusion is a rule-weighted receipt, and layer 4 (AI/ML) is out of scope."""
+    from app.main import app
+
+    assert "AI Fusion" not in app.openapi()["info"]["description"]
+
+
 # ── Dedup gates come from settings ────────────────────────────────────────────
 
 def test_dedup_defaults_are_unchanged():
@@ -215,9 +248,8 @@ def test_no_html_templates_are_served_from_the_backend():
     would mean a second, hand-written view of the data — which is how the /legacy
     page came to claim IMD and CWC feeds that never existed.
 
-    Deliberately a structural check rather than a grep for the old claim strings:
-    main.py's comments quote several of them verbatim to record why they went, and
-    that explanation is worth keeping.
+    Deliberately a structural check rather than a grep for the old claim strings,
+    which the docstrings in this file still quote to record why they went.
     """
     from pathlib import Path
 

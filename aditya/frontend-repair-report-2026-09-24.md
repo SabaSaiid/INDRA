@@ -84,7 +84,7 @@ Build and visual checks are done. The pytest run waits for the testing pass, per
 | Review and merge PR #33 | Frontend team + Aditya | Touches their layer; handover §16; issue #34 asks them |
 | Build on the Mac, then redeploy the server (API restart + frontend rebuild) | Aditya | No migration, no new `.env` key. Build with `NEXT_PUBLIC_API_BASE_URL=https://indra-sixthsense.duckdns.org` |
 | Run the three new pytest files and the full suite | Aditya | Testing pass |
-| Put events on the dashboard | Aditya | Needs real reports, or `./start.sh demo` on the server (synthetic Patna reports through the real pipeline). It was left unseeded on purpose; your call |
+| Put events on the dashboard | Aditya | Needs real reports. The scripted seeding command was removed on 25 Sep, so events reach the dashboard only from real submissions and the collected feeds |
 | Update `e2e/dashboard-cold-load.spec.ts` | Frontend team | It looks for "N Incidents"; the map says "N map pins" |
 
 ## WhatsApp message

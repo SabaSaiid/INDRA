@@ -20,7 +20,6 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.core.database import async_session, get_db
-from app.core.config import get_settings
 from app.main import app
 from tests.conftest import wipe_event_tables
 
@@ -279,13 +278,11 @@ async def test_the_default_is_24h_at_the_stored_resolution(api):
 
 # ── Failure behaviour ─────────────────────────────────────────────────────────
 
-async def test_a_database_error_is_503_when_demo_mode_is_off(api, monkeypatch):
+async def test_a_database_error_is_503(api):
     """
-    The endpoint must not invent a heat map. With DEMO_MODE off a broken database
-    is a 503, not an empty map that reads as "no flooding anywhere".
+    The endpoint must not invent a heat map: a broken database is a 503, not an
+    empty map that reads as "no flooding anywhere".
     """
-    monkeypatch.setattr(get_settings(), "DEMO_MODE", False)
-
     class Broken:
         async def execute(self, *a, **k):
             raise RuntimeError("connection refused")
@@ -321,7 +318,7 @@ def test_roll_up_drops_an_unparseable_cell_rather_than_guessing():
 
 async def test_nine_thousand_reports_aggregate_quickly_and_conserve_the_total(db, api):
     """
-    The national seed set's volume, at the coarsest resolution.
+    A national-scale volume (9,400 reports), at the coarsest resolution.
 
     Two claims: it answers well inside the 500 ms the dashboard can absorb, and —
     the one that actually matters — the total is conserved exactly at every

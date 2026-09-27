@@ -16,10 +16,10 @@ computes, on a profile that did not exist, next to live event data. That is the
 same defect class as the demo events removed on Day 5.
 
 The distinction that matters: **an account is not fabricated telemetry.**
-`core/security.py::DEMO_USERS` holds four accounts you can genuinely log in as,
-with real bcrypt hashes, real roles and real agencies — they are the demo
-deployment's actual identities. Seeding `user_profiles` from exactly those four
-makes the profile endpoint truthful: it describes accounts that exist.
+Auth at the time held four accounts you could genuinely log in as, with real
+roles and agencies. Seeding `user_profiles` from exactly those four makes the
+profile endpoint truthful: it describes accounts that exist. (Since 0019 they
+authenticate against this table, and a password is set per deployment.)
 
 Their *statistics* are a different matter and are not seeded here. Counts are
 computed from `audit_logs` at read time, so they start at zero and rise as the

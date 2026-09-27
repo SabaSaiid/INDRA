@@ -6,7 +6,7 @@ Loads all environment variables via pydantic-settings.
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from functools import lru_cache
 
 # `.env` lives at the repo root, but uvicorn is started from `backend/` (see
@@ -16,18 +16,26 @@ from functools import lru_cache
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
 _REPO_ROOT = _BACKEND_DIR.parent
 
+# The JWT signing key this file has always shipped. Anyone who has read the
+# repository can sign a commander's token with it, so production refuses it.
+PUBLISHED_SECRET_KEY = "indra_super_secret_jwt_key_sih2026"
+MIN_PRODUCTION_SECRET_KEY_LENGTH = 32
+
 
 class Settings(BaseSettings):
     """Central configuration sourced from .env / environment variables."""
 
     # ── General ────────────────────────────────────────────────────────────
+    # "e2e" is the Playwright backend (./start.sh e2e-backend). It will not
+    # start unless its database and Kafka names are E2E ones (core/e2e.py).
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
 
     # ── Backend API ────────────────────────────────────────────────────────
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
-    SECRET_KEY: str = "indra_super_secret_jwt_key_sih2026"
+    # Development default only: production refuses it (see the check below).
+    SECRET_KEY: str = PUBLISHED_SECRET_KEY
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 8
     # HMAC key for X-Reporter-Id; empty disables reporter_hash rather than
@@ -51,6 +59,19 @@ class Settings(BaseSettings):
             return v.replace("postgresql://", "postgresql+asyncpg://", 1)
         return v
 
+    @model_validator(mode="after")
+    def refuse_a_published_key_in_production(self) -> "Settings":
+        if self.ENVIRONMENT.strip().lower() == "production" and (
+            self.SECRET_KEY == PUBLISHED_SECRET_KEY or len(self.SECRET_KEY) < MIN_PRODUCTION_SECRET_KEY_LENGTH
+        ):
+            raise ValueError(
+                "ENVIRONMENT=production needs its own SECRET_KEY of at least "
+                f"{MIN_PRODUCTION_SECRET_KEY_LENGTH} characters, not the one in the source: anyone could sign "
+                "tokens with that. Set one in .env, e.g. "
+                "python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+        return self
+
 
     # ── Redis ──────────────────────────────────────────────────────────────
     REDIS_HOST: str = "localhost"
@@ -62,6 +83,10 @@ class Settings(BaseSettings):
     KAFKA_REPORTS_TOPIC: str = "indra.raw.reports"
     KAFKA_EVENTS_TOPIC: str = "indra.verified.events"
     KAFKA_DLQ_TOPIC: str = "indra.raw.reports.dlq"
+    # The report consumer's group. A second backend on the same broker needs
+    # its own, or the two split the partitions and each skips the reports that
+    # are not in its database.
+    KAFKA_CONSUMER_GROUP: str = "indra-report-processor"
     PIPELINE_MAX_ATTEMPTS: int = 3
     PIPELINE_RETRY_DELAY_SECONDS: float = 2.0
 
@@ -115,22 +140,15 @@ class Settings(BaseSettings):
     H3_HEX_RESOLUTION: int = 8
     TIME_WINDOW_MINUTES: int = 120
 
-    # ── Coordinates ────────────────────────────────────────────────────────
-    # False (the default) rejects out-of-India coordinates with a 422. True
-    # restores the old behaviour of snapping them to a gazetteer match or the
-    # (22, 82) national centroid — which lets junk reports cluster into a fake
-    # event there, so only turn it on for a scripted demo that depends on it.
-    SNAP_OUT_OF_BOUNDS_COORDINATES: bool = False
-
     # ── External signals ───────────────────────────────────────────────────
     OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
     WEATHER_TIMEOUT_SECONDS: float = 3.0
 
     # ── Station poller (layer 1: the one scheduled external feed) ──────────
-    # Every interval, Open-Meteo 24 h accumulated precipitation for the demo
-    # cities is written to station_readings. Off means no task is started and the table
-    # stays empty; the weather factor then fetches live per event, exactly as it
-    # did before Day 6.
+    # Every interval, Open-Meteo 24 h accumulated precipitation for the points in
+    # workers/station_poller.STATIONS is written to station_readings. Off means
+    # no task is started and the table stays empty; the weather factor then
+    # fetches live per event, exactly as it did before Day 6.
     STATION_POLLER_ENABLED: bool = True
     STATION_POLL_INTERVAL_SECONDS: int = 600
 
@@ -230,12 +248,6 @@ class Settings(BaseSettings):
     # ── ML kill switches ───────────────────────────────────────────────────
     # Off means the model is treated as offline (receipt says so), never a crash.
     CLASSIFIER_ENABLED: bool = True
-
-    # ── Demo data ──────────────────────────────────────────────────────────
-    # When a read endpoint finds no rows (or the DB is unreachable), serve the
-    # hardcoded demo dataset instead of an empty result. Logged at WARNING
-    # either way, so demo data can never pass silently for real data.
-    DEMO_MODE: bool = False
 
     # ── Frontend ───────────────────────────────────────────────────────────
     FRONTEND_PORT: int = 3000

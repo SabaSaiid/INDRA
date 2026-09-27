@@ -38,8 +38,8 @@ import {
   type ProvenanceReport,
   type AuditEntry,
 } from '@/lib/api';
-import { useOperatorProfile } from '@/lib/useOperatorProfile';
-import { safeEventState } from '@/lib/eventState';
+import { useSession, hasRole, roleLabel, COMMAND_ROLES, LEDGER_ROLES } from '@/lib/auth';
+import { eventReviewState } from '@/lib/eventState';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // Issue 3 fix: per-hazard plausible maximum impact radius (km).
@@ -91,6 +91,8 @@ const SEVERITY_STYLES: Record<string, { bg: string; text: string; border: string
   moderate: { bg: '#DBEAFE', text: '#1E40AF', border: '#93C5FD' },
   low: { bg: '#D1FAE5', text: '#065F46', border: '#6EE7B7' },
 };
+/** A severity the API did not send, or one not listed above: grey, never Moderate. */
+const UNRATED_STYLE = { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' };
 
 const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
   AUTO_PUBLISHED: { label: 'Auto-Published', color: '#065F46', bg: '#D1FAE5' },
@@ -98,6 +100,7 @@ const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }
   QUARANTINED: { label: 'Quarantined', color: '#991B1B', bg: '#FEE2E2' },
   HUMAN_APPROVED: { label: 'Human Approved', color: '#065F46', bg: '#D1FAE5' },
   REJECTED: { label: 'Rejected', color: '#6B7280', bg: '#F3F4F6' },
+  UNKNOWN: { label: 'Status not reported', color: '#6B7280', bg: '#F3F4F6' },
 };
 
 interface Props {
@@ -108,7 +111,7 @@ interface Props {
 
 export default function EventVerificationModal({ eventId, onClose, onEventUpdated }: Props) {
   const { t } = useTranslation();
-  const { selectedRole, isAuthenticated } = useOperatorProfile();
+  const session = useSession();
   const [detail, setDetail] = useState<EventDetail | null>(null);
   const [provenance, setProvenance] = useState<ProvenanceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +132,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
     'Anomaly Detection Signal': t('receipt.factor_historical'),
   };
 
-  const canReview = ['commander', 'admin'].includes(selectedRole);
+  // The same role rules the backend enforces, read from the signed-in session.
+  const canReview = hasRole(session, COMMAND_ROLES);
+  const canReadProvenance = hasRole(session, LEDGER_ROLES);
 
   const loadData = useCallback(async (eid: string) => {
     setLoading(true);
@@ -137,12 +142,12 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
     setReviewAction(null);
     const [detailResult, provResult] = await Promise.allSettled([
       fetchEventDetail(eid),
-      fetchEventProvenance(eid, selectedRole),
+      canReadProvenance ? fetchEventProvenance(eid) : Promise.resolve(null),
     ]);
     if (detailResult.status === 'fulfilled') setDetail(detailResult.value);
-    if (provResult.status === 'fulfilled') setProvenance(provResult.value);
+    setProvenance(provResult.status === 'fulfilled' ? provResult.value : null);
     setLoading(false);
-  }, [selectedRole]);
+  }, [canReadProvenance]);
 
   useEffect(() => {
     if (eventId) loadData(eventId);
@@ -151,7 +156,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const handleReview = async () => {
     if (!eventId || !reviewAction || reviewReason.length < 5) return;
     setReviewLoading(true);
-    const result = await reviewEvent(eventId, reviewAction, reviewReason, selectedRole, overrideSeverity || undefined);
+    const result = await reviewEvent(eventId, reviewAction, reviewReason, overrideSeverity || undefined);
     if (result.success) {
       setReviewResult({ success: true, message: `Event ${reviewAction === 'approve' ? 'approved' : reviewAction === 'reject' ? 'rejected' : 'severity overridden'} successfully.` });
       setReviewAction(null);
@@ -177,16 +182,22 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const confidenceScore = detail?.confidence_score ?? provenance?.event?.confidence_score ?? 0;
   const confidencePct = Math.round(confidenceScore * 100);
   const apiReviewStatus = detail?.review_status ?? provenance?.event?.review_status;
-  const severity = detail?.severity ?? provenance?.event?.severity ?? 'MODERATE';
+  const severity = detail?.severity ?? provenance?.event?.severity ?? 'UNRATED';
   // Use detailEventId (not eventId) to avoid shadowing the eventId prop parameter.
   const detailEventId = detail?.id ?? provenance?.event?.id ?? eventId ?? '';
   const eventType = detail?.event_type_display ?? detail?.event_type ?? '';
 
-  // The API's review_status and quadrant, derived only when absent (BUG-070).
-  const derivedState = safeEventState(detailEventId, severity, confidenceScore, apiReviewStatus, detail?.quadrant);
-  const reviewStatus = derivedState.reviewStatus;
-  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.PENDING_HUMAN_REVIEW;
-  const sevStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.MODERATE;
+  // The API's review_status and quadrant, never derived (BUG-070).
+  const reviewState = eventReviewState(apiReviewStatus, detail?.quadrant);
+  const reviewStatus = reviewState.reviewStatus;
+  const statusStyle = STATUS_STYLES[reviewStatus] || STATUS_STYLES.UNKNOWN;
+  const sevStyle = SEVERITY_STYLES[severity] || UNRATED_STYLE;
+  // Why the reports and audit tabs are empty when provenance did not load.
+  const provenanceGate = !session
+    ? 'Sign in as an Analyst, Commander or Admin to see this.'
+    : !canReadProvenance
+    ? `An Analyst, Commander or Admin account can see this; you are signed in as ${roleLabel(session.role)}.`
+    : 'Provenance could not be loaded from the backend.';
 
   return (
     <AnimatePresence>
@@ -264,7 +275,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 {detail?.impact_radius_km && (
                   <div className="text-[11px] text-[#8C7A6B]">
                     {/* Issue 3 fix: clamp impact_radius_km to per-hazard ceiling */}
-                    Impact radius: {clampImpactKm(detailEventId, eventType, detail.impact_radius_km)} &bull; Quadrant: {derivedState.quadrant || '—'}
+                    Impact radius: {clampImpactKm(detailEventId, eventType, detail.impact_radius_km)} &bull; Quadrant: {reviewState.quadrant || '—'}
                   </div>
                 )}
               </div>
@@ -389,7 +400,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   ) : (
                     <div className="bg-white rounded-lg border border-[#E8E2D4] p-6 text-center text-sm text-[#8C7A6B]">
                       <FileText className="w-5 h-5 mx-auto mb-2 opacity-40" />
-                      {provenance === null ? 'Provenance requires authentication (analyst / commander / admin).' : 'No contributing reports found.'}
+                      {provenance === null ? provenanceGate : 'No contributing reports found.'}
                     </div>
                   )}
                 </div>
@@ -442,7 +453,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   )) : (
                     <div className="bg-white rounded-lg border border-[#E8E2D4] p-6 text-center text-sm text-[#8C7A6B]">
                       <Lock className="w-5 h-5 mx-auto mb-2 opacity-40" />
-                      {provenance === null ? 'Audit trail requires authentication.' : 'No audit entries for this event.'}
+                      {provenance === null ? provenanceGate : 'No audit entries for this event.'}
                     </div>
                   )}
                 </div>
@@ -454,7 +465,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   <div className="flex items-center gap-2 text-xs font-bold text-[#3C2415] uppercase">
                     <Radio className="w-3.5 h-3.5 text-[#B5482E]" />
                     {t('receipt.commander_review')}
-                    {isAuthenticated && <span className="text-[9px] font-normal text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">Authenticated</span>}
+                    {session && <span className="text-[9px] font-normal normal-case text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">Signed in as {session.username}</span>}
                   </div>
 
                   {!reviewAction ? (
@@ -517,6 +528,13 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                     </motion.div>
                   )}
                 </div>
+              )}
+              {!canReview && reviewStatus !== 'REJECTED' && (
+                <p className="text-[11px] text-[#8C7A6B] text-center">
+                  {session
+                    ? `Reviewing needs a Commander or Admin account; you are signed in as ${roleLabel(session.role)}.`
+                    : 'Sign in as a Commander or Admin to approve, reject or override this event.'}
+                </p>
               )}
             </div>
           )}

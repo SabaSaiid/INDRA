@@ -2,9 +2,9 @@
 BUG-062 — `/api/events/distribution` named live events by their enum value.
 
 The hazard donut grouped by `verification_receipt->>'event_type_display'`, a key
-only `scripts/seed_national_data.py` writes. Every event the pipeline made fell
-through to `URBAN_FLOOD` and the "unknown" grey. It now names each type from the
-hazard taxonomy, and a seeded slice of the same name is merged into it.
+no pipeline code writes. Every event the pipeline made fell through to
+`URBAN_FLOOD` and the "unknown" grey. It now groups by the stored type and names
+and colours each slice from the hazard taxonomy.
 """
 
 import json
@@ -23,8 +23,7 @@ from app.services import hazards
 pytestmark = pytest.mark.integration
 
 
-async def _event(db, event_type, *, status="PENDING_HUMAN_REVIEW", display=None):
-    receipt = {"event_type_display": display} if display else {}
+async def _event(db, event_type, *, status="PENDING_HUMAN_REVIEW", receipt=None):
     await db.execute(
         text("""
             INSERT INTO verified_events
@@ -41,7 +40,7 @@ async def _event(db, event_type, *, status="PENDING_HUMAN_REVIEW", display=None)
             "code": f"INDRA-DIST-{uuid.uuid4().hex[:6]}",
             "etype": event_type,
             "status": status,
-            "receipt": json.dumps(receipt),
+            "receipt": json.dumps(receipt or {}),
         },
     )
 
@@ -72,12 +71,12 @@ async def test_a_pipeline_event_is_named_from_the_taxonomy(api, db):
     r = await api.get("/api/events/distribution", params={"by": "hazard", "time_range": "all"})
 
     assert r.status_code == 200
-    assert r.json() == [{"name": "Flood", "count": 1, "value": 1, "color": "#F59E0B"}]
+    assert r.json() == [{"name": "Flood", "count": 1, "value": 1, "color": hazards.color_of("URBAN_FLOOD")}]
 
 
-async def test_a_seeded_slice_of_the_same_name_is_merged(api, db):
+async def test_types_are_grouped_by_taxonomy(api, db):
     await _event(db, "URBAN_FLOOD")
-    await _event(db, "URBAN_FLOOD", display="Flood")
+    await _event(db, "URBAN_FLOOD")
     await _event(db, "HEATWAVE")
     await _event(db, "HEATWAVE")
     await _event(db, "HEATWAVE")
@@ -89,8 +88,23 @@ async def test_a_seeded_slice_of_the_same_name_is_merged(api, db):
     assert r.status_code == 200
     assert r.json() == [
         {"name": "Heatwave", "count": 3, "value": 3, "color": hazards.color_of("HEATWAVE")},
-        {"name": "Flood", "count": 2, "value": 2, "color": "#F59E0B"},
+        {"name": "Flood", "count": 2, "value": 2, "color": hazards.color_of("URBAN_FLOOD")},
     ]
+
+
+async def test_a_display_name_in_the_receipt_is_not_read(api, db):
+    """
+    The old grouping read `event_type_display` from the receipt. A leftover key
+    there must neither rename the slice nor split it from its type.
+    """
+    await _event(db, "URBAN_FLOOD")
+    await _event(db, "URBAN_FLOOD", receipt={"event_type_display": "Rainfall"})
+    await db.commit()
+
+    r = await api.get("/api/events/distribution", params={"by": "hazard", "time_range": "all"})
+
+    assert r.status_code == 200
+    assert r.json() == [{"name": "Flood", "count": 2, "value": 2, "color": hazards.color_of("URBAN_FLOOD")}]
 
 
 def test_the_events_api_reads_the_taxonomy_rather_than_a_copy():

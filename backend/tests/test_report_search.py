@@ -27,7 +27,7 @@ from app.services.ingest import store_report
 
 pytestmark = pytest.mark.integration
 
-PASSWORDS = {"analyst": "analyst123", "commander": "commander123", "citizen": "citizen123"}
+USERS = ("analyst", "commander", "citizen")
 _TOKENS = {}
 
 
@@ -41,9 +41,10 @@ async def api():
 
 
 @pytest_asyncio.fixture
-async def tokens(api):
+async def tokens(api, accounts):
     if not _TOKENS:
-        for user, password in PASSWORDS.items():
+        for user in USERS:
+            password = accounts[user][0]
             r = await api.post("/api/auth/token", data={"username": user, "password": password})
             assert r.status_code == 200
             _TOKENS[user] = {"Authorization": f"Bearer {r.json()['access_token']}"}

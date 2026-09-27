@@ -59,10 +59,6 @@ import {
   type SeverityThreshold,
   type RefreshInterval,
   type IdleLockMinutes,
-  formatTemperature,
-  formatWindSpeed,
-  formatRainfall,
-  formatCoordinates,
 } from '@/lib/useSettings';
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { fetchHealth, type HealthReport } from '@/lib/api';
@@ -191,14 +187,13 @@ export default function SettingsPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
-                Calibrate tactical 3D geospatial rendering, audio emergency sirens, telemetry unit standards, outdoor field HUD display modes, and satellite data bandwidth limits.
+                Map, sound, unit and display preferences for this dashboard. They are saved only in this browser, never on the server.
               </p>
             </div>
 
             <div className="flex items-center gap-2.5 shrink-0">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] border border-white/15 text-xs font-mono text-emerald-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
-                LIVE SYNC ACTIVE
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] border border-white/15 text-xs font-mono text-slate-300">
+                Saved in this browser
               </div>
               <button
                 onClick={handleExportJson}
@@ -215,7 +210,7 @@ export default function SettingsPage() {
             {[
               { id: 'all', label: 'All Settings' },
               { id: 'map', label: '🗺️ Tactical GIS' },
-              { id: 'alerts', label: '🚨 Audio & Siren' },
+              { id: 'alerts', label: '🔊 Audio & Refresh' },
               { id: 'units', label: '📐 Units & Grid' },
               { id: 'hud', label: '🖥️ Appearance' },
               { id: 'notifications', label: '🔔 Notifications' },
@@ -335,9 +330,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Map layers. Four toggles used to sit here — a Doppler radar
-                    heatmap, cyclone track vectors, river catchment polygons and
-                    live NDRF battalion GPS — that nothing read and no feed backs. */}
+                {/* Removed 22 Sep: four map-layer toggles that no feed backed. */}
                 <div className="p-3 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl">
                   <p className="text-xs font-semibold text-[#1E2A3B]">Map layers</p>
                   <p className="text-[10px] text-[#7A8599] mt-0.5">
@@ -371,7 +364,7 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {/* 2. AUDIO & EARLY WARNING SIRENS */}
+            {/* 2. AUDIO BEACON & REFRESH */}
             {(activeSection === 'all' || activeSection === 'alerts') && (
               <motion.div
                 variants={fadeIn}
@@ -386,9 +379,9 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-                        Audio Sirens &amp; Early Warning
+                        Audio Beacon &amp; Refresh
                       </h2>
-                      <p className="text-[11px] text-[#7A8599]">Synthesized audio beacons and hazard dispatch filters</p>
+                      <p className="text-[11px] text-[#7A8599]">A tone synthesized in this browser, and the refresh rate</p>
                     </div>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
@@ -403,8 +396,8 @@ export default function SettingsPage() {
                       <Volume2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-[#1E2A3B]">Emergency Audio Beacon</p>
-                      <p className="text-[10px] text-[#4A5568]">Zero-latency synthesized alarm for critical flash flood alerts</p>
+                      <p className="text-xs font-bold text-[#1E2A3B]">Audio Beacon</p>
+                      <p className="text-[10px] text-[#4A5568]">INDRA issues no alerts, so only the test below plays this tone</p>
                     </div>
                   </div>
                   <button
@@ -426,7 +419,7 @@ export default function SettingsPage() {
                 {/* Volume Slider & Test Sound */}
                 <div className="p-3.5 bg-[#F0EBE0]/70 rounded-xl border border-[#E8E2D4] space-y-3">
                   <div className="flex items-center justify-between text-xs font-mono text-[#1E2A3B]">
-                    <span className="font-semibold">Siren Output Volume</span>
+                    <span className="font-semibold">Beacon Volume</span>
                     <span className="font-bold text-[#B5482E]">{Math.round(settings.alertVolume * 100)}%</span>
                   </div>
                   <input
@@ -440,7 +433,7 @@ export default function SettingsPage() {
                     className="w-full accent-[#B5482E] h-1.5 bg-[#D8D0C0] rounded-lg cursor-pointer disabled:opacity-40"
                   />
                   <div className="flex items-center justify-between pt-2 border-t border-[#E8E2D4]">
-                    <span className="text-[11px] text-[#7A8599]">Hardware Synthesizer Test</span>
+                    <span className="text-[11px] text-[#7A8599]">Browser Synthesizer Test</span>
                     <button
                       onClick={() => handleTestAudio()}
                       disabled={!settings.audioAlertsEnabled || isPlayingAudio}
@@ -452,7 +445,7 @@ export default function SettingsPage() {
                       )}
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      {isPlayingAudio ? 'Sounding Alarm...' : 'Test Siren Audio'}
+                      {isPlayingAudio ? 'Playing…' : 'Test Tone'}
                     </button>
                   </div>
                 </div>
@@ -460,7 +453,7 @@ export default function SettingsPage() {
                 {/* Siren Pattern */}
                 <div>
                   <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
-                    Audio Siren Pattern
+                    Tone Pattern
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
@@ -498,7 +491,7 @@ export default function SettingsPage() {
                 {/* Polling Interval */}
                 <div>
                   <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
-                    Telemetry Refresh Frequency
+                    Refresh Frequency
                   </label>
                   <div className="grid grid-cols-4 gap-1.5 font-mono text-xs">
                     {[
@@ -528,7 +521,7 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {/* 3. TELEMETRY UNITS & FORMATS */}
+            {/* 3. UNITS & FORMATS */}
             {(activeSection === 'all' || activeSection === 'units') && (
               <motion.div
                 variants={fadeIn}
@@ -543,50 +536,14 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-[#1E2A3B]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-                        Telemetry Units &amp; Standards
+                        Units &amp; Formats
                       </h2>
-                      <p className="text-[11px] text-[#7A8599]">Meteorological scale conversion &amp; coordinate format</p>
+                      <p className="text-[11px] text-[#7A8599]">Measurement units, coordinate notation and timezone</p>
                     </div>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F0EBE0] text-[#4A5568] font-semibold border border-[#E8E2D4]">
-                    CALIBRATION
+                    UNITS
                   </span>
-                </div>
-
-                {/* Live Preview Box — Tactical Monitor styling */}
-                <div
-                  className="p-4 rounded-xl text-white space-y-2.5 border border-white/10 shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #182235 0%, #111827 100%)' }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase text-[#F97316] font-bold">
-                      Calculated Weather Station Output
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">Patna Station #04</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 font-mono text-center">
-                    <div className="bg-white/[0.08] p-2 rounded-lg border border-white/10">
-                      <span className="text-[9px] text-slate-400 block">Temperature</span>
-                      <span className="text-sm font-bold text-amber-400">
-                        {formatTemperature(32.4, settings.tempUnit)}
-                      </span>
-                    </div>
-                    <div className="bg-white/[0.08] p-2 rounded-lg border border-white/10">
-                      <span className="text-[9px] text-slate-400 block">Wind Gust</span>
-                      <span className="text-sm font-bold text-sky-400">
-                        {formatWindSpeed(68, settings.windUnit)}
-                      </span>
-                    </div>
-                    <div className="bg-white/[0.08] p-2 rounded-lg border border-white/10">
-                      <span className="text-[9px] text-slate-400 block">Precipitation</span>
-                      <span className="text-sm font-bold text-blue-400">
-                        {formatRainfall(85.5, settings.rainUnit)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-center font-mono text-[11px] text-slate-300">
-                    Coordinates: <span className="text-emerald-400 font-semibold">{formatCoordinates(25.5941, 85.1376, settings.coordFormat)}</span>
-                  </p>
                 </div>
 
                 {/* Temperature & Wind Grid */}
@@ -648,34 +605,10 @@ export default function SettingsPage() {
                   <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
                     Geospatial Coordinate Notation
                   </label>
-                  {/* MGRS gate toggle */}
-                  <div className="flex items-center justify-between mb-2 p-2.5 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl">
-                    <div>
-                      <p className="text-xs font-semibold text-[#1E2A3B]">Enable MGRS / Military Grid</p>
-                      <p className="text-[10px] text-[#7A8599]">Unlocks the Military Grid Reference System option below</p>
-                    </div>
-                    <button
-                      onClick={() => updateSettings({ advancedCoordFormats: !settings.advancedCoordFormats })}
-                      className={cn(
-                        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-                        settings.advancedCoordFormats ? 'bg-[#B5482E]' : 'bg-[#D8D0C0]'
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm',
-                          settings.advancedCoordFormats ? 'translate-x-4' : 'translate-x-0'
-                        )}
-                      />
-                    </button>
-                  </div>
                   <div className="space-y-1.5">
                     {[
-                      { id: 'dd', label: 'Decimal Degrees (Standard)', sample: '25.5941° N, 85.1376° E' },
-                      { id: 'dms', label: 'Degrees Minutes Seconds (DMS)', sample: "25°35'38\"N, 85°08'15\"E" },
-                      ...(settings.advancedCoordFormats
-                        ? [{ id: 'mgrs', label: 'Military Grid Reference (MGRS)', sample: '45R 25594 85137' }]
-                        : []),
+                      { id: 'dd', label: 'Decimal Degrees (Standard)', sample: 'dd.dddd° N, ddd.dddd° E' },
+                      { id: 'dms', label: 'Degrees Minutes Seconds (DMS)', sample: 'dd°mm\'ss"N, ddd°mm\'ss"E' },
                     ].map((cf) => {
                       const isSelected = settings.coordFormat === cf.id;
                       return (
@@ -1223,8 +1156,7 @@ export default function SettingsPage() {
                   </span>
                 </div>
 
-                {/* Data source. A "live vs Autonomous Mock Engine" choice used to sit
-                    here; nothing read it, and the dashboard has no mock data. */}
+                {/* Removed 22 Sep: a live-or-mock source switch that nothing read. */}
                 <div className="p-3 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl">
                   <p className="text-xs font-semibold text-[#1E2A3B]">Data source</p>
                   <p className="text-[10px] text-[#7A8599] mt-0.5">
@@ -1260,9 +1192,7 @@ export default function SettingsPage() {
                   </span>
                 </div>
 
-                {/* Live dependency checks from /healthz. These three cells used to
-                    read "12ms • ONLINE", "BigQuery GIS CONNECTED" and "INSAT-3DR
-                    Stream ACTIVE" whatever the state of anything. */}
+                {/* Live dependency checks from /healthz. */}
                 <div className="space-y-2">
                   <span className="text-xs font-semibold text-[#1E2A3B] block">
                     Backend health (/healthz)
@@ -1290,7 +1220,7 @@ export default function SettingsPage() {
                 <div className="p-4 bg-[#F0EBE0]/70 border border-[#E8E2D4] rounded-xl space-y-2.5">
                   <p className="text-xs font-semibold text-[#1E2A3B]">Configuration JSON Profile</p>
                   <p className="text-[11px] text-[#7A8599]">
-                    Save your operational settings to a portable configuration file or load presets from another command node.
+                    Save these preferences to a file, or load a file saved from another browser.
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <button
@@ -1320,7 +1250,7 @@ export default function SettingsPage() {
                     RESET TO FACTORY DEFAULTS
                   </div>
                   <p className="text-[11px] text-[#4A5568]">
-                    Restores initial INDRA mission control defaults across all map projections, audio sirens, and telemetry units.
+                    Restores the default for every preference on this page, in this browser.
                   </p>
                   <div className="pt-1">
                     {!showResetConfirm ? (
@@ -1337,7 +1267,7 @@ export default function SettingsPage() {
                           onClick={() => {
                             resetSettings();
                             setShowResetConfirm(false);
-                            showToast('All settings reset to operational defaults');
+                            showToast('All settings reset to defaults');
                           }}
                           className="px-3 py-1.5 rounded-lg bg-[#8C2F26] hover:bg-[#70241C] text-white text-xs font-bold font-mono shadow-sm"
                         >

@@ -3,8 +3,7 @@ INDRA Platform — The process's Kafka producer
 
 One long-lived AIOKafkaProducer for the whole process. Until Phase 1 every
 report built its own producer, connected, sent one message and tore it down
-again: a TCP connection and a metadata round trip per citizen, and the likely
-leak `scripts/burst_reports.py` was written to look for.
+again: a TCP connection and a metadata round trip per citizen.
 
 **Nothing on a request path connects to Kafka.** `ready` says whether the
 producer is up. A request publishes only if it is, and only for as long as its

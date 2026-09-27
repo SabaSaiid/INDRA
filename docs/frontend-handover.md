@@ -1,7 +1,7 @@
 # Handover — Backend → Dashboard
 
 **From:** Aditya (layers 1–3, 5, 6, 7, 8a) · **To:** whoever owns `INDRA/frontend/`
-**Covers:** every backend change from 16–23 Sep 2026 that the dashboard can see, and — new on
+**Covers:** every backend change from 16–25 Sep 2026 that the dashboard can see, and — new on
 22 Sep — **what was changed inside `frontend/` that day, and why** (section 0). **New on 23 Sep:
 section 13, Phase 1** — sixteen event types, the PS's filters, citizen dockets, and no lost reports.
 **New on 24 Sep: section 14** — a browser test the map redesign broke, and the frontend team's
@@ -10,6 +10,10 @@ the API's, so a commander's approval never appears. **Also 24 Sep: the team serv
 `https://indra-sixthsense.duckdns.org` (section 13, last row). **Also new on 24 Sep: section 16**
 — Aditya repaired seven dashboard pages inside `frontend/` (his go-ahead for that day), which also
 closes section 15. Please read 16 before your next merge into `frontend/`.
+**New on 25 Sep: section 19** — every demo value, invented operator and password removed from the
+dashboard, and a real sign-in in place of the persona switcher, made inside `frontend/` at Aditya's
+request. Sections 9, 10, 11, 14 and 18 are corrected to match. Please read 19 before your next merge
+into `frontend/`.
 
 **Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
 request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
@@ -65,7 +69,8 @@ which no fallback test could see. They were found by reading every page.
 
 **New in `lib/api.ts`**: `currentPersona()`, `OPERATOR_STORAGE_KEY`, `fetchHealth()`,
 `fetchOperators()`, `fetchAuditLedger()`, `fetchSummaryCounts()`, `submitOfficialReport()`;
-`EventDetail.city/state` are typed nullable.
+`EventDetail.city/state` are typed nullable. (The persona token flow here is superseded by
+section 19: `currentPersona()` and `OPERATOR_STORAGE_KEY` are gone.)
 
 **Tests**: `e2e/no-invented-data.spec.ts` walks all eleven pages for the removed values, and checks
 the warnings and admin pages against the API. If a real feature later needs one of those strings
@@ -182,14 +187,16 @@ was the label: `SeverityLevel` had no `advisory`, so the recent-events list fell
 
 ---
 
-## 9. `DEMO_MODE` now defaults to **false**, and must stay false
+## 9. There is no demo mode (removed 25 Sep)
 
-An empty database used to answer `GET /api/events` with a fabricated
+Until 20 Sep an empty database answered `GET /api/events` with a fabricated
 `0.94 / AUTO_PUBLISHED / CRITICAL` event. The opening seconds of a live run are exactly when the
-database is empty, so the dashboard opened on a confident disaster that no code computed.
+database is empty, so the dashboard opened on a confident disaster that no code computed. From
+20 Sep that was off by default, and on 25 Sep `DEMO_MODE`, `core/demo.py` and every hardcoded
+payload behind them were deleted; a `DEMO_MODE` line left in an old `.env` is ignored.
 
-With it off: **no rows → `[]`**, unknown detail id → **404**, database error → **503
-`{"detail": "Database unavailable"}`**.
+Every read: **no rows → `[]`** (all-zero KPIs on `/api/dashboard/summary`), unknown detail id →
+**404**, database error → **503 `{"detail": "Database unavailable"}`**.
 
 So the dashboard needs an honest **empty state** and an honest **error state**. An empty dashboard
 that fills as reports arrive is both truthful and the better demonstration.
@@ -204,7 +211,8 @@ that fills as reports arrive is both truthful and the better demonstration.
 | `GET /api/events/{id}/provenance` | `ANALYST`, `COMMANDER`, `ADMIN` |
 
 Get one from `POST /api/auth/token`, **form-encoded** (OAuth2 password flow, not JSON):
-`username=commander&password=commander123`. HS256, 8 h expiry. Send as
+`username=<account>&password=<its password>`. Passwords are set per deployment and are written
+neither in this file nor in the dashboard (since 25 Sep, section 19). HS256, 8 h expiry. Send as
 `Authorization: Bearer <token>`.
 
 `401` without a token, `403` with an insufficient role, `409` on an illegal transition (e.g.
@@ -224,10 +232,10 @@ alongside `AUTO_PUBLISHED`.
 
 Since 22 Sep: `POST /api/teams` and `PATCH /api/teams/{id}/assign` need COMMANDER or ADMIN;
 `PATCH /api/profile/me` and `/preferences` need any token and edit **only the token's own
-operator** (`?user=` is ignored); `POST /api/reports/official` needs COMMANDER or ADMIN. The
-dashboard already fetched a JWT for its selected persona, so no login screen was needed — the
-calls now send it. A real login flow is still the right end state: the demo passwords ship with the
-persona switcher.
+operator** (`?user=` is ignored); `POST /api/reports/official` needs COMMANDER or ADMIN. On
+22 Sep the dashboard fetched that token with passwords it carried for each persona. **Since 25 Sep
+it signs in instead** (section 19): the operator types a password and the dashboard holds none.
+`/preferences` was removed on 25 Sep; the settings are kept in the browser.
 
 ---
 
@@ -314,10 +322,10 @@ for it. Two of its symptoms came from the synthetic seeder, not from the pipelin
 | 3A: "Total Reports" vs the 7-day trend | Not a defect: the card counts all time, the chart the last 7 days. If the card should say "all time", that is its label | — |
 | 4: map default view | Frontend only; no backend endpoint serves map defaults | — |
 
-**Please do not debug backend behaviour against `WX-EV-…` events.** That prefix is only ever
-written by the synthetic seeder (`--synthetic`), whose numbers are random by design; the pipeline
-writes `INDRA-YYYYMMDD-NNN`. To see what the engine really does, start from an empty database and run
-`scripts/run_patna_demo.py`.
+**Please do not debug backend behaviour against `WX-EV-…` events.** Only the synthetic seeder ever
+wrote that prefix, and it was deleted on 25 Sep; a database that still holds `WX-EV-…` rows should be
+reset rather than read. The pipeline writes `INDRA-YYYYMMDD-NNN`. To see what the engine really
+does, file real reports through the dashboard, or run the backend suite against `indra_test`.
 
 ---
 
@@ -461,9 +469,139 @@ touched.
 | **Provenance reports** gain `platform`, `publisher`, `url`, `place_precision`, `hazard_primary`, `flags`, `flag_basis` | Posts and headlines that joined the event show where they came from (link out to the post); flagged reports get a badge with the reason ("promotional: a phone number") | recommended |
 | **Search**: `hazard_primary`, `hazards`, `flags` on every row; new `?flag=` filter; `?hazard=` now matches tagged text; `status` `held` now means "cannot cluster" (no district, a forecast, or clustering off) | **F3, the data explorer**: hazard and flag badges and filters. Relabel `held` from "not clustered until hazard tagging" to "context only" | recommended |
 
-**Test, once the branch is deployed:** `backend/.venv/bin/python scripts/run_hazard_demo.py --hazard
-heatwave --city delhi` makes a `HEATWAVE` event whose receipt has every block above; `--hazard fog
---city lucknow` a `FOG` one.
+**Test, once the branch is deployed:** `cd backend && .venv/bin/pytest -q tests/test_hazards.py
+tests/test_severity_rules.py tests/test_report_intake.py tests/test_event_filters.py
+tests/test_reports_api.py` (against `indra_test`). To see a `HEATWAVE` or `FOG` receipt in a browser,
+submit two differently worded reports within 5 km to the E2E backend (`make e2e-backend`, port 8100,
+database `indra_e2e`, section 19), never to the API on :8000.
+
+---
+
+## 19. What changed in `frontend/` on 25 Sep: every demo value removed, and a real sign-in
+
+At Aditya's request, on branch `aditya_remove_demo_data`, one commit per change with the reason in
+its message. He asked for all demo, invented and placeholder data to go from the whole application,
+the dashboard included. The design language is unchanged: same cards, colours, fonts and grid.
+
+**Sign-in replaces the persona switcher**
+
+| Before | Now |
+|---|---|
+| `DEMO_CREDENTIALS` in `lib/api.ts`: four passwords compiled into the browser bundle, and a silent token fetch for the selected persona, `commander` by default, so every visitor could approve events and file official dispatches (BUG-093) | `lib/auth.ts` (`signIn`, `signOut`, `getSession`, `authHeaders`, `useSession`, `hasRole`) and `SignInDialog.tsx`, opened from the topbar's profile menu, the sidebar's operator card and the Profile page. The tab keeps the token and what the backend said about the account in `sessionStorage` (`indra_session`), never the password; closing the tab ends the session, and a `401` on a signed call signs the tab out (`ee34caa`, `f773acb`) |
+| The "SIH RBAC DEMO" role switcher and `AVAILABLE_OPERATOR_PERSONAS`: four invented officers with names, badges, callsigns, e-mails and phone numbers, shown in place of the account's real record (BUG-094) | The signed-in account's own `GET /api/profile/me`, as returned; a field it does not hold reads "Not on record". Signed out, no operator is shown and nothing is fetched. `useOperatorProfile` no longer takes a persona (`f773acb`, `6b48f84`) |
+| Review, dispatch, official filing and provenance gated on the persona picked in the switcher, which any visitor could set to Commander | Gated on the role the backend put in the session: Commander or Admin to review, dispatch and file an official report, Analyst and up to read provenance and the ledger; otherwise the control says which role to sign in as (`f773acb`, `e033020`, `4581524`) |
+
+**Invented content removed**
+
+| Where | What it showed | What it shows now | Commit |
+|---|---|---|---|
+| Profile page | A `gov.in` e-mail, the phone `+91 94311 02847`, badge `VOL-CIT-01`, a bio, unit `TEAM-SEOC-01` "ACTIVE READY", a made-up ledger block and hash | What the record holds; an absent field reads as absent, and an operator with no ledger rows is told so | `217749e` |
+| Settings | A constant "Patna Station #04" readout (32.4 °C, 68 km/h, 85.5 mm), an MGRS "conversion", siren and satellite-bandwidth promises | Removed; preferences say they are saved only in this browser. Real observations are the METAR and rainfall layers (BUG-095) | `e7810cf` |
+| Map | A pin without a valid point in India moved to a gazetteer city with jitter, or to (22, 82) as "National Grid"; every citizen report drawn as a *Flood* of *advisory* severity; a legend saying "AI-fused" | The coordinates the API sent, nowhere else; a point without finite coordinates is dropped and logged (the backend already refuses a point outside India); `geo-resolver.ts` is gone; reports are labelled *unrated citizen reports* (BUG-096) | `4692a47` |
+| Recent Events | Seven AI-generated weather photos from `public/images/weather/` (C2PA: "Created by Google Generative AI") with alt text claiming they showed the event | A hazard tile: the hazard's colour and a lucide icon (`lib/hazard-tile.ts`) (BUG-098) | `a4817df` |
+| Live indicators | Seven badges ("Telemetry live", "LIVE API SYNCED", "LIVE INGESTION") green whether or not the backend was up, and an unread dot always on | They follow the shared socket's `connected` flag and the warnings in force | `e6343ac` |
+| Review status | A missing `review_status` filled in from 90 % / 70 % thresholds the backend does not use | "Status not reported" | `f6f519f` |
+| Severity | A missing or unknown severity shown as Moderate | "Unrated" | `c05d3ab` |
+| Teams | A unit with no headcount counted as 12 responders; invented specialization, phone and callsign; a Sixth Sense banner claiming a ministry affiliation and a production release | "Not on record"; the banner is the API's | `3b838fa` |
+| Geospatial Feeds | Five hardcoded "connected" cards | One card per feed from `/api/meta/sources`, with its count | `00341a0` |
+| Types and chrome | The `DEMO_PULSE` message type, mock-only marker fields, nav tooltips about telemetry, battalions and sirens, a "v1.2" chip | Removed | `a32c995`, `547b86e` |
+| `lib/api-base.ts` | `api.ts` and the socket each read `NEXT_PUBLIC_API_BASE_URL` with their own default | One module owns it | `5a2ac77` |
+
+**The API behaviour the dashboard now relies on** (shapes in [`api-contract.md`](api-contract.md)):
+
+- `POST /api/auth/token`, form-encoded `username`, `password` → `200 {access_token, token_type,
+  role, agency, operator_id, username, expires_in}` (`expires_in` in seconds). A wrong password, an
+  unknown user and an account with no password set are one `401 {"detail": "Incorrect username or
+  password"}`; `503` on a database error. Accounts are rows of `user_profiles`; their passwords are
+  set per deployment with `scripts/set_operator_password.py`, and none is in the source.
+- `GET /api/profile/me` needs a Bearer token (`401` without); the `?user=` parameter is gone.
+  `GET /api/profile/activity` needs `?user=` (`422` without). `GET` and `PATCH
+  /api/profile/preferences` are removed.
+- The four seeded profiles have `badge_number`, `callsign` and `team_role` `null`, the citizen's
+  `agency` is `PUBLIC`, and `full_name` is the role's title. Show an absent field as absent.
+- `GET /api/info` has no `status`; `/healthz` says whether the platform is up.
+- `POST /api/teams` requires `members_count` (1–1000); there is no default head-count.
+- A report has no severity and no hazard grade: `/api/reports/recent` sends neither, and an agency
+  alert may arrive with `severity: null`. Show them as unrated, never as a default.
+- Every read: no rows → the empty result, unknown id → `404`, database error → `503` (section 9).
+
+**Browser tests run against their own backend.** A spec used to post its probe report to whatever
+`E2E_API_URL` pointed at, `:8000` by default, which put "E2E probe" rows into `indra_db` and into the
+committed `data/live` snapshot (BUG-097). Now:
+
+```bash
+make e2e-backend   # terminal 1: a backend on 127.0.0.1:8100, database indra_e2e
+make e2e           # terminal 2: cd frontend && E2E_API_URL=http://localhost:8100 E2E_EXPECT_DB=indra_e2e npx playwright test
+make e2e-reset     # drop and recreate indra_e2e
+```
+
+The E2E backend runs with `ENVIRONMENT=e2e` and will not start unless its database ends in `_e2e`,
+its topics start with `indra.e2e.`, its consumer group with `indra-e2e-`, and the lake archive is
+off. It uses Redis db 15 with every poller off, and gives each account the password in
+`E2E_OPERATOR_PASSWORD` (its default lives in `start.sh` and exists only in `indra_e2e`;
+`e2e/env.ts` reads the same variable for any spec that signs in). Playwright refuses to run unless
+`E2E_API_URL` is set, is a loopback host and not port 8000, its `/api/e2e/identity` says
+`environment: e2e` with a database ending in `_e2e` and equal to `E2E_EXPECT_DB` and the E2E topic
+and consumer group, and `/healthz` reports the database up; any other backend answers that route
+with a `404`. It builds the dashboard with `NEXT_PUBLIC_API_BASE_URL=$E2E_API_URL` into `.next-e2e`
+(`NEXT_DIST_DIR`), serves it on `:3100` and never reuses a running server, so your `.next` and
+`:3000` are untouched. If a real feature later needs one of the strings
+`e2e/no-invented-data.spec.ts` bans, update its list in the same commit.
+
+---
+
+## 20. What changed in `frontend/` on 27 Sep: the 25 Sep removal merged with your languages, settings and alerts
+
+The demo-data removal (section 19) was written on 25 Sep, before your languages (#42), settings
+(#43) and alerts page (#38) landed. Merging `main` into it conflicted in 17 dashboard files. On
+Aditya's request they were resolved on the backend side; the rule was **your translations and
+features stay, and nothing the branch removed comes back**.
+
+| File | Base | What was applied on top |
+|---|---|---|
+| `profile`, `Sidebar`, `Topbar`, `WelcomeHeader` | the branch's (it had replaced the persona switcher with sign-in) | your `t()` labels, the language picker, the translated duty statuses |
+| `SettingsDrawer`, `settings/page.tsx` | yours (the rewrite) | the removals below |
+| the other 11 | line by line | both sides |
+
+**Removed again from the drawer and the settings page** (they had come back in the rewrite):
+
+- the weather readout that no station sent: 32.4 °C, 68 km/h, 85.5 mm, "Patna Station #04",
+  "Weather Telemetry Output Sample", "Calculated Weather Station Output" (BUG-095);
+- the MGRS option, its Security toggle and `advancedCoordFormats`: `formatCoordinates(…, 'mgrs')`
+  printed digits of the latitude and longitude, not a Military Grid Reference;
+- "LIVE SYNC ACTIVE" (settings are saved in this browser only);
+- siren copy saying the tone plays "for high-threat events" or "disaster alerts": nothing calls
+  `playAlertSound` except the test buttons. It is labelled "Alert Tone" and says so. If the
+  alerts page starts playing it on a real engine alert, change the copy back.
+
+The coordinate card is now "Format example (New Delhi)", not "Live Reference Matrix".
+`useSettings` keeps `formatRainfall` (the analytics page uses it on real station rainfall) and a
+DD/DMS `formatCoordinates`; `formatTemperature` and `formatWindSpeed` are gone with the readout.
+
+**Needs a translation key:** the live indicators show real socket state in English: "Updates live" /
+"Updates paused" (events, reports) and "Live" / "Offline — reconnecting" (sidebar, welcome header).
+Please add a key rather than reusing `nav.telemetry_live`: "Telemetry live" is on the ban list in
+`e2e/invented.ts`, because it used to show whatever the connection did.
+
+**Alerts page:** acknowledge and resolve now act as the signed-in operator (the session's username
+and token, not the persona), and answer "Sign in to acknowledge an alert" without a session. The
+engine should check that token.
+
+**E2E:** `playwright.config.ts` builds with `NEXT_PUBLIC_ALERT_ENGINE_BASE_URL` and `_WS_URL`
+pointed at the E2E backend (the engine does not run there); the drawer test clicks through to
+Units & Coordinates. All 30 tests pass.
+
+**Left for you, not changed** (your new features, but each claims something the platform does not
+do yet):
+
+| Where | What it says | What is true |
+|---|---|---|
+| drawer, Alert Broadcasts; settings §5 | "Emergency Email Alerts", "SMS & WhatsApp Broadcast" | the address or number is saved in this browser only; nothing sends it anywhere. The alert engine mails only `ALERT_EMAIL_RECIPIENTS` from its own `.env` |
+| drawer, General | "Station Identification & Node: INDRA National Node-01 HQ New Delhi" | there is one server, in Mumbai (`ap-south-1`) |
+| drawer, Security | "Password change requires backend authentication API" | right: there is no change-password route. Passwords are set by an admin with `scripts/set_operator_password.py` |
+
+**Signing in on the team server:** since this merge the four accounts have passwords set on the
+server with `scripts/set_operator_password.py`; there is no default password anywhere. Ask Aditya.
 
 ---
 
@@ -484,4 +622,5 @@ taking out of the backend.
 ---
 
 **Questions:** ask me. If something needs a new response shape or a new message type, say so and I
-will add it backend-side — I do not edit `frontend/`.
+will add it backend-side. I change `frontend/` only on a stated request (sections 0, 16, 19 and 20),
+and every such change is written up here.

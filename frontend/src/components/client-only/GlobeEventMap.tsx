@@ -15,9 +15,9 @@ import {
   agencyAlertsToMapMarkers,
   fetchFieldReports,
   fieldReportsToMapMarkers,
+  formatPlace,
 } from '@/lib/api';
 import type { MapLayer } from '@/lib/ui-config';
-import { sanitizeIncidentCoordinate } from '@/lib/geo-resolver';
 import { cn } from '@/lib/utils';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -224,6 +224,7 @@ const severityColors: Record<string, string> = {
   moderate: '#3B82F6',
   advisory: '#94A3B8',
   low: '#64748B',
+  unrated: '#9CA3AF',
 };
 
 // Severity priority ranking for collision avoidance
@@ -233,6 +234,7 @@ const severityRank: Record<string, number> = {
   moderate: 2,
   advisory: 1,
   low: 1,
+  unrated: 1,
 };
 
 // Event type emojis
@@ -244,6 +246,7 @@ const eventTypeEmojis: Record<string, string> = {
   'Thunderstorm': '⚡',
   'Strong Winds': '💨',
   'Fog': '🌫️',
+  'Citizen report': '📍',
 };
 
 /** What a marker's status honestly is, by layer. It used to read "AI Verified" for all of them. */
@@ -330,8 +333,7 @@ export default function GlobeEventMap({
   const isGlobeRef = useRef(settings.mapProjection !== 'mercator');
   const [basemap, setBasemap] = useState<BasemapMode>(() => settings.defaultBasemap as BasemapMode);
   const [timeRange, setTimeRange] = useState('7d');
-  // Starts empty. Seeding the globe with invented markers put pins on Indian
-  // cities that had reported nothing.
+  // Starts empty, and stays empty until the API returns markers.
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [markersError, setMarkersError] = useState<unknown>(null);
   // Three sources of live data, three layers, each toggleable and each drawn
@@ -349,6 +351,7 @@ export default function GlobeEventMap({
     moderate: true,
     advisory: true,
     low: true,
+    unrated: true,
   });
   const [hiddenHazards, setHiddenHazards] = useState<Set<string>>(new Set());
   const [refreshTick, setRefreshTick] = useState(0);
@@ -475,7 +478,7 @@ export default function GlobeEventMap({
   // certainly stale. The backend has broadcast VERIFIED_EVENT since Day 1 and
   // nothing in the frontend has ever listened for it (BUG-036). Listens on the
   // shared connection; this component used to open a raw socket of its own.
-  const { subscribe } = useIndraWebSocket();
+  const { connected, subscribe } = useIndraWebSocket();
   useEffect(() => {
     return subscribe(`globe-map-${variant}`, (msg) => {
       if (msg.type === 'VERIFIED_EVENT' || msg.type === 'NEW_REPORT' || msg.type === 'EVENT_REVIEWED') {
@@ -515,6 +518,7 @@ export default function GlobeEventMap({
     !visibleSeverities.moderate ||
     !visibleSeverities.advisory ||
     !visibleSeverities.low ||
+    !visibleSeverities.unrated ||
     hiddenHazards.size > 0;
 
   const resetAllFilters = useCallback(() => {
@@ -525,6 +529,7 @@ export default function GlobeEventMap({
       moderate: true,
       advisory: true,
       low: true,
+      unrated: true,
     });
     setHiddenHazards(new Set());
   }, []);
@@ -548,6 +553,7 @@ export default function GlobeEventMap({
       moderate: 0,
       advisory: 0,
       low: 0,
+      unrated: 0,
     };
     const hazards: Record<string, number> = {};
 
@@ -573,17 +579,10 @@ export default function GlobeEventMap({
       setClusterPopover(null);
       if (onEventSelect) onEventSelect(marker);
 
-      const sanitized = sanitizeIncidentCoordinate({
-        lat: marker.lat,
-        lng: marker.lng,
-        city: marker.city,
-        state: marker.state,
-      });
-
       const map = mapRef.current;
-      if (map) {
+      if (map && Number.isFinite(marker.lat) && Number.isFinite(marker.lng)) {
         map.flyTo({
-          center: [sanitized.lng, sanitized.lat],
+          center: [marker.lng, marker.lat],
           zoom: 6.8,
           pitch: 45,
           bearing: 15,
@@ -669,21 +668,11 @@ export default function GlobeEventMap({
     const isCompactZoom = zoom >= 2.4 && zoom < 4.2;
     const isDetailZoom = zoom >= 6.2;
 
-    // 1. Process and sanitize all marker coordinates
-    const sanitizedMarkers = markersForDisplay.map((m) => {
-      const coords = sanitizeIncidentCoordinate({
-        lat: m.lat,
-        lng: m.lng,
-        city: m.city,
-        state: m.state,
-        title: m.title,
-        eventType: m.eventType,
-      });
-      return {
-        marker: m,
-        coords,
-      };
-    });
+    // 1. Plot every marker where the API put it. One without finite
+    //    coordinates is skipped (the converters in api.ts already log it).
+    const plottedMarkers = markersForDisplay
+      .filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lng))
+      .map((m) => ({ marker: m, coords: { lat: m.lat, lng: m.lng } }));
 
     // 2. Spatial Clustering & Screen-space Collision Detection
     interface ClusterGroup {
@@ -699,7 +688,7 @@ export default function GlobeEventMap({
 
     if (isSpaceZoom) {
       // Tier 1: Space Orbit (zoom < 2.4) — All markers render as micro-radar pips without text labels
-      itemsToRender = sanitizedMarkers.map((sm) => ({
+      itemsToRender = plottedMarkers.map((sm) => ({
         isCluster: false,
         items: [sm],
         center: sm.coords,
@@ -711,7 +700,7 @@ export default function GlobeEventMap({
       // Issue 4: clustering now runs at ALL zoom tiers above space-orbit, not
       // just Tier 2. The radius shrinks as the user zooms in so badges that are
       // genuinely far apart on screen stop merging.
-      const projected = sanitizedMarkers.map((sm) => {
+      const projected = plottedMarkers.map((sm) => {
         const pt = map.project([sm.coords.lng, sm.coords.lat]);
         return {
           ...sm,
@@ -937,7 +926,7 @@ export default function GlobeEventMap({
           const em = eventTypeEmojis[m.marker.eventType];
           if (em) hazardIcons.add(em);
         });
-        const primaryLocation = Object.entries(cityCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || 'Subcontinent Region';
+        const primaryLocation = Object.entries(cityCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || 'Location unresolved';
         const hazardList = Array.from(hazardIcons).slice(0, 3).join(' ');
 
         // Severity breakdown string
@@ -1143,11 +1132,10 @@ export default function GlobeEventMap({
         tooltip.innerHTML = `
           <div class="hud-header">
             <span class="hud-badge hud-${marker.severity}">${marker.severity}</span>
-            <span class="hud-time font-mono">${marker.timeAgo || layerLabel}</span>
+            <span class="hud-time font-mono">${layerLabel}</span>
           </div>
           <div class="hud-title">${emoji} ${marker.title || marker.eventType}</div>
           <div class="hud-location">📍 ${marker.placeLabel || [marker.city, marker.state].filter(Boolean).join(', ') || 'Location unresolved'}</div>
-          ${marker.action ? `<div class="hud-action"><span>⚡ Action</span><span>${marker.action}</span></div>` : ''}
         `;
         innerEl.appendChild(tooltip);
 
@@ -1473,7 +1461,10 @@ export default function GlobeEventMap({
         <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-b border-slate-200/80 bg-[#FDFAF5]">
           {/* Left: Live dot + Title + Incident chip */}
           <div className="flex items-center gap-2 min-w-0">
-            <span className="flex-shrink-0 h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span
+              className={`flex-shrink-0 h-2 w-2 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}
+              title={connected ? 'Live updates connected' : 'Live updates offline — reconnecting'}
+            />
             <span className="text-sm font-semibold text-slate-800 truncate">
               {t('map.title')}
             </span>
@@ -1597,7 +1588,9 @@ export default function GlobeEventMap({
             {/* Group 2: Jump to Active Event (Dynamically extracted from live alerts) */}
             <div className="flex items-center gap-1.5 shrink-0 pl-2.5 border-l border-slate-200">
               <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                {markersForDisplay.some((m) => m.severity === 'critical' || m.severity === 'high') && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                )}
                 Active Incidents:
               </span>
               {markersForDisplay
@@ -1838,7 +1831,9 @@ export default function GlobeEventMap({
                 className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-900 text-white backdrop-blur-xl px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-xl text-xs transition-all hover:scale-105 active:scale-95 group"
                 title="Open Live Incidents Roster"
               >
-                <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                <span
+                  className={`flex h-2 w-2 rounded-full ${markersForDisplay.length > 0 ? 'bg-rose-500 animate-ping' : 'bg-slate-500'}`}
+                />
                 {/* Issue 8: clarify this is total map pins, not a filtered count */}
                 <span className="font-semibold">{markersForDisplay.length} map pins</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
@@ -1852,8 +1847,8 @@ export default function GlobeEventMap({
               >
                 <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <Radio className="w-3 h-3 text-rose-400 animate-pulse" />
-                    Live Incident Roster
+                    <Radio className={`w-3 h-3 ${connected ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`} />
+                    {connected ? 'Live Incident Roster' : 'Incident Roster'}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
@@ -1891,7 +1886,7 @@ export default function GlobeEventMap({
                           <div className="truncate">
                             <div className="text-xs font-semibold text-white group-hover:text-blue-300 truncate">
                               <span className="text-[9px] opacity-60 mr-1">{layerGlyph}</span>
-                              {marker.city}, {marker.state}
+                              {marker.placeLabel || formatPlace(marker.city, marker.state)}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate">
                               {marker.eventType}
@@ -2000,7 +1995,7 @@ export default function GlobeEventMap({
                         >
                           <div className="text-xs font-semibold text-white flex items-center gap-1.5">
                             <span>{g.emoji}</span>
-                            <span>{g.city || 'Unknown'}</span>
+                            <span>{g.city || 'Location unresolved'}</span>
                             {g.count > 1 && (
                               <span className="text-[10px] font-mono text-slate-400">×{g.count}</span>
                             )}
@@ -2112,7 +2107,7 @@ export default function GlobeEventMap({
                   </div>
                   <div className="space-y-1">
                     {[
-                      { layer: 'event' as MapLayer, label: 'Fused Incident', glyph: '●', color: 'text-white', desc: 'AI-fused multi-source' },
+                      { layer: 'event' as MapLayer, label: 'Fused Incident', glyph: '●', color: 'text-white', desc: 'Fused from corroborating reports' },
                       { layer: 'alert' as MapLayer, label: 'Agency Warning', glyph: '◆', color: 'text-amber-400', desc: 'Official IMD / NDMA' },
                       { layer: 'report' as MapLayer, label: 'Citizen Report', glyph: '○', color: 'text-blue-400', desc: 'Unverified field reports' },
                     ].map((layerItem) => {
@@ -2177,6 +2172,7 @@ export default function GlobeEventMap({
                             moderate: true,
                             advisory: true,
                             low: true,
+                            unrated: true,
                           })
                         }
                         className="text-slate-400 hover:text-slate-200 px-1 py-0.5 rounded hover:bg-slate-800 transition-colors"
@@ -2193,6 +2189,7 @@ export default function GlobeEventMap({
                             moderate: false,
                             advisory: false,
                             low: false,
+                            unrated: false,
                           })
                         }
                         className="text-rose-400 hover:text-rose-300 px-1 py-0.5 rounded hover:bg-rose-950/40 transition-colors"
@@ -2209,6 +2206,7 @@ export default function GlobeEventMap({
                       { key: 'moderate', label: 'Moderate', color: '#3B82F6', ring: 'border-blue-500/50 hover:border-blue-500/80' },
                       { key: 'advisory', label: 'Advisory', color: '#7A8599', ring: 'border-slate-400/40 hover:border-slate-400/70' },
                       { key: 'low', label: 'Low', color: '#64748B', ring: 'border-slate-600/40 hover:border-slate-600/70' },
+                      { key: 'unrated', label: 'Unrated', color: '#9CA3AF', ring: 'border-slate-500/40 hover:border-slate-500/70' },
                     ].map((s) => {
                       const active = visibleSeverities[s.key] !== false;
                       const count = filterCounts.severities[s.key] || 0;
@@ -2264,10 +2262,10 @@ export default function GlobeEventMap({
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {(availableHazards.length > 0
-                      ? availableHazards
-                      : Object.keys(eventTypeEmojis)
-                    ).map((hazard) => {
+                    {availableHazards.length === 0 && (
+                      <span className="text-[10px] text-slate-500">No hazards loaded</span>
+                    )}
+                    {availableHazards.map((hazard) => {
                       const isHidden = hiddenHazards.has(hazard);
                       const emoji = eventTypeEmojis[hazard] || '⚠️';
                       const count = filterCounts.hazards[hazard] ?? 0;

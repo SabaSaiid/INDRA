@@ -21,7 +21,7 @@ import { fadeIn, staggerContainer } from '@/lib/motion';
 import Link from 'next/link';
 import { fetchEvents, fetchSummaryCounts, formatPlace, type ApiEvent } from '@/lib/api';
 import { ErrorState } from '@/components/ui/empty-state';
-import { safeEventState } from '@/lib/eventState';
+import { eventReviewState } from '@/lib/eventState';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -74,6 +74,7 @@ const REVIEW_BADGE: Record<string, { label: string; cls: string }> = {
   QUARANTINED: { label: 'Quarantined', cls: 'bg-red-50 text-red-700' },
   HUMAN_APPROVED: { label: 'Approved', cls: 'bg-emerald-50 text-emerald-700' },
   REJECTED: { label: 'Rejected', cls: 'bg-slate-100 text-slate-500' },
+  UNKNOWN: { label: 'Status not reported', cls: 'bg-slate-100 text-slate-500' },
 };
 
 // The API names ADVISORY "low" in the list (SEVERITY_LABELS in events.py), so
@@ -140,7 +141,7 @@ export default function EventsPage() {
   const [loadError, setLoadError] = useState<unknown>(null);
   const [warningsInForce, setWarningsInForce] = useState<number | null>(null);
   const [verificationEventId, setVerificationEventId] = useState<string | null>(null);
-  const { subscribe } = useIndraWebSocket();
+  const { connected, subscribe } = useIndraWebSocket();
 
   const loadEvents = useCallback(async () => {
     try {
@@ -226,8 +227,8 @@ export default function EventsPage() {
 
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
-                <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span className="text-slate-300 font-mono">{t('nav.telemetry_live').toUpperCase()}</span>
+                <Radio className={`w-3.5 h-3.5 ${connected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+                <span className="text-slate-300 font-mono">{connected ? 'Updates live' : 'Updates paused'}</span>
               </div>
             </div>
           </div>
@@ -321,9 +322,9 @@ export default function EventsPage() {
             >
               {filtered.map((ev) => {
                 const sevBadge = SEVERITY_BADGE[ev.severity] || SEVERITY_BADGE.moderate;
-                // The API's review_status and quadrant, derived only when absent (BUG-070).
-                const eventState = safeEventState(ev.id, ev.severity, ev.confidence_score, ev.review_status, ev.quadrant);
-                const reviewBadge = REVIEW_BADGE[eventState.reviewStatus] || REVIEW_BADGE.PENDING_HUMAN_REVIEW;
+                // The API's review_status and quadrant, never derived (BUG-070).
+                const eventState = eventReviewState(ev.review_status, ev.quadrant);
+                const reviewBadge = REVIEW_BADGE[eventState.reviewStatus] || REVIEW_BADGE.UNKNOWN;
                 return (
                   <motion.div
                     key={ev.id}

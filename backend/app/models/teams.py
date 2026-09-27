@@ -37,7 +37,7 @@ class Team(Base):
         nullable=False,
         default=TeamStatus.AVAILABLE,
     )
-    members_count = Column(Integer, nullable=False, default=12)
+    members_count = Column(Integer, nullable=False)
     assigned_event_id = Column(
         UUID(as_uuid=True),
         ForeignKey("verified_events.id", ondelete="SET NULL"),

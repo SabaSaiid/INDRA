@@ -13,6 +13,18 @@ was read out of its router, not out of an older document, and every example resp
 *captured* was copied from `curl` against a running stack. If this file and the code disagree, the
 code is right and this file is a bug.
 
+**Every citizen report and event in the examples is a test submission** on a development database
+(21–23 Sep, mostly Patna, several of them posted by demo scripts deleted on 25 Sep). They never
+happened and are no longer stored; only their shape is the point. The official warnings, posts and
+airport observations quoted are real feed data.
+
+**25 Sep, the demo-data removal (branch `aditya_remove_demo_data`):** accounts and their bcrypt
+hashes live in `user_profiles` (`/api/auth`), `GET /api/profile/me` needs a token,
+`/api/profile/preferences` is gone, `GET /api/info` has no `status`, `POST /api/teams` needs
+`members_count`, and every read answers an empty database with an empty result (*Empty and
+unavailable*, at the end). These sections are read from the code and the migration; none is
+captured yet.
+
 Base URL in development: `http://localhost:8000`. On the team server, since 24 Sep:
 **`https://indra-sixthsense.duckdns.org`**, one name for the dashboard, the API and the WebSocket
 (`wss://indra-sixthsense.duckdns.org/ws/events`), with a Let's Encrypt certificate. The old
@@ -36,9 +48,10 @@ Interactive docs: `/docs`.
 | `/api/stations` | **latest** airport observations (Phase 2) | open |
 | `/api/alerts` | official SACHET warnings (IMD, CWC, SDMAs) | open |
 | `/api/audit` | the newest ledger rows, chain verified | requires a token |
-| `/api/auth` | token | — |
-| `/api/teams`, `/api/profile` | team and operator records | reads open; **every write requires a token** |
+| `/api/auth` | token: sign in with an account's username and password | — |
+| `/api/teams`, `/api/profile` | team and operator records | reads open except `/api/profile/me`; **every write requires a token** |
 | top level | `/healthz`, `/api/info`, `/ws/events` | open |
+| `/api/e2e` | **identity**, only on a backend started for the browser tests | open; **404 in every other mode** |
 
 **Every endpoint that changes state requires a token**, except logging in and a citizen filing a
 report, which are anonymous by design. `tests/test_mutation_auth.py` walks the whole API and fails
@@ -96,8 +109,9 @@ Captured 23 Sep:
 
 **Why a report cannot be lost.** The report and its Kafka message (a row in `outbox`) are written in
 one database transaction. The request publishes the message straight away if it can, for at most
-2 s; if it cannot, a relay publishes it within seconds of Kafka coming back. Measured with Redpanda
-stopped: ten reports kept, all published 1.0 s after it restarted (`demo-runbook.md`, Scene 5).
+2 s; if it cannot, a relay publishes it within seconds of Kafka coming back. Measured 23 Sep on a
+development stack with Redpanda stopped: ten reports kept, all published 1.0 s after it restarted.
+The drill in `demo-runbook.md` now runs against the isolated E2E backend (`make e2e-backend`).
 
 On the way in, the report is given an H3 res-8 cell, a computed `credibility_score`
 (source prior × text quality — a 60-character citizen report scores 0.60, the bare word
@@ -135,8 +149,8 @@ scoring, review.
 
 One official report in a cluster lifts the **Source Reliability** factor to 1.00, because that
 factor is the maximum over the cluster's sources. It does not bypass corroboration, weather or
-human review. Measured 22 Sep: five Patna citizen reports scored 0.5146 `QUARANTINED`; the same
-five plus one dispatch scored **0.6065 `PENDING_HUMAN_REVIEW`**.
+human review. Measured 22 Sep on a test cluster of five scripted Patna reports: 0.5146
+`QUARANTINED`; with one dispatch added, **0.6065 `PENDING_HUMAN_REVIEW`**.
 
 | Code | When |
 |---|---|
@@ -145,9 +159,8 @@ five plus one dispatch scored **0.6065 `PENDING_HUMAN_REVIEW`**.
 | `403` | A citizen or analyst token — nothing stored |
 | `422`, `503` | As `/submit` |
 
-The route is only as trusted as the account behind it. The demo accounts' passwords are part of
-the dashboard's persona switcher, so in this build it shows the mechanism — role-gated and
-attributed — not a secret.
+The route is exactly as trusted as the account behind it (see `/api/auth` for how accounts get
+their passwords).
 
 ### `GET /api/reports/track/{docket}`
 
@@ -178,7 +191,7 @@ Captured 23 Sep:
 
 `event_code` and `review_status` are `null` until the report is part of an event. `404
 {"detail": "No report with that docket"}` for an unknown docket **and** for one that cannot exist,
-so the answer never helps anyone guess. `503` on a database error; there is no demo answer.
+so the answer never helps anyone guess. `503` on a database error.
 
 ### `GET /api/reports/trend?range=7d|14d|30d`
 
@@ -253,7 +266,7 @@ CSV export the two lists are JSON arrays.
 
 `docket` is filled for citizen reports only. `text` is at most 500 characters; `lat`/`lng` are
 rounded to 4 decimals. `401` without a token, `403` for a citizen token, `422` for an unknown
-value in any list parameter, `503` on a database error — never demo data.
+value in any list parameter, `503` on a database error.
 
 ### `GET /api/reports/export?format=csv|geojson` — **requires an analyst token** (Phase 2 T10)
 
@@ -326,7 +339,7 @@ A bad value is a **422 naming the parameter**, in the same shape FastAPI uses fo
 
 Also 422: `from` after `to`, a range longer than 366 days, an unknown `sort` or `include`. Until
 23 Sep an unknown severity answered **503 "Database unavailable"** (BUG-061). A filter that matches
-nothing is `200 []` with `X-Total-Count: 0` — never demo data.
+nothing is `200 []` with `X-Total-Count: 0`.
 
 > **`ADVISORY` is reachable and common.** Most fresh clusters are two to four reports with no
 > depth quoted, which grades `ADVISORY`. A severity filter offering only
@@ -382,7 +395,8 @@ cluster for its impact rather than its cause (a flood beats the rain). The label
 already keys on are unchanged: `Flood`, `Thunderstorm`, `Strong Winds`, `Fog`, `Heavy Rainfall`.
 
 Source types: `CITIZEN_APP`, `OFFICIAL_DISPATCH`, `AWS_SENSOR`, `CWC_GAUGE`, `TWITTER_IMD`, and since
-23 Sep `SOCIAL_MEDIA` and `NEWS_MEDIA` (for Phase 2's Mastodon and news feeds).
+23 Sep `SOCIAL_MEDIA` and `NEWS_MEDIA` (for Phase 2's Mastodon and news feeds). `AWS_SENSOR`,
+`CWC_GAUGE` and `TWITTER_IMD` are declared only: nothing produces them.
 
 ### `GET /api/events/{event_id}`
 
@@ -396,11 +410,14 @@ Accepts the UUID **or** the `event_code`. Returns the full event, including:
 | `review_status` | `AUTO_PUBLISHED` · `PENDING_HUMAN_REVIEW` · `QUARANTINED` · `REJECTED` · `HUMAN_APPROVED` |
 | `verification` (display label) | `verified` for `AUTO_PUBLISHED` **and** `HUMAN_APPROVED` · `under-review` for pending/quarantined · `rejected` |
 
-Unknown id → `404` (or the demo event if `DEMO_MODE=true`, which it is not by default).
+Unknown id or code → `404 {"detail": "Event not found"}`; database error → `503`.
 
 ### The Verification Receipt
 
 The receipt is the product. It explains every number it states.
+
+A worked example: the engine's output for five scripted test reports on 20 Sep. The script, the
+reports and the event have since been deleted; the arithmetic is the point.
 
 ```json
 {
@@ -547,13 +564,14 @@ who filed an `OFFICIAL_DISPATCH`; it is `null` for a citizen report.
 | `POST /api/reports/official` | 401 | 401 | 403 | 403 | 202 | 202 |
 | `POST /api/teams` | 401 | 401 | 403 | 403 | 201 | 201 |
 | `PATCH /api/teams/{id}/assign` | 401 | 401 | 403 | 403 | 200 | 200 |
-| `PATCH /api/profile/me`, `/preferences` | 401 | 401 | 200 | 200 | 200 | 200 |
+| `GET /api/profile/me`, `PATCH /api/profile/me` | 401 | 401 | 200 | 200 | 200 | 200 |
 | `GET /api/reports/search`, `/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/events/export` (Phase 2) | 401 | 401 | 403 | 200 | 200 | 200 |
 | `POST /api/reports/submit` | 202 | 202 | 202 | 202 | 202 | 202 |
 | `GET /api/events` | 200 | 200 | 200 | 200 | 200 | 200 |
 
-A profile edit changes **the token's own operator only**; a `?user=` parameter is ignored.
+`/api/profile/me`, read or edited, is **the token's own operator only**; there is no `?user=`
+parameter.
 
 ---
 
@@ -766,11 +784,44 @@ detected (BUG-010).
 
 **Form-encoded**, not JSON (OAuth2 password flow): `username`, `password`.
 
-Returns `200 {access_token, token_type: "bearer", role, agency}` — a real HS256 JWT, 8 h expiry.
-`401` on bad credentials.
+```json
+{"access_token": "eyJ…", "token_type": "bearer", "role": "COMMANDER", "agency": "SDMA_BIHAR",
+ "operator_id": "OP-CMD-001", "username": "commander", "expires_in": 28800}
+```
 
-Demo users: `admin`/`admin123`, `commander`/`commander123`, `analyst`/`analyst123`,
-`citizen`/`citizen123`.
+A real HS256 JWT whose claims are `sub` (the username), `role`, `agency`, `operator_id`, `iat` and
+`exp`.
+`expires_in` is in seconds, `JWT_EXPIRY_HOURS` × 3600: 28,800 at the default 8 h.
+
+| Code | When |
+|---|---|
+| `200` | Signed in |
+| `401 {"detail": "Incorrect username or password"}` | A wrong password, an unknown username, or an account with no password set: one answer for all three |
+| `503` | Database error |
+
+**Accounts** are the rows of `user_profiles`, one per operator, with role `ADMIN`, `COMMANDER`,
+`ANALYST` or `CITIZEN`. The password is stored only as a bcrypt hash in `password_hash` (migration
+`0019`), which no read endpoint returns; `NULL` means the account cannot sign in. No password is
+written in the source, in this file or in the dashboard. Until 25 Sep four fixed demo passwords
+were listed here and shipped in the dashboard (BUG-093); they are still in git history, so every
+deployed account needs a new one.
+
+Passwords are set per environment with one script, run from the repo root:
+
+```bash
+backend/.venv/bin/python scripts/set_operator_password.py commander          # prompts twice
+backend/.venv/bin/python scripts/set_operator_password.py --all --generate   # prints each new password once
+backend/.venv/bin/python scripts/set_operator_password.py --all --from-env INDRA_OPERATOR_PASSWORD
+```
+
+`scripts/set_operator_password.py [USERNAME ...] [--all] [--from-env VAR | --generate]` writes to
+`DATABASE_URL` from the environment, else the backend's settings and `.env`, and prints the host,
+port and database it is about to change, never the password. It refuses a username with no row in
+`user_profiles` (exit 2; it does not create accounts) and a password shorter than 10 characters.
+With neither `--from-env` nor `--generate` it prompts twice with `getpass`.
+
+**Deploying this to a server:** run `alembic upgrade head` (it adds `0018` and `0019`), **then set
+the passwords**. No hash is seeded, so until the script has run every sign-in is a `401`.
 
 ---
 
@@ -779,19 +830,29 @@ Demo users: `admin`/`admin123`, `commander`/`commander123`, `analyst`/`analyst12
 `GET /api/teams` · `GET /api/teams/{id}` · `POST /api/teams` (201) ·
 `PATCH /api/teams/{id}/assign` · `GET /api/teams/hackathon/sixth-sense`
 
-`GET|PATCH /api/profile/me` · `GET /api/profile/activity` · `GET /api/profile/operators` ·
-`GET|PATCH /api/profile/preferences`
+`GET|PATCH /api/profile/me` · `GET /api/profile/activity?user=<username>` ·
+`GET /api/profile/operators`
 
-Reads are open. Writes need a token (matrix above):
+Reads are open, except `GET /api/profile/me`: it is the signed-in operator's own record, so it
+needs a token (`401` without one or with an invalid one; `404` if the token's user has no profile
+row). `GET /api/profile/activity` needs `user` (`422` without it, `404` for a username with no
+profile) and lists that operator's audit-ledger actions, `[]` until they have reviewed something.
+`/api/profile/preferences` was removed on 25 Sep: it was a per-process store that nothing read and a
+restart lost; the dashboard keeps its settings in the browser. Writes need a token (matrix above):
 
 | Endpoint | Codes |
 |---|---|
-| `POST /api/teams` | `201` · `409` duplicate `team_code` · `422` unknown agency or status · `503` |
+| `POST /api/teams` | `201` · `409` duplicate `team_code` · `422` unknown agency or status, or no `members_count` (1–1000; there is no default head-count) · `503` |
 | `PATCH /api/teams/{id}/assign` `{event_id: uuid \| null}` | `200 {team_id, assigned_event_id, status, assigned_by}` · `404` team or event not found · `422` malformed `event_id` · `503` |
 | `PATCH /api/profile/me` | `200` the saved profile · `422` unknown `duty_status` · `503` when the write fails |
 
 Until 22 Sep a failed dispatch answered `200 "Updated in demo store"` from an in-memory list, and a
 failed profile edit answered `200` after `except: pass`. Both now fail loudly.
+
+A profile holds only what was recorded. The four accounts migration `0008` seeds (`admin`,
+`commander`, `analyst`, `citizen`) have `badge_number`, `callsign` and `team_role` `null` since
+`0018`, the citizen's `agency` is `PUBLIC`, and `full_name` is the role's title (`Incident
+Commander`). A client shows an absent field as absent.
 
 ---
 
@@ -800,9 +861,21 @@ failed profile edit answered `200` after `except: pass`. Both now fail loudly.
 | Endpoint | Behaviour |
 |---|---|
 | `GET /` | Redirects to the dashboard on :3000 |
-| `GET /api/info` | Platform metadata |
+| `GET /api/info` | Platform metadata: `platform`, `tagline`, `version`, `sih_ps_id`, `team`. No `status` since 25 Sep: it said `operational` whatever Postgres or Kafka were doing. Whether the platform is up is `/healthz`'s answer |
 | `GET /healthz` | Real dependency check — see below |
 | `WS /ws/events` | The live stream |
+| `GET /api/e2e/identity` | **Only on a backend started with `ENVIRONMENT=e2e`**; a `404` in every other mode. See below |
+
+### `GET /api/e2e/identity` — E2E mode only
+
+`{"environment": "e2e", "database": …, "reports_topic": …, "consumer_group": …}`, where `database`
+is `SELECT current_database()`. The browser tests read it before they start and refuse to run
+unless it names a database ending in `_e2e`, an `indra.e2e.` topic and an `indra-e2e-` consumer
+group. A backend with `ENVIRONMENT=e2e` refuses to start unless its database name ends in `_e2e`,
+its report, event and dead-letter topics start with `indra.e2e.`, `KAFKA_CONSUMER_GROUP` starts
+with `indra-e2e-` and the lake archive is off. So a browser test can never write into `indra_db`,
+take messages from the dev consumer or archive into the real lake. `503` on a database error. `make e2e-backend` starts one on
+`127.0.0.1:8100` against `indra_e2e`.
 
 ### `GET /healthz`
 
@@ -863,29 +936,31 @@ everything but the path as provisional.
 | 5 | `DELETE /api/reports/{docket}` | A citizen withdrawing their own report |
 | 5 | `GET /api/admin/sources` | Per-source credibility |
 | 6 | `GET /api/analytics/kpis`, `/timeseries`, `/by-state`, `/latency`, `/verification-funnel` | The analytics page |
-| 6 | `POST /api/ingest/batch` | Bulk ingest for the load test and the replay |
+| 6 | `POST /api/ingest/batch` | Bulk import of real archives; a load test only ever against an isolated test backend |
 
 ---
 
-## Demo data and `DEMO_MODE`
+## Empty and unavailable
 
-`DEMO_MODE` defaults to **`false`** and must stay false for any demonstration.
+There is no demo mode. `DEMO_MODE`, `core/demo.py` and every hardcoded payload behind them were
+deleted on 25 Sep (history: BUG-024, BUG-045, BUG-069); a `DEMO_MODE` line left in an old `.env`
+is ignored. Every read answers from the database or not at all:
 
-| `DEMO_MODE` | No rows | Database error |
-|---|---|---|
-| `false` (default) | `[]`, or **404** on a detail endpoint | **503 `{"detail": "Database unavailable"}`** |
-| `true` | demo data, WARNING logged | demo data, WARNING logged |
+| Case | Answer |
+|---|---|
+| No rows | The real empty result: `[]`, all-zero KPIs on `/api/dashboard/summary`, `cells: []` on the heatmap, and N days at `0` on `/api/reports/trend` |
+| Unknown id | **404** on a detail endpoint (`/api/events/{id}`, `/api/teams/{id}`) |
+| Database error | **503 `{"detail": "Database unavailable"}`** |
 
-With it **true**, an empty database answers `GET /api/events` with a fabricated
-`0.94 / AUTO_PUBLISHED / CRITICAL` event — a value the real engine cannot produce. The first
-seconds of a live run are exactly when the database is empty, so the dashboard would open on a
-confident auto-published disaster that no code computed. An empty dashboard that fills as reports
-arrive is both honest and the better demonstration. This was BUG-024, found by running the demo
-rather than by testing it.
+`app/core/empty.py::empty_or_503(endpoint, empty, error=None)` is the one place that decides it,
+and it logs a WARNING whenever it is reached: `<endpoint>: no rows — returning empty result`, or
+`<endpoint>: database error — returning 503: <err>`. `/api/dashboard/summary`, `/api/events`,
+`/api/events/distribution`, `/api/events/{id}`, `/api/feed/recent`, `/api/reports/trend`,
+`/api/reports/recent`, `/api/geo/heatmap`, `/api/teams` and `/api/teams/{id}` go through it.
 
-`/api/dashboard/summary`, `/api/events*`, `/api/feed/recent`, `/api/reports/trend` and
-`/api/teams*` all route through the same gate. `/api/geo/heatmap` and the provenance and review
-endpoints have **no** demo fallback at all.
+An empty dashboard that fills as reports and feed rows arrive is both honest and the better
+demonstration. Until 20 Sep an empty database answered `GET /api/events` with a fabricated
+`0.94 / AUTO_PUBLISHED / CRITICAL` event, a value the engine cannot produce (BUG-024).
 
 ---
 
@@ -893,5 +968,5 @@ endpoints have **no** demo fallback at all.
 
 1. Put the contract here in the same shape, before merging.
 2. If the dashboard must change, write it into [`frontend-handover.md`](frontend-handover.md).
-3. If it can serve a number the database did not produce, it needs `demo_fallback()` and a test
-   that asserts the `DEMO_MODE=false` behaviour.
+3. It serves only what the database holds: no rows → the empty result or `404`, a database error
+   → `503`, through `empty_or_503()`, with a case in `tests/test_empty_and_unavailable.py`.

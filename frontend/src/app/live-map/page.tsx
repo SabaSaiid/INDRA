@@ -28,10 +28,7 @@ export default function LiveMapPage() {
     closeMobile,
   } = useSidebar();
 
-  // The header counts what the map below actually draws. It used to read
-  // "Tracking: Cyclone DANA", "Sensors: 4 Active Feeds" and "NDRF Units:
-  // 8 Deployed" whatever the data, under an "INSAT-3DR / MOSDAC / IMD
-  // Telemetry" tagline for feeds INDRA does not read.
+  // The header counts what the map below actually draws.
   const [eventCount, setEventCount] = useState<number | null>(null);
   const [warningCount, setWarningCount] = useState<number | null>(null);
   const [deployedCount, setDeployedCount] = useState<number | null>(null);

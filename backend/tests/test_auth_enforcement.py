@@ -16,7 +16,7 @@ from jose import jwt
 
 from app.core.security import ROLES, create_access_token
 from app.models.enums import OperatorRole
-from tests.conftest import wipe_event_tables
+from tests.conftest import TEST_ACCOUNTS, wipe_event_tables
 from tests.test_review_api import api, make_event, tokens  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.integration
@@ -38,8 +38,9 @@ async def event_id():
 
 
 def _expired():
+    _, role, agency, operator_id = TEST_ACCOUNTS["commander"]
     return create_access_token(
-        {"sub": "commander", "role": "COMMANDER", "agency": "SDMA_BIHAR"},
+        {"sub": "commander", "role": role, "agency": agency, "operator_id": operator_id},
         expires_delta=timedelta(seconds=-1),
     )
 

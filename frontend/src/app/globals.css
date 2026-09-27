@@ -496,6 +496,10 @@
   background: rgba(122, 133, 153, 0.25); color: #CBD5E1;
   border: 1px solid rgba(148, 163, 184, 0.4);
 }
+.indra-hud-popup .hud-unrated {
+  background: rgba(156, 163, 175, 0.15); color: #CBD5E1;
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+}
 
 .indra-hud-popup .hud-time {
   font-size: 10px; color: rgba(247,243,234,0.7);

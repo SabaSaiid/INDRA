@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerContainer, listItemSlideIn } from '@/lib/motion';
@@ -19,8 +18,20 @@ import {
   type AgencyAlert,
 } from '@/lib/api';
 import { getRelativeTime, formatAgo } from '@/lib/utils';
-import { getWeatherMedia } from '@/lib/weather-media';
-import { ArrowRight } from 'lucide-react';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import { getHazardTile, type HazardIconName } from '@/lib/hazard-tile';
+import {
+  ArrowRight,
+  CircleAlert,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  Mountain,
+  Thermometer,
+  Waves,
+  Wind,
+  type LucideIcon,
+} from 'lucide-react';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -101,6 +112,17 @@ function WarningsInForce() {
   );
 }
 
+const HAZARD_ICONS: Record<HazardIconName, LucideIcon> = {
+  flood: Waves,
+  rain: CloudRain,
+  thunderstorm: CloudLightning,
+  cyclone: Wind,
+  fog: CloudFog,
+  heatwave: Thermometer,
+  landslide: Mountain,
+  other: CircleAlert,
+};
+
 // Spine color per severity (Low Pressure palette)
 const spineColor: Record<string, string> = {
   critical: '#8C2F26',
@@ -122,6 +144,7 @@ export default function RecentEventsList({
   loading?: boolean;
   error?: unknown;
 }) {
+  const { connected } = useIndraWebSocket();
   const { t } = useTranslation();
   const [internalEvents, setInternalEvents] = useState<RecentEvent[]>([]);
   const [internalLoading, setInternalLoading] = useState<boolean>(true);
@@ -226,11 +249,12 @@ export default function RecentEventsList({
             className="flex-1 min-h-0 space-y-0.5 custom-scrollbar overflow-y-auto scroll-smooth pr-1"
           >
             {events.map((event) => {
-              const severity = severityConfig[event.severity] || severityConfig.moderate;
+              const severity = severityConfig[event.severity] || severityConfig.unrated;
               const verification = verificationConfig[event.verification] || verificationConfig['under-review'];
               const isSelected = selectedEventId === event.id;
               const spine = spineColor[event.severity] ?? '#9CA3AF';
-              const media = getWeatherMedia(event.eventType);
+              const tile = getHazardTile(event.eventType);
+              const HazardIcon = HAZARD_ICONS[tile.iconName];
 
               return (
                 <motion.div
@@ -246,20 +270,16 @@ export default function RecentEventsList({
                     borderLeft: `3px solid ${spine}`,
                   }}
                 >
-                  {/* Weather Condition Photo */}
+                  {/* Hazard tile: the event type as a colour and an icon, not a picture of the event */}
                   <div
-                    className={`relative w-12 h-9 rounded-md overflow-hidden flex-shrink-0 bg-[#E8E2D4] border border-[#E8E2D4] shadow-2xs transition-all ${
+                    role="img"
+                    aria-label={`${event.eventType} icon`}
+                    className={`relative w-12 h-9 rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center border border-[#E8E2D4] shadow-2xs transition-all ${
                       isSelected ? 'ring-1.5 ring-blue-500' : ''
                     }`}
+                    style={{ background: tile.gradient }}
                   >
-                    <Image
-                      src={media.src}
-                      alt={`${media.condition} in ${event.placeLabel ?? formatPlace(event.city, event.state)}`}
-                      width={48}
-                      height={36}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      unoptimized
-                    />
+                    <HazardIcon className="w-4 h-4 text-white/90" aria-hidden="true" />
                   </div>
 
                   {/* Content */}
@@ -302,10 +322,13 @@ export default function RecentEventsList({
           </motion.div>
         )}
 
-        {/* Telemetry Status Footer */}
+        {/* Status footer: the dot is the live socket's real state */}
         <div className="mt-auto pt-1.5 pb-0.5 border-t border-[#F0EBE0] flex items-center justify-between text-[10px] text-[#7A8599] font-mono flex-shrink-0">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-[#B8873A]'}`}
+              title={connected ? 'Live updates connected' : 'Live updates offline — reconnecting'}
+            />
             <span>{events.length} {t('chart.events')} · 7d</span>
           </span>
           <span className="text-[9px] uppercase tracking-wider text-[#A0988A] flex items-center gap-1">
@@ -314,8 +337,10 @@ export default function RecentEventsList({
                 <span>{t('chart.scroll_more')}</span>
                 <span className="text-[10px]">↓</span>
               </>
-            ) : (
+            ) : connected ? (
               t('chart.live_from_api')
+            ) : (
+              'From the INDRA API · updates paused'
             )}
           </span>
         </div>

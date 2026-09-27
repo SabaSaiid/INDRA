@@ -1,6 +1,8 @@
-import { test, expect, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { test, expect } from './fixtures';
+import { API } from './env';
 
 /**
  * The dashboard shows live data, or says it cannot — never invented data.
@@ -8,27 +10,23 @@ import path from 'node:path';
  * These assertions are written as *negatives* on purpose. Checking that the page
  * rendered proves nothing here: before 21 Sep the dashboard rendered beautifully
  * against a backend that was switched off, because every panel fell back to
- * `mock-data.ts`. The screenshot of that failure looked exactly like success.
+ * invented rows. The screenshot of that failure looked exactly like success.
  *
- * So the suite checks for the absence of the specific fabricated values that
- * file used to supply. If any of them reappear, a fallback has come back.
+ * So the suite checks for the absence of the specific fabricated values those
+ * fallbacks supplied. If any of them reappear, a fallback has come back.
  */
 
 const SHOTS = path.join(__dirname, 'screenshots');
 fs.mkdirSync(SHOTS, { recursive: true });
 
 /**
- * Strings that only ever existed in the deleted mock-data.ts, plus values the
- * real pipeline provably cannot produce.
- *
- * `0.94` / `AUTO_PUBLISHED`: the maximum confidence achievable while the vision
- * and anomaly factors are offline is 0.80, and AUTO_PUBLISHED needs 0.90. Both
- * appearing together is proof of fabricated data, not of a very confident event.
+ * An event code and a place that only the fallback rows removed on 21 Sep ever
+ * produced. (AUTO_PUBLISHED used to be here too, but a real event can now reach
+ * it: confidence is divided by the factors that are online.)
  */
 const FABRICATED_MARKERS = [
   'WX-EV-28231827-A',
   'Kankarbagh Sector 4',
-  'AUTO_PUBLISHED',
 ];
 
 async function shoot(page: Page, name: string) {
@@ -54,8 +52,7 @@ async function settle(page: Page) {
 
 test.describe('dashboard renders live data or an honest empty state', () => {
   test('backend is reachable and reports healthy', async ({ request }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-    const res = await request.get(`${api}/healthz`);
+    const res = await request.get(`${API}/healthz`);
     expect(res.ok()).toBeTruthy();
 
     const body = await res.json();
@@ -72,13 +69,12 @@ test.describe('dashboard renders live data or an honest empty state', () => {
 
     const body = await page.locator('body').innerText();
     for (const marker of FABRICATED_MARKERS) {
-      expect(body, `"${marker}" is a value only mock-data.ts ever produced`).not.toContain(marker);
+      expect(body, `"${marker}" is a value only the removed fallback rows ever produced`).not.toContain(marker);
     }
   });
 
   test('KPI numbers come from the backend, not the page', async ({ page }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-    const summary = await (await page.request.get(`${api}/api/dashboard/summary`)).json();
+    const summary = await (await page.request.get(`${API}/api/dashboard/summary`)).json();
 
     await page.goto('/');
     await settle(page);
@@ -98,17 +94,18 @@ test.describe('dashboard renders live data or an honest empty state', () => {
   });
 
   test('a submitted report reaches the dashboard', async ({ page }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-
-    const before = await (await page.request.get(`${api}/api/dashboard/summary`)).json();
+    // Only ever against the disposable E2E backend (global-setup.ts). The
+    // 'E2E probe' prefix keeps a stray row recognisable wherever it ends up.
+    const before = await (await page.request.get(`${API}/api/dashboard/summary`)).json();
 
     // A real submission through the real endpoint: validated, credibility-scored,
     // written to Postgres and published to Kafka.
-    const submit = await page.request.post(`${api}/api/reports/submit`, {
+    const probe = `E2E probe ${Date.now()}`;
+    const submit = await page.request.post(`${API}/api/reports/submit`, {
       data: {
         latitude: 25.5941,
         longitude: 85.1376,
-        text: `E2E probe ${Date.now()} — water rising near the underpass, knee deep`,
+        text: `${probe} — water rising near the underpass, knee deep`,
       },
     });
     expect(submit.status()).toBe(202);
@@ -117,12 +114,24 @@ test.describe('dashboard renders live data or an honest empty state', () => {
     await expect
       .poll(
         async () => {
-          const now = await (await page.request.get(`${api}/api/dashboard/summary`)).json();
+          const now = await (await page.request.get(`${API}/api/dashboard/summary`)).json();
           return now.total_reports;
         },
         { timeout: 30_000, intervals: [1000] }
       )
-      .toBeGreaterThan(before.total_reports - 1);
+      .toBeGreaterThan(before.total_reports);
+
+    // And the stored row is this probe, not merely any new report.
+    await expect
+      .poll(
+        async () => {
+          const res = await page.request.get(`${API}/api/reports/recent?hours=1&unfused_only=false`);
+          const rows: Array<{ text: string }> = await res.json();
+          return rows.some((r) => r.text.startsWith(probe));
+        },
+        { timeout: 30_000, intervals: [1000] }
+      )
+      .toBe(true);
 
     await page.goto('/');
     await settle(page);
@@ -130,8 +139,7 @@ test.describe('dashboard renders live data or an honest empty state', () => {
   });
 
   test('agency alerts are real CAP warnings from named agencies', async ({ page }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000';
-    const res = await page.request.get(`${api}/api/alerts/agency?limit=50`);
+    const res = await page.request.get(`${API}/api/alerts/agency?limit=50`);
     expect(res.ok()).toBeTruthy();
 
     const alerts = await res.json();

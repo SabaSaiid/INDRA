@@ -2,20 +2,8 @@
  * INDRA Platform — UI configuration
  *
  * Types and presentation constants only. **There is no fabricated data in this
- * file, and none may be added to it.**
- *
- * This is what remains of `mock-data.ts` after 21 Sep. That file mixed two
- * unrelated things: the design system's lookup tables (severity colours, nav
- * items, duty-status chips) and ~730 lines of invented events, teams and
- * profiles that every component fell back to whenever an API call failed *or
- * returned an empty list*. The result was a dashboard that looked fully
- * populated against an empty database — during a live demo the first seconds
- * are exactly when the database is empty, so the screen showed confident
- * CRITICAL events that no code had computed.
- *
- * The colours and labels below are the design and are used by live data. The
- * invented rows are gone. A component with nothing to show now renders an empty
- * state that says so.
+ * file, and none may be added to it.** A component with nothing to show renders
+ * an empty state that says so.
  */
 
 import {
@@ -65,7 +53,7 @@ export const navItems: NavItem[] = [
     icon: LayoutDashboard,
     href: '/',
     section: 'tactical',
-    description: 'National overview & key telemetry metrics',
+    description: 'National overview: reports, events, warnings',
   },
   {
     id: 'live-map',
@@ -73,7 +61,6 @@ export const navItems: NavItem[] = [
     icon: Map,
     href: '/live-map',
     section: 'tactical',
-    badge: { text: 'LIVE', variant: 'live' },
     description: 'Events, official warnings and reports on a 3D globe',
   },
   {
@@ -82,7 +69,7 @@ export const navItems: NavItem[] = [
     icon: CalendarClock,
     href: '/events',
     section: 'tactical',
-    description: 'Active severe weather alerts & emergency timeline',
+    description: 'Fused events, their severity and review status',
   },
 
   // Intelligence & Feeds
@@ -126,7 +113,7 @@ export const navItems: NavItem[] = [
     icon: Users,
     href: '/teams',
     section: 'command',
-    description: 'Disaster response battalions & command units',
+    description: 'Response teams and dispatch',
   },
   {
     id: 'profile',
@@ -150,7 +137,7 @@ export const navItems: NavItem[] = [
     icon: Settings,
     href: '/settings',
     section: 'command',
-    description: 'Tactical GIS, alert siren audio, units & HUD preferences',
+    description: 'Map, units and display preferences',
   },
 ];
 
@@ -168,7 +155,8 @@ export interface KpiItem {
   bgColor: string;
   icon: 'reports' | 'verified' | 'critical' | 'citizens';
 }
-export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'advisory' | 'low';
+/** 'unrated' is a marker whose source carries no severity (a raw citizen report, an unrated warning). */
+export type SeverityLevel = 'critical' | 'high' | 'moderate' | 'advisory' | 'low' | 'unrated';
 export type VerificationStatus = 'verified' | 'under-review';
 export type EventType = 'Severe Rainfall' | 'Flood' | 'Thunderstorm' | 'Strong Winds' | 'Fog' | 'Urban Flooding' | 'Heavy Rainfall';
 
@@ -194,11 +182,6 @@ export interface MapMarker {
   verification: VerificationStatus;
   description: string;
   title?: string;
-  impact?: string;
-  action?: string;
-  timeAgo?: string;
-  confidence?: number;
-  verified?: boolean;
 }
 export interface RecentEvent {
   id: string;
@@ -213,7 +196,6 @@ export interface RecentEvent {
   imageGradient: string;
 }
 
-const now = new Date();
 export interface DistributionItem {
   name: string;
   value: number;
@@ -259,6 +241,7 @@ export const severityConfig: Record<SeverityLevel, { label: string; color: strin
   // 'moderate' and showed every advisory event as Moderate.
   advisory: { label: 'Advisory', color: '#7A8599', bg: '#EEF0F4', textColor: '#4A5568' },
   low: { label: 'Low', color: '#6B7280', bg: '#F3F4F6', textColor: '#4B5563' },
+  unrated: { label: 'Unrated', color: '#9CA3AF', bg: '#F3F4F6', textColor: '#6B7280' },
 };
 
 export const verificationConfig: Record<VerificationStatus, { label: string; color: string; bg: string; textColor: string; icon: string }> = {
@@ -410,40 +393,13 @@ export const teamAgencyConfig: Record<string, { label: string; color: string; bg
   MUNICIPAL: { label: 'Municipal', color: '#4F46E5', bg: '#EEF2FF', border: '#A5B4FC' },
 };
 /**
- * Rendering placeholder for the operator chrome (sidebar footer, topbar chip)
- * while `/api/profile/me` has not answered, or could not be reached.
- *
- * **This is not a fake operator and must never be mistaken for one.** Every
- * visible field is an em-dash or an explicit "unavailable" string, so a viewer
- * sees that the identity is missing rather than reading a plausible name and
- * badge number that belong to nobody. It exists only so the layout does not
- * collapse; the moment the backend answers it is replaced.
- */
-export const PLACEHOLDER_OPERATOR: UserProfile = {
-  id: '',
-  username: '',
-  full_name: 'Operator unavailable',
-  role: '—',
-  agency: '—',
-  operator_id: '—',
-  badge_number: '—',
-  callsign: '—',
-  duty_status: 'OFF_DUTY',
-  avatar_initials: '—',
-};
-
-/**
  * What each role may actually do, transcribed from the backend's enforced auth
  * matrix (`backend/tests/test_auth_enforcement.py` and, since 22 Sep,
  * `test_mutation_auth.py`, `test_official_ingest.py` and `test_audit_api.py`).
  *
- * This replaces `mockRoleSecurity`, which invented "clearance codes" and
- * "clearance levels" — concepts INDRA has no notion of anywhere in its code.
- * Everything below is a statement about behaviour the backend really enforces,
- * so it belongs with the design constants rather than with the deleted fakes.
+ * Everything below is a statement about behaviour the backend really enforces.
  *
- * Session expiry is the real JWT lifetime (`JWT_EXPIRY_HOURS = 8`, HS256).
- * Ledger immutability is real too: `services/audit.py` hash-chains every
+ * Session expiry is read from the signed-in session's token. Ledger immutability is real too: `services/audit.py` hash-chains every
  * decision with SHA-256 and `GET /api/events/{id}/provenance` verifies the
  * chain from genesis.
  */
@@ -491,7 +447,5 @@ export const ROLE_CAPABILITIES: Record<string, RoleCapability[]> = {
   ],
 };
 
-/** HS256, 8 h — `JWT_EXPIRY_HOURS` in backend/app/core/config.py. */
-export const SESSION_TOKEN_LIFETIME = '8 h · HS256';
 /** services/audit.py chains every decision; provenance verifies from genesis. */
 export const LEDGER_IMMUTABILITY = 'SHA-256 hash chain';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -14,11 +14,11 @@ import {
   Navigation,
 } from 'lucide-react';
 import {
-  currentPersona,
   submitCitizenReport,
   submitOfficialReport,
   type ReportSubmission,
 } from '@/lib/api';
+import { useSession, hasRole, COMMAND_ROLES } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface Props {
@@ -36,15 +36,12 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
-  // Only a Commander or Admin persona may file for a trusted source; the
+  // Only a signed-in Commander or Admin may file for a trusted source; the
   // backend enforces it (POST /api/reports/official), this only hides an
   // option that would be refused.
-  const [persona, setPersona] = useState('commander');
+  const session = useSession();
   const [asOfficial, setAsOfficial] = useState(false);
-  useEffect(() => {
-    if (open) setPersona(currentPersona());
-  }, [open]);
-  const canFileOfficial = persona === 'commander' || persona === 'admin';
+  const canFileOfficial = hasRole(session, COMMAND_ROLES);
 
   const resetForm = useCallback(() => {
     setLat('');
@@ -84,12 +81,12 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
     if (mediaUrl.trim()) report.media_url = mediaUrl.trim();
 
     const official = asOfficial && canFileOfficial;
-    const res = official ? await submitOfficialReport(report, persona) : await submitCitizenReport(report);
+    const res = official ? await submitOfficialReport(report) : await submitCitizenReport(report);
     if (res.success) {
       setResult({
         success: true,
         message: official
-          ? `Official dispatch filed as ${persona}. It is stored with your name and scored like any report.`
+          ? `Official dispatch filed as ${session?.username}. It is stored with your name and scored like any report.`
           : 'Report submitted successfully! Our system is processing your report through the verification pipeline.',
       });
       onSubmitted?.();
@@ -222,7 +219,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                       <span className="font-semibold">File as an official dispatch</span>
                       <span className="block text-[10px] text-[#8C7A6B]">
                         For a report from a control room or field team. Stored as OFFICIAL_DISPATCH
-                        with your name ({persona}); it lifts the event&apos;s source reliability to 1.00.
+                        with your name ({session?.username}); it lifts the event&apos;s source reliability to 1.00.
                       </span>
                     </span>
                   </label>

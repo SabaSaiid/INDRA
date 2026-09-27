@@ -19,11 +19,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.config import get_settings
-from app.core.demo import demo_fallback
+from app.core.empty import empty_or_503
 from app.core.security import TokenData, require_roles
 from app.models.enums import EventType
-from app.services.geocoding import OutOfIndiaBoundsError, sanitize_coordinates
+from app.services.geocoding import (
+    LocationUnresolvedError,
+    OutOfIndiaBoundsError,
+    sanitize_coordinates,
+)
 from app.services.ingest import (
     StoreError,
     docket_status,
@@ -34,7 +37,6 @@ from app.services.ingest import (
 
 logger = logging.getLogger("indra.api.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
-settings = get_settings()
 
 
 # How far observed_at may sit from the moment a report arrives. A phone clock a
@@ -69,17 +71,6 @@ class ReportSubmission(BaseModel):
         if v < now - OBSERVED_AT_MAX_AGE:
             raise ValueError("observed_at is more than 7 days in the past")
         return v
-
-
-DEMO_TREND = [
-    {"date": "09 Sep", "reports": 85},
-    {"date": "10 Sep", "reports": 112},
-    {"date": "11 Sep", "reports": 145},
-    {"date": "12 Sep", "reports": 198},
-    {"date": "13 Sep", "reports": 264},
-    {"date": "14 Sep", "reports": 310},
-    {"date": "15 Sep", "reports": 134},
-]
 
 
 @router.get("/trend")
@@ -136,7 +127,7 @@ async def reports_trend(
         logger.warning(f"Database query failed in reports_trend: {e}")
         db_error = e
 
-    return demo_fallback("GET /api/reports/trend", lambda: DEMO_TREND, list, db_error)
+    return empty_or_503("GET /api/reports/trend", list, db_error)
 
 
 async def _ingest(
@@ -165,10 +156,14 @@ async def _ingest(
             report.latitude,
             report.longitude,
             text_hint=report.text,
-            snap_out_of_bounds=settings.SNAP_OUT_OF_BOUNDS_COORDINATES,
         )
     except OutOfIndiaBoundsError as e:
         logger.info(f"Rejected report with out-of-bounds coordinates: {e}")
+        raise HTTPException(status_code=422, detail=str(e))
+    except LocationUnresolvedError as e:
+        # Unreachable while latitude and longitude are required floats; kept
+        # so a location that cannot be placed is a 422, never a 500.
+        logger.info(f"Rejected report with no resolvable location: {e}")
         raise HTTPException(status_code=422, detail=str(e))
 
     try:
@@ -245,9 +240,7 @@ async def submit_official_report(
     1.00, because that factor is the maximum over the cluster's sources; it
     does not bypass corroboration, weather or human review.
 
-    The route is exactly as trusted as the account behind it. The demo accounts
-    are published in the dashboard for its persona switcher, so in this build
-    it shows the mechanism — role-gated and attributed — not a secret.
+    The route is exactly as trusted as the account behind it.
     """
     return await _ingest(
         report, db, source_type="OFFICIAL_DISPATCH", submitted_by=operator.sub,
@@ -289,10 +282,10 @@ async def list_recent_reports(
     counting a duplicate as a separate sighting is the double-count the dedup
     step exists to prevent, and drawing it would undo that on the screen.
 
-    The layer exists because 4 of the 9 reports in the demo database belong to
-    no event — one that could not reach DBSCAN_MIN_SAMPLES alone, and three
-    suppressed against it — and were therefore invisible everywhere except a
-    total in the KPI strip (BUG-035, BUG-037).
+    The layer exists because reports that joined no event — one that could
+    not reach DBSCAN_MIN_SAMPLES alone, and the duplicates suppressed against
+    it — were otherwise invisible everywhere except a total in the KPI strip
+    (BUG-035, BUG-037).
     """
     conditions = ["r.created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
     if not include_feeds:
@@ -345,9 +338,9 @@ async def list_recent_reports(
         logger.warning(f"Database query failed in list_recent_reports: {e}")
         db_error = e
 
-    # No demo payload: an empty field-reports layer is an honest map, and a
+    # No fallback payload: an empty field-reports layer is an honest map, and a
     # fabricated citizen report is the one thing this console must never draw.
-    return demo_fallback("GET /api/reports/recent", list, list, db_error)
+    return empty_or_503("GET /api/reports/recent", list, db_error)
 
 
 @router.get("/track/{docket}")
@@ -385,7 +378,7 @@ async def track_report(docket: str, db: AsyncSession = Depends(get_db)):
             )
         ).fetchone()
     except Exception as e:
-        # No demo payload: an invented status for a real citizen's report is
+        # No fallback payload: an invented status for a real citizen's report is
         # the one answer this route must never give.
         logger.warning(f"Database query failed in track_report: {e}")
         raise HTTPException(status_code=503, detail="Database unavailable")

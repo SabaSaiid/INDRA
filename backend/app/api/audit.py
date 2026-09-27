@@ -4,9 +4,8 @@ GET /api/audit/recent — the newest ledger rows, and whether the whole chain ve
 
 The ledger was only readable one event at a time (GET /api/events/{id}/provenance)
 or one operator at a time (GET /api/profile/activity). The admin console needs
-the platform-wide view, and it used to fill that space with an invented trail —
-"Director R.K. Verma authenticated via PKI smartcard", "CAP pushed to Puri
-district civil authorities". This is the real one.
+the platform-wide view, and it used to fill that space with an invented audit
+trail; this route serves the real ledger.
 
 Gated like provenance (ANALYST, COMMANDER, ADMIN): the rows carry operator ids
 and the reasons operators gave.

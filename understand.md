@@ -337,7 +337,7 @@ Media evidence: 2
 Status: VERIFIED
 ```
 
-The exact numbers in the demonstration are scenario values; they are not a claim that every real event will achieve those numbers.
+These numbers illustrate the idea; they are not from a real event. A real INDRA receipt prints `factor_coverage` beside the score (0.80 today, because vision and anomaly detection are offline) and names the evidence behind every factor.
 
 ---
 
@@ -403,7 +403,7 @@ Legend: ✅ built · 🟡 partly built · ⬜ designed, not built yet
 | # | Layer | What it does | Built? |
 |---|---|---|---|
 | 1 | **Data Sources** | Where information comes from: IMD/Govt APIs, weather APIs, public datasets, social media, citizen reports, images/videos | 🟡 **Citizen reports, plus rainfall from Open-Meteo** fetched whenever an event is scored. No other outside source is read yet. |
-| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | 🟡 Live reports flow in through the API and the stream, and a report that couldn't be saved is told so (503) instead of being silently lost. Reports with coordinates outside India are refused. Batch loading is only a fake-data seed script, clearly labelled as such. |
+| 2 | **Data Ingestion** | The front door: REST API/webhooks, Kafka/Redpanda, batch and stream ingestion | 🟡 Live reports flow in through the API and the stream, and a report that couldn't be saved is told so (503) instead of being silently lost. Reports with coordinates outside India are refused. There is no bulk loader: outside feeds arrive through scheduled pollers, and the fake-data seed script that once stood in for batch loading was deleted on 25 Sep. |
 | 3 | **Data Processing** | Tidying up: cleaning, normalization, deduplication, timestamps, geocoding, metadata | ✅ Deduplication (a repeated report is remembered as a copy and never counted as extra evidence), coordinate checking, geocoding and a credibility score per report. **20 Sep: cleaning and metadata extraction now run at ingest** and are stored on the report — how deep the water is, which language it is in, life-safety keywords, place names. Rules and dictionaries, not a model. |
 | 4 | **AI / ML Layer** | Understanding: NLP classifier, event detection, fake detection, duplicate matching, image analysis, anomaly detection | ⬜ **Out of this project's scope since 20 Sep**, and not being built. Duplicate matching, which does work, uses sentence embeddings and stays. The trained classifier missed the accuracy gate set before training — it dismissed too many real floods as chatter — so it ships switched off and is not being retrained. **Image analysis and anomaly detection are permanently offline**, and every receipt says so instead of substituting a number. |
 | 5 | **Geo-Analytics** | Everything about *where*: location mapping, spatial clustering, heatmaps, event boundaries, risk zones, time-space trends | ✅ Clustering and mapping are real. **20 Sep: every event now has a real boundary polygon** on the map, and `GET /api/geo/heatmap` serves report density per hexagonal cell at three zoom levels, where coarser zooms are exact sums of finer ones. Risk zones aren't built. |
@@ -1415,23 +1415,24 @@ Then the API crashes.
 
 If our whole demo depends on that API, the system can appear broken.
 
-So we need a **replay/mock data generator**.
+The answer is **not** to fill the gap with replayed or invented data. INDRA does two things instead.
 
-It can replay historical or synthetic scenarios into the exact same ingestion pipeline.
+1. **It says so.** Every poller records a heartbeat, and `GET /api/meta/sources` (the **Geospatial Feeds** page) marks each feed `ok`, `stale`, `failing` or `disabled`; `/healthz` says `degraded` when a non-critical dependency such as Open-Meteo is down.
+2. **It keeps what already arrived and scores with what is left.** If Open-Meteo is down and no recent reading of it is stored, the weather factor goes `offline` with a reason and coverage drops from 0.80 to 0.55; the event is still created and still scored.
 
 ```text
-LIVE MODE
-External source → Kafka → processing
+LIVE
+External source → poller / Kafka → processing
 
-FAILSAFE MODE
-Replay generator → Kafka → same processing
+FEED DOWN
+Feed marked stale or failing → remaining evidence → same processing, lower coverage
 ```
 
 This is important:
 
-**The fallback should still use the real pipeline.**
+**A gap in the data is shown as a gap.**
 
-Do not create a fake shortcut that directly writes the final event into the database.
+A replay generator writing into the same database would put invented rows beside real ones, and nobody downstream could tell them apart. Nor should anything take a shortcut that writes a final event straight into the database.
 
 ---
 
@@ -1448,11 +1449,11 @@ It looks impressive but proves almost nothing.
 Good demo:
 
 ```text
-Generate a burst of synthetic reports
+A person files what they actually see
         ↓
-Kafka
+REST → outbox → Kafka
         ↓
-classification
+hazard tagging (rules)
         ↓
 deduplication
         ↓
@@ -1465,13 +1466,13 @@ real event
 dashboard
 ```
 
+Around it, the live feeds (official warnings, rainfall, airport weather, posts and headlines) were already arriving. Nothing is generated for the occasion. Even a generator that goes through the real pipeline is the wrong demo: its reports land in the same database as real ones, and afterwards nobody can tell them apart.
+
 Now the judges can see the system actually working.
 
 ---
 
 # 44. The demo story
-
-![Demo storyline](understand_diagrams/08_demo.png)
 
 The demonstration should tell a simple story.
 
@@ -1479,25 +1480,25 @@ The demonstration should tell a simple story.
 
 The dashboard shows normal conditions.
 
-### Scene 2 — Sudden spike
+### Scene 2 — A real report
 
-A replay script injects a weather incident with many reports.
+A real report arrives: typed by a person about what they can actually see, or collected from a public feed.
 
-### Scene 3 — Chaos arrives
+### Scene 3 — More arrives
 
-The system receives duplicates, conflicting messages and useful evidence.
+More arrives beside it: a second witness, posts and headlines, official warnings. Some repeat each other; some are about other places.
 
-### Scene 4 — The machine organizes the chaos
+### Scene 4 — The machine organizes it
 
-Reports are classified, deduplicated and spatially clustered.
+Reports are tagged by hazard (rules), deduplicated and spatially clustered.
 
-### Scene 5 — Evidence agrees
+### Scene 5 — Evidence is checked
 
-Authoritative data and other sources support the incident.
+Rainfall and source reliability are checked against it; what cannot be checked (images, anomalies) is marked offline.
 
-### Scene 6 — Verified event
+### Scene 6 — One event
 
-A single incident appears on the map.
+If at least two independent reports agree, a single incident appears on the map. If nothing is happening, no event forms, and that is the right answer.
 
 ### Scene 7 — Explain it
 
@@ -2292,11 +2293,11 @@ Build:
 
 ## Phase 7 — Demo
 
-1. replay scenario
-2. load spike
-3. duplicates
-4. verification
-5. dashboard alert
+1. live feeds on screen
+2. a real report filed live
+3. duplicates suppressed
+4. verification receipt
+5. human review
 6. provenance trace
 
 ---

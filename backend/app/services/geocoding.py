@@ -498,6 +498,17 @@ class OutOfIndiaBoundsError(ValueError):
         )
 
 
+class LocationUnresolvedError(ValueError):
+    """No usable coordinates, and no place in the hints the gazetteer knows."""
+
+    def __init__(self, hint: str = ""):
+        self.hint = hint
+        super().__init__(
+            "No coordinates were supplied and no known place was named"
+            + (f" in {hint[:80]!r}" if hint else "")
+        )
+
+
 def is_within_india(lat: float, lng: float) -> bool:
     """Check if lat/lng is within Indian boundaries."""
     return (
@@ -519,20 +530,20 @@ def sanitize_coordinates(
     lng: Optional[float],
     text_hint: Optional[str] = None,
     city_hint: Optional[str] = None,
-    snap_out_of_bounds: bool = False,
 ) -> Tuple[float, float, str, str]:
     """
     Sanitizes coordinates, auto-corrects inverted pairs, or falls back to
     Gazetteer lookup from text/city hints.
 
-    Coordinates that are present but outside India raise OutOfIndiaBoundsError
-    unless `snap_out_of_bounds` is True. Snapping them to a gazetteer match or
-    the (22, 82) national centroid used to be unconditional, and with
-    DBSCAN_MIN_SAMPLES=2 any two junk or GPS-glitched reports then clustered at
-    that one point and manufactured a verified event in the middle of India.
+    Coordinates that are present but outside India raise OutOfIndiaBoundsError.
+    Snapping them to a gazetteer match or a fixed point in central India used
+    to be possible, and with DBSCAN_MIN_SAMPLES=2 any two junk or GPS-glitched
+    reports then clustered at that one point and manufactured a verified event
+    in the middle of India.
 
-    Missing coordinates still resolve from the hints — there is nothing to
-    reject, only a location to look up.
+    Missing coordinates resolve from the hints — there is nothing to reject,
+    only a location to look up. When the hints name no known place either,
+    LocationUnresolvedError: this function never answers with a placeholder.
 
     Returns: (lat, lng, city, state)
     """
@@ -559,8 +570,7 @@ def sanitize_coordinates(
                     return f_lat, f_lng, city_hint or place.district, place.state
                 return f_lat, f_lng, city_hint or "", ""
 
-            if not snap_out_of_bounds:
-                raise OutOfIndiaBoundsError(f_lat, f_lng)
+            raise OutOfIndiaBoundsError(f_lat, f_lng)
 
     # Resolve from text or city hint
     search_str = f"{city_hint or ''} {text_hint or ''}".lower()
@@ -568,8 +578,7 @@ def sanitize_coordinates(
         if re.search(rf"\b{re.escape(key)}\b", search_str) or key in search_str:
             return loc["lat"], loc["lng"], loc["city"], loc["state"]
 
-    # National command centroid fallback
-    return 22.0, 82.0, "National Command Grid", "India"
+    raise LocationUnresolvedError(" ".join(h for h in (city_hint, text_hint) if h))
 
 
 # ---------------------------------------------------------------------------

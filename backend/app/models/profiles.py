@@ -37,7 +37,7 @@ class UserProfile(Base):
         ForeignKey("teams.id", ondelete="SET NULL"),
         nullable=True,
     )
-    team_role = Column(String(80), nullable=True, default="Operational Specialist")
+    team_role = Column(String(80), nullable=True)
     duty_status = Column(
         Enum(DutyStatus, name="duty_status_enum"),
         nullable=False,
@@ -45,6 +45,9 @@ class UserProfile(Base):
     )
     avatar_url = Column(String(512), nullable=True)
     bio = Column(Text, nullable=True)
+    # bcrypt. NULL means the account cannot sign in (migration 0019); set it
+    # with scripts/set_operator_password.py. Never selected by a read endpoint.
+    password_hash = Column(Text, nullable=True)
     last_active_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

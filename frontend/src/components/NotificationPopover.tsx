@@ -23,7 +23,7 @@ const severityConfig: Record<SeverityKey, { label: string; dotColor: string; pil
   MODERATE: { label: 'Moderate', dotColor: '#B8873A', pillBg: 'rgba(184,135,58,0.12)',  pillText: '#8A611E', pillBorder: 'rgba(184,135,58,0.35)' },
   MINOR:    { label: 'Minor',    dotColor: '#4A6670', pillBg: 'rgba(74,102,112,0.1)',   pillText: '#374E57', pillBorder: 'rgba(74,102,112,0.25)' },
   ADVISORY: { label: 'Advisory', dotColor: '#7A8599', pillBg: 'rgba(122,133,153,0.1)', pillText: '#4A5568', pillBorder: 'rgba(122,133,153,0.25)'},
-  UNKNOWN:  { label: 'Info',     dotColor: '#7A8599', pillBg: 'rgba(122,133,153,0.1)', pillText: '#4A5568', pillBorder: 'rgba(122,133,153,0.25)'},
+  UNKNOWN:  { label: 'Unrated',  dotColor: '#7A8599', pillBg: 'rgba(122,133,153,0.1)', pillText: '#4A5568', pillBorder: 'rgba(122,133,153,0.25)'},
 };
 
 function normaliseSeverity(raw: string | null): SeverityKey {
@@ -66,6 +66,20 @@ export default function NotificationPopover({ className = '' }: { className?: st
 
   useEffect(() => { if (isOpen) loadAlerts(); }, [isOpen, loadAlerts]);
 
+  // The bell's dot means a warning is in force, so the count is fetched on
+  // mount and every two minutes, not only when the popover opens.
+  useEffect(() => {
+    const refresh = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      fetchAgencyAlerts(8, false)
+        .then((data) => setAlerts(data))
+        .catch(() => { /* the dot stays as it was; opening the popover shows the error */ });
+    };
+    refresh();
+    const id = setInterval(refresh, 120_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) setIsOpen(false);
@@ -96,7 +110,9 @@ export default function NotificationPopover({ className = '' }: { className?: st
           ? <BellRing className="w-5 h-5 text-[#B5482E]" />
           : <Bell className={`w-5 h-5 transition-colors ${isOpen ? 'text-[#B5482E]' : 'text-[#7A8599]'}`} />
         }
-        <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#8C2F26] ring-1 ring-[#F7F3EA] ${hasAlerts ? 'animate-pulse' : ''}`} />
+        {hasAlerts && (
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#8C2F26] ring-1 ring-[#F7F3EA] animate-pulse" />
+        )}
       </button>
 
       <AnimatePresence>
@@ -145,6 +161,7 @@ export default function NotificationPopover({ className = '' }: { className?: st
                 <div className="flex flex-col items-center justify-center py-10 px-6 gap-2 text-center">
                   <AlertTriangle className="w-7 h-7 text-[#B5482E]/60" />
                   <p className="text-sm font-medium text-[#4A5568]">{t('common.error')}</p>
+                  <p className="text-xs text-[#7A8599]">The backend did not answer. Check server status.</p>
                   <button onClick={loadAlerts} className="mt-2 text-xs font-semibold text-[#B5482E] hover:underline">{t('common.retry')}</button>
                 </div>
               )}
@@ -154,8 +171,8 @@ export default function NotificationPopover({ className = '' }: { className?: st
                   <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-emerald-600" />
                   </div>
-                  <p className="text-sm font-semibold text-[#1E2A3B]">All communication lines normal</p>
-                  <p className="text-xs text-[#7A8599] leading-relaxed max-w-[260px]">No active severe bulletins from SACHET, IMD, or CWC at this time.</p>
+                  <p className="text-sm font-semibold text-[#1E2A3B]">No official warning in force</p>
+                  <p className="text-xs text-[#7A8599] leading-relaxed max-w-[260px]">INDRA&apos;s SACHET feed holds no active bulletin from IMD, CWC or a state SDMA.</p>
                 </div>
               )}
 

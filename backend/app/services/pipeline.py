@@ -1144,7 +1144,8 @@ async def _next_event_code(db: AsyncSession) -> str:
 
     Derived from the count of events already created today. Two events created
     in the same millisecond could collide; event_code is UNIQUE so the insert
-    would fail loudly rather than corrupt anything. Fine at demo volume.
+    would fail loudly rather than corrupt anything. Acceptable at
+    single-process volume.
     """
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
     count = (

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp } from '@/lib/motion';
 import { Map, BarChart2, LayoutDashboard } from 'lucide-react';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export type ViewMode = 'mission-control' | 'map-focus' | 'analytics-focus';
@@ -14,6 +15,7 @@ interface WelcomeHeaderProps {
 }
 
 export default function WelcomeHeader({ viewMode = 'mission-control', onViewModeChange }: WelcomeHeaderProps) {
+  const { connected } = useIndraWebSocket();
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
   const { t } = useTranslation();
@@ -72,22 +74,25 @@ export default function WelcomeHeader({ viewMode = 'mission-control', onViewMode
       animate="visible"
       className="flex items-center justify-between mb-2.5 pb-2 border-b border-[#E8E2D4] min-h-[36px]"
     >
-      {/* Left — Title + Live dot */}
+      {/* Left — Title + the live socket's state */}
       <div className="flex items-center gap-2.5">
-        {/* Live indicator */}
-        <span className="flex items-center gap-1">
-          <span className="status-dot w-1.5 h-1.5" />
-        </span>
         <span
           className="text-base font-semibold text-ink leading-normal py-0.5"
           style={{ fontFamily: 'Fraunces, Georgia, serif' }}
         >
           {t('dashboard.welcome_title')}
         </span>
-        <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium text-[#4C7A5B] bg-[#E7F2EC] border border-[#C5DECE] px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(76,122,91,0.12)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#4C7A5B] animate-pulse" />
-          {t('nav.telemetry_live')}
-        </span>
+        {connected ? (
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium text-[#4C7A5B] bg-[#E7F2EC] border border-[#C5DECE] px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4C7A5B] animate-pulse" />
+            Live
+          </span>
+        ) : (
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium text-[#8A611E] bg-[#FBF2E4] border border-[#E8D5B5] px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#B8873A]" />
+            Offline — reconnecting
+          </span>
+        )}
       </div>
 
       {/* Centre — View Mode switcher */}

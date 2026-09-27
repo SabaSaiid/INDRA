@@ -281,7 +281,7 @@ async def search_reports(
                 text(f"SELECT count(*) FROM raw_reports r WHERE {query.where}"), query.params
             )).scalar() or 0
     except Exception as e:
-        # No demo payload: an invented report in an analyst's search is the one
+        # No fallback payload: an invented report in an analyst's search is the one
         # thing this route must never return.
         logger.warning(f"Database query failed in search_reports: {e}")
         raise HTTPException(status_code=503, detail="Database unavailable")

@@ -4,22 +4,7 @@
  * **Every value returned by this module came from the backend. There are no
  * fallbacks and no invented rows.**
  *
- * This file used to end every function with `catch { return mockData }`, and
- * several of them treated an empty list as a failure:
- *
- *     if (!Array.isArray(data) || data.length === 0) throw new Error('Empty');
- *     ...
- *     catch (err) { return fallbackApiEvents; }
- *
- * Between them those two lines meant an empty database rendered a *full*
- * dashboard. The first seconds of a live demo are exactly when the database is
- * empty, so the screen showed CRITICAL events at 0.94 confidence and
- * AUTO_PUBLISHED — values the real pipeline cannot currently produce at all,
- * since the maximum achievable confidence is 0.80 while the vision and anomaly
- * factors are offline. Nobody could tell the backend was down, because the
- * failure looked exactly like success.
- *
- * The rules now:
+ * The rules:
  *
  * 1. **An empty list is a result, not an error.** `[]` is returned as `[]`. The
  *    component renders an empty state. An empty dashboard that fills up as
@@ -42,10 +27,10 @@ import {
   type UserProfile,
   type HackathonTeamData,
 } from './ui-config';
-import { sanitizeIncidentCoordinate } from './geo-resolver';
+import { API_BASE } from './api-base';
+import { authHeaders, getSession, signOut } from './auth';
 
 export type { FeedItem };
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 export const ALERT_ENGINE_BASE = process.env.NEXT_PUBLIC_ALERT_ENGINE_BASE_URL || 'http://localhost:8001';
 export const ALERT_ENGINE_WS = process.env.NEXT_PUBLIC_ALERT_ENGINE_WS_URL || 'ws://localhost:8001/ws/alerts';
 
@@ -87,96 +72,32 @@ function asArray<T>(value: unknown, path: string): T[] {
   return value as T[];
 }
 
-// ─── Authentication & Token Management ───────────────────────────────────────
-
-/** Demo credentials matching backend security.py DEMO_USERS. */
-const DEMO_CREDENTIALS: Record<string, string> = {
-  commander: 'commander123',
-  analyst: 'analyst123',
-  admin: 'admin123',
-  citizen: 'citizen123',
-};
-
-interface AuthToken {
-  access_token: string;
-  token_type: string;
-  role: string;
-  agency: string;
-  fetchedAt: number;
-}
-
-const tokenCache = new Map<string, AuthToken>();
-const TOKEN_TTL_MS = 7 * 60 * 60 * 1000; // 7 hours (backend issues 8h tokens)
+// ─── Authenticated calls ─────────────────────────────────────────────────────
 
 /**
- * Fetch a JWT token from the backend for the given persona.
- * Tokens are cached in-memory and auto-refreshed when stale.
+ * fetch with the signed-in operator's token. A 401 on a call that carried one
+ * means the backend no longer accepts it (expired, or the account's login was
+ * disabled), so the tab signs out rather than keep offering what will fail.
  */
-export async function getAuthToken(username: string): Promise<string | null> {
-  const cached = tokenCache.get(username);
-  if (cached && Date.now() - cached.fetchedAt < TOKEN_TTL_MS) {
-    return cached.access_token;
-  }
-
-  const password = DEMO_CREDENTIALS[username];
-  if (!password) {
-    console.warn(`[INDRA] No demo credentials for persona: ${username}`);
-    return null;
-  }
-
+async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const auth = authHeaders();
+  let res: Response;
   try {
-    const body = new URLSearchParams();
-    body.set('username', username);
-    body.set('password', password);
-
-    const res = await fetch(`${API_BASE}/api/auth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string> | undefined), ...auth },
     });
-    if (!res.ok) throw new Error(`Auth failed: HTTP ${res.status}`);
-    const data = await res.json();
-    const token: AuthToken = { ...data, fetchedAt: Date.now() };
-    tokenCache.set(username, token);
-    return token.access_token;
-  } catch (err) {
-    console.warn(`[INDRA] getAuthToken(${username}) failed:`, err);
-    return null;
-  }
-}
-
-/** Build Authorization headers for the given persona. Returns empty if auth fails. */
-export async function getAuthHeaders(username: string): Promise<Record<string, string>> {
-  const token = await getAuthToken(username);
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
-
-/** Clear cached token (e.g. on persona switch). */
-export function clearAuthToken(username: string) {
-  tokenCache.delete(username);
-}
-
-/** Where useOperatorProfile keeps the selected persona. */
-export const OPERATOR_STORAGE_KEY = 'indra_current_role';
-
-/**
- * The persona the operator has selected in the switcher, for calls made from
- * pages that do not hold the profile hook. Falls back to 'commander', the
- * switcher's own default, when storage is unavailable.
- */
-export function currentPersona(): string {
-  try {
-    return localStorage.getItem(OPERATOR_STORAGE_KEY) || 'commander';
   } catch {
-    return 'commander';
+    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
   }
+  if (res.status === 401 && auth.Authorization) signOut();
+  return res;
 }
 
 /** A readable reason for a refused mutation, so the UI can say why. */
 function mutationError(path: string, status: number, action: string): ApiError {
-  if (status === 401) return new ApiError(path, status, `${action} failed: not signed in`);
-  if (status === 403) return new ApiError(path, status, `${action} needs a Commander or Admin persona`);
+  if (status === 401) return new ApiError(path, status, `${action} needs you to sign in`);
+  if (status === 403) return new ApiError(path, status, `${action} needs a Commander or Admin account`);
   if (status === 404) return new ApiError(path, status, `${action} failed: not found`);
   return new ApiError(path, status, `${action} failed (HTTP ${status})`);
 }
@@ -255,16 +176,10 @@ export interface ProvenanceData {
   chain: { valid: boolean; checked: number; error?: string };
 }
 
-export async function fetchEventProvenance(
-  eventId: string,
-  operatorUsername: string = 'commander'
-): Promise<ProvenanceData | null> {
+/** Needs an Analyst, Commander or Admin session; null when refused or unreachable. */
+export async function fetchEventProvenance(eventId: string): Promise<ProvenanceData | null> {
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
-    const res = await fetch(`${API_BASE}/api/events/${eventId}/provenance`, {
-      cache: 'no-store',
-      headers: { ...authHeaders },
-    });
+    const res = await authedFetch(`/api/events/${eventId}/provenance`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -281,23 +196,24 @@ export async function reviewEvent(
   eventId: string,
   action: 'approve' | 'reject' | 'override_severity',
   reason: string,
-  operatorUsername: string = 'commander',
   newSeverity?: string
 ): Promise<{ success: boolean; data?: ReviewResponse; error?: string }> {
+  if (!getSession()) {
+    return { success: false, error: 'Sign in as a Commander or Admin to review' };
+  }
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
-    if (!authHeaders.Authorization) {
-      return { success: false, error: 'Authentication failed — cannot obtain token' };
-    }
     const body: Record<string, any> = { action, reason };
     if (action === 'override_severity' && newSeverity) {
       body.new_severity = newSeverity;
     }
-    const res = await fetch(`${API_BASE}/api/events/${eventId}/review`, {
+    const res = await authedFetch(`/api/events/${eventId}/review`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (res.status === 401) {
+      return { success: false, error: 'Your session has ended. Sign in again to review.' };
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
       return { success: false, error: err.detail || `HTTP ${res.status}` };
@@ -343,23 +259,27 @@ export async function submitCitizenReport(
 /**
  * File a report from a trusted field source (a control room, an SDRF team)
  * through POST /api/reports/official (BUG-025). Needs a Commander or Admin
- * persona; the backend stores it as OFFICIAL_DISPATCH with the operator's name,
+ * session; the backend stores it as OFFICIAL_DISPATCH with the operator's name,
  * which lifts the cluster's source reliability to 1.00. The public route above
  * can never claim a source, by design.
  */
 export async function submitOfficialReport(
-  report: ReportSubmission,
-  operatorUsername: string = currentPersona()
+  report: ReportSubmission
 ): Promise<{ success: boolean; data?: any; error?: string }> {
+  if (!getSession()) {
+    return { success: false, error: 'Sign in as a Commander or Admin to file an official dispatch' };
+  }
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
-    const res = await fetch(`${API_BASE}/api/reports/official`, {
+    const res = await authedFetch('/api/reports/official', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report),
     });
-    if (res.status === 401 || res.status === 403) {
-      return { success: false, error: 'Filing an official dispatch needs a Commander or Admin persona' };
+    if (res.status === 401) {
+      return { success: false, error: 'Your session has ended. Sign in again to file an official dispatch.' };
+    }
+    if (res.status === 403) {
+      return { success: false, error: 'Filing an official dispatch needs a Commander or Admin account' };
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
@@ -571,34 +491,40 @@ export async function fetchEvents(
   return fetchPromise;
 }
 
+/**
+ * True when both values are finite numbers. `Number.isFinite` rather than a
+ * null check, because `Number(null)` is 0 and would put a pin in the Gulf of
+ * Guinea.
+ */
+function hasPlottableCoords(lat: unknown, lng: unknown): boolean {
+  return typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+/**
+ * Events as map markers, at the coordinates the API sent. An event without
+ * plottable coordinates is left off the map and logged; it is never moved to a
+ * plausible place.
+ */
 export function apiEventsToMapMarkers(events: ApiEvent[]): MapMarker[] {
-  return events.map((ev, idx) => {
-    const sanitized = sanitizeIncidentCoordinate(
-      ev.lat,
-      ev.lng,
-      ev.city,
-      ev.state,
-      ev.eventType,
-      idx
-    );
-    return {
+  return events
+    .filter((ev) => {
+      if (hasPlottableCoords(ev.lat, ev.lng)) return true;
+      console.warn(`[INDRA map] event ${ev.id} has no plottable coordinates (${ev.lat}, ${ev.lng}); not drawn`);
+      return false;
+    })
+    .map((ev) => ({
       id: ev.id,
-      lat: sanitized.lat,
-      lng: sanitized.lng,
-      city: sanitized.city || ev.city || '',
-      state: sanitized.state || ev.state || '',
-      placeLabel: formatPlace(
-        sanitized.city || ev.city,
-        sanitized.state || ev.state,
-        ev.place_precision
-      ),
+      lat: ev.lat,
+      lng: ev.lng,
+      city: ev.city ?? '',
+      state: ev.state ?? '',
+      placeLabel: formatPlace(ev.city, ev.state, ev.place_precision),
       eventType: ev.eventType as any,
       severity: ev.severity as any,
       description: `${ev.eventType} — ${ev.quadrant}`,
       verification: ev.verification as any,
       layer: 'event' as const,
-    };
-  });
+    }));
 }
 
 export function apiEventsToRecentEvents(events: ApiEvent[]): RecentEvent[] {
@@ -706,7 +632,7 @@ export async function fetchAgencyAlerts(
  */
 export function agencyAlertsToMapMarkers(alerts: AgencyAlert[]): MapMarker[] {
   return alerts
-    .filter((a) => a.lat !== null && a.lng !== null)
+    .filter((a) => hasPlottableCoords(a.lat, a.lng))
     .map((a) => ({
       id: `alert-${a.id}`,
       lat: a.lat as number,
@@ -718,8 +644,9 @@ export function agencyAlertsToMapMarkers(alerts: AgencyAlert[]): MapMarker[] {
           ? `${a.location_label} (state-wide)`
           : formatPlace(a.location_label, null),
       layer: 'alert' as const,
-      eventType: (a.event || 'Severe Rainfall') as any,
-      severity: (a.severity || 'ADVISORY').toLowerCase() as any,
+      // A warning that names no hazard or severity is shown as exactly that.
+      eventType: (a.event || 'Unnamed warning') as any,
+      severity: (a.severity ? a.severity.toLowerCase() : 'unrated') as any,
       description: a.headline || a.event || 'Agency warning',
       title: a.sender || 'Agency',
       verification: 'verified' as any,
@@ -814,21 +741,30 @@ export async function fetchFieldReports(
  * Nothing here has been clustered, corroborated or scored — drawing an
  * unreviewed citizen claim like a verified event is the one thing a national
  * console must not do.
+ *
+ * /api/reports/recent carries no hazard or severity, so a report is a
+ * 'Citizen report' of 'unrated' severity rather than a guessed classification.
  */
 export function fieldReportsToMapMarkers(reports: FieldReport[]): MapMarker[] {
-  return reports.map((r) => ({
-    id: `report-${r.id}`,
-    lat: r.lat,
-    lng: r.lng,
-    city: r.district ?? '',
-    state: r.state ?? '',
-    placeLabel: formatPlace(r.district, r.state),
-    layer: 'report' as const,
-    eventType: 'Flood' as any,
-    severity: 'advisory' as any,
-    description: r.text,
-    verification: 'under-review' as any,
-  }));
+  return reports
+    .filter((r) => {
+      if (hasPlottableCoords(r.lat, r.lng)) return true;
+      console.warn(`[INDRA map] report ${r.id} has no plottable coordinates (${r.lat}, ${r.lng}); not drawn`);
+      return false;
+    })
+    .map((r) => ({
+      id: `report-${r.id}`,
+      lat: r.lat,
+      lng: r.lng,
+      city: r.district ?? '',
+      state: r.state ?? '',
+      placeLabel: formatPlace(r.district, r.state),
+      layer: 'report' as const,
+      eventType: 'Citizen report' as any,
+      severity: 'unrated' as any,
+      description: r.text,
+      verification: 'under-review' as any,
+    }));
 }
 
 // ─── Data sources (GET /api/meta/sources) ────────────────────────────────────
@@ -899,27 +835,17 @@ export async function fetchTeamById(teamId: string): Promise<TeamItem> {
 /**
  * Dispatch a team to an event (its UUID), or recall it with null.
  *
- * Needs a COMMANDER or ADMIN token since BUG-009, so it is sent as the
- * operator's selected persona; an analyst or citizen persona gets a 403 with a
- * reason the page can show.
+ * Needs a COMMANDER or ADMIN token since BUG-009, sent as the signed-in
+ * operator; an analyst or citizen account gets a 403 with a reason the page
+ * can show.
  */
-export async function assignTeamToEvent(
-  teamId: string,
-  eventId: string | null,
-  operatorUsername: string = currentPersona()
-): Promise<any> {
+export async function assignTeamToEvent(teamId: string, eventId: string | null): Promise<any> {
   const path = `/api/teams/${teamId}/assign`;
-  const authHeaders = await getAuthHeaders(operatorUsername);
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ event_id: eventId }),
-    });
-  } catch {
-    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
-  }
+  const res = await authedFetch(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event_id: eventId }),
+  });
   if (!res.ok) {
     // A mutation that silently "succeeds" locally is worse than one that fails
     // loudly: the operator believes a team was dispatched when none was.
@@ -934,32 +860,32 @@ export async function fetchHackathonTeam(): Promise<HackathonTeamData> {
 
 // ─── User Profile & Identity ──────────────────────────────────────────────────
 
-export async function fetchUserProfile(username?: string): Promise<UserProfile> {
-  const path = username ? `/api/profile/me?user=${username}` : '/api/profile/me';
-  return getJson<UserProfile>(path);
+/** The signed-in operator's profile: GET /api/profile/me with the session's token. */
+export async function fetchUserProfile(): Promise<UserProfile> {
+  const path = '/api/profile/me';
+  if (!getSession()) throw new ApiError(path, 401, 'Not signed in');
+  const res = await authedFetch(path, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new ApiError(path, res.status, `Backend returned HTTP ${res.status}`);
+  }
+  try {
+    return (await res.json()) as UserProfile;
+  } catch {
+    throw new ApiError(path, res.status, 'Backend returned a malformed response');
+  }
 }
 
 /**
- * Save the persona's own profile. The backend edits the token's subject and
- * nothing else (BUG-009), so the persona is who is authenticated, not a query
- * parameter naming whose profile to change.
+ * Save the signed-in operator's own profile. The backend edits the token's
+ * subject and nothing else (BUG-009).
  */
-export async function updateUserProfile(
-  data: Partial<UserProfile>,
-  username: string = currentPersona()
-): Promise<UserProfile> {
+export async function updateUserProfile(data: Partial<UserProfile>): Promise<UserProfile> {
   const path = '/api/profile/me';
-  const authHeaders = await getAuthHeaders(username);
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify(data),
-    });
-  } catch {
-    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
-  }
+  const res = await authedFetch(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
   if (!res.ok) {
     throw mutationError(path, res.status, 'Profile update');
   }
@@ -1030,21 +956,18 @@ export interface AuditLedger {
   rows: AuditRow[];
 }
 
-/** GET /api/audit/recent — ANALYST, COMMANDER or ADMIN persona. */
-export async function fetchAuditLedger(
-  limit: number = 20,
-  operatorUsername: string = currentPersona()
-): Promise<AuditLedger> {
+/** GET /api/audit/recent — needs an Analyst, Commander or Admin session. */
+export async function fetchAuditLedger(limit: number = 20): Promise<AuditLedger> {
   const path = `/api/audit/recent?limit=${limit}`;
-  const authHeaders = await getAuthHeaders(operatorUsername);
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`, { cache: 'no-store', headers: { ...authHeaders } });
-  } catch {
-    throw new ApiError(path, null, `Cannot reach the INDRA backend at ${API_BASE}`);
+  if (!getSession()) {
+    throw new ApiError(path, 401, 'Sign in as an Analyst, Commander or Admin to read the audit ledger');
+  }
+  const res = await authedFetch(path, { cache: 'no-store' });
+  if (res.status === 401) {
+    throw new ApiError(path, 401, 'Your session has ended. Sign in again to read the audit ledger.');
   }
   if (res.status === 403) {
-    throw new ApiError(path, 403, 'Reading the audit ledger needs an Analyst, Commander or Admin persona');
+    throw new ApiError(path, 403, 'Reading the audit ledger needs an Analyst, Commander or Admin account');
   }
   if (!res.ok) {
     throw mutationError(path, res.status, 'Reading the audit ledger');
@@ -1093,12 +1016,14 @@ export async function fetchEngineAlerts(): Promise<EngineAlert[]> {
 /**
  * Acknowledge an active Alert Engine alert.
  */
-export async function acknowledgeEngineAlert(alertId: string, operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
+export async function acknowledgeEngineAlert(alertId: string): Promise<{ success: boolean; error?: string }> {
+  const session = getSession();
+  if (!session) return { success: false, error: 'Sign in to acknowledge an alert' };
+  const operatorUsername = session.username;
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
     const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/acknowledge`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ acknowledged_by: operatorUsername }) // We still send it, but engine should verify via token
     });
     if (!res.ok) {
@@ -1114,12 +1039,14 @@ export async function acknowledgeEngineAlert(alertId: string, operatorUsername: 
 /**
  * Resolve an active Alert Engine alert.
  */
-export async function resolveEngineAlert(alertId: string, reason: string = "Resolved by operator", operatorUsername: string = currentPersona()): Promise<{ success: boolean; error?: string }> {
+export async function resolveEngineAlert(alertId: string, reason: string = "Resolved by operator"): Promise<{ success: boolean; error?: string }> {
+  const session = getSession();
+  if (!session) return { success: false, error: 'Sign in to resolve an alert' };
+  const operatorUsername = session.username;
   try {
-    const authHeaders = await getAuthHeaders(operatorUsername);
     const res = await fetch(`${ALERT_ENGINE_BASE}/api/alerts/${alertId}/resolve`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ resolved_by: operatorUsername, reason: reason })
     });
     if (!res.ok) {

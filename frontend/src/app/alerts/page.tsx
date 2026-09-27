@@ -54,7 +54,7 @@ import {
   ALERT_ENGINE_WS,
 } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
-import { safeEventState } from '@/lib/eventState';
+import { eventReviewState } from '@/lib/eventState';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 type Level = 'RED' | 'ORANGE' | 'YELLOW';
@@ -81,6 +81,7 @@ const REVIEW_LABEL: Record<string, string> = {
   HUMAN_APPROVED: 'Approved by an operator',
   PENDING_HUMAN_REVIEW: 'Awaiting operator review',
   QUARANTINED: 'Quarantined — not verified',
+  UNKNOWN: 'Status not reported',
 };
 
 function levelForSeverity(severity: string | null | undefined): Level {
@@ -135,9 +136,9 @@ function officialCard(a: AgencyAlert): WarningCard {
 }
 
 function indraCard(ev: ApiEvent): WarningCard {
-  // The API's review_status and quadrant, derived only when absent (BUG-070).
-  const derivedState = safeEventState(ev.id, ev.severity, ev.confidence_score, ev.review_status, ev.quadrant);
-  const status = REVIEW_LABEL[derivedState.reviewStatus] || derivedState.reviewLabel;
+  // The API's review_status, never derived (BUG-070).
+  const reviewState = eventReviewState(ev.review_status, ev.quadrant);
+  const status = REVIEW_LABEL[reviewState.reviewStatus] || reviewState.reviewLabel;
   const reports = ev.corroborating_reports_count;
   return {
     key: `event-${ev.id}`,

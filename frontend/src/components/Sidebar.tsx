@@ -11,9 +11,10 @@ import {
   dutyStatusConfig,
   type NavItem,
   type DutyStatus,
-  PLACEHOLDER_OPERATOR,
 } from '@/lib/ui-config';
-import { useOperatorProfile, AVAILABLE_OPERATOR_PERSONAS } from '@/lib/useOperatorProfile';
+import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
+import SignInDialog from './SignInDialog';
 import {
   CloudLightning,
   ChevronLeft,
@@ -21,6 +22,8 @@ import {
   ChevronDown,
   X,
   Settings,
+  LogIn,
+  User,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -39,25 +42,17 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
-  const { profile: loadedProfile, selectedRole } = useOperatorProfile();
-  const rawProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
-  const currentPersona = AVAILABLE_OPERATOR_PERSONAS.find((p) => p.id === selectedRole) || AVAILABLE_OPERATOR_PERSONAS[0];
+  const { connected } = useIndraWebSocket();
+  const { session, profile } = useOperatorProfile();
+  const [signInOpen, setSignInOpen] = useState(false);
 
-  const profile = {
-    ...rawProfile,
-    full_name: (rawProfile.full_name && rawProfile.full_name !== 'Operator unavailable' && rawProfile.full_name !== '—')
-      ? (rawProfile.full_name === 'Incident Commander' ? currentPersona.name : rawProfile.full_name)
-      : currentPersona.name,
-    avatar_initials: (rawProfile.avatar_initials && rawProfile.avatar_initials !== '—')
-      ? rawProfile.avatar_initials
-      : currentPersona.avatar,
-    agency: (rawProfile.agency && rawProfile.agency !== '—')
-      ? (rawProfile.agency === 'SDMA_BIHAR' ? 'SEOC Bihar / NDMA' : rawProfile.agency.replace(/_/g, ' '))
-      : currentPersona.agency,
-    callsign: (rawProfile.callsign && rawProfile.callsign !== '—')
-      ? rawProfile.callsign
-      : (selectedRole === 'commander' ? 'PATNA-ACTUAL' : selectedRole === 'analyst' ? 'SIGNAL-IMD' : selectedRole === 'admin' ? 'NDMA-CONTROL' : 'GROUND-01'),
-  };
+  // The profile as the backend returned it; until it arrives, the account the
+  // session names. Signed out, the footer says so and offers sign-in.
+  const operatorName = profile?.full_name || session?.username || '';
+  const operatorUnit = profile?.team_name
+    ? profile.team_name.split('—')[0].trim()
+    : (profile?.agency || session?.agency || '').replace(/_/g, ' ');
+  const callsign = profile?.callsign || null;
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
@@ -90,9 +85,8 @@ export default function Sidebar({
     return pathname.startsWith(item.href);
   };
 
-  const activeStatusCfg =
-    dutyStatusConfig[profile.duty_status as DutyStatus] ||
-    dutyStatusConfig.ON_DUTY;
+  // No dot for a status the profile does not carry: never a default 'On Duty'.
+  const activeStatusCfg = profile ? dutyStatusConfig[profile.duty_status as DutyStatus] ?? null : null;
 
   // Resolve localized label for any navigation item
   const getNavItemLabel = (item: NavItem): string => {
@@ -307,6 +301,7 @@ export default function Sidebar({
                   transition={{ duration: 0.18 }}
                   className="overflow-hidden whitespace-nowrap min-w-0"
                 >
+                  {/* Removed 25 Sep: a version chip; INDRA has no release numbering. */}
                   <div className="flex items-center gap-2">
                     <h1
                       className="text-white font-bold text-[15px] tracking-wide"
@@ -314,14 +309,19 @@ export default function Sidebar({
                     >
                       INDRA
                     </h1>
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-slate-400 border border-white/12">
-                      v1.2
-                    </span>
                   </div>
+                  {/* The socket's real state, not a fixed green. */}
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)] animate-pulse inline-block" />
-                    <p className="text-[10px] font-medium text-emerald-400/90">
-                      {t('nav.telemetry_live')}
+                    <span
+                      className={cn(
+                        'w-1.5 h-1.5 rounded-full inline-block',
+                        connected
+                          ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)] animate-pulse'
+                          : 'bg-amber-400/80'
+                      )}
+                    />
+                    <p className={cn('text-[10px] font-medium', connected ? 'text-emerald-400/90' : 'text-amber-300/90')}>
+                      {connected ? 'Live' : 'Offline — reconnecting'}
                     </p>
                   </div>
                 </motion.div>
@@ -427,60 +427,94 @@ export default function Sidebar({
               <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500">
                 {t('nav.operator')}
               </span>
-              <span
-                className="text-[10px] font-mono font-bold text-[#F97316] bg-[#B5482E]/12 border border-[#B5482E]/25 px-1.5 rounded"
-                suppressHydrationWarning
-              >
-                {profile.callsign}
-              </span>
+              {callsign && (
+                <span
+                  className="text-[10px] font-mono font-bold text-[#F97316] bg-[#B5482E]/12 border border-[#B5482E]/25 px-1.5 rounded"
+                  suppressHydrationWarning
+                >
+                  {callsign}
+                </span>
+              )}
             </div>
           )}
 
-          {/* Profile card */}
+          {/* Profile card, or sign-in when there is no session */}
           <div className="relative group">
-            <Link
-              href="/profile"
-              onClick={isMobile ? onMobileClose : undefined}
-              className={cn(
-                'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.09] hover:border-white/[0.18]',
-                isCollapsedState && 'justify-center p-1.5'
-              )}
-            >
-              {/* Avatar with duty dot */}
-              <div className="relative flex-shrink-0">
-                <div
-                  className="w-8 h-8 rounded-md text-white font-bold text-xs flex items-center justify-center bg-[#B5482E]/35 border border-[#B5482E]/45"
-                  suppressHydrationWarning
-                >
-                  {profile.avatar_initials}
+            {session ? (
+              <Link
+                href="/profile"
+                onClick={isMobile ? onMobileClose : undefined}
+                className={cn(
+                  'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.09] hover:border-white/[0.18]',
+                  isCollapsedState && 'justify-center p-1.5'
+                )}
+              >
+                {/* Avatar with duty dot */}
+                <div className="relative flex-shrink-0">
+                  <div
+                    className="w-8 h-8 rounded-md text-white font-bold text-xs flex items-center justify-center bg-[#B5482E]/35 border border-[#B5482E]/45"
+                    suppressHydrationWarning
+                  >
+                    {profile?.avatar_initials || <User className="w-4 h-4" />}
+                  </div>
+                  {activeStatusCfg && (
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ring-[1.5px] ring-[#182235]"
+                      style={{ backgroundColor: activeStatusCfg.dot }}
+                    />
+                  )}
                 </div>
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ring-[1.5px] ring-[#182235]"
-                  style={{ backgroundColor: activeStatusCfg.dot }}
-                />
-              </div>
 
-              {/* Name (expanded) */}
-              {!isCollapsedState && (
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <p
-                      className="text-[12px] font-semibold text-white truncate"
-                      title={profile.full_name}
-                      suppressHydrationWarning
-                    >
-                      {profile.full_name}
-                    </p>
-                    <ChevronRight className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                {/* Name (expanded) */}
+                {!isCollapsedState && (
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <p
+                        className="text-[12px] font-semibold text-white truncate"
+                        title={operatorName}
+                        suppressHydrationWarning
+                      >
+                        {operatorName}
+                      </p>
+                      <ChevronRight className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                    </div>
+                    {operatorUnit && (
+                      <div className="flex items-center gap-1 text-[10px] text-slate-500 truncate mt-0.5">
+                        <span className="truncate" suppressHydrationWarning>
+                          {operatorUnit}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 text-[10px] text-slate-500 truncate mt-0.5">
-                    <span className="truncate" suppressHydrationWarning>
-                      {profile.team_name ? profile.team_name.split('—')[0].trim() : profile.agency}
-                    </span>
-                  </div>
+                )}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isMobile) onMobileClose();
+                  setSignInOpen(true);
+                }}
+                aria-label="Not signed in. Sign in"
+                className={cn(
+                  'w-full flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.09] hover:border-white/[0.18] text-left',
+                  isCollapsedState && 'justify-center p-1.5'
+                )}
+              >
+                <div className="w-8 h-8 rounded-md text-slate-300 flex items-center justify-center bg-white/[0.06] border border-white/[0.12] flex-shrink-0">
+                  <User className="w-4 h-4" />
                 </div>
-              )}
-            </Link>
+                {!isCollapsedState && (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12px] font-semibold text-white truncate">Not signed in</p>
+                    <p className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">
+                      <LogIn className="w-3 h-3" />
+                      Sign in
+                    </p>
+                  </div>
+                )}
+              </button>
+            )}
 
             {/* Collapsed operator tooltip */}
             {isCollapsedState && (
@@ -496,23 +530,29 @@ export default function Sidebar({
                   <div className="relative z-10 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-[12px] text-white" suppressHydrationWarning>
-                        {profile.full_name}
+                        {session ? operatorName : 'Not signed in'}
                       </span>
-                      <span
-                        className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25"
-                        suppressHydrationWarning
-                      >
-                        {profile.duty_status.replace('_', ' ')}
-                      </span>
+                      {profile?.duty_status && (
+                        <span
+                          className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25"
+                          suppressHydrationWarning
+                        >
+                          {profile.duty_status.replace('_', ' ')}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[10px] font-mono text-[#F97316] font-bold" suppressHydrationWarning>
-                      {profile.callsign}
-                    </p>
-                    <p className="text-[10px] text-slate-400" suppressHydrationWarning>
-                      {profile.team_name}
-                    </p>
+                    {callsign && (
+                      <p className="text-[10px] font-mono text-[#F97316] font-bold" suppressHydrationWarning>
+                        {callsign}
+                      </p>
+                    )}
+                    {operatorUnit && (
+                      <p className="text-[10px] text-slate-400" suppressHydrationWarning>
+                        {operatorUnit}
+                      </p>
+                    )}
                     <div className="pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                      <span>View operator dossier</span>
+                      <span>{session ? 'View operator profile' : 'Sign in'}</span>
                       <ChevronRight className="w-2.5 h-2.5" />
                     </div>
                   </div>
@@ -593,6 +633,8 @@ export default function Sidebar({
           </>
         )}
       </AnimatePresence>
+
+      <SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} />
     </>
   );
 }

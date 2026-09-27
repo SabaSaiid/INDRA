@@ -2,10 +2,10 @@
 Phase 3 T10's exit criterion: each of the PS's seven categories produces an
 event of the right type.
 
-These are the seven scenarios of `scripts/run_hazard_demo.py` (five reports,
-five devices, spread over the family's radius), copied here so the check
-outlives the script: the demo injectors are being removed, and running one
-against the team database would write synthetic reports into it. Each scenario
+These are the seven scenarios of the former `scripts/run_hazard_demo.py` (five
+reports, five devices, spread over the family's radius), kept here as tests:
+the demo injectors were deleted on 25 Sep, because running one against the
+team database wrote synthetic reports into it. Each scenario
 is stored through `store_report()` and run through `process_report()` on the
 test database, the same path a report the API accepts takes after Kafka.
 

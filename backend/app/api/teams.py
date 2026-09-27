@@ -1,6 +1,6 @@
 """
 INDRA Platform — Teams API
-Operational Disaster Response Units (NDRF, SDRF, IMD, CWC) and Team Sixth Sense Showcase
+Operational Disaster Response Units (NDRF, SDRF, IMD, CWC) and the Team Sixth Sense roster
 """
 
 import logging
@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.demo import demo_fallback
+from app.core.empty import empty_or_503
 from app.core.security import TokenData, require_roles
 from app.models.enums import TeamAgency, TeamStatus
 
@@ -39,7 +39,8 @@ class TeamCreate(BaseModel):
     radio_callsign: Optional[str] = Field(None, max_length=40)
     specialization: Optional[str] = Field(None, max_length=200)
     status: TeamStatus = TeamStatus.AVAILABLE
-    members_count: int = Field(12, ge=1, le=1000)
+    # Required: a team created without a size used to be stored as 12.
+    members_count: int = Field(..., ge=1, le=1000)
 
     # The enums are upper case; the old str fields upper-cased whatever came
     # in, so "ndrf" keeps working. An unknown agency is now a 422 rather than
@@ -54,7 +55,9 @@ class TeamAssignRequest(BaseModel):
     event_id: Optional[str] = None  # None unassigns
 
 
-# ── Hackathon Team Showcase Data ──────────────────────────────────────────────
+# ── Team roster ───────────────────────────────────────────────────────────────
+# What each member built, in terms the code bears out. Reworded 25 Sep: the
+# bios claimed capabilities and feeds INDRA does not have.
 SIXTH_SENSE_TEAM = {
     "team_name": "Sixth Sense",
     "problem_statement": "SIH26069 — National Weather Big Data Analytics Platform",
@@ -76,8 +79,8 @@ SIXTH_SENSE_TEAM = {
             "id": "ss-2",
             "name": "Pritam Singh",
             "role": "AI & Bayesian Engine Lead",
-            "specialty": "Bayesian Probability Fusion, Anomaly Detection & Cross-Source Weighting",
-            "bio": "Formulated the 3-phase evidence synthesis engine condensing 127 raw signals into verified confidence receipts.",
+            "specialty": "Weighted multi-factor fusion, source reliability and confidence receipts",
+            "bio": "Designed the evidence-fusion engine that turns clustered reports into scored verification receipts.",
             "avatar_initials": "PS",
             "github": "https://github.com/SabaSaiid/INDRA",
             "badge": "FUSION SCIENTIST",
@@ -87,7 +90,7 @@ SIXTH_SENSE_TEAM = {
             "name": "Aditya",
             "role": "Geospatial Systems Engineer",
             "specialty": "Uber H3 Spatial Hexagons, DBSCAN Spatio-Temporal Clustering & PostGIS",
-            "bio": "Implemented dynamic ε-neighborhood spatial clustering and convex hull boundary polygon calculation.",
+            "bio": "Implemented dynamic ε-neighborhood spatial clustering and concave hull boundary polygon calculation.",
             "avatar_initials": "AD",
             "github": "https://github.com/SabaSaiid/INDRA",
             "badge": "SPATIAL ENGINEER",
@@ -97,7 +100,7 @@ SIXTH_SENSE_TEAM = {
             "name": "Salman Khurshid",
             "role": "Data Pipeline Architect",
             "specialty": "Redpanda / Kafka Streaming, Async Workers & Sensor Ingestion",
-            "bio": "Engineered high-throughput consumer pipelines processing citizen reports, AWS gauges, and social signals.",
+            "bio": "Engineered high-throughput consumer pipelines processing citizen reports, SACHET warnings, METAR, Mastodon and news feeds.",
             "avatar_initials": "SK",
             "github": "https://github.com/SabaSaiid/INDRA",
             "badge": "PIPELINE LEAD",
@@ -106,7 +109,7 @@ SIXTH_SENSE_TEAM = {
             "id": "ss-5",
             "name": "Pragati Sahu",
             "role": "NLP & Semantic Deduplication Lead",
-            "specialty": "TF-IDF + Cosine Similarity, Multilingual Signal Deduplication & Spam Filtering",
+            "specialty": "MiniLM sentence embeddings + cosine similarity, Levenshtein fallback",
             "bio": "Created the semantic similarity layer that clusters repetitive emergency reports within spatial windows.",
             "avatar_initials": "PS",
             "github": "https://github.com/SabaSaiid/INDRA",
@@ -124,154 +127,6 @@ SIXTH_SENSE_TEAM = {
         },
     ],
 }
-
-# ── Demo Operational Teams Fallback ───────────────────────────────────────────
-DEMO_TEAMS = [
-    {
-        "id": "11111111-1111-1111-1111-111111111101",
-        "team_code": "TEAM-SEOC-01",
-        "name": "State Emergency Operations Centre — Bihar / NDMA",
-        "agency": "SEOC_BIHAR",
-        "city": "Patna",
-        "state": "Bihar",
-        "lead_name": "Rajesh K. Verma",
-        "lead_phone": "+91 94311 02847",
-        "radio_callsign": "SEOC-DIR-01",
-        "specialization": "Urban Flood & Emergency Operations Leadership",
-        "status": "DEPLOYED",
-        "members_count": 18,
-        "assigned_event_code": "WX-EV-28231827-A",
-        "assigned_event_type": "URBAN_FLOOD",
-        "assigned_event_city": "Patna",
-        "created_at": "2026-09-10T08:00:00Z",
-    },
-    {
-        "id": "11111111-1111-1111-1111-111111111102",
-        "team_code": "TEAM-SDRF-MH01",
-        "name": "SDRF Coastal Quick Response Team",
-        "agency": "SDRF",
-        "city": "Mumbai",
-        "state": "Maharashtra",
-        "lead_name": "Inspector Sanjay Deshmukh",
-        "lead_phone": "+91 98220 54198",
-        "radio_callsign": "SEA-HAWK-4",
-        "specialization": "Coastal Inundation & High Tide Evacuation",
-        "status": "DEPLOYED",
-        "members_count": 14,
-        "assigned_event_code": "WX-EV-77291044-B",
-        "assigned_event_type": "CYCLONE_INUNDATION",
-        "assigned_event_city": "Mumbai",
-        "created_at": "2026-09-11T09:30:00Z",
-    },
-    {
-        "id": "11111111-1111-1111-1111-111111111103",
-        "team_code": "TEAM-IMD-NOW01",
-        "name": "IMD Severe Weather Nowcasting Cell",
-        "agency": "IMD",
-        "city": "New Delhi",
-        "state": "Delhi",
-        "lead_name": "Dr. Sunita Raman",
-        "lead_phone": "+91 98110 77312",
-        "radio_callsign": "DOPPLER-BASE",
-        "specialization": "Doppler Radar Analysis & Microburst Tracking",
-        "status": "AVAILABLE",
-        "members_count": 8,
-        "assigned_event_code": None,
-        "assigned_event_type": None,
-        "assigned_event_city": None,
-        "created_at": "2026-09-08T12:00:00Z",
-    },
-    {
-        "id": "11111111-1111-1111-1111-111111111104",
-        "team_code": "TEAM-CWC-HYDRO04",
-        "name": "CWC Brahmaputra Basin Hydrology Unit",
-        "agency": "CWC",
-        "city": "Guwahati",
-        "state": "Assam",
-        "lead_name": "Chief Hydrologist B. K. Sarma",
-        "lead_phone": "+91 94350 18273",
-        "radio_callsign": "RIVER-GUARD-2",
-        "specialization": "River Embankment & Inundation Modeling",
-        "status": "DEPLOYED",
-        "members_count": 12,
-        "assigned_event_code": "WX-EV-44810293-C",
-        "assigned_event_type": "RIVER_BREACH",
-        "assigned_event_city": "Guwahati",
-        "created_at": "2026-09-09T14:15:00Z",
-    },
-    {
-        "id": "11111111-1111-1111-1111-111111111105",
-        "team_code": "TEAM-NDRF-04",
-        "name": "NDRF 4th Battalion - Cyclone Action Team",
-        "agency": "NDRF",
-        "city": "Chennai",
-        "state": "Tamil Nadu",
-        "lead_name": "Assistant Director S. Karthik",
-        "lead_phone": "+91 94440 99821",
-        "radio_callsign": "COROMANDEL-ONE",
-        "specialization": "Severe Cyclonic Storm Response & Heavy Debris Clearing",
-        "status": "STANDBY",
-        "members_count": 22,
-        "assigned_event_code": None,
-        "assigned_event_type": None,
-        "assigned_event_city": None,
-        "created_at": "2026-09-12T07:45:00Z",
-    },
-    {
-        "id": "11111111-1111-1111-1111-111111111106",
-        "team_code": "TEAM-BBMP-URB02",
-        "name": "BBMP Disaster Rapid Drainage Taskforce",
-        "agency": "MUNICIPAL",
-        "city": "Bengaluru",
-        "state": "Karnataka",
-        "lead_name": "Executive Engineer K. Shivakumar",
-        "lead_phone": "+91 98450 33124",
-        "radio_callsign": "RAPID-PUMP-8",
-        "specialization": "Stormwater Drain Cleansing & High-Volume Dewatering",
-        "status": "AVAILABLE",
-        "members_count": 16,
-        "assigned_event_code": None,
-        "assigned_event_type": None,
-        "assigned_event_city": None,
-        "created_at": "2026-09-13T10:00:00Z",
-    },
-    {
-        "id": "11111111-1111-1111-1111-111111111107",
-        "team_code": "TEAM-GHMC-HYD01",
-        "name": "GHMC Monsoon Emergency Action Team",
-        "agency": "MUNICIPAL",
-        "city": "Hyderabad",
-        "state": "Telangana",
-        "lead_name": "Superintendent P. Anji Reddy",
-        "lead_phone": "+91 98490 12099",
-        "radio_callsign": "DECCAN-SHIELD-3",
-        "specialization": "Urban Flash Flood Control & Road Clearing",
-        "status": "STANDBY",
-        "members_count": 15,
-        "assigned_event_code": None,
-        "assigned_event_type": None,
-        "assigned_event_city": None,
-        "created_at": "2026-09-13T11:20:00Z",
-    },
-    {
-        "id": "11111111-1111-1111-1111-111111111108",
-        "team_code": "TEAM-NDMA-NAT01",
-        "name": "NDMA National Aerial Reconnaissance Wing",
-        "agency": "NDMA",
-        "city": "New Delhi",
-        "state": "Delhi",
-        "lead_name": "Group Captain V. Nair",
-        "lead_phone": "+91 99100 44552",
-        "radio_callsign": "GARUDA-CENTRAL",
-        "specialization": "UAV Disaster Surveillance & Thermal Flood Mapping",
-        "status": "AVAILABLE",
-        "members_count": 10,
-        "assigned_event_code": None,
-        "assigned_event_type": None,
-        "assigned_event_city": None,
-        "created_at": "2026-09-07T16:00:00Z",
-    },
-]
 
 
 @router.get("")
@@ -351,17 +206,7 @@ async def list_teams(
     except Exception as e:
         db_error = e
 
-    def _demo_teams():
-        filtered = DEMO_TEAMS
-        if agency:
-            filtered = [t for t in filtered if t["agency"].lower() == agency.lower()]
-        if status:
-            filtered = [t for t in filtered if t["status"].lower() == status.lower()]
-        if city:
-            filtered = [t for t in filtered if city.lower() in t["city"].lower()]
-        return filtered
-
-    return demo_fallback("GET /api/teams", _demo_teams, list, db_error)
+    return empty_or_503("GET /api/teams", list, db_error)
 
 
 @router.get("/hackathon/sixth-sense")
@@ -437,26 +282,7 @@ async def get_team(
     def _not_found():
         raise HTTPException(status_code=404, detail="Team not found")
 
-    def _demo_team():
-        match = next((t for t in DEMO_TEAMS if t["id"] == team_id or t["team_code"] == team_id), None)
-        if match:
-            return {
-                **match,
-                "members": [
-                    {
-                        "id": f"m-{i}",
-                        "full_name": f"{match['lead_name']} {i}" if i > 1 else match["lead_name"],
-                        "team_role": "Commander" if i == 1 else "Tactical Specialist",
-                        "duty_status": match["status"],
-                        "badge_number": f"{match['agency']}-{100 + i}",
-                        "callsign": f"{match['radio_callsign']}-{i}",
-                    }
-                    for i in range(1, 5)
-                ],
-            }
-        return _not_found()
-
-    return demo_fallback(f"GET /api/teams/{team_id}", _demo_team, _not_found, db_error)
+    return empty_or_503(f"GET /api/teams/{team_id}", _not_found, db_error)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -523,9 +349,8 @@ async def assign_team(
 
     A dispatch that did not happen must not answer as if it had. This used to
     return 200 for a team that does not exist, and on any database error it
-    edited an in-memory DEMO_TEAMS list instead and answered "Updated in demo
-    store" — whatever DEMO_MODE said. The operator saw a unit dispatched when
-    nothing had been written.
+    edited an in-memory list instead and answered as though it had dispatched.
+    The operator saw a unit dispatched when nothing had been written.
     """
     event_uuid = None
     if payload.event_id:

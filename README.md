@@ -50,14 +50,17 @@ Standard Weather App:
 INDRA Platform:
 [Citizen report A] ┐
 [Citizen report B] ┼──► [Geo / Fusion Layer] ──► [1 Verified Weather Event]
-[Citizen report C] ┘    • PostGIS + Uber H3 Hex    • Event ID: INDRA-20260920-001
-                        • DBSCAN clustering        • Confidence: 0.4984
-                        • legacy MiniLM dedup      • Coverage:   0.80
-                        • Open-Meteo rainfall      • Status:     QUARANTINED
-                        • Rule-based severity      • Evidence:   5 reports, 1 source type
+[Citizen report C] ┘    • PostGIS + Uber H3 Hex    • Event ID:   INDRA-YYYYMMDD-NNN
+                        • DBSCAN clustering        • Confidence: total_weighted / factor_coverage
+                        • frozen local dedup       • Coverage:   0.80 (vision, anomaly offline)
+                        • Open-Meteo rainfall      • Status:     set by the published gates
+                        • Rule-based severity      • Evidence:   every report, in provenance
 ```
 
-The values above are from a real **21 Sep 2026 historical run**, not an illustration. That run used legacy MiniLM and had no image or anomaly model in its fusion receipt. The current frozen components write separate advisory evidence; their synthetic scores are not substituted into the old fusion factors.
+The right-hand column is the shape of every event, not one event's numbers. **The receipt's vision and
+anomaly factors are `offline` on every event** rather than a substituted number. The AI/ML layer's frozen
+components (PR #39: a local duplicate matcher, a scratch image model and an anomaly baseline) write
+separate advisory evidence; their scores never enter the fusion factors.
 
 ---
 
@@ -67,15 +70,15 @@ During acute crises (cloudbursts, flash floods, cyclones), emergency dispatchers
 fatigue and report fragmentation**. INDRA consolidates scattered reports into **one verified event**
 carrying an explainable evidence receipt.
 
-The box below is a **real run**, copied from the API on 21 Sep 2026 — not an illustration. Five
-synthetic citizen reports were posted to `POST /api/reports/submit` and every number was read back
-from `GET /api/events/{id}`. Reproduce it with
-`backend/.venv/bin/python scripts/run_patna_demo.py`.
+The box below is a **worked example, not a real event**: the engine's output on 20 Sep 2026 for
+five **scripted test reports** posted to `POST /api/reports/submit`. They described no real flood,
+and the script, the reports and the event have since been deleted. Only the arithmetic is kept,
+because it shows how a score is built.
 
 ```
-   5 SCATTERED CITIZEN REPORTS                      1 VERIFIED EVENT
+   5 SCRIPTED TEST REPORTS                          1 TEST EVENT
 ┌──────────────────────────────────┐      ┌────────────────────────────────────────┐
-│ • 5 citizen app reports          │      │ INDRA-20260920-001  (URBAN_FLOOD)      │
+│ • 5 test reports (CITIZEN_APP)   │      │ test event  (URBAN_FLOOD)              │
 │ • 1 quoting "knee deep water"    │ ═══> │ • Severity:   MODERATE                 │
 │ • live Open-Meteo rainfall       │INDRA │ • Confidence: 0.4984                   │
 │   (0.008 — Patna was dry)        │      │ • Coverage:   0.80                     │
@@ -86,7 +89,7 @@ from `GET /api/events/{id}`. Reproduce it with
    confidence = total_weighted / factor_coverage = 0.3987 / 0.80 = 0.4984
 ```
 
-**`QUARANTINED` is the correct verdict here, not a failure.** Five unverified citizen reports and
+**`QUARANTINED` is the correct verdict here, not a failure.** Five unverified reports and
 near-zero rainfall is not a verified disaster, and the receipt shows exactly which evidence produced
 that number. The score rises with independent corroboration and with real rainfall.
 
@@ -97,8 +100,12 @@ all, so the score is a mean over the 80% that did. They remain excluded from thi
 > **What was here before, and why it is gone.** This section previously showed "127 SCATTERED SIGNALS"
 > resolving to event `WX-EV-28231827-A` at "Confidence: 94% [AUTO-PUBLISHED]", built from "48 Social
 > media #IMD posts", "2 CWC River Level Gauges" and "10 Verified media photos". None of that existed.
-> Those claimed IMD/CWC sensor and social-media signals did not exist in that run. Later SACHET warning, METAR, social, and news ingestion must be distinguished from those invented demo signals; image inference is advisory, not a fusion factor. The scoring engine
-> **cannot reach 0.94**. It was replaced with a measured run on 21 Sep.
+> On 21 Sep there was no IMD, CWC or social-media feed in this system — Open-Meteo was the only
+> external source, decided 16 Sep for want of API keys — no image evidence entered the score, and the
+> **94% never came from the scoring engine**. It was replaced on 21 Sep with the worked example
+> above. Official IMD, CWC and SDMA warnings (through NDMA's SACHET feed), airport METARs, Mastodon
+> posts and Google News headlines have been added since, and on 25 Sep the scripted reports, the
+> seed script and the demo mode were deleted.
 
 ---
 
@@ -122,9 +129,13 @@ Disaster response demands separating **how dangerous an event is** (Severity) fr
 
 > **Built vs. designed in the table above.** **COLLECT:** the Citizen Mobile PWA endpoint is
 > live, Open-Meteo rainfall is polled every 10 minutes, and official IMD, CWC and SDMA **warnings**
-> are read from NDMA's SACHET CAP feed every 5 minutes; no IMD or CWC sensor data, OpenWeather or
-> social feed is read. **UNDERSTAND:** coordinate validation (out-of-India → 422), district
-> geocoding, DBSCAN clustering (great-circle radius) and H3 indexing are real; the current duplicate matcher is a frozen local feature model, not Sentence-Transformers. The current image model is a scratch CNN and the anomaly model is a statistical baseline plus a local scratch dual-logistic model, not Isolation Forest. **VERIFY:** the Verification Receipt, multi-source consensus, weather agreement
+> are read from NDMA's SACHET CAP feed every 5 minutes; no IMD or CWC sensor data or OpenWeather is
+> read, and the only social and news feeds are Mastodon `#IMD` posts and Google News headlines, when
+> those pollers are switched on. **UNDERSTAND:** coordinate validation (out-of-India → 422), district
+> geocoding, DBSCAN clustering (great-circle radius) and H3 indexing are real; the duplicate matcher is a
+> frozen local feature model, not Sentence-Transformers; the image model is a scratch CNN and the anomaly
+> model a statistical baseline with a local scratch dual-logistic model, not Isolation Forest, and both
+> are advisory only. **VERIFY:** the Verification Receipt, multi-source consensus, weather agreement
 > and spatio-temporal proximity are real; the **SHA-256 audit trail is a working hash chain**
 > and the **human review queue has an auth-gated endpoint** (both Day 3). See the
 > Implementation Status ledger below.
@@ -140,14 +151,15 @@ $$\text{Confidence} = 25\% (\text{Weather}) + 20\% (\text{Reports}) + 20\% (\tex
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        THE VERIFICATION RECEIPT                        │
-│                     CONFIDENCE SCORE: 94 / 100                         │
 ├────────────────────────────────────────────────────────────────────────┤
-│  ✓ Weather Agreement (25%)          : Open-Meteo & AWS recorded 92mm   │
-│  ✓ Independent Reports (20%)        : 103 verified independent reports │
-│  ✓ Location & Time Consistency (20%): PostGIS & H3 cluster within 0.8km│
-│  ✓ Image Evidence (15%)             : PyTorch floodwater prob: 0.91    │
-│  ✓ Source Reliability (15%)         : Verified app users & AWS sensors │
-│  ✓ Historical Anomaly (5%)          : 140mm vs 35mm seasonal baseline   │
+│  Weather Station Corroboration (25%): 24 h rainfall vs IMD categories  │
+│  Report Density Analysis       (20%): independent reporters            │
+│  Spatial Coherence Score       (20%): cluster diameter vs 10 km search │
+│  Computer Vision Analysis      (15%): offline — out of scope           │
+│  Source Reliability Index      (15%): best source prior in cluster     │
+│  Anomaly Detection Signal       (5%): offline — out of scope           │
+├────────────────────────────────────────────────────────────────────────┤
+│  confidence = total_weighted / factor_coverage   (coverage 0.80)       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -177,7 +189,9 @@ Day 3 ✅ audit chain, human review, RBAC · Day 4 ✅ correctness fixes, text p
 Day 5 ✅ coverage-aware confidence, content severity, geo surface, every invented number removed ·
 Day 6 ✅ Redis in real use, a scheduled station feed, documentation published ·
 22 Sep ✅ every write token-gated, an authenticated route for official reports, great-circle
-clustering, and the dashboard audited for invented data
+clustering, and the dashboard audited for invented data ·
+25 Sep ✅ every demo, scripted and placeholder row removed, operator accounts with their own
+passwords in the database, and the browser tests moved onto a disposable database
 
 > **Scope update.** The alert-sending engine remains cancelled. The 20 Sep AI/ML cancellation is historical: six frozen local development components are now connected as typed advisory evidence. `vision_analysis` and `anomaly_detection` still do not receive fabricated fusion scores; missing inputs are `NOT_RUN`, and the confidence score is re-normalised over factors that actually report. Nothing here claims an alert was sent or a model was production validated.
 
@@ -186,15 +200,15 @@ Legend: ✅ built · 🟡 partial · ⬛ out of scope
 | # | Architecture Layer | Status | Reality |
 | :-: | :--- | :-: | :--- |
 | 1 | **Data Sources** | 🟡 3/6 | Citizen reports are live; Open-Meteo is **polled on a schedule** — every 10 minutes, 24 h accumulated rainfall for six cities into `station_readings`, attributed `OPEN_METEO`; and official IMD, CWC and SDMA CAP warnings are polled from **NDMA's SACHET feed** every 5 minutes into `agency_alerts`. Trusted field reports can be filed by a commander through an authenticated route. The IMD / OpenWeather / Twitter APIs are unread, decided 16 Sep for want of credentials. |
-| 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and a re-delivered message is not re-broadcast — now across a restart, since that memory moved to Redis. **Batch ingestion is only a synthetic seed script**, which refuses to run without `--synthetic` and marks every receipt synthetic. |
+| 2 | **Data Ingestion** | ✅ | REST + Redpanda streaming are real; the Kafka message matches the stored row, a report that could not be stored returns **503** and is never published, and a re-delivered message is not re-broadcast — now across a restart, since that memory moved to Redis. **Batch ingestion means the scheduled pollers** (SACHET, Open-Meteo, METAR, Mastodon, Google News), which fetch in batches every 5–15 minutes. There is no bulk import and no seed script: the synthetic seeder was deleted on 25 Sep. |
 | 3 | **Data Processing** | ✅ | Deduplication (a suppressed duplicate is marked and **never counted as corroboration**), out-of-India coordinates → **422, never stored**, forward and reverse geocoding over a 737-district gazetteer, a computed credibility score per report, and **cleaning + metadata extraction stored on every report** (`analysis`, migration `0005`). Depth, language and places are regex and dictionaries — rule-based, and the receipt says so. |
 | 4 | **AI / ML Layer** | ✅ development integration | Six frozen synthetic-development components produce typed advisory results. MiniLM is removed from the live runtime; the older below-gate event classifier remains quarantined. Image and anomaly models exist but do not supply calibrated legacy fusion factors. No production-validation claim. |
 | 5 | **Geo-Analytics** | ✅ | DBSCAN clustering with a great-circle 5 km radius (since 22 Sep; it was in degrees), Uber H3 res-8 indexing, a **boundary polygon on every event** that contains all of its reports, and `GET /api/geo/heatmap` aggregating res 6/7/8 with duplicates excluded. Risk zones are not built. |
 | 6 | **Event Fusion Engine** | ✅ | Correlation, duplicate merging, scoring and event construction run end to end. **No randomness.** Confidence is re-normalised over the factors that reported and the receipt publishes `factor_coverage` beside it. Severity comes from **what the reports say** — a depth axis and a corroboration axis, published thresholds, no model. Determinism is pinned by tests, and a human decision survives later merges. |
 | 7 | **Data Platform** | ✅ | PostgreSQL + PostGIS, an `audit_logs` **SHA-256 hash chain**, **Redis genuinely in use** (the Open-Meteo cache and the broadcast-dedup set, both with a memory fallback so losing it degrades nothing), and `station_readings` **holding real polled rows** for the first time. Object storage is configured but not deployed. |
-| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo for real, including whether the schema exists. **Every write is auth-enforced** (review, team dispatch, official reports, profile edits), pinned by a test that walks the whole API; provenance and the audit ledger need an analyst or above; dashboard reads stay open. |
+| 8a | **Real-Time API** | ✅ | FastAPI + WebSocket + REST, all live. `/healthz` checks Postgres, Kafka, Redis and Open-Meteo for real, including whether the schema exists. **Every write is auth-enforced** (review, team dispatch, official reports, profile edits), pinned by a test that walks the whole API; provenance and the audit ledger need an analyst or above; dashboard reads stay open. Operators sign in with a username and password checked against a bcrypt hash in `user_profiles`. A read with no rows returns the real empty result, an unknown id is a `404`, and a database error is a `503` — **there is no demo mode and no fallback payload**. |
 | 8b | **Alert Engine** | ⬛ | **Cancelled 20 Sep.** INDRA sends no SMS, email or CAP broadcast. `GET /api/alerts/agency` serves official warnings that IMD, CWC and SDMAs issued — data it reads, not alerts it sends. |
-| 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is owned by the rest of the team. On 22 Sep invented official bulletins, a fictional cyclone track and static admin/datasets/analytics figures were removed, and the production build passes again; 26 browser tests pin it — see [`docs/frontend-handover.md`](docs/frontend-handover.md). |
+| 9 | **IMD Command Center** | 🟡 | The Next.js dashboard is owned by the rest of the team. On 22 Sep invented official bulletins, a fictional cyclone track and static admin/datasets/analytics figures were removed, and the production build passes again; 26 browser tests pin it. On 25 Sep a sign-in replaced the persona switcher and the passwords built into it, and the invented operator personas, station telemetry and AI-generated photos went — see [`docs/frontend-handover.md`](docs/frontend-handover.md). |
 
 **The honest one-liner:** the spine works and is honest — *a citizen report travels REST → Kafka →
 dedup → spatial clustering → deterministic confidence scoring (with real Open-Meteo rainfall, read
@@ -205,10 +219,11 @@ review endpoint.* The **pre-merge `origin/main` snapshot** reported 948 passed a
 What remains **unvalidated for production** is the perception layer; the alert-sending tier is not built.
 Where a confidence factor has no real signal behind it the receipt prints `offline` with a reason
 rather than inventing a number — **stating that a signal is absent is treated as strictly better
-than faking it.** The visible cost is that the Patna demo scores around **0.56 at coverage 0.80**
-and lands in `QUARANTINED`, so nothing auto-publishes and events reach the command center through
+than faking it.** The visible cost is that a fresh cluster of two to five citizen reports on a dry
+day scores about **0.4–0.5 at coverage 0.80** and lands in `QUARANTINED` (a High or Critical one
+goes to review instead), so nothing auto-publishes and events reach the command center through
 human review. That is the designed behaviour of honest scoring, and the
-[demo runbook](docs/demo-runbook.md) says exactly what to expect.
+[demo runbook](docs/demo-runbook.md) says what to expect.
 
 ---
 
@@ -312,24 +327,25 @@ To avoid the anti-pattern of managing 15 microservices during a hackathon sprint
 
 ---
 
-## 🎬 The SIH Demonstration Sequence (10 Scenes)
+## 🎬 The SIH Walkthrough — live data only
 
-| Scene | Phase | Description | Live today? |
+| Scene | Phase | What the audience sees | Live today? |
 | :---: | :--- | :--- | :-: |
-| **Scene 1** | **Baseline** | India map normal. Open-Meteo live API stream active. Zero false alerts. | 🟡 map real, **no scheduled feed** |
-| **Scene 3** | **The Spike** | `run_patna_demo.py` posts five reports through the live API; `burst_reports.py --count 100` drives the surge. | ✅ **real since 21 Sep** — the script was a canned replay and now posts to `POST /api/reports/submit` and reads every number back. 100 reports measured at p95 4 ms, 100/100 stored |
-| **Scene 5** | **Fusion** | PostGIS + H3 merge the incoming reports into one event with a real boundary polygon. | ✅ **real** (clustering, merging, and since 20 Sep a 250 m-buffered hull containing every report). **No BERT and no classification** — that is layer 4, which is out of scope |
-| **Scene 7** | **Evidence** | Open-Meteo rainfall is fetched live; report text is read for depth ("knee deep" → 50 cm) and that sets severity. | 🟡 **In the 21 Sep demo, rainfall and depth extraction were real and no image evidence entered the fusion score.** The later frozen image component is advisory and still not production validated. Rainfall scored 0.008 on that dry day |
-| **Scene 8** | **Intelligence** | INDRA computes the confidence and prints the explainable Verification Receipt. | ✅ receipt real, deterministic and self-checking (`total_weighted / factor_coverage = confidence`). **Measured 21 Sep: 0.4984 at coverage 0.80 → `QUARANTINED`.** There is no 94% — the engine cannot reach it, and 4 of 6 factors report |
-| **Scene 8½** | **Human Review** | A commander approves the quarantined event; the decision is hash-chained and survives new reports. | ✅ **real** (Day 3) |
-| **Scene 10** | **Action** | WebSocket pushes the verified event to the Next.js dashboard. | 🟡 WebSocket real. **No alert dispatch exists and none is being built** — the alert engine is out of scope since 20 Sep. Do not promise NDRF dispatch |
+| **1** | **Already watching** | Official IMD, CWC and SDMA warnings from NDMA's SACHET feed on the **Early Warnings** page; Open-Meteo rainfall on **Telemetry Analytics**; Mastodon posts, Google News headlines and warnings in the live feed; each feed's state and row counts, METAR airport observations included, on **Geospatial Feeds** (`GET /api/meta/sources`) | ✅ SACHET and Open-Meteo on by default; METAR, Mastodon and News once switched on in `.env`, at least an hour before |
+| **2** | **A real report** | Someone files what they can actually see, in their own words, from where they are, through the dashboard's **Report Incident** form (or `POST /api/reports/submit`). It is in the live feed within seconds, and a docket comes back | ✅ real. **Never a scripted or staged report** |
+| **3** | **Fusion** | A second, independent person within 5 km files what they see: one event, one boundary polygon. A copy of the first text is suppressed as a duplicate and never counts. One report alone never makes an event | ✅ real (great-circle DBSCAN, minimum two reports; a 250 m-buffered hull containing every report). **No classification model** — that is layer 4, which is out of scope |
+| **4** | **Evidence & receipt** | Rainfall, report density, spatial coherence and source reliability are computed; depth read from the text ("knee deep" → 50 cm) sets severity; vision and anomaly read `"Telemetry factor offline"`; `total_weighted / factor_coverage` is printed | ✅ receipt real and deterministic. **Vision and anomaly are permanently offline, so never claim image evidence.** Rainfall is whatever the weather actually is |
+| **5** | **Human review** | A signed-in commander approves or rejects with a reason; the decision is hash-chained, shown in provenance and survives new reports | ✅ real |
+| **6** | **Action** | The WebSocket pushes the event and the decision to every open dashboard | 🟡 WebSocket real. **No alert dispatch exists and none is being built** — the alert engine is out of scope since 20 Sep. Do not promise NDRF dispatch |
 
-> **The defensible demo.** Submit reports live, watch them collapse into one event, open the
-> Verification Receipt and point at which factors are measured and which read `"Telemetry
-> factor offline"`, explain why the machine quarantined it, then approve it as a commander and
-> show the audit chain in provenance. That story is entirely true and survives follow-up
-> questions. A walkthrough that claims image evidence, a 94% auto-publish, or Scene 10's
-> dispatch does not.
+> **The defensible walkthrough.** Everything on screen was published by someone else, or filed by
+> a person about what they can see where they are. This is the production database: a report
+> written for effect is fabricated data in the audit trail, so nobody files one. If the weather is
+> calm and nobody nearby has anything to report, no event forms — show the live feeds, explain
+> the corroboration rule, and say that this is the right answer. A walkthrough that claims image
+> evidence, a 94% auto-publish or an alert dispatch does not survive follow-up questions. The
+> [demo runbook](docs/demo-runbook.md) has the commands and a recovery line for each thing that
+> can go wrong.
 
 ---
 
@@ -342,17 +358,23 @@ INDRA/
 ├── LICENSE                         # MIT License
 ├── README.md                       # Master documentation & blueprint
 ├── docs/
+│   ├── README.md                   # Index: which document to read when
+│   ├── setup.md                    # Fresh clone to running stack, operator passwords, tests
+│   ├── demo-runbook.md             # The SIH walkthrough on live data, with a recovery line per failure
+│   ├── nodal-officer-qa.md         # Hard questions and the honest answer to each
+│   ├── api-contract.md             # Every endpoint, shape and status code
 │   ├── ARCHITECTURE.md             # Engineering & mathematical spec + §0 implementation ledger
 │   ├── backend-architecture.md     # Backend module map, request flow, config surface
-│   └── backend-todo.md             # Backend 5-day sprint plan (16–20 Sep)
+│   ├── frontend-handover.md        # What changed that the dashboard's owners need to know
+│   └── bug-register.md             # Every defect found, with its status and fix
 ├── backend/
 │   ├── app/
-│   │   ├── api/                    # REST routes: dashboard, events (+ review, provenance), reports (+ official), feed, geo, alerts, audit, auth, teams, profile
-│   │   ├── core/                   # config, database (async SQLAlchemy), security (JWT/bcrypt/RBAC), demo (DEMO_MODE gate)
+│   │   ├── api/                    # REST routes: dashboard, events (+ review, provenance), reports (+ official, search), feed, geo, stations, alerts, meta, audit, auth, teams, profile
+│   │   ├── core/                   # config, database (async SQLAlchemy), security (JWT/bcrypt/RBAC), empty (no rows → empty, DB error → 503)
 │   │   ├── models/                 # SQLAlchemy ORM + enums.py (all controlled vocabularies)
 │   │   ├── services/               # ingest (store + outbox), kafka, hazards, pipeline, fusion_engine, dedup, geo_clustering, geocoding, weather, credibility, audit, cache, text_processing, health
-│   │   └── workers/                # report_consumer (Kafka → pipeline), outbox_relay (outbox → Kafka), station_poller (Open-Meteo), sachet_poller (CAP warnings)
-│   ├── alembic/                    # Database migrations, 0001_initial … 0014_event_filter_indexes
+│   │   └── workers/                # report_consumer (Kafka → pipeline), outbox_relay (outbox → Kafka), station_poller (Open-Meteo), sachet_poller (CAP warnings), metar/mastodon/news pollers, lake_archiver
+│   ├── alembic/                    # Database migrations, 0001_initial … 0019_operator_password_hash
 │   ├── tests/                      # pytest suite — unit + integration (`-m integration` needs Docker)
 │   ├── pytest.ini                  # asyncio loop scope pinned to session
 │   └── requirements.txt            # Python dependencies
@@ -366,9 +388,14 @@ INDRA/
 │   └── labelled/
 │       └── reports_v1.csv          # 300 synthetic labelled reports, train/test split
 └── scripts/
-    ├── run_patna_demo.py           # Posts 5 reports to the live API, prints what it reads back
-    ├── burst_reports.py            # Load/leak measurement: --count 100 --spread-km 3
-    ├── seed_national_data.py       # Batch seeder (synthetic; refuses to run without --synthetic)
+    ├── set_operator_password.py    # Sets each operator account's password (bcrypt) in user_profiles
+    ├── export_live_data.py         # Snapshot of the local database's real rows into data/live/
+    ├── replay_dlq.py               # Re-sends dead-lettered report messages
+    ├── backfill_hazards.py         # Re-derives hazard tags on stored reports
+    ├── build_gazetteer.py          # District gazetteer for the reverse geocoder
+    ├── build_metar_stations.py     # India's METAR aerodromes, for the METAR poller
+    ├── make_s3_config.py           # Object-store key file from .env
+    ├── measure_hazard_tagger.py    # Scores the hazard tagger on its fixture
     └── verify-build.sh             # Build verification checks
 ```
 
@@ -406,20 +433,31 @@ make doctor        # or: ./start.sh doctor
 # 2. Start Docker infrastructure (PostGIS, Redis, Redpanda)
 make infra-up      # or: ./start.sh infra up
 
-# 3. Launch the FastAPI backend (with auto-reload and Swagger docs)
+# 3. Install dependencies, create the schema, and give each operator account a password
+make setup         # or: ./start.sh setup
+(cd backend && .venv/bin/alembic upgrade head)
+backend/.venv/bin/python scripts/set_operator_password.py --all --generate
+
+# 4. Launch the FastAPI backend (with auto-reload and Swagger docs)
 make dev           # or: ./start.sh
 
-# 4. Or launch as background daemon & inspect status
+# 5. Or launch as background daemon & inspect status
 make bg            # or: ./start.sh bg
 make status        # or: ./start.sh status
 make logs          # or: ./start.sh logs
 
-# 5. Run the 10-Scene Patna SIH Verification Simulation
-make demo          # or: ./start.sh demo
+# 6. Check the live feeds
+curl -s localhost:8000/api/meta/sources
 
-# 6. Stop all background services
+# 7. Stop all background services
 make stop          # or: ./start.sh stop
 ```
+
+**No password is in this repository.** The operator accounts (`admin`, `commander`, `analyst`,
+`citizen`) live in `user_profiles`, and an account with no password set cannot sign in. Step 3
+generates one per account and prints each once; [`docs/setup.md`](docs/setup.md) has the other
+ways to set them. **After deploying this version to a server that already has data, run
+`alembic upgrade head` and then set the passwords, or nobody can sign in.**
 
 #### Available Shell Commands:
 | Command | `make` Shortcut | Description |
@@ -429,11 +467,14 @@ make stop          # or: ./start.sh stop
 | `./start.sh stop` | `make stop` | Gracefully stop backend server processes |
 | `./start.sh restart` | `make restart` | Gracefully restart backend server |
 | `./start.sh status` | `make status` | Inspect backend status, port 8000, and Docker containers |
-| `./start.sh infra up` | `make infra-up` | Spin up PostGIS (5432), Redis (6379), and Redpanda (19092) |
+| `./start.sh infra up` | `make infra-up` | Spin up PostGIS (5433), Redis (6379), and Redpanda (19092) |
 | `./start.sh infra down` | `make infra-down` | Stop and tear down Docker infrastructure |
 | `./start.sh doctor` | `make doctor` | Run full environment audit (Python, venv, deps, ports, Docker) |
-| `./start.sh demo` | `make demo` | Run the 10-Scene Patna flood verification demonstration |
-| `./start.sh test` | `make test` | Execute automated API endpoint probes |
+| `./start.sh test` | `make smoke` | Execute automated API endpoint probes against the running backend |
+| — | `make test` / `make test-integration` | Backend pytest suite, on its own `indra_test` database |
+| `./start.sh e2e-backend` | `make e2e-backend` | Disposable backend for the browser tests: port 8100, database `indra_e2e` |
+| — | `make e2e` | Playwright against that backend; it refuses to run against anything but an `_e2e` one |
+| `./start.sh e2e-reset` | `make e2e-reset` | Drop and recreate `indra_e2e` |
 | `./start.sh logs` | `make logs` | Stream live backend server output |
 | `./start.sh clean` | `make clean` | Purge caches (`__pycache__`), logs, and PID files |
 
@@ -461,6 +502,8 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+alembic upgrade head
+python ../scripts/set_operator_password.py --all      # prompts twice per account
 uvicorn app.main:app --reload --port 8000
 ```
 Interactive Swagger API documentation: `http://localhost:8000/docs`
@@ -473,16 +516,15 @@ npm run dev
 ```
 Open `http://localhost:3000` to access the **INDRA Live Command Center**.
 
-#### 5. Run the Patna Demonstration against the live backend
-```bash
-backend/.venv/bin/python scripts/run_patna_demo.py
-```
-Posts five synthetic citizen reports through `POST /api/reports/submit`, waits for the pipeline to
-fuse them, and prints the event, its full verification receipt and the heat map — **every number read
-back from the API**. It exits non-zero if no event is produced, so it doubles as a smoke test.
-
-Requires the backend running (`./start.sh -b`) and `DEMO_MODE=false`, which is now the default. It
-refuses to narrate demo-mode placeholder events as real results.
+#### 5. See it work on real data
+Within minutes of startup the **Early Warnings** page fills from NDMA's SACHET feed and
+**Telemetry Analytics** from Open-Meteo rainfall. Set `METAR_POLLER_ENABLED`,
+`MASTODON_POLLER_ENABLED` and `NEWS_POLLER_ENABLED` to `true` in `.env` for airport observations,
+posts and headlines; `curl -s localhost:8000/api/meta/sources` shows each feed's state. An event
+forms only when real reports agree: two people within 5 km, each filing what they actually see
+through **Report Incident**. Nothing in this repository generates reports, and the test suites
+write only to their own databases (`indra_test`, `indra_e2e`). To approve or reject an event,
+sign in from the dashboard's top bar as `commander` or `admin`.
 
 </details>
 

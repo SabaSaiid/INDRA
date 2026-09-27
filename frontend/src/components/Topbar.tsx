@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Menu,
   User,
-  Shield,
   Users,
   Award,
   Radio,
@@ -15,6 +14,8 @@ import {
   ShieldAlert,
   Plus,
   Lock,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -23,12 +24,13 @@ import { fadeIn } from '@/lib/motion';
 import {
   type DutyStatus,
   dutyStatusConfig,
-  PLACEHOLDER_OPERATOR,
 } from '@/lib/ui-config';
-import { useOperatorProfile, AVAILABLE_OPERATOR_PERSONAS } from '@/lib/useOperatorProfile';
+import { useOperatorProfile } from '@/lib/useOperatorProfile';
+import { roleLabel, sessionExpiryLabel, signOut } from '@/lib/auth';
 import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
 import NotificationPopover from './NotificationPopover';
+import SignInDialog from './SignInDialog';
 import LanguagePicker from './LanguagePicker';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -40,43 +42,19 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
-  const {
-    profile: loadedProfile,
-    selectedRole,
-    switchRole,
-    updateDuty,
-    isUpdatingStatus,
-    isAuthenticated,
-  } = useOperatorProfile();
+  const [signInOpen, setSignInOpen] = useState(false);
+  const { session, profile, updateDuty, isUpdatingStatus } = useOperatorProfile();
   const { t } = useTranslation();
-  const currentProfile = loadedProfile ?? PLACEHOLDER_OPERATOR;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Match the active role to the official persona to guarantee truthful, accurate data
-  const currentPersona = AVAILABLE_OPERATOR_PERSONAS.find((p) => p.id === selectedRole) || AVAILABLE_OPERATOR_PERSONAS[0];
-
-  const displayName = (currentProfile.full_name && currentProfile.full_name !== 'Operator unavailable' && currentProfile.full_name !== '—')
-    ? (currentProfile.full_name === 'Incident Commander' ? currentPersona.name : currentProfile.full_name)
-    : currentPersona.name;
-
-  const avatarInitials = (currentProfile.avatar_initials && currentProfile.avatar_initials !== '—')
-    ? currentProfile.avatar_initials
-    : currentPersona.avatar;
-
-  const agencyDisplay = (currentProfile.agency && currentProfile.agency !== '—')
-    ? (currentProfile.agency === 'SDMA_BIHAR' ? 'SEOC Bihar / NDMA' : currentProfile.agency.replace(/_/g, ' '))
-    : currentPersona.agency;
-
-  const operatorIdDisplay = (currentProfile.operator_id && currentProfile.operator_id !== '—')
-    ? currentProfile.operator_id
-    : currentPersona.badge;
-
-  const callsignDisplay = (currentProfile.callsign && currentProfile.callsign !== '—')
-    ? currentProfile.callsign
-    : (selectedRole === 'commander' ? 'PATNA-ACTUAL' : selectedRole === 'analyst' ? 'SIGNAL-IMD' : selectedRole === 'admin' ? 'NDMA-CONTROL' : 'GROUND-01');
-
-  const roleTitleDisplay = currentPersona.label;
-  const emailDisplay = currentProfile.email || `${selectedRole}.ops@sih-indra.gov.in`;
+  // The profile exactly as the backend returned it. Until it arrives, the
+  // account the session names stands in; signed out, nothing does.
+  const displayName = session ? profile?.full_name || session.username : 'Not signed in';
+  const roleTitle = session ? roleLabel(profile?.role ?? session.role) : null;
+  const agencyDisplay = (profile?.agency || session?.agency || '').replace(/_/g, ' ');
+  const operatorIdDisplay = profile?.operator_id || session?.operatorId || '';
+  const callsign = profile?.callsign || null;
+  const email = profile?.email || null;
 
   /* Click-away close for profile dropdown */
   useEffect(() => {
@@ -122,7 +100,8 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
     updateDuty(newStatus);
   };
 
-  const activeStatusCfg = dutyStatusConfig[currentProfile.duty_status as DutyStatus] || dutyStatusConfig.ON_DUTY;
+  // No dot for a status the profile does not carry: never a default 'On Duty'.
+  const activeStatusCfg = profile ? dutyStatusConfig[profile.duty_status as DutyStatus] ?? null : null;
 
   return (
     <>
@@ -220,24 +199,26 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 )}
                 aria-expanded={profileOpen}
                 aria-haspopup="true"
-                aria-label={`Operator profile: ${displayName} (${roleTitleDisplay})`}
-                title={`${displayName} • ${roleTitleDisplay} (${activeStatusCfg.label})`}
+                aria-label={`Operator profile: ${displayName}${roleTitle ? ` (${roleTitle})` : ''}`}
+                title={[displayName, roleTitle, activeStatusCfg?.label].filter(Boolean).join(' • ')}
               >
                 {/* Avatar circle */}
                 <div
                   className="w-full h-full rounded-full flex items-center justify-center text-[#F7F3EA] text-xs font-bold shadow-inner"
-                  style={{ background: '#26314A' }}
+                  style={{ background: session ? '#26314A' : '#7A8599' }}
                   suppressHydrationWarning
                 >
-                  {avatarInitials}
+                  {profile?.avatar_initials || <User className="w-4 h-4" />}
                 </div>
 
-                {/* Duty status indicator dot */}
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-[#F7F3EA]"
-                  style={{ backgroundColor: activeStatusCfg.dot }}
-                  title={`Status: ${activeStatusCfg.label}`}
-                />
+                {/* Duty status indicator dot, only for a status the profile carries */}
+                {activeStatusCfg && (
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-[#F7F3EA]"
+                    style={{ backgroundColor: activeStatusCfg.dot }}
+                    title={`Status: ${activeStatusCfg.label}`}
+                  />
+                )}
               </button>
 
               {/* ── Reorganized Profile Dropdown ────────────────────────── */}
@@ -251,139 +232,143 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     className="absolute right-0 mt-2 w-80 sm:w-[350px] rounded-xl border border-[#E8E2D4] overflow-hidden z-50 divide-y divide-[#E8E2D4] shadow-[0_12px_36px_rgba(30,42,59,0.18)] max-h-[calc(100vh-70px)] overflow-y-auto"
                     style={{ background: '#FDFAF5' }}
                   >
-                    {/* ── Section 1: Identity & Security ─────────────── */}
+                    {/* ── Section 1: Identity & Session ──────────────── */}
                     <div className="p-3.5" style={{ background: '#F7F3EA' }}>
                       <div className="flex items-start gap-3">
                         <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm"
-                          style={{ background: '#26314A', color: '#F7F3EA' }}
+                          style={{ background: session ? '#26314A' : '#7A8599', color: '#F7F3EA' }}
                         >
-                          {avatarInitials}
+                          {profile?.avatar_initials || <User className="w-5 h-5" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
                             <h4 className="text-sm font-semibold text-ink leading-snug truncate" suppressHydrationWarning>
                               {displayName}
                             </h4>
-                            <span className="text-[10px] font-semibold text-[#B5482E] bg-[#B5482E]/10 border border-[#B5482E]/20 px-1.5 py-0.2 rounded flex-shrink-0">
-                              {roleTitleDisplay}
-                            </span>
+                            {roleTitle && (
+                              <span className="text-[10px] font-semibold text-[#B5482E] bg-[#B5482E]/10 border border-[#B5482E]/20 px-1.5 py-0.2 rounded flex-shrink-0">
+                                {roleTitle}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-[#7A8599] truncate mt-0.5" suppressHydrationWarning>
-                            {emailDisplay}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8E2D4] text-[#4A5568]">
-                              {operatorIdDisplay}
-                            </span>
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
-                              {agencyDisplay}
-                            </span>
-                          </div>
+                          {email && (
+                            <p className="text-xs text-[#7A8599] truncate mt-0.5" suppressHydrationWarning>
+                              {email}
+                            </p>
+                          )}
+                          {session ? (
+                            (operatorIdDisplay || agencyDisplay) && (
+                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                {operatorIdDisplay && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8E2D4] text-[#4A5568]">
+                                    {operatorIdDisplay}
+                                  </span>
+                                )}
+                                {agencyDisplay && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
+                                    {agencyDisplay}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          ) : (
+                            <p className="text-[11px] text-[#7A8599] mt-1 leading-snug">
+                              Dashboards are open to read. Reviewing events, dispatching teams and
+                              reading the audit ledger need an operator account.
+                            </p>
+                          )}
                         </div>
                       </div>
 
-                      {/* Callsign designation */}
-                      <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
-                        <span className="flex items-center gap-1.5 font-medium text-[#7A8599]">
-                          <Radio className="w-3.5 h-3.5" />
-                          {t('common.radio_designation')}
-                        </span>
-                        <span className="font-semibold text-ink tracking-wider font-mono">
-                          {callsignDisplay}
-                        </span>
-                      </div>
+                      {/* Callsign, only when the profile has one */}
+                      {callsign && (
+                        <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
+                          <span className="flex items-center gap-1.5 font-medium text-[#7A8599]">
+                            <Radio className="w-3.5 h-3.5" />
+                            {t('common.radio_designation')}
+                          </span>
+                          <span className="font-semibold text-ink tracking-wider font-mono">
+                            {callsign}
+                          </span>
+                        </div>
+                      )}
 
-                      {/* Auth / session status indicator */}
+                      {/* Session: who, what role, and until when */}
                       <div
                         className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium"
-                        style={isAuthenticated
+                        style={session
                           ? { background: 'rgba(52,211,153,0.08)', borderColor: 'rgba(52,211,153,0.25)', color: '#2D6A4F' }
                           : { background: 'rgba(122,133,153,0.08)', borderColor: 'rgba(122,133,153,0.2)', color: '#4A5568' }
                         }
                       >
-                        <Lock className="w-3 h-3 flex-shrink-0" style={{ color: isAuthenticated ? '#10B981' : '#7A8599' }} />
-                        <span className="flex-1 font-medium">
-                          {isAuthenticated ? t('common.secure_session') : t('common.session_inactive')}
+                        <Lock className="w-3 h-3 flex-shrink-0" style={{ color: session ? '#10B981' : '#7A8599' }} />
+                        <span className="flex-1 font-medium truncate" data-testid="session-status">
+                          {session
+                            ? `Signed in as ${session.username} · ${session.role || '—'} · until ${sessionExpiryLabel(session)}`
+                            : 'Not signed in'}
                         </span>
-                        {isAuthenticated && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-                        )}
                       </div>
                     </div>
 
                     {/* ── Section 2: Duty Status Selector ────────────── */}
-                    <div className="p-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599]">
-                          {t('nav.operator')} Status
-                        </span>
-                        {isUpdatingStatus && (
-                          <span className="text-[10px] text-[#B5482E] animate-pulse font-medium">Syncing…</span>
-                        )}
+                    {profile && (
+                      <div className="p-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599]">
+                            Operational Duty Status
+                          </span>
+                          {isUpdatingStatus && (
+                            <span className="text-[10px] text-[#B5482E] animate-pulse font-medium">Syncing…</span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
+                            const cfg = dutyStatusConfig[st];
+                            const isSelected = profile.duty_status === st;
+                            const dutyLabel = st === 'ON_DUTY' ? t('common.duty_on') : st === 'OFF_DUTY' ? t('common.duty_off') : st === 'STANDBY' ? t('common.duty_standby') : t('common.duty_deployed');
+                            return (
+                              <button
+                                key={st}
+                                onClick={() => handleDutyChange(st)}
+                                className={cn(
+                                  'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                  isSelected
+                                    ? 'bg-[#26314A] text-[#F7F3EA] shadow-sm font-semibold'
+                                    : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
+                                )}
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
+                                  {dutyLabel}
+                                </span>
+                                {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {(['ON_DUTY', 'STANDBY', 'DEPLOYED', 'OFF_DUTY'] as DutyStatus[]).map((st) => {
-                          const cfg = dutyStatusConfig[st];
-                          const isSelected = currentProfile.duty_status === st;
-                          const dutyLabel = st === 'ON_DUTY' ? t('common.duty_on') : st === 'OFF_DUTY' ? t('common.duty_off') : st === 'STANDBY' ? t('common.duty_standby') : t('common.duty_deployed');
-                          return (
-                            <button
-                              key={st}
-                              onClick={() => handleDutyChange(st)}
-                              className={cn(
-                                'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                                isSelected
-                                  ? 'bg-[#26314A] text-[#F7F3EA] shadow-sm font-semibold'
-                                  : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
-                              )}
-                            >
-                              <span className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
-                                {dutyLabel}
-                              </span>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    )}
 
-                    {/* ── Section 3: Role Switcher (RBAC Demo) ────────── */}
-                    <div className="p-3" style={{ background: '#F7F3EA' }}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599] flex items-center gap-1">
-                          <Shield className="w-3 h-3 text-[#7A8599]" />
-                          {t('common.switch_role')}
-                        </span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#FBF2E4] text-[#8A611E] border border-[#D4B87A]">
-                          SIH RBAC DEMO
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-1">
-                        {[
-                          { id: 'commander', label: 'Ops Lead' },
-                          { id: 'analyst',   label: 'Analyst'  },
-                          { id: 'admin',     label: 'Admin'    },
-                          { id: 'citizen',   label: 'Citizen'  },
-                        ].map((r) => {
-                          const isSelected = selectedRole === r.id;
-                          return (
-                            <button
-                              key={r.id}
-                              onClick={() => switchRole(r.id)}
-                              className={cn(
-                                'px-2 py-1 rounded-lg text-[11px] font-medium transition-all text-center',
-                                isSelected
-                                  ? 'bg-[#B5482E] text-white font-semibold shadow-sm'
-                                  : 'bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
-                              )}
-                            >
-                              {r.label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                    {/* ── Section 3: Sign in / Sign out ───────────────── */}
+                    <div className="p-2" style={{ background: '#F7F3EA' }}>
+                      {session ? (
+                        <button
+                          onClick={() => { setProfileOpen(false); signOut(); }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
+                        >
+                          <LogOut className="w-3.5 h-3.5 text-[#7A8599]" />
+                          Sign out
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => { setProfileOpen(false); setSignInOpen(true); }}
+                          className="w-full flex items-center justify-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold text-white bg-[#26314A] hover:bg-[#1B2436] transition-colors"
+                        >
+                          <LogIn className="w-3.5 h-3.5" />
+                          Sign in
+                        </button>
+                      )}
                     </div>
 
                     {/* ── Section 4: Navigation Links ──────────────────── */}
@@ -466,6 +451,8 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
         open={reportModalOpen}
         onClose={() => setReportModalOpen(false)}
       />
+
+      <SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} />
     </>
   );
 }

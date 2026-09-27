@@ -1,13 +1,13 @@
 """
 Regression tests for the events read API against a live database.
 
-These exist because every router in this codebase wraps its query in a
-try/except that falls back to demo data, so a broken query returns HTTP 200
-with plausible-looking content and nothing in the response distinguishes it
-from a working one. `GET /api/events/{id}` was broken this way from the start:
-a single bind parameter compared against both a uuid column and a varchar
-column made Postgres raise "operator does not exist: character varying = uuid"
-on every call, and every lookup silently returned the Patna demo event.
+Until 20 Sep every router wrapped its query in a try/except that fell back to
+invented data, so a broken query returned HTTP 200 with plausible-looking
+content and nothing in the response distinguished it from a working one.
+`GET /api/events/{id}` was broken this way from the start: a single bind
+parameter compared against both a uuid column and a varchar column made
+Postgres raise "operator does not exist: character varying = uuid" on every
+call, and every lookup silently returned an invented event.
 
 The assertions therefore check for the *real* row, not merely for HTTP 200.
 """
@@ -79,7 +79,7 @@ async def test_event_detail_by_uuid_returns_the_real_row(api, seeded_event):
     assert body["id"] == event_id
     assert body["event_code"] == event_code
     assert body["confidence_score"] == pytest.approx(0.81)
-    # The demo fallback's receipt has no "factors" key at all.
+    # A fabricated receipt would lack the "factors" key; a real one always has it.
     assert "factors" in body["verification_receipt"]
 
 
@@ -92,43 +92,18 @@ async def test_event_detail_by_event_code_returns_the_real_row(api, seeded_event
     assert r.json()["id"] == event_id
 
 
-async def test_event_detail_with_a_non_uuid_id_is_a_404(api, seeded_event, monkeypatch):
+async def test_event_detail_with_a_non_uuid_id_is_a_404(api, seeded_event):
     """
-    The id is a free-text path segment, so a non-UUID must not blow up the uuid
-    comparison — it must simply match nothing real.
+    A non-UUID id must not blow up the uuid comparison; it matches nothing, so
+    the answer is 404.
 
-    This used to assert 200. That was DEMO_MODE=true leaking into the contract:
-    with demo data on, the detail endpoint's `empty()` branch answered a
-    non-existent event with an invented one, so "matches nothing real" looked like
-    a success. With DEMO_MODE=false — the default since 20 Sep — the honest answer
-    to "show me this event" when there is no such event is 404.
+    This used to assert 200: the detail endpoint answered a non-existent event
+    with an invented one, so "matches nothing real" looked like a success.
     """
-    from app.core.config import get_settings
-
-    monkeypatch.setattr(get_settings(), "DEMO_MODE", False)
-
     r = await api.get("/api/events/definitely-not-a-uuid")
 
     assert r.status_code == 404
     assert r.status_code != 500
-
-
-async def test_event_detail_with_a_non_uuid_id_in_demo_mode_invents_nothing_real(
-    api, seeded_event, monkeypatch
-):
-    """
-    With demo data on, the same request answers 200 with a demo event — but it must
-    never be mistaken for the seeded row, and it must never be a 500.
-    """
-    from app.core.config import get_settings
-
-    monkeypatch.setattr(get_settings(), "DEMO_MODE", True)
-
-    r = await api.get("/api/events/definitely-not-a-uuid")
-
-    assert r.status_code == 200
-    _, event_code = seeded_event
-    assert r.json()["event_code"] != event_code
 
 
 async def test_events_list_returns_the_real_row(api, seeded_event):
@@ -147,9 +122,8 @@ async def test_events_list_returns_the_real_row(api, seeded_event):
 class TestLocationIsServedFromColumns:
     """
     BUG-033. The events API read the place name out of
-    `verification_receipt->>'city'`, a key only the synthetic seeder ever
-    wrote, so every pipeline-produced event was served as "Unknown" while
-    demo data looked correct. It reads columns now.
+    `verification_receipt->>'city'`, a key no pipeline code writes, so every
+    pipeline-produced event was served as "Unknown". It reads columns now.
     """
 
     async def test_an_event_with_a_district_serves_it(self, api, seeded_event):

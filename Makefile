@@ -5,7 +5,7 @@
 # ==============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help dev start bg stop restart status setup infra-up infra-down infra-status doctor demo test test-integration smoke logs clean
+.PHONY: help dev start bg stop restart status setup infra-up infra-down infra-status doctor test test-integration smoke e2e-backend e2e e2e-reset logs clean
 
 help:
 	@./start.sh help
@@ -46,9 +46,6 @@ infra-ps:
 doctor:
 	@./start.sh doctor
 
-demo:
-	@./start.sh demo
-
 # Backend pytest suites. Both run against the `indra_test` database (see
 # backend/tests/conftest.py), never the dev database.
 test:
@@ -60,6 +57,17 @@ test-integration:
 # HTTP probes against a running backend (was `make test`).
 smoke:
 	@./start.sh test
+
+# Playwright against a disposable backend on indra_e2e (port 8100), never the
+# dev stack. Run `make e2e-backend` in another terminal first.
+e2e-backend:
+	@./start.sh e2e-backend
+
+e2e:
+	@cd frontend && E2E_API_URL=http://localhost:8100 E2E_EXPECT_DB=indra_e2e npx playwright test
+
+e2e-reset:
+	@./start.sh e2e-reset
 
 logs:
 	@./start.sh logs

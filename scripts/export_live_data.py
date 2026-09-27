@@ -13,6 +13,9 @@ Writes, all under `data/live/`:
     verified_events.geojson the events INDRA verified, same
     export_log.txt      a plain-text summary of what was exported and when
 
+A .geojson is written only when at least one row has a polygon; when none has,
+the file from an earlier export is removed rather than left behind.
+
 **Why this exists.** The real data lives in Postgres inside a Docker container,
 which means checking what the platform actually holds needs a `docker exec` and
 some SQL. That is a bad way to answer "is this real?" during a demo rehearsal,
@@ -28,6 +31,8 @@ the snapshot is replaced.
 Nothing is invented here. A table with no rows exports as a CSV containing only
 its header, and `export_log.txt` says `0 rows` beside it — which is the honest
 answer on a stack that has just started.
+
+Credentials are never exported: `user_profiles.password_hash` stays in Postgres.
 """
 
 from __future__ import annotations
@@ -64,6 +69,12 @@ GEOJSON = {
     "verified_events": ("boundary_polygon", ["event_code", "event_type", "severity", "confidence_score", "review_status", "report_count"]),
 }
 
+# Columns left out of every file. data/live is committed, and a bcrypt hash in
+# git can be attacked offline for as long as the repository exists.
+EXCLUDED_COLUMNS = {
+    "user_profiles": {"password_hash"},
+}
+
 
 async def fetch_all(engine, table: str, geom_col: str | None):
     """Every row of one table, with geometry as GeoJSON text and a WKT-free copy."""
@@ -81,6 +92,7 @@ async def fetch_all(engine, table: str, geom_col: str | None):
                     {"t": table},
                 )
             ).all()
+            if r[0] not in EXCLUDED_COLUMNS.get(table, ())
         ]
         if not cols:
             return [], []
@@ -150,9 +162,11 @@ def write_geojson(table: str, geom_col: str, props: list[str], rows: list[dict])
                 "properties": {p: _cell(row.get(p)) for p in props if p in row},
             }
         )
-    if not features:
-        return None
     path = OUT_DIR / f"{table}.geojson"
+    if not features:
+        # A stale file from an earlier export would still map rows that are gone.
+        path.unlink(missing_ok=True)
+        return None
     path.write_text(
         json.dumps({"type": "FeatureCollection", "features": features}, ensure_ascii=False, indent=1),
         encoding="utf-8",
@@ -205,9 +219,11 @@ async def main() -> int:
         f"Source     : {settings.DATABASE_URL.split('@')[-1]}\n"
         f"Total rows : {total}\n"
         "\n"
-        "This is a snapshot of what the platform actually held at that moment.\n"
-        "Nothing here is generated, seeded or filled in: a table showing 0 rows\n"
-        "had no rows. Nothing reads these files back into the platform.\n"
+        "This is a snapshot of the source database at that moment. Rows are\n"
+        "exported exactly as stored, so they are only as real as that database;\n"
+        "user_profiles holds the login accounts migration 0008 seeds. A table\n"
+        "showing 0 rows had no rows. Nothing reads these files back into the\n"
+        "platform.\n"
         "\n"
         "Open indra_live.db with `sqlite3 data/live/indra_live.db`, the CSVs with\n"
         "any spreadsheet, and the .geojson files by dragging them onto geojson.io.\n"

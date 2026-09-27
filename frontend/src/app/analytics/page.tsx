@@ -1,11 +1,8 @@
 'use client';
 
 /**
- * Analytics. The two charts always read the backend; the figures above them
- * used to be invented — a "BIGQUERY ML ENGINE" at "28ms" inference latency, a
- * "96.4%" model confidence index, "1.42M" Doppler radar points per second,
- * "37" precipitation anomalies and "4.82 TB" of IMD and ISRO data a day, none
- * of which INDRA has. They are now counts from GET /api/dashboard/summary.
+ * Analytics. The two charts read the backend, and the figures above them are
+ * counts from GET /api/dashboard/summary.
  *
  * Since 24 Sep it also shows the two live feeds that were stored and never
  * drawn: the Open-Meteo rainfall the station poller writes every 10 minutes,

@@ -1,6 +1,7 @@
-import { test, expect, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { test, expect } from './fixtures';
 
 /**
  * What a cold load shows, before anybody touches anything.
@@ -39,14 +40,14 @@ test.describe('the dashboard is correct before anyone touches it', () => {
     await settleMap(page);
     await page.screenshot({ path: path.join(SHOTS, 'cold-01-map.png') });
 
-    // The badge tells us how many incidents the component believes it holds.
+    // The badge tells us how many pins the component believes it holds.
     // Parsing it rather than hardcoding a number keeps this test honest against
     // live data, which moves between runs.
-    const badge = page.locator('text=/\\d+ Incidents/').first();
-    await expect(badge, 'the map must state an incident count').toBeVisible();
+    const badge = page.locator('text=/\\d+ map pins/').first();
+    await expect(badge, 'the map must state a pin count').toBeVisible();
 
-    const claimed = Number((await badge.innerText()).match(/(\d+) Incidents/)![1]);
-    test.skip(claimed === 0, 'no incidents in the database, nothing to draw');
+    const claimed = Number((await badge.innerText()).match(/(\d+) map pins/)![1]);
+    test.skip(claimed === 0, 'no pins in the database, nothing to draw');
 
     // BUG-043: this was 0 while the badge said 42. The map is the product;
     // a map that counts what it does not draw is worse than an empty one,
@@ -54,7 +55,7 @@ test.describe('the dashboard is correct before anyone touches it', () => {
     const drawn = await page.locator('.maplibregl-marker').count();
     expect(
       drawn,
-      `the badge claims ${claimed} incidents but the map drew ${drawn} markers`
+      `the badge claims ${claimed} pins but the map drew ${drawn} markers`
     ).toBeGreaterThan(0);
   });
 

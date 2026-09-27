@@ -48,9 +48,6 @@ import {
   type ThemeMode,
   type RefreshInterval,
   type IdleLockMinutes,
-  formatTemperature,
-  formatWindSpeed,
-  formatRainfall,
   formatCoordinates,
 } from '@/lib/useSettings';
 import { cn } from '@/lib/utils';
@@ -83,7 +80,7 @@ const TAB_GROUPS: { groupLabel: string; tabs: TabItem[] }[] = [
     groupLabel: 'GIS & Environment',
     tabs: [
       { key: 'map', label: 'Map & GIS Layers', shortLabel: 'Map', icon: Globe, hotkey: '2' },
-      { key: 'alerts', label: 'Emergency Siren', shortLabel: 'Audio', icon: Volume2, hotkey: '3' },
+      { key: 'alerts', label: 'Alert Tone', shortLabel: 'Audio', icon: Volume2, hotkey: '3' },
       { key: 'units', label: 'Units & Coordinates', shortLabel: 'Units', icon: Gauge, hotkey: '4' },
       { key: 'hud', label: 'HUD & Styling', shortLabel: 'Style', icon: Layers, hotkey: '5' },
     ],
@@ -121,18 +118,18 @@ const SEARCHABLE_CATALOG: SearchableSetting[] = [
   { id: 'general-theme', tab: 'general', label: 'Interface Theme', desc: 'Dark Tactical Ops, Light Parchment, High Contrast', category: 'General', keywords: ['theme', 'dark', 'light', 'high contrast', 'contrast', 'color'] },
   { id: 'general-refresh', tab: 'general', label: 'Telemetry Polling Rate', desc: '5s, 15s, 30s or manual refresh rate', category: 'General', keywords: ['refresh', 'rate', 'poll', 'interval', 'speed', 'seconds'] },
   { id: 'general-timezone', tab: 'general', label: 'Station Timezone Mode', desc: 'Indian Standard Time (IST UTC+5:30) vs UTC Zulu', category: 'General', keywords: ['timezone', 'ist', 'utc', 'zulu', 'time', 'clock', 'new delhi'] },
-  { id: 'general-audio', tab: 'general', label: 'Master Emergency Siren', desc: 'Synthesizer warning tones for high-threat events', category: 'General', keywords: ['sound', 'audio', 'siren', 'alarm', 'tone'] },
+  { id: 'general-audio', tab: 'general', label: 'Alert Tone', desc: 'A tone you can test; nothing in INDRA sounds it yet', category: 'General', keywords: ['sound', 'audio', 'siren', 'alarm', 'tone'] },
   { id: 'projection', tab: 'map', label: 'Default Map Projection', desc: '3D Spherical Globe vs 2D Flat Mercator', category: 'GIS & Map', keywords: ['3d', 'globe', 'mercator', 'projection', '2d', 'map'] },
   { id: 'basemap', tab: 'map', label: 'Basemap Style', desc: 'Satellite, Dark Tactical, Topographic, Street Vector', category: 'GIS & Map', keywords: ['esri', 'satellite', 'dark', 'carto', 'topo', 'terrain', 'vector', 'street'] },
   { id: 'globe-orbit', tab: 'map', label: 'Globe Ambient Orbit', desc: 'Slow auto-rotation when idle', category: 'GIS & Map', keywords: ['rotate', 'spin', 'orbit', 'idle', 'ambient'] },
-  { id: 'audio-enable', tab: 'alerts', label: 'Emergency Siren Synthesizer', desc: 'Synthesized warning tones for high-threat events', category: 'Audio & Alarms', keywords: ['sound', 'audio', 'siren', 'alarm', 'synthesizer', 'tone'] },
-  { id: 'alert-volume', tab: 'alerts', label: 'Alert Volume & Decibel Level', desc: 'Volume level from quiet ops desk to 90dB maximum emergency warning', category: 'Audio & Alarms', keywords: ['volume', 'decibel', 'db', 'loud', 'quiet', 'sound'] },
+  { id: 'audio-enable', tab: 'alerts', label: 'Alert Tone Synthesizer', desc: 'A tone you can test; nothing in INDRA sounds it yet', category: 'Audio & Alarms', keywords: ['sound', 'audio', 'siren', 'alarm', 'synthesizer', 'tone'] },
+  { id: 'alert-volume', tab: 'alerts', label: 'Alert Volume & Decibel Level', desc: 'Volume of the test tone', category: 'Audio & Alarms', keywords: ['volume', 'decibel', 'db', 'loud', 'quiet', 'sound'] },
   { id: 'siren-pattern', tab: 'alerts', label: 'Siren Pitch Pattern', desc: 'Tactical Warble, Continuous Siren, Pulsed Beacon, Operational Chime', category: 'Audio & Alarms', keywords: ['warble', 'continuous', 'beacon', 'chime', 'pitch', 'frequency'] },
   { id: 'alert-threshold', tab: 'alerts', label: 'Minimum Severity Threshold', desc: 'All Incidents, Moderate+, High+, Critical Only', category: 'Audio & Alarms', keywords: ['severity', 'threshold', 'critical', 'high', 'moderate', 'filter'] },
   { id: 'temp-unit', tab: 'units', label: 'Temperature Scale', desc: 'Celsius (°C - IMD standard) vs Fahrenheit (°F)', category: 'Units & Metrics', keywords: ['temp', 'celsius', 'fahrenheit', 'imd', 'degrees', 'weather'] },
   { id: 'wind-unit', tab: 'units', label: 'Wind Velocity Unit', desc: 'km/h (Civilian), Knots (Maritime), m/s (Scientific)', category: 'Units & Metrics', keywords: ['wind', 'speed', 'velocity', 'knots', 'kmh', 'ms', 'cyclone'] },
   { id: 'rain-unit', tab: 'units', label: 'Rainfall Measurement', desc: 'Millimeters (mm) vs Inches (in)', category: 'Units & Metrics', keywords: ['rain', 'rainfall', 'precipitation', 'mm', 'inches', 'monsoon'] },
-  { id: 'coord-format', tab: 'units', label: 'Coordinate Reference Format', desc: 'Decimal Degrees (DD), Degrees Minutes Seconds (DMS), Military Grid (MGRS)', category: 'Units & Metrics', keywords: ['coord', 'coordinates', 'dd', 'dms', 'mgrs', 'military', 'grid', 'gps', 'lat', 'lon'] },
+  { id: 'coord-format', tab: 'units', label: 'Coordinate Reference Format', desc: 'Decimal Degrees (DD), Degrees Minutes Seconds (DMS)', category: 'Units & Metrics', keywords: ['coord', 'coordinates', 'dd', 'dms', 'gps', 'lat', 'lon'] },
   { id: 'ui-density', tab: 'hud', label: 'Display Density', desc: 'Standard comfortable spacing vs Compact high-density data matrix', category: 'HUD & Style', keywords: ['density', 'compact', 'standard', 'spacing', 'padding'] },
   { id: 'glassmorphism', tab: 'hud', label: 'Glassmorphism & Backdrop Blur', desc: 'Translucent frosted glass cards and glow highlights', category: 'HUD & Style', keywords: ['glass', 'blur', 'glow', 'translucent', 'backdrop'] },
   { id: 'reduced-motion', tab: 'hud', label: 'Reduced Motion', desc: 'Disable heavy animations for low-spec field terminals', category: 'HUD & Style', keywords: ['motion', 'animation', 'performance', 'speed', 'gpu'] },
@@ -140,7 +137,6 @@ const SEARCHABLE_CATALOG: SearchableSetting[] = [
   { id: 'notify-email', tab: 'notifications', label: 'Emergency Email Alerts', desc: 'Send disaster bulletins to operational email', category: 'Alert Delivery', keywords: ['email', 'mail', 'dispatch', 'bulletin'] },
   { id: 'notify-phone', tab: 'notifications', label: 'SMS & WhatsApp Broadcast', desc: 'Priority SMS gateway notification for field personnel', category: 'Alert Delivery', keywords: ['sms', 'whatsapp', 'phone', 'mobile', 'text'] },
   { id: 'idle-lock', tab: 'security', label: 'Inactivity Screen Lock', desc: 'Lock the tactical terminal after 5, 15, or 30 minutes of idle time', category: 'Security & Access', keywords: ['lock', 'idle', 'timeout', 'inactivity', 'screensaver', 'security'] },
-  { id: 'mgrs-unlock', tab: 'security', label: 'Military Grid Reference (MGRS)', desc: 'Grant authorization to use NATO/MGRS coordinate targeting in HUD', category: 'Security & Access', keywords: ['mgrs', 'military', 'nato', 'security', 'grid', 'classification'] },
   { id: 'network-status', tab: 'network', label: 'Live Backend & WebSocket Telemetry', desc: 'Real-time WebSocket data stream status and node connectivity', category: 'Live Network', keywords: ['network', 'websocket', 'stream', 'api', 'backend', 'status'] },
   { id: 'export-config', tab: 'system', label: 'Export Preferences JSON', desc: 'Backup active GIS presets, audio volumes, and HUD layouts', category: 'Backup & System', keywords: ['export', 'json', 'backup', 'download', 'save'] },
   { id: 'import-config', tab: 'system', label: 'Import Preferences JSON', desc: 'Restore configuration from an exported INDRA JSON profile', category: 'Backup & System', keywords: ['import', 'restore', 'upload', 'load'] },
@@ -359,11 +355,9 @@ function AudioWaveformVisualizer({ isPlaying }: { isPlaying: boolean }) {
 
 function CoordinateMatrixCard({
   format,
-  mgrsUnlocked,
   onCopy,
 }: {
   format: CoordFormat;
-  mgrsUnlocked: boolean;
   onCopy: (text: string) => void;
 }) {
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
@@ -372,7 +366,6 @@ function CoordinateMatrixCard({
 
   const dd = formatCoordinates(sampleLat, sampleLon, 'dd');
   const dms = formatCoordinates(sampleLat, sampleLon, 'dms');
-  const mgrs = formatCoordinates(sampleLat, sampleLon, 'mgrs');
 
   const handleCopy = (text: string, fmtKey: string) => {
     navigator.clipboard?.writeText(text);
@@ -385,7 +378,7 @@ function CoordinateMatrixCard({
     <div className="p-3 rounded-xl bg-black/30 border border-white/10 space-y-2">
       <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
         <span className="flex items-center gap-1.5 text-[#F97316] font-bold uppercase">
-          <Compass className="w-3.5 h-3.5" /> Live Reference Matrix (New Delhi HQ)
+          <Compass className="w-3.5 h-3.5" /> Format example (New Delhi)
         </span>
         <span className="text-[9px] text-slate-500">Tap format to copy</span>
       </div>
@@ -433,33 +426,6 @@ function CoordinateMatrixCard({
           )}
         </button>
 
-        <button
-          type="button"
-          onClick={() => mgrsUnlocked && handleCopy(mgrs, 'mgrs')}
-          disabled={!mgrsUnlocked}
-          className={cn(
-            'flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition-all text-left',
-            !mgrsUnlocked
-              ? 'opacity-40 bg-white/[0.01] border-white/[0.04] cursor-not-allowed text-slate-500'
-              : format === 'mgrs'
-              ? 'bg-[#B5482E]/20 border-[#B5482E]/60 text-white'
-              : 'bg-white/[0.02] border-white/[0.06] text-slate-300 hover:bg-white/[0.06]',
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] px-1 rounded bg-white/10 text-slate-400 font-bold">MGRS</span>
-            <span className="font-semibold">{mgrsUnlocked ? mgrs : 'LOCKED (Enable in Security)'}</span>
-          </div>
-          {mgrsUnlocked ? (
-            copiedFormat === 'mgrs' ? (
-              <span className="text-[9px] text-emerald-400 flex items-center gap-1"><Check className="w-3 h-3" /> Copied</span>
-            ) : (
-              <Copy className="w-3 h-3 text-slate-500 hover:text-white" />
-            )
-          ) : (
-            <Lock className="w-3 h-3 text-slate-500" />
-          )}
-        </button>
       </div>
     </div>
   );
@@ -991,8 +957,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           <div className="flex items-center gap-2.5">
                             <Volume2 className="w-5 h-5 text-[#F97316]" />
                             <div>
-                              <p className="text-xs font-semibold text-white">Emergency Siren Audio</p>
-                              <p className="text-[10px] text-slate-400">Master sound toggle for disaster alerts</p>
+                              <p className="text-xs font-semibold text-white">Alert Tone</p>
+                              <p className="text-[10px] text-slate-400">Only the test plays it: no alert sounds it yet</p>
                             </div>
                           </div>
                           <SpringToggle
@@ -1104,8 +1070,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             <div className="flex items-center gap-2.5">
                               <VolumeIcon className="w-5 h-5 text-[#F97316]" />
                               <div>
-                                <h4 className="text-xs font-bold text-white uppercase font-mono">Emergency Siren</h4>
-                                <p className="text-[10px] text-slate-400">Synthesizer warning for critical hazards</p>
+                                <h4 className="text-xs font-bold text-white uppercase font-mono">Alert Tone</h4>
+                                <p className="text-[10px] text-slate-400">Synthesized in this browser; only the test plays it</p>
                               </div>
                             </div>
                             <SpringToggle
@@ -1218,27 +1184,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                       <TabContent tabKey="units" direction={direction}>
                         <CoordinateMatrixCard
                           format={settings.coordFormat}
-                          mgrsUnlocked={settings.advancedCoordFormats}
                           onCopy={(txt) => showToast(`Copied ${txt} to clipboard`)}
                         />
-
-                        <div className="p-3.5 rounded-xl border border-white/10 bg-white/[0.03]">
-                          <p className="text-[10px] font-mono uppercase text-[#F97316] font-bold mb-2">
-                            Weather Telemetry Output Sample
-                          </p>
-                          <div className="grid grid-cols-3 gap-2 font-mono text-center">
-                            {[
-                              { label: 'Temp', value: formatTemperature(32.4, settings.tempUnit), color: 'text-amber-400' },
-                              { label: 'Wind', value: formatWindSpeed(68, settings.windUnit), color: 'text-sky-400' },
-                              { label: 'Rain', value: formatRainfall(85.5, settings.rainUnit), color: 'text-blue-400' },
-                            ].map((item) => (
-                              <div key={item.label} className="bg-black/35 p-2 rounded-lg border border-white/10">
-                                <span className="text-[9px] text-slate-500 block">{item.label}</span>
-                                <span className={cn('text-sm font-bold', item.color)}>{item.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
 
                         <div>
                           <SectionHeader icon={Gauge} label="Temperature Scale" />
@@ -1292,7 +1239,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                             {[
                               { id: 'dd', label: 'Decimal Degrees (DD)', sample: '28.6139° N, 77.2090° E' },
                               { id: 'dms', label: 'Degrees Minutes Seconds (DMS)', sample: "28°36'50\"N, 77°12'32\"E" },
-                              ...(settings.advancedCoordFormats ? [{ id: 'mgrs', label: 'Military Grid (MGRS)', sample: '43R BK 21456 68421' }] : []),
                             ].map((cf) => {
                               const isSel = settings.coordFormat === cf.id;
                               return (
@@ -1309,9 +1255,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                 </SelectCard>
                               );
                             })}
-                            {!settings.advancedCoordFormats && (
-                              <p className="text-[10px] text-slate-500 pl-1">Enable MGRS in Security tab to unlock NATO Military Grid.</p>
-                            )}
                           </div>
                         </div>
                       </TabContent>
@@ -1508,15 +1451,6 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                               );
                             })}
                           </div>
-                        </div>
-
-                        <div className="rounded-xl border border-white/[0.08] divide-y divide-white/[0.06] bg-white/[0.03]">
-                          <ToggleRow
-                            label="MGRS / Military Grid Targeting"
-                            desc="Authorize MGRS coordinate selection in Units & HUD"
-                            value={settings.advancedCoordFormats}
-                            onChange={() => updateSettings({ advancedCoordFormats: !settings.advancedCoordFormats })}
-                          />
                         </div>
 
                         <div className="p-3.5 rounded-xl border border-white/[0.08] bg-white/[0.03]">

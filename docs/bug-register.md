@@ -17,7 +17,9 @@ most often kept private. A teammate who hits `command not found: docker` or a re
 whether the audit trail can be edited should find the answer here rather than ask. If you are
 demonstrating INDRA, read the **carried** rows at the bottom before you start.
 
-**Last updated: 27 Sep 2026, after the third real-post sample (BUG-108 … BUG-114 fixed; BUG-115 … BUG-118 open).**
+**Last updated: 27 Sep 2026: the demo-data removal of 25 Sep (BUG-045 fixed, BUG-093 … BUG-100), then
+Phase 3's testing pass and three real-post samples (BUG-081, BUG-090 … BUG-092, BUG-101 … BUG-114 fixed;
+BUG-115 … BUG-118 open).**
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -159,6 +161,7 @@ Fix: routed through `demo_fallback()`. `DEMO_MODE=false` + DB error → **503**;
 **Root cause of its survival:** the endpoint was missing from `test_demo_mode.py`'s `LIST_ENDPOINTS`,
 so the hole had no test and outlived a gate added three days earlier. It and `/api/geo/heatmap` are
 both in that list now — that, not the fix, is what prevents a recurrence.
+**25 Sep:** the gate itself is gone (BUG-100); the test file is now `tests/test_empty_and_unavailable.py`.
 
 ### BUG-005 — CORS is `allow_origins=["*"]`
 **S3 → S2** · Layer 8a · **`FIXED`** by `bcd4b85` (T8) · Found by: code read · 20 Sep
@@ -189,6 +192,7 @@ so no frontend change was needed. `start.sh`'s banner also advertised the file a
 verified" and now reports the labelled dataset as synthetic.
 Tests: `test_the_scenario_endpoint_is_gone`, `test_the_demo_trigger_endpoint_is_gone`,
 `test_the_fabricated_scenario_file_is_deleted`.
+**25 Sep:** the dashboard's leftover `DEMO_PULSE` message type went too (BUG-100).
 
 ### BUG-022 — `scripts/run_patna_demo.py` exercised nothing and contradicted the code
 **S2** · Demo tooling · **`FIXED`** by `bcd4b85` (T8) · Found by: T12/T14 dependency check during planning · 20 Sep
@@ -204,6 +208,7 @@ Fix: rewritten to POST five reports to `/api/reports/submit`, poll `/api/events`
 and print **only values read back from the API** — including `factor_coverage`, the per-factor
 `state` column and `severity_basis`. Exits non-zero if no event appears, so it is a smoke test rather
 than a slideshow. `--official` adds the dispatch report that crosses the review gate.
+**25 Sep:** `run_patna_demo.py` and `run_hazard_demo.py` were deleted (BUG-100).
 
 ### BUG-023 — `/legacy` serves a prototype dashboard full of fabricated telemetry
 **S2** · Layer 8a · **`FIXED`** by `fd0842c` · Found by: T8 sweep · 20 Sep
@@ -575,6 +580,8 @@ for real. It was invisible to 517 passing tests, because every one of those test
 rows or asserts the fallback *works* — none of them asked whether the fallback could be mistaken for
 a live result.
 
+**25 Sep:** `DEMO_MODE` and the fallback events were deleted outright, so this cannot recur (BUG-100).
+
 ### BUG-025 — The demo's "official dispatch crosses 0.60" step is not reachable through the API
 **S2** · Layers 2, 6 · `WONT-FIX-TODAY` (narrative corrected instead) → **`FIXED` 22 Sep** (see Day 9) · Found by: running the demo with `--official` · 20 Sep
 
@@ -628,6 +635,7 @@ Actual: printed `3 reports, confidence 0.4585`; eight seconds later the same eve
 was still absorbing members — but on a projector it reads as a number that will not sit still.
 Fix: the script now polls `report_count` until it has held steady for 4 s before printing anything.
 Measured: all five land within ~8 s on a local stack.
+**25 Sep:** `run_patna_demo.py` was deleted (BUG-100).
 
 ---
 
@@ -702,7 +710,8 @@ subcommand — the flag is **`-b`** / `--background`. Both demo scripts now say 
 # T12 — 100-report burst, measured
 
 `backend/.venv/bin/python scripts/burst_reports.py --count 100 --spread-km 3 --city patna`
-(model pre-warmed, so these are steady-state numbers, not a cold MiniLM load)
+(model pre-warmed, so these are steady-state numbers, not a cold MiniLM load). The script was deleted
+on 25 Sep with the other synthetic injectors; the numbers stand as measured.
 
 | Measure | Value |
 |---|---|
@@ -1203,7 +1212,7 @@ Found by checking the shared server (`15.252.50.176`) against the runbook before
 rehearsal. Neither defect is in the backend code; both are in what is deployed.
 
 ### BUG-045 — The team server serves fabricated events: `DEMO_MODE=true` in the deployed `.env`
-**S1** · Layer 8a / infra · **`OPEN`** (a one-line config fix, pending) · Found by: comparing the server `.env` to the runbook before seeding · 22 Sep
+**S1** · Layer 8a / infra · `OPEN` → **`FIXED` 22 Sep on the server, impossible since 25 Sep** · Found by: comparing the server `.env` to the runbook before seeding · 22 Sep
 
 Repro: `curl -s http://15.252.50.176:8000/api/events`
 Expected: `[]` — the server database holds **0** verified events.
@@ -1219,6 +1228,11 @@ you saw were not real.**
 Fix: `DEMO_MODE=false` in `/opt/indra/.env`, then `sudo systemctl restart indra-api`;
 `/api/events` must return `[]`. The same edit should set `ENVIRONMENT=production` — its only
 effect (`database.py:24`) is SQLAlchemy echoing every SQL statement into the API log.
+
+**→ `FIXED`.** On 22 Sep, at the deploy, the server's `.env` was set to `DEMO_MODE=false` and
+`ENVIRONMENT=production` (recorded in Aditya's server notes; not re-checked on the server since).
+**Since 25 Sep it cannot recur:** `DEMO_MODE`, `core/demo.py` and every hardcoded payload
+were deleted (BUG-100), so a `DEMO_MODE` line left in any `.env` is ignored.
 
 ### BUG-046 — `next build` fails on `main`, so the server cannot run a production frontend
 **S2** · Layer 9 · **`FIXED`** by `1004d75` (events page) and `2f411d1` (alerts page) · Found by: building on the server, 21 Sep; `tsc --noEmit` on `main`, 22 Sep
@@ -1254,6 +1268,8 @@ The test walks the OpenAPI schema, not `app.routes` — FastAPI 0.141 hides incl
 which the test's own guard caught — so a mutation added later without a guard fails the suite.
 Say: "Every write is role-checked and attributed. The demo accounts' passwords ship with the
 dashboard's persona switcher, so this shows roles, not secrecy; a deployment needs a real login."
+**25 Sep:** no password ships with the dashboard any more (BUG-093). Say instead: "Every write is
+role-checked and attributed to the operator who signed in. There is no MFA."
 
 ### BUG-012 → `FIXED` — DBSCAN uses a great-circle radius
 `05da3fa` · Test: `test_dbscan_great_circle.py` (15, boundaries at 4.99/5.01 km both ways, at
@@ -1293,9 +1309,11 @@ container: socket `pg_isready` green at 1.1 s on the temporary init server, TCP 
 
 ### BUG-046 → `FIXED` — `npm run build` passes on the branch
 
-### BUG-045 — still `OPEN`
+### BUG-045 — still `OPEN` here, `FIXED` at the deploy the same day
 The fix is a line in the server's `.env` and a restart; it needs a write on the server, which was
 not made from this session. Commands are in the PR.
+**25 Sep:** made at the 22 Sep deploy, and impossible since the demo mode was deleted; see the row
+above.
 
 ## Found 22 Sep by reading every page of the dashboard
 
@@ -1362,6 +1380,7 @@ ones included, with a missing confidence defaulting to 85%; every review was cre
 The model finished warming mid-dedup, the last three reports merged seconds later, and the script
 printed "steady at 3", 0.4748 `QUARANTINED` for an event the database held at 6 reports, 0.6065.
 BUG-026 again. It now waits for every report it sent.
+**25 Sep:** `run_patna_demo.py` was deleted (BUG-100).
 
 ### BUG-056 — A late map `load` wiped every pin
 **S1** · Layer 9 · **`FIXED`** by `38c6785` · Found by: the BUG-043 cold-load e2e test, the moment
@@ -1471,6 +1490,7 @@ Half the seeded events read `AUTO_PUBLISHED` at 0.55–0.89, a value this engine
 seeder's own quadrant still used the pre-20 Sep 0.70 gate. Status and quadrant now come from
 `FusionEngine`, as in the pipeline: 0 of 37 seeded events off the engine's rule (was 11
 `AUTO_PUBLISHED` below 0.90).
+**25 Sep:** the seeder, `scripts/seed_national_data.py`, was deleted (BUG-100).
 
 ### BUG-065 — The seeder linked each report to a random event anywhere in India
 **S2** · `scripts/` → layer 6 · **`FIXED`** by `e55ea41`
@@ -1479,6 +1499,7 @@ A seeded Bhojpur event owned reports in Chennai and Delhi. Once the live pipelin
 report into such an event, it recomputed the footprint over every linked report and the radius
 spanned the country: the mechanism behind the report's 1,564 km radius. A seeded report now links only
 to an event in its own city: farthest 11.7 km, median 4.7 km (was 2,096 km).
+**25 Sep:** the seeder was deleted (BUG-100).
 
 ### BUG-066 — The merge catchment grows with the event, without a ceiling
 **S3** · Layer 6 · **`OPEN`** — Phase 3
@@ -1512,6 +1533,7 @@ job.
 
 `DEMO_KPIS` had `total_reports` 1,248 and `citizen_reports` 8,421. They are served only with
 `DEMO_MODE=true`, which stays false, but an impossible pair should not exist even there.
+**25 Sep:** `DEMO_KPIS` was deleted with the demo mode (BUG-100).
 
 ### BUG-070 — The dashboard shows its own review status, never the API's
 **S2** · Layer 9 · **`FIXED`** by `44f2486` (branch `aditya_24sept_frontend`) · Found by: marking up
@@ -1650,6 +1672,99 @@ record. Commits `ddeef6e`, `c8e8025`, `36d231b`.
 vote (`test_hazard_scenarios.py`); UNCLASSIFIED and posts-only events stay with a human even at
 0.99 (`test_event_typing.py`).
 
+# Demo-data removal — 25 Sep 2026 (branch `aditya_remove_demo_data`)
+
+Aditya asked for every demo, invented, placeholder and synthetic value to be **removed** from the
+application, not switched off, keeping the real feeds, the real datasets and the honestly labelled
+test fixtures. A read-only audit of every layer, the dashboard included, found the rows below. Each
+is fixed on the branch, one commit per change, unless its status says otherwise; the dashboard's
+share is written up for its owners in [`frontend-handover.md`](frontend-handover.md) §19. The tests
+are named per row; the whole backend suite and the browser suite are re-run in the testing pass that
+follows the code.
+
+### BUG-093 — The dashboard shipped four passwords and signed every visitor in as the commander
+**S1** · Layers 8a, 9 · **`FIXED`** by `891b95a`, `252033b`, `b262ec5`, `7da3156` (backend, scripts),
+`ee34caa`, `f773acb` (dashboard) · Found by: the 25 Sep audit
+
+`lib/api.ts` carried `DEMO_CREDENTIALS`, the four accounts' passwords, in the browser bundle, and
+fetched a token for whichever persona the switcher showed, `commander` by default: anyone who opened
+the dashboard could approve or reject events, dispatch teams and file official dispatches. The same
+passwords were a dict in `core/security.py`, were printed in `api-contract.md`, the handover and the
+smoke test, and `GET /api/profile/me` without a token answered with the commander's profile.
+Fix: accounts are `user_profiles` rows with a bcrypt `password_hash` (migration `0019`, nothing
+seeded), set per environment with `scripts/set_operator_password.py`; the dashboard signs in and keeps
+only the token. `/api/profile/me` is a 401 without one. The old passwords stay in git history, so
+every deployed account needs a new one. Tests: `test_login.py`, `test_set_operator_password.py`,
+`test_mutation_auth.py`.
+
+### BUG-094 — Invented operators stood in for the real accounts
+**S2** · Layers 7, 9 · **`FIXED`** by `9337a65` (migration `0018`), `f773acb`, `217749e`,
+`6b48f84`, `3b838fa` (dashboard)
+
+The topbar, sidebar and Profile page showed four invented officers (the commander was "Rajesh K.
+Verma") with badges, callsigns, `gov.in` e-mails, a phone number, a bio and a unit, whatever the
+account's record said; migration `0008` had seeded invented badge numbers, callsigns and a team role
+into the four profiles, and a team with no headcount counted as 12. Fix: the dashboard renders the
+signed-in account's own `/api/profile/me` and shows an absent field as absent; `0018` nulls the
+seeded placeholders and gives the citizen account agency `PUBLIC`; `POST /api/teams` requires
+`members_count`.
+
+### BUG-095 — A constant "Patna Station #04" block shown as live telemetry
+**S2** · Layer 9 · **`FIXED`** by `e7810cf`
+
+The settings page and drawer showed 32.4 °C, 68 km/h and 85.5 mm at Patna's coordinates as a
+station's output. No such station exists and nothing computed the numbers. Removed; real
+observations are the METAR and rainfall layers, and the settings say they live only in this browser.
+
+### BUG-096 — A coordinate that failed validation was moved instead of refused
+**S2** · Layers 3, 9 · **`FIXED`** by `1ee01b0` (backend), `4692a47` (dashboard) · Test:
+`test_geocoding.py`
+
+With `SNAP_OUT_OF_BOUNDS_COORDINATES=true` the backend moved an out-of-India report to a gazetteer
+match or to (22, 82), and a report with no coordinates and no known place in its text was always
+answered with (22, 82) as "National Command Grid"; two such reports could cluster there into an event.
+The dashboard moved a pin without a usable point to a gazetteer city with jitter, or to (22, 82) as
+"National Grid", and drew every citizen report as a Flood of advisory severity. Fix: the setting, the
+snap and the fixed point are gone, so such a report is a 422, and the map plots only the coordinates
+the API sent, labelling reports as unrated citizen reports.
+
+### BUG-097 — The browser suite wrote "E2E probe" reports into the live `indra_db`
+**S2** · Test infrastructure · **`FIXED`** by `6390492` (E2E mode), `4016a72` (`make e2e-backend`),
+`8b839ee` (Playwright's guard), `2cb7dbb` · Test: `test_e2e_identity.py`
+
+`e2e/dashboard-live-data.spec.ts` posted its probe to whatever `E2E_API_URL` named, `:8000` by
+default, so the probes were stored, published and clustered in the development database; four of
+them reached the committed `data/live` snapshot (BUG-099). Fix: `make e2e-backend` runs a backend with
+`ENVIRONMENT=e2e` on `indra_e2e`, its own topics, consumer group and Redis db, which refuses to start
+otherwise, and Playwright refuses any backend whose `/api/e2e/identity` does not name an `_e2e`
+database.
+
+### BUG-098 — AI-generated photographs shown beside real events
+**S3** · Layer 9 · **`FIXED`** by `a4817df`
+
+Recent Events illustrated each event with one of seven photos whose C2PA manifests read "Created by
+Google Generative AI", with alt text saying they showed the event at its place. Replaced by a hazard
+tile (colour and icon) that makes no claim about the place; the photos are deleted.
+
+### BUG-099 — Demo and test rows committed in `data/live/`
+**S3** · Layer 7 · **`IN-PROGRESS`** — the exporter is fixed by `047c1e3`, `5f3aa85`; the rows are
+not yet deleted from the snapshot
+
+The snapshot held the five Patna reports `run_patna_demo.py` posted on 20 Sep, four Playwright
+probes, the event `INDRA-20260920-001` the five formed and its audit row, none marked as test data.
+Fix: the exporter no longer claims nothing is seeded and never writes password hashes. Deleting those
+rows from the CSVs and `indra_live.db` is the remaining step; this row is `FIXED` with that commit.
+
+### BUG-100 — `DEMO_MODE`, the `DEMO_*` payloads and the demo scripts removed, not switched off
+**S3** · Layers 8a, 9, `scripts/` · **`FIXED`** by `2c20b97`, `a32c995`, `ae45bd5`, `02bec4b`,
+`a0eac46`, `7351243` · Test: `test_empty_and_unavailable.py`
+
+Off by default since 20 Sep (BUG-024), the fallback still sat one `.env` line away (BUG-045). Deleted:
+`DEMO_MODE`, `core/demo.py` and every hardcoded payload behind it (events, distribution, feed, trend,
+KPIs, teams), the dashboard's `DEMO_PULSE` type, `run_hazard_demo.py`, `run_patna_demo.py`,
+`burst_reports.py`, `seed_national_data.py`, `./start.sh demo` and `make demo`. Every read now answers
+no rows with the empty result, an unknown id with 404 and a database error with 503, through
+`core/empty.py::empty_or_503()`; a `DEMO_MODE` line left in an old `.env` is ignored.
 # Phase 3 testing pass — 26 Sep 2026 (branch `aditya_26sep`)
 
 Numbered from BUG-101, because the unmerged 25 Sep demo-data branch already uses BUG-093 … BUG-100.
@@ -1792,3 +1907,15 @@ circulation" → CYCLONE; "Is rain coming?" → RAINFALL; "नदी में �
 first ("तेज आंधी से गिरा … होर्डिंग", "आंधी से बिजली का तार गिरा") is missed as STRONG_WIND. 8 of v3's
 100. Like BUG-113, these reach only a commander's review queue: a posts-only event is never
 published without a human.
+
+### BUG-120 — The team server signed its tokens with the key published in the source
+**S1** · Layers 8a, infra · **`FIXED` in code**, the key on the server **not yet rotated** · Found by:
+checking the server before deploying the sign-in (27 Sep, read-only: the value was compared, never
+printed)
+
+The server's `.env` had `SECRET_KEY` equal to the default in `core/config.py` and `.env.example`, so
+anyone who had read the repository could sign a commander's or an admin's token and use the public
+API without a password. Operator passwords (BUG-093) do not help while the signing key is public.
+Fix: `Settings` refuses, with `ENVIRONMENT=production`, the published key or any key under 32
+characters, and the backend does not start (`test_secret_key.py`). **Before deploying this, rotate
+the server's key**; rotating it ends every session, and the dashboard fetches a new token.

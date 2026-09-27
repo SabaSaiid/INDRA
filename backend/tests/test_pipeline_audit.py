@@ -21,6 +21,8 @@ All four remain QUARANTINED at the default thresholds: re-normalisation fixed th
 scale, not the gates.
 """
 
+import json
+
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
@@ -28,10 +30,16 @@ from sqlalchemy import text
 from app.core.database import async_session
 from app.services import audit, pipeline
 from app.services.pipeline import process_report
-from tests.conftest import wipe_event_tables
+from tests.conftest import TEST_ACCOUNTS, wipe_event_tables
 from tests.test_pipeline import CLUSTER_TEXTS, PATNA_LAT, PATNA_LNG, insert_report
 
 pytestmark = pytest.mark.integration
+
+# A commander's severity override, as the review endpoint records it.
+COMMANDER_OVERRIDE = json.dumps({
+    "action": "override_severity", "operator_id": TEST_ACCOUNTS["commander"][3],
+    "reason": "test", "severity_override": "HIGH",
+})
 
 
 @pytest.fixture(autouse=True)
@@ -208,11 +216,10 @@ async def test_merges_keep_a_severity_override(db):
                 severity = 'HIGH',
                 verification_receipt = jsonb_set(
                     verification_receipt, '{human_review}',
-                    '{"action": "override_severity", "operator_id": "OP-CMD-001",
-                      "reason": "test", "severity_override": "HIGH"}'::jsonb)
+                    CAST(:review AS jsonb))
             WHERE id = CAST(:e AS uuid)
         """),
-        {"e": event_id},
+        {"e": event_id, "review": COMMANDER_OVERRIDE},
     )
     await db.commit()
 
@@ -251,11 +258,10 @@ async def test_an_override_to_high_keeps_a_weak_event_in_front_of_a_human(db, mo
                 severity = 'HIGH',
                 verification_receipt = jsonb_set(
                     verification_receipt, '{human_review}',
-                    '{"action": "override_severity", "operator_id": "OP-CMD-001",
-                      "reason": "test", "severity_override": "HIGH"}'::jsonb)
+                    CAST(:review AS jsonb))
             WHERE id = CAST(:e AS uuid)
         """),
-        {"e": event_id},
+        {"e": event_id, "review": COMMANDER_OVERRIDE},
     )
     await db.commit()
 

@@ -2,13 +2,18 @@
 INDRA Platform — JWT Security & Role-Based Access Control
 """
 
+import asyncio
+import secrets
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 import bcrypt
 from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.models.enums import OperatorRole
@@ -19,7 +24,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=Fals
 
 # ── Roles ──────────────────────────────────────────────────────────────────────
 # Derived from the enum so the two can't drift. FIELD_RESPONDER is a valid role
-# with no demo user yet.
+# no account holds yet.
 ROLES = {role.value for role in OperatorRole}
 
 
@@ -37,39 +42,60 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
-# Demo users for SIH prototype (in production this would be a DB table)
-DEMO_USERS = {
-    "admin": {
-        "password_hash": hash_password("admin123"),
-        "role": "ADMIN",
-        "agency": "NDMA",
-        "operator_id": "OP-ADMIN-001",
-    },
-    "commander": {
-        "password_hash": hash_password("commander123"),
-        "role": "COMMANDER",
-        "agency": "SDMA_BIHAR",
-        "operator_id": "OP-CMD-001",
-    },
-    "analyst": {
-        "password_hash": hash_password("analyst123"),
-        "role": "ANALYST",
-        "agency": "IMD",
-        "operator_id": "OP-ANL-001",
-    },
-    "citizen": {
-        "password_hash": hash_password("citizen123"),
-        "role": "CITIZEN",
-        "agency": "PUBLIC",
-        "operator_id": "OP-CIT-001",
-    },
-}
+# ── Accounts ───────────────────────────────────────────────────────────────────
+# Accounts are the rows of user_profiles; a password is a bcrypt hash in its
+# password_hash column, set by scripts/set_operator_password.py. NULL means the
+# account cannot sign in. Nothing here holds a password.
+
+ACCOUNT_SQL = text(
+    """
+    SELECT username, CAST(role AS text) AS role, agency, operator_id, password_hash
+    FROM user_profiles
+    WHERE username = :username
+    """
+)
+
+
+@lru_cache()
+def _dummy_hash() -> str:
+    """A hash no password matches, compared when there is no real one."""
+    return hash_password(secrets.token_urlsafe(32))
+
+
+def _check(password: str, stored: Optional[str]) -> bool:
+    return verify_password(password, stored or _dummy_hash())
+
+
+async def authenticate(db: AsyncSession, username: str, password: str) -> Optional[dict]:
+    """
+    The account these credentials sign in as, or None.
+
+    An unknown user and an account with no password still pay for one bcrypt
+    comparison, against a dummy hash, so the response time does not tell a
+    caller which usernames exist. bcrypt runs in a thread: it is ~0.2 s of CPU
+    that would otherwise stall every request on the event loop. A database
+    error propagates; the caller answers 503.
+    """
+    row = (await db.execute(ACCOUNT_SQL, {"username": username})).mappings().first()
+    stored = row["password_hash"] if row else None
+    matches = await asyncio.to_thread(_check, password, stored)
+    if not (row and stored and matches):
+        return None
+    return {
+        "username": row["username"],
+        "role": row["role"],
+        "agency": row["agency"],
+        "operator_id": row["operator_id"],
+    }
 
 
 class TokenData(BaseModel):
     sub: str
     role: str
     agency: str
+    # user_profiles.operator_id, the id the audit ledger records. Empty in a
+    # token issued before the claim existed.
+    operator_id: str = ""
 
 
 def create_access_token(
@@ -93,6 +119,7 @@ def verify_token(token: str) -> TokenData:
             sub=payload.get("sub", ""),
             role=payload.get("role", ""),
             agency=payload.get("agency", ""),
+            operator_id=payload.get("operator_id", ""),
         )
     except JWTError:
         raise HTTPException(

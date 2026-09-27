@@ -3,8 +3,8 @@ BUG-009 — every endpoint that changes state requires a token.
 
 Until 22 Sep only the review and provenance endpoints were guarded. Anyone
 could create a team, dispatch one to an event, or rewrite any operator's
-profile by naming them in `?user=`. The dashboard already fetches a JWT for
-its selected persona, so the gate costs it a header.
+profile by naming them in `?user=`. The dashboard sends the signed-in
+operator's JWT, so the gate costs it a header.
 
 The first test walks the app's routes rather than listing them, so a mutation
 added later without a guard fails here instead of shipping open.
@@ -17,7 +17,7 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.core.database import async_session
-from tests.conftest import wipe_event_tables
+from tests.conftest import TEST_ACCOUNTS, wipe_event_tables
 from tests.test_review_api import api, make_event, tokens  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.integration
@@ -63,7 +63,6 @@ def test_the_route_walk_finds_the_known_mutations():
     assert ("POST", "/api/teams") in found
     assert ("PATCH", "/api/teams/{team_id}/assign") in found
     assert ("PATCH", "/api/profile/me") in found
-    assert ("PATCH", "/api/profile/preferences") in found
     assert ("POST", "/api/reports/official") in found
 
 
@@ -86,6 +85,7 @@ TEAM = {
     "city": "Patna",
     "state": "Bihar",
     "lead_name": "Test Lead",
+    "members_count": 18,
 }
 
 
@@ -119,6 +119,15 @@ async def test_a_duplicate_team_code_is_409_not_500(api, tokens, clean_teams):  
 
 async def test_an_unknown_agency_is_422_not_a_database_error(api, tokens, clean_teams):  # noqa: F811
     r = await api.post("/api/teams", json={**TEAM, "agency": "SPACE_FORCE"}, headers=tokens["commander"])
+
+    assert r.status_code == 422
+
+
+async def test_a_team_without_a_size_is_422_not_twelve(api, tokens, clean_teams):  # noqa: F811
+    """A missing members_count was stored as 12 responders nobody reported."""
+    team = {k: v for k, v in TEAM.items() if k != "members_count"}
+
+    r = await api.post("/api/teams", json=team, headers=tokens["commander"])
 
     assert r.status_code == 422
 
@@ -246,8 +255,28 @@ async def test_duty_status_is_validated_and_case_insensitive(api, tokens, restor
     assert ok.json()["duty_status"] == "STANDBY"
 
 
-async def test_preferences_are_stored_under_the_token_user(api, tokens):  # noqa: F811
-    r = await api.patch("/api/profile/preferences?user=admin", json={"tempUnit": "fahrenheit"}, headers=tokens["citizen"])
+async def test_reading_a_profile_needs_a_token(api):  # noqa: F811
+    """With no token /me used to answer with the commander's profile."""
+    assert (await api.get("/api/profile/me")).status_code == 401
+    assert (await api.get("/api/profile/me?user=commander")).status_code == 401
+    assert (await api.get("/api/profile/me", headers={"Authorization": "Bearer not-a-jwt"})).status_code == 401
 
-    assert r.status_code == 200
-    assert r.json()["username"] == "citizen"
+
+async def test_a_token_reads_its_own_profile(api, tokens):  # noqa: F811
+    r = await api.get("/api/profile/me", headers=tokens["analyst"])
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["username"] == "analyst"
+    assert body["operator_id"] == TEST_ACCOUNTS["analyst"][3]
+
+
+async def test_activity_names_its_user(api):  # noqa: F811
+    assert (await api.get("/api/profile/activity")).status_code == 422
+    assert (await api.get("/api/profile/activity?user=analyst")).status_code == 200
+    assert (await api.get("/api/profile/activity?user=nobody-here")).status_code == 404
+
+
+async def test_there_is_no_server_side_preference_store(api, tokens):  # noqa: F811
+    assert (await api.get("/api/profile/preferences")).status_code == 404
+    assert (await api.patch("/api/profile/preferences", json={}, headers=tokens["citizen"])).status_code == 404

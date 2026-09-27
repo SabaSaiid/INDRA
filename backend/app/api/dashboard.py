@@ -8,31 +8,26 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.demo import demo_fallback
+from app.core.empty import empty_or_503
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
-
-# Served only when DEMO_MODE is true, and logged as demo data every time.
-DEMO_KPIS = {
-    "total_reports": 1248,
-    "total_reports_delta_pct": 12.0,
-    "verified_events": 37,
-    "verified_events_delta_pct": 8.0,
-    "critical_events": 5,
-    "critical_events_delta_pct": -2.0,
-    # A share of total_reports, as in the real query. It was 8,421 against a
-    # total of 1,248 until 24 Sep (BUG-069): more citizen reports than reports.
-    "citizen_reports": 842,
-    "citizen_reports_delta_pct": 15.0,
-    "awaiting_review": 14,
-    "active_alerts": 23,
-}
 
 # A working stack with nothing in it yet. Zeroes are the truthful answer to "how
 # many reports are there" on a freshly started database, and the dashboard renders
 # them fine; inventing 1,248 does not become acceptable just because the database
 # answered.
-EMPTY_KPIS = {key: 0 if isinstance(value, int) else 0.0 for key, value in DEMO_KPIS.items()}
+EMPTY_KPIS = {
+    "total_reports": 0,
+    "total_reports_delta_pct": 0.0,
+    "verified_events": 0,
+    "verified_events_delta_pct": 0.0,
+    "critical_events": 0,
+    "critical_events_delta_pct": 0.0,
+    "citizen_reports": 0,
+    "citizen_reports_delta_pct": 0.0,
+    "awaiting_review": 0,
+    "active_alerts": 0,
+}
 
 
 @router.get("/summary")
@@ -78,9 +73,9 @@ async def get_dashboard_summary(db: AsyncSession = Depends(get_db)):
         ),
         -- "Verified" means the system or a human actually verified it.
         -- This used to be `review_status != 'REJECTED'`, which counted
-        -- QUARANTINED and PENDING_HUMAN_REVIEW as verified: the one event in
-        -- the demo database scored 0.4984, was quarantined, was assigned the
-        -- quadrant "Noise", and was still advertised as a Verified Event
+        -- QUARANTINED and PENDING_HUMAN_REVIEW as verified: an event that
+        -- scored 0.4984, was quarantined, was assigned the quadrant "Noise",
+        -- and was still advertised as a Verified Event
         -- (BUG-034). Everything not rejected is still counted, but under a
         -- name that says what it is.
         events_current AS (
@@ -174,15 +169,7 @@ async def get_dashboard_summary(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         db_error = e
 
-    # Until 20 Sep this returned the DEMO_KPIS below unconditionally — on a
-    # database error *and* on an empty result, whatever DEMO_MODE said. It was the
-    # one read endpoint that escaped the Day 2 demo gate, and the only place left
-    # in the API where a number the database never produced could be served as
-    # though it had. These are the headline KPIs on the dashboard, so it was also
-    # the worst place for it.
-    return demo_fallback(
-        "GET /api/dashboard/summary",
-        demo=lambda: dict(DEMO_KPIS),
-        empty=lambda: dict(EMPTY_KPIS),
-        error=db_error,
-    )
+    # Until 20 Sep this returned invented KPIs unconditionally — on a database
+    # error *and* on an empty result (BUG-004). These are the headline numbers on
+    # the dashboard, so it was the worst place for it.
+    return empty_or_503("GET /api/dashboard/summary", lambda: dict(EMPTY_KPIS), db_error)

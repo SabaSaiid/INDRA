@@ -9,6 +9,7 @@ of the country. These pin the India bounding box down city by city.
 import pytest
 
 from app.services.geocoding import (
+    LocationUnresolvedError,
     OutOfIndiaBoundsError,
     sanitize_coordinates,
 )
@@ -59,10 +60,19 @@ def test_swapped_pair_is_corrected_not_rejected():
     assert (out_lat, out_lng) == (25.5941, 85.1376)
 
 
-def test_snapping_is_still_available_behind_the_explicit_flag():
-    assert sanitize_coordinates(48.85, 2.35, snap_out_of_bounds=True)[:2] == (22.0, 82.0)
+def test_there_is_no_way_to_snap_instead():
+    """The snap flag is gone; asking for it is a TypeError, not a quiet (22, 82)."""
+    with pytest.raises(TypeError):
+        sanitize_coordinates(48.85, 2.35, snap_out_of_bounds=True)
 
 
 def test_missing_coordinates_still_resolve_from_text():
     lat, lng, city, _ = sanitize_coordinates(None, None, text_hint="water in Patna")
     assert city == "Patna"
+
+
+@pytest.mark.parametrize("text_hint", [None, "", "water everywhere, nothing named"])
+def test_missing_coordinates_with_no_known_place_are_unresolved(text_hint):
+    """There used to be a "National Command Grid" at (22, 82) for this case."""
+    with pytest.raises(LocationUnresolvedError):
+        sanitize_coordinates(None, None, text_hint=text_hint)

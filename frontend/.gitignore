@@ -29,8 +29,9 @@ yarn-error.log*
 .env.*
 !.env.example
 
-# verification builds
+# verification and E2E builds
 .next-verify/
+.next-e2e/
 
 # typescript
 *.tsbuildinfo
