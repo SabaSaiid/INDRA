@@ -1702,3 +1702,31 @@ until 26 Sep. It then ran from 26 Sep 11:38 to 27 Sep 12:08, which collected the
 26 Sep 11:40 → 27 Sep 11:40, 745 headlines, 41 posts, 3,015 METAR observations from 113 stations,
 every feed `ok`, and all 786 stream messages in the lake.
 
+
+# Phase 3 real-post measurement — 27 Sep 2026
+
+Found by measuring the tagger on 100 real posts and headlines (labelled by Claude, see
+`backend/tests/fixtures/hazards_real_v1.md`). All `OPEN`: fixing them on the sample they were found
+on would make its figure dishonest, so they are to be fixed on the fixture's `dev` rows and measured
+on a fresh real sample. BUG-088 (the Vietnamese "लू") is **fixed**: all 5 such items came out untagged.
+
+### BUG-108 — Hindi "आंधी-बारिश" (a rain squall) is tagged a dust storm
+**S2** · Layer 3 · **`OPEN`**
+
+The lexicon maps आंधी to DUST_STORM; with rain in a monsoon headline it is a squall (thunderstorm,
+strong wind). 8 of the 100 posts; DUST_STORM precision 0.18 on real text.
+
+### BUG-109 — Hindi negation reads "टला नहीं" (hasn't gone) and "में भी नहीं डिगा" as denials
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-110 — "चलेगी लू" (verb first) is not recognised as a heatwave
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-111 — "कोहरे में डूबेगा" (drowned in fog) is tagged a flood
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-112 — Humour posts that only carry #ChennaiRains are tagged rain
+**S3** · Layer 3 · **`OPEN`**
+
+7 of the 100 posts. Once posts cluster they can make a posts-only event, which is capped at
+`PENDING_HUMAN_REVIEW` and never published, but is noise in the review queue.
