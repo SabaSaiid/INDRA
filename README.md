@@ -337,7 +337,8 @@ test suites, which write only to their own databases.
 | `make e2e-backend` · `make e2e` · `make e2e-reset` | A disposable backend on `:8100` / `indra_e2e`, and Playwright against it |
 | `make smoke` | HTTP probes against a running backend |
 
-Every `make` target wraps `./start.sh`. Run `./start.sh help` for the full list.
+The `make` targets are shortcuts for `./start.sh` subcommands and the test runners. Run
+`./start.sh help` for the full list.
 
 ---
 
@@ -420,7 +421,8 @@ The reference deployment is a single Linux host (see
   `/api/*`, `/ws/*`, `/healthz` and `/docs` to Uvicorn on `:8000`, and everything else to the
   Next.js server on `:3000`. See [`infra/caddy/Caddyfile`](infra/caddy/Caddyfile).
 - **Processes:** the API and the dashboard run as systemd services. The stateful services run
-  under Docker Compose and are never exposed publicly. SeaweedFS binds to `127.0.0.1` only.
+  under Docker Compose, and the host firewall never opens their ports. SeaweedFS also binds to
+  `127.0.0.1` only.
 - **Release:** `git pull`, `alembic upgrade head`, restart. After upgrading an existing database
   to migration `0020`, run `scripts/rescore_events.py` once, which is idempotent, so that every
   stored event gets a v2 receipt and a verdict.
