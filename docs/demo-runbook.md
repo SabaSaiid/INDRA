@@ -1,16 +1,19 @@
 # INDRA — Demo Runbook
 
-**What this is:** the sequence to bring INDRA up and walk someone through it **on live data
-only**: the feeds the platform is already reading, and real reports filed in front of the audience
-by people who can see what they describe. Nothing in this runbook generates, replays or seeds
-data, and nothing should. Each thing that can go wrong on the table has a one-line recovery.
+The sequence to bring INDRA up and walk an audience through it **on live data only**: the feeds
+the platform is already reading, and real reports filed in front of the audience by people who can
+see what they describe. Nothing in this runbook generates, replays or seeds data into the platform.
+Each thing that can go wrong has a one-line recovery.
 
-**Rewritten 25 Sep 2026** after the demo scripts, the seed script and the demo mode were deleted.
-This version has not yet been rehearsed end to end. Numbers from 20–24 Sep are marked as past
-measurements, taken with test reports that are no longer in any database.
+| | |
+|---|---|
+| **Applies to** | `main` after Phase 4 (PR #47) |
+| **Last reviewed** | 28 Sep 2026 |
+| **Rehearsal status** | Scene 5b was run live on the server on 27 Sep. The full sequence has not been rehearsed end to end since the 25 Sep rewrite, so rehearse it before presenting |
 
-Read [`nodal-officer-qa.md`](nodal-officer-qa.md) before presenting. This file is what to type;
-that one is what to say.
+Numbers from 20–24 Sep are marked as past measurements, taken with test reports that are no longer
+in any database. Read [`nodal-officer-qa.md`](nodal-officer-qa.md) before presenting: this file is
+what to type, and that one is what to say.
 
 ---
 
