@@ -283,3 +283,219 @@ def hail_score(codes: Iterable[int]) -> float:
 
 def is_hill(elevation_m: Optional[float]) -> bool:
     return elevation_m is not None and elevation_m > HILL_ELEVATION_M
+
+
+# ── Model evidence (T1) ────────────────────────────────────────────────────────
+
+WMO_NAMES = {
+    80: "slight rain showers", 81: "moderate rain showers", 82: "violent rain showers",
+    95: "thunderstorm", 96: "thunderstorm with slight hail", 99: "thunderstorm with heavy hail",
+}
+
+MODEL_UNAVAILABLE = "Open-Meteo unavailable (timeout or error), so this evidence is offline"
+
+
+def _hhmm(at: datetime) -> str:
+    return _utc(at).strftime("%H:%M UTC")
+
+
+def _extreme(
+    series: Optional[HourlySeries], variable: str, window: Window, lowest: bool = False
+) -> Optional[Tuple[datetime, float]]:
+    if series is None:
+        return None
+    points = series.between(variable, window.start, window.end)
+    if not points:
+        return None
+    # Ties go to the earliest hour, so the line is the same on every run.
+    if lowest:
+        return min(points, key=lambda p: (p[1], p[0].timestamp()))
+    return max(points, key=lambda p: (p[1], -p[0].timestamp()))
+
+
+def model_facts(
+    series: Optional[HourlySeries], air: Optional[HourlySeries], window: Window
+) -> Dict[str, Any]:
+    """Every number the model gives over the window, whatever the hazard."""
+    facts: Dict[str, Any] = {"available": series is not None, "air_available": air is not None}
+    if series is not None:
+        facts["elevation_m"] = series.elevation_m
+        facts["hill"] = is_hill(series.elevation_m)
+        for key, variable, lowest in (
+            ("max_temp_c", "temperature_2m", False),
+            ("min_temp_c", "temperature_2m", True),
+            ("min_visibility_m", "visibility", True),
+            ("max_gust_kmh", "wind_gusts_10m", False),
+            ("max_wind_kmh", "wind_speed_10m", False),
+            ("max_cape", "cape", False),
+            ("peak_hourly_mm", "precipitation", False),
+        ):
+            hit = _extreme(series, variable, window, lowest)
+            facts[key] = round(hit[1], 1) if hit else None
+            facts[key + "_at"] = hit[0].isoformat() if hit else None
+        codes = sorted({int(v) for _, v in series.between("weather_code", window.start, window.end)})
+        facts["codes"] = codes
+        facts["max_code"] = max(codes) if codes else None
+        facts["code_at"] = {}
+        for t, v in series.between("weather_code", window.start, window.end):
+            facts["code_at"].setdefault(str(int(v)), t.isoformat())
+    if air is not None:
+        hit = _extreme(air, "dust", window)
+        facts["max_dust"] = round(hit[1], 1) if hit else None
+        facts["max_dust_at"] = hit[0].isoformat() if hit else None
+    return facts
+
+
+def _rain_line(rainfall_mm: float, origin: Optional[str]) -> str:
+    # The pre-Phase-4 wording, kept word for word: every flood receipt and its
+    # tests read it.
+    where = (
+        "polled station reading" if origin == "station_reading"
+        else "Open-Meteo modelled precipitation"
+    )
+    return f"{rainfall_mm:.1f} mm rainfall in past 24 h ({where})"
+
+
+def model_evidence(
+    event_type: Optional[str],
+    window: Window,
+    series: Optional[HourlySeries],
+    *,
+    air: Optional[HourlySeries] = None,
+    rainfall_mm: Optional[float] = None,
+    rainfall_origin: Optional[str] = None,
+) -> Evidence:
+    """
+    What Open-Meteo says about this hazard over the window. `rainfall_mm` is the
+    24 h accumulation the rain family has always read (a stored reading or its
+    own request, pipeline._weather_for_cluster), passed in so its path and its
+    receipts stay exactly as they were.
+    """
+    etype = event_type or "URBAN_FLOOD"
+    label = window.label()
+    facts = model_facts(series, air, window)
+    facts["rain_24h_mm"] = rainfall_mm
+    common = {"window": label, "source": OPEN_METEO_MODEL, "detail": facts}
+
+    if etype == "UNCLASSIFIED":
+        return offline("no hazard type to check the weather against", window=label)
+
+    rain_score = rainfall_to_score(rainfall_mm) if rainfall_mm is not None else None
+
+    if etype in ("URBAN_FLOOD", "RAINFALL", "RIVER_BREACH"):
+        if rain_score is None:
+            return offline(MODEL_UNAVAILABLE, variable="24 h precipitation", window=label)
+        return Evidence(rain_score, "computed", "24 h precipitation", rainfall_mm,
+                        reason=_rain_line(rainfall_mm, rainfall_origin), **common)
+
+    if etype == "CLOUDBURST":
+        peak = facts.get("peak_hourly_mm")
+        peak_score = cloudburst_peak_score(peak) if peak is not None else None
+        scores = [s for s in (peak_score, rain_score) if s is not None]
+        if not scores:
+            return offline(MODEL_UNAVAILABLE, variable="maximum hourly precipitation", window=label)
+        parts = []
+        if peak is not None:
+            parts.append(f"Open-Meteo model: peak {peak:.0f} mm/h in {label}")
+        if rainfall_mm is not None:
+            parts.append(_rain_line(rainfall_mm, rainfall_origin) + " as the floor")
+        return Evidence(max(scores), "computed", "maximum hourly precipitation",
+                        peak if peak is not None else rainfall_mm, reason="; ".join(parts), **common)
+
+    if etype in PARTIAL_TYPES:
+        gust = facts.get("max_gust_kmh")
+        candidates = []
+        parts = []
+        if etype != "LANDSLIDE" and gust is not None:
+            candidates.append(gust_score(gust))
+            parts.append(f"Open-Meteo model: gusts to {gust:.0f} km/h in {label}")
+        if rain_score is not None:
+            candidates.append(rain_score)
+            parts.append(_rain_line(rainfall_mm, rainfall_origin))
+        if not candidates:
+            return offline(MODEL_UNAVAILABLE, variable="gusts and rain", window=label)
+        score = min(PARTIAL_EVIDENCE_CAP, max(candidates))
+        parts.append(
+            f"partial evidence, capped at {PARTIAL_EVIDENCE_CAP}: the official warning decides"
+        )
+        return Evidence(score, "computed", "gusts and rain (partial)", gust if gust is not None else rainfall_mm,
+                        reason="; ".join(parts), **common)
+
+    if series is None and etype != "DUST_STORM":
+        return offline(MODEL_UNAVAILABLE, window=label)
+
+    if etype == "HEATWAVE":
+        value = facts.get("max_temp_c")
+        if value is None:
+            return offline("Open-Meteo returned no temperature in the window", window=label)
+        hill = facts.get("hill", False)
+        threshold = (
+            f"hill threshold, grid elevation {facts['elevation_m']:,.0f} m" if hill else "plains threshold"
+        )
+        return Evidence(heat_score(value, hill), "computed", "maximum temperature_2m", value,
+                        reason=(f"Open-Meteo model: maximum {value:.1f} °C at "
+                                f"{_hhmm(datetime.fromisoformat(facts['max_temp_c_at']))} in {label} ({threshold})"),
+                        **common)
+
+    if etype == "COLD_WAVE":
+        value = facts.get("min_temp_c")
+        if value is None:
+            return offline("Open-Meteo returned no temperature in the window", window=label)
+        return Evidence(cold_score(value), "computed", "minimum temperature_2m", value,
+                        reason=(f"Open-Meteo model: minimum {value:.1f} °C at "
+                                f"{_hhmm(datetime.fromisoformat(facts['min_temp_c_at']))} in {label}"),
+                        **common)
+
+    if etype == "FOG":
+        value = facts.get("min_visibility_m")
+        if value is None:
+            return offline("Open-Meteo returned no visibility in the window", window=label)
+        return Evidence(visibility_score(value), "computed", "minimum visibility", value,
+                        reason=(f"Open-Meteo model: minimum visibility {value:,.0f} m at "
+                                f"{_hhmm(datetime.fromisoformat(facts['min_visibility_m_at']))} in {label}"),
+                        **common)
+
+    if etype == "STRONG_WIND":
+        value = facts.get("max_gust_kmh")
+        variable = "maximum wind_gusts_10m"
+        if value is None:
+            value, variable = facts.get("max_wind_kmh"), "maximum wind_speed_10m"
+        if value is None:
+            return offline("Open-Meteo returned no wind in the window", window=label)
+        return Evidence(gust_score(value), "computed", variable, value,
+                        reason=f"Open-Meteo model: gusts to {value:.0f} km/h in {label}", **common)
+
+    if etype in ("THUNDERSTORM", "LIGHTNING", "HAILSTORM"):
+        codes = facts.get("codes") or []
+        cape = facts.get("max_cape")
+        if not codes and cape is None:
+            return offline("Open-Meteo returned no weather code or CAPE in the window", window=label)
+        score = hail_score(codes) if etype == "HAILSTORM" else thunder_score(codes, cape)
+        worst = max(codes) if codes else None
+        parts = []
+        if worst is not None:
+            name = WMO_NAMES.get(worst)
+            at = facts["code_at"].get(str(worst))
+            parts.append(
+                f"Open-Meteo model: weather code {worst}"
+                + (f" ({name})" if name else "")
+                + (f" at {_hhmm(datetime.fromisoformat(at))}" if at else "")
+            )
+        if cape is not None:
+            parts.append(f"CAPE up to {cape:,.0f} J/kg")
+        return Evidence(score, "computed", "weather_code and cape", worst,
+                        reason="; ".join(parts) + f" in {label}", **common)
+
+    if etype == "DUST_STORM":
+        dust = facts.get("max_dust")
+        if dust is None:
+            return offline("the Open-Meteo dust estimate is unavailable, so this evidence is offline",
+                           window=label)
+        gust = facts.get("max_gust_kmh")
+        line = f"CAMS model estimate via Open-Meteo: dust up to {dust:,.0f} µg/m³"
+        if gust is not None:
+            line += f"; gusts to {gust:.0f} km/h"
+        return Evidence(dust_score(dust, gust), "computed", "dust (model estimate)", dust,
+                        reason=line + f" in {label}", **common)
+
+    return offline(f"no weather evidence is defined for {etype}", window=label)
