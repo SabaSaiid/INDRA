@@ -1,8 +1,16 @@
 """
 INDRA Platform — Weather Station Corroboration (Open-Meteo)
 
-The one external signal in the fusion receipt: does recent rainfall at the
-event's location support a flood report?
+Two requests to Open-Meteo live here:
+
+* the **24 h rainfall** at an event's location (below, since Day 2): does recent
+  rainfall support a flood report? The rain family still reads exactly this;
+* since Phase 4, **one hourly request for every hazard's variable**, per H3
+  res-7 cell (the section at the end): temperature, visibility, gusts, weather
+  code, CAPE, and dust from the air-quality API. `services/evidence.py` turns
+  them into each hazard's evidence, beside the airports' own observations.
+
+The rest of this docstring describes the rainfall request.
 
     weather_score(lat, lng) -> Optional[float]
 
