@@ -1921,7 +1921,8 @@ characters, and the backend does not start (`test_secret_key.py`). **Before depl
 the server's key**; rotating it ends every session, and the dashboard fetches a new token.
 
 ### BUG-121 — SACHET warnings were collected and read by no scoring code
-**S2** · Layer 6 · **`IN-PROGRESS`**: fix written in Phase 4, not yet tested
+**S2** · Layer 6 · **`FIXED`** on `aditya_27sep_phase4` (PR #47), tested 27 Sep; not yet deployed
+(`test_official_warnings.py`, `test_late_corroboration.py`)
 
 Every IMD, CWC and SDMA warning has been stored with its polygon since 21 Sep, and the confidence
 receipt never read one: a flood inside an IMD warning scored exactly as one outside it. Phase 4
@@ -1930,7 +1931,8 @@ match its hazard family, scored on the agency's own CAP severity, offline when S
 warning stored after an event re-scores it (`LATE_CORROBORATION`).
 
 ### BUG-122 — The weather factor read only rainfall, so nothing could contradict a fabricated claim
-**S2** · Layers 1, 6 · **`IN-PROGRESS`**: fix written in Phase 4, not yet tested
+**S2** · Layers 1, 6 · **`FIXED`** on `aditya_27sep_phase4` (PR #47), tested 27 Sep; not yet deployed
+(`test_evidence.py`, `test_verification_pipeline.py`, the verification demo live and `--frozen`)
 
 A heatwave, fog, dust-storm or gale event had no weather evidence for or against it, and the
 airport observations collected since Phase 2 were read by nothing. Phase 4 reads each hazard's own
