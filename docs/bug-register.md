@@ -1730,3 +1730,22 @@ strong wind). 8 of the 100 posts; DUST_STORM precision 0.18 on real text.
 
 7 of the 100 posts. Once posts cluster they can make a posts-only event, which is capped at
 `PENDING_HUMAN_REVIEW` and never published, but is noise in the review queue.
+
+**27 Sep, after the fixes:** BUG-108 … BUG-111 are **`FIXED`** (`4c40ed2`) and BUG-112 is fixed
+for posts tagged as jokes. Measured on a second, independent 100 real posts (`hazards_real_v2.csv`,
+labelled by Claude before measuring): micro-F1 **0.913**, Hindi **0.914** (0.729 on the first sample
+before the fixes), DUST_STORM F1 0.95 (0.31 before). What is left:
+
+### BUG-113 — Hashtags name a hazard on posts that are not reports
+**S3** · Layer 3 · **`OPEN`**
+
+A haiku tagged #fog, a satire tagged #Heatwave, a motorbike called "Cyclone RX600", a painting tagged
+#DelhiRains: 8 of the 100. Most of the 28% of non-hazard posts that get tagged. Bounded: a
+posts-only event is never published without a human.
+
+### BUG-114 — More Hindi forms the tagger misses
+**S3** · Layer 3 · **`OPEN`**
+
+"लू का वार", "लू की स्थिति" (heatwave); "आंधी-पानी" (पानी as rain); "सड़कों पर भरा पानी" (the verb
+before पानी); "80 KM की रफ्तार से चलेंगी हवाएं" (a wind speed in Hindi). 5 of the 100. Also
+"flood threat" / "flood concerns" read as a flood (2), and 7 tense misses.
