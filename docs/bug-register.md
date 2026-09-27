@@ -1694,11 +1694,11 @@ asyncpg refused `--since` as a string. Parsed to a datetime; the sample was then
 raw file's SHA-256 with a CRLF checkout's hash; git stores `data/labelled/reports_v1.csv` as LF. The
 only 2 failures in the 1,475-test suite. Fix: hash the LF form, or pin the file's line endings.
 
-### BUG-107 — Phase 2's 24-hour collection never ran
-**S2** · infra · **`WONT-FIX`**, by decision
+### BUG-107 — Phase 2's 24-hour collection had never run
+**S2** · infra · **`FIXED`** 27 Sep
 
 The server was stopped at 19:59 on 24 Sep, 18 minutes after the Phase 2 deploy, and stayed off
-until 26 Sep. On 26 Sep Phase 2 was closed on the data collected, with its 24-hour row recorded as
-not met. If asked: "the pollers ran on the server for 18 minutes on 24 Sep and again on 26 Sep; a
-continuous 24-hour collection has not been run yet."
+until 26 Sep. It then ran from 26 Sep 11:38 to 27 Sep 12:08, which collected the first full day:
+26 Sep 11:40 → 27 Sep 11:40, 745 headlines, 41 posts, 3,015 METAR observations from 113 stations,
+every feed `ok`, and all 786 stream messages in the lake.
 
