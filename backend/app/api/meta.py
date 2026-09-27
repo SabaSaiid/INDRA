@@ -83,6 +83,14 @@ async def _compute(db: AsyncSession) -> Dict[str, Any]:
         WHERE review_status != 'REJECTED' AND state IS NOT NULL
         GROUP BY state, district
     """)
+    # Phase 4 T4: the verdict filter's values. An event scored before receipt
+    # v2 has no verdict and is not counted under any.
+    verdicts = dict(await _rows(db, """
+        SELECT CAST(verdict AS text), count(*)
+        FROM verified_events
+        WHERE review_status != 'REJECTED' AND verdict IS NOT NULL
+        GROUP BY 1
+    """))
     span = await _rows(db, """
         SELECT min(verified_at), max(verified_at)
         FROM verified_events WHERE review_status != 'REJECTED'
@@ -113,6 +121,10 @@ async def _compute(db: AsyncSession) -> Dict[str, Any]:
         "families": [{"value": f, "count": family_counts[f]} for f in FAMILIES if f in family_counts],
         "review_statuses": [{"value": s, "count": n} for s, n in statuses],
         "severities": [{"value": s, "count": severities[s]} for s in _SEVERITY_ORDER if s in severities],
+        "verdicts": [
+            {"value": v, "count": verdicts[v]}
+            for v in ("CORROBORATED", "UNCONFIRMED", "CONTRADICTED") if v in verdicts
+        ],
         "source_types": [{"value": s, "count": n} for s, n in sources],
         "states": sorted(states.values(), key=lambda s: (-s["count"], s["name"])),
         "date_min": _ist_date(date_min),
