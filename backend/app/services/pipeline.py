@@ -369,10 +369,11 @@ def _legacy_evidence(
     (a pure test, a script): the rain family's 24 h figure and nothing else.
     The official factor is offline, since no feed was read.
     """
-    from app.services.evidence import RAIN_24H_TYPES
+    from app.services.evidence import MODEL_UNAVAILABLE, RAIN_24H_TYPES
 
     etype = event_type or "URBAN_FLOOD"
-    if weather is not None and (etype in RAIN_24H_TYPES or etype == "CLOUDBURST"):
+    rain_type = etype in RAIN_24H_TYPES or etype == "CLOUDBURST"
+    if weather is not None and rain_type:
         where = (
             "polled station reading" if weather_source == "station_reading"
             else "Open-Meteo modelled precipitation"
@@ -386,6 +387,10 @@ def _legacy_evidence(
             source="open_meteo_model", reason=reason,
             detail={"rain_24h_mm": rainfall_mm},
         )
+    elif rain_type:
+        # The rainfall request answered nothing: the same line the pipeline
+        # prints when Open-Meteo is down.
+        weather_ev = offline(MODEL_UNAVAILABLE, variable="24 h precipitation")
     else:
         weather_ev = offline("no weather evidence was gathered for this call")
     return {
