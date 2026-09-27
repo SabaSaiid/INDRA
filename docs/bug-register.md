@@ -1694,11 +1694,58 @@ asyncpg refused `--since` as a string. Parsed to a datetime; the sample was then
 raw file's SHA-256 with a CRLF checkout's hash; git stores `data/labelled/reports_v1.csv` as LF. The
 only 2 failures in the 1,475-test suite. Fix: hash the LF form, or pin the file's line endings.
 
-### BUG-107 — Phase 2's 24-hour collection never ran
-**S2** · infra · **`WONT-FIX`**, by decision
+### BUG-107 — Phase 2's 24-hour collection had never run
+**S2** · infra · **`FIXED`** 27 Sep
 
 The server was stopped at 19:59 on 24 Sep, 18 minutes after the Phase 2 deploy, and stayed off
-until 26 Sep. On 26 Sep Phase 2 was closed on the data collected, with its 24-hour row recorded as
-not met. If asked: "the pollers ran on the server for 18 minutes on 24 Sep and again on 26 Sep; a
-continuous 24-hour collection has not been run yet."
+until 26 Sep. It then ran from 26 Sep 11:38 to 27 Sep 12:08, which collected the first full day:
+26 Sep 11:40 → 27 Sep 11:40, 745 headlines, 41 posts, 3,015 METAR observations from 113 stations,
+every feed `ok`, and all 786 stream messages in the lake.
 
+
+# Phase 3 real-post measurement — 27 Sep 2026
+
+Found by measuring the tagger on 100 real posts and headlines (labelled by Claude, see
+`backend/tests/fixtures/hazards_real_v1.md`). All `OPEN`: fixing them on the sample they were found
+on would make its figure dishonest, so they are to be fixed on the fixture's `dev` rows and measured
+on a fresh real sample. BUG-088 (the Vietnamese "लू") is **fixed**: all 5 such items came out untagged.
+
+### BUG-108 — Hindi "आंधी-बारिश" (a rain squall) is tagged a dust storm
+**S2** · Layer 3 · **`OPEN`**
+
+The lexicon maps आंधी to DUST_STORM; with rain in a monsoon headline it is a squall (thunderstorm,
+strong wind). 8 of the 100 posts; DUST_STORM precision 0.18 on real text.
+
+### BUG-109 — Hindi negation reads "टला नहीं" (hasn't gone) and "में भी नहीं डिगा" as denials
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-110 — "चलेगी लू" (verb first) is not recognised as a heatwave
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-111 — "कोहरे में डूबेगा" (drowned in fog) is tagged a flood
+**S3** · Layer 3 · **`OPEN`**
+
+### BUG-112 — Humour posts that only carry #ChennaiRains are tagged rain
+**S3** · Layer 3 · **`OPEN`**
+
+7 of the 100 posts. Once posts cluster they can make a posts-only event, which is capped at
+`PENDING_HUMAN_REVIEW` and never published, but is noise in the review queue.
+
+**27 Sep, after the fixes:** BUG-108 … BUG-111 are **`FIXED`** (`4c40ed2`) and BUG-112 is fixed
+for posts tagged as jokes. Measured on a second, independent 100 real posts (`hazards_real_v2.csv`,
+labelled by Claude before measuring): micro-F1 **0.913**, Hindi **0.914** (0.729 on the first sample
+before the fixes), DUST_STORM F1 0.95 (0.31 before). What is left:
+
+### BUG-113 — Hashtags name a hazard on posts that are not reports
+**S3** · Layer 3 · **`OPEN`**
+
+A haiku tagged #fog, a satire tagged #Heatwave, a motorbike called "Cyclone RX600", a painting tagged
+#DelhiRains: 8 of the 100. Most of the 28% of non-hazard posts that get tagged. Bounded: a
+posts-only event is never published without a human.
+
+### BUG-114 — More Hindi forms the tagger misses
+**S3** · Layer 3 · **`OPEN`**
+
+"लू का वार", "लू की स्थिति" (heatwave); "आंधी-पानी" (पानी as rain); "सड़कों पर भरा पानी" (the verb
+before पानी); "80 KM की रफ्तार से चलेंगी हवाएं" (a wind speed in Hindi). 5 of the 100. Also
+"flood threat" / "flood concerns" read as a flood (2), and 7 tense misses.

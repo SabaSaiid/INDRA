@@ -440,8 +440,431 @@
     }
   },
   "real_posts": {
-    "note": "run scripts/sample_real_posts.py on the server, then label it",
-    "status": "not drawn yet"
+    "by_language": {
+      "en": {
+        "f1": 0.9186,
+        "fn": 3,
+        "fp": 11,
+        "precision": 0.8778,
+        "recall": 0.9634,
+        "support": 82,
+        "tp": 79
+      },
+      "hi": {
+        "f1": 0.9828,
+        "fn": 0,
+        "fp": 2,
+        "precision": 0.9661,
+        "recall": 1.0,
+        "support": 57,
+        "tp": 57
+      }
+    },
+    "by_stratum": {
+      "hindi": 25,
+      "non_india_flood": 5,
+      "random": 65,
+      "vietnam_lu": 5
+    },
+    "claim": "measured on real #IMD and weather posts and headlines collected from 24 Sep 2026",
+    "file": "backend/tests/fixtures/hazards_real_v1.csv",
+    "file_sha256": "409ba593e4b4b57cc61573ab5383a6fb0bcc4cf9a3c23f5efb60bda090ba722b",
+    "independent": false,
+    "labelled_by": "Claude, 27 Sep 2026, at Aditya's request; not a person (see hazards_real_v1.md)",
+    "macro_f1": 0.8582,
+    "macro_f1_over": 13,
+    "micro": {
+      "f1": 0.9444,
+      "fn": 3,
+      "fp": 13,
+      "precision": 0.9128,
+      "recall": 0.9784,
+      "support": 139,
+      "tp": 136
+    },
+    "negatives": 48,
+    "negatives_tagged": 3,
+    "negatives_tagged_share": 0.0625,
+    "note": "read on 27 Sep to find BUG-108 … BUG-112, and the rules were fixed after; this re-measurement is therefore not independent. Its measurement before the fix (commit 31ea810) was micro-F1 0.8339, English 0.8977, Hindi 0.729. Quote real_posts_v2.",
+    "per_hazard": {
+      "CLOUDBURST": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 2,
+        "tp": 2
+      },
+      "COLD_WAVE": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 5,
+        "tp": 5
+      },
+      "CYCLONE": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 8,
+        "tp": 8
+      },
+      "CYCLONE_INUNDATION": {
+        "f1": 0.0,
+        "fn": 1,
+        "fp": 0,
+        "precision": null,
+        "recall": 0.0,
+        "support": 1,
+        "tp": 0
+      },
+      "DUST_STORM": {
+        "f1": 0.8,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.6667,
+        "recall": 1.0,
+        "support": 2,
+        "tp": 2
+      },
+      "FOG": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 16,
+        "tp": 16
+      },
+      "HAILSTORM": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "HEATWAVE": {
+        "f1": 0.9333,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.875,
+        "support": 8,
+        "tp": 7
+      },
+      "LANDSLIDE": {
+        "f1": 0.6667,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.5,
+        "recall": 1.0,
+        "support": 1,
+        "tp": 1
+      },
+      "LIGHTNING": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 3,
+        "tp": 3
+      },
+      "RAINFALL": {
+        "f1": 0.94,
+        "fn": 0,
+        "fp": 6,
+        "precision": 0.8868,
+        "recall": 1.0,
+        "support": 47,
+        "tp": 47
+      },
+      "RIVER_BREACH": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "STRONG_WIND": {
+        "f1": 0.963,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.9286,
+        "support": 14,
+        "tp": 13
+      },
+      "THUNDERSTORM": {
+        "f1": 0.9444,
+        "fn": 0,
+        "fp": 2,
+        "precision": 0.8947,
+        "recall": 1.0,
+        "support": 17,
+        "tp": 17
+      },
+      "URBAN_FLOOD": {
+        "f1": 0.9091,
+        "fn": 0,
+        "fp": 3,
+        "precision": 0.8333,
+        "recall": 1.0,
+        "support": 15,
+        "tp": 15
+      }
+    },
+    "primary_accuracy": 0.9231,
+    "primary_rows": 52,
+    "rows": 100,
+    "rows_drawn": 100,
+    "rows_skipped": 0,
+    "rows_wrong": [
+      "p026",
+      "p036",
+      "p045",
+      "p053",
+      "p058",
+      "p059",
+      "p060",
+      "p061",
+      "p064",
+      "p067",
+      "p077",
+      "p079",
+      "p091"
+    ],
+    "status": "labelled",
+    "tense_accuracy": 1.0,
+    "tense_rows": 28
+  },
+  "real_posts_v2": {
+    "by_language": {
+      "en": {
+        "f1": 0.9123,
+        "fn": 3,
+        "fp": 12,
+        "precision": 0.8667,
+        "recall": 0.963,
+        "support": 81,
+        "tp": 78
+      },
+      "hi": {
+        "f1": 0.9143,
+        "fn": 8,
+        "fp": 1,
+        "precision": 0.9796,
+        "recall": 0.8571,
+        "support": 56,
+        "tp": 48
+      }
+    },
+    "by_stratum": {
+      "hindi": 25,
+      "non_india_flood": 5,
+      "random": 65,
+      "vietnam_lu": 5
+    },
+    "claim": "measured on real #IMD and weather posts and headlines collected from 24 Sep 2026",
+    "file": "backend/tests/fixtures/hazards_real_v2.csv",
+    "file_sha256": "989c13944f30e761536184f76ba0e2cfb6590ae9a1965f4b23ba797b9e881171",
+    "labelled_by": "Claude, 27 Sep 2026, at Aditya's request; not a person (see hazards_real_v1.md)",
+    "macro_f1": 0.8692,
+    "macro_f1_over": 12,
+    "micro": {
+      "f1": 0.913,
+      "fn": 11,
+      "fp": 13,
+      "precision": 0.9065,
+      "recall": 0.9197,
+      "support": 137,
+      "tp": 126
+    },
+    "negatives": 39,
+    "negatives_tagged": 11,
+    "negatives_tagged_share": 0.2821,
+    "per_hazard": {
+      "CLOUDBURST": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 1,
+        "tp": 1
+      },
+      "COLD_WAVE": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "CYCLONE": {
+        "f1": 0.6667,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.5,
+        "recall": 1.0,
+        "support": 1,
+        "tp": 1
+      },
+      "CYCLONE_INUNDATION": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "DUST_STORM": {
+        "f1": 0.9474,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.9,
+        "recall": 1.0,
+        "support": 9,
+        "tp": 9
+      },
+      "FOG": {
+        "f1": 0.8333,
+        "fn": 0,
+        "fp": 2,
+        "precision": 0.7143,
+        "recall": 1.0,
+        "support": 5,
+        "tp": 5
+      },
+      "HAILSTORM": {
+        "f1": null,
+        "fn": 0,
+        "fp": 0,
+        "precision": null,
+        "recall": null,
+        "support": 0,
+        "tp": 0
+      },
+      "HEATWAVE": {
+        "f1": 0.625,
+        "fn": 2,
+        "fp": 4,
+        "precision": 0.5556,
+        "recall": 0.7143,
+        "support": 7,
+        "tp": 5
+      },
+      "LANDSLIDE": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 1,
+        "tp": 1
+      },
+      "LIGHTNING": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 3,
+        "tp": 3
+      },
+      "RAINFALL": {
+        "f1": 0.9714,
+        "fn": 1,
+        "fp": 2,
+        "precision": 0.9623,
+        "recall": 0.9808,
+        "support": 52,
+        "tp": 51
+      },
+      "RIVER_BREACH": {
+        "f1": 0.6667,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.5,
+        "support": 2,
+        "tp": 1
+      },
+      "STRONG_WIND": {
+        "f1": 0.8966,
+        "fn": 3,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.8125,
+        "support": 16,
+        "tp": 13
+      },
+      "THUNDERSTORM": {
+        "f1": 0.9,
+        "fn": 3,
+        "fp": 1,
+        "precision": 0.9474,
+        "recall": 0.8571,
+        "support": 21,
+        "tp": 18
+      },
+      "URBAN_FLOOD": {
+        "f1": 0.9231,
+        "fn": 1,
+        "fp": 2,
+        "precision": 0.9,
+        "recall": 0.9474,
+        "support": 19,
+        "tp": 18
+      }
+    },
+    "primary_accuracy": 0.9167,
+    "primary_rows": 60,
+    "rows": 99,
+    "rows_drawn": 100,
+    "rows_skipped": 1,
+    "rows_wrong": [
+      "p003",
+      "p005",
+      "p011",
+      "p013",
+      "p019",
+      "p020",
+      "p021",
+      "p024",
+      "p040",
+      "p044",
+      "p046",
+      "p051",
+      "p052",
+      "p055",
+      "p057",
+      "p059",
+      "p061",
+      "p063",
+      "p064",
+      "p067",
+      "p069",
+      "p072",
+      "p078",
+      "p081",
+      "p089",
+      "p098"
+    ],
+    "status": "labelled",
+    "tense_accuracy": 0.7222,
+    "tense_rows": 18
   },
   "reference_year": 2026,
   "tagger": "app/services/hazard_tagger.py (rules and dictionaries; no model)"

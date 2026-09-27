@@ -46,6 +46,15 @@ from app.services.text_processing import extract_metadata  # noqa: E402
 
 FIXTURE = REPO_ROOT / "backend" / "tests" / "fixtures" / "hazards_v1.csv"
 REAL = REPO_ROOT / "backend" / "tests" / "fixtures" / "hazards_real_v1.csv"
+REAL_V2 = REPO_ROOT / "backend" / "tests" / "fixtures" / "hazards_real_v2.csv"
+# v1 was read to find BUG-108 … BUG-112 and the rules were then fixed, so its
+# re-measurement is no longer independent. Its first measurement, before the
+# fix, is kept in git (31ea810): micro-F1 0.8339. v2 is the one to quote.
+REAL_V1_NOTE = (
+    "read on 27 Sep to find BUG-108 … BUG-112, and the rules were fixed after; this re-measurement is "
+    "therefore not independent. Its measurement before the fix (commit 31ea810) was micro-F1 0.8339, "
+    "English 0.8977, Hindi 0.729. Quote real_posts_v2."
+)
 OUT = REPO_ROOT / "backend" / "app" / "services" / "hazard_tagger_metrics.json"
 
 # The year "2019 floods" is compared against. Pinned so the metrics file does
@@ -197,13 +206,13 @@ def _fixture_rows(rows: Iterable[Dict], split: str) -> List[Dict]:
     ]
 
 
-def _real_section() -> Dict:
-    if not REAL.exists():
+def _real_section(path: Path, note: Optional[str] = None) -> Dict:
+    if not path.exists():
         return {"status": "not drawn yet", "note": "run scripts/sample_real_posts.py on the server, then label it"}
-    raw = _read(REAL)
+    raw = _read(path)
     labelled = [r for r in raw if r["hazards"].strip() or r["tense"].strip() or r["notes"].strip()]
     if not labelled:
-        return {"status": "drawn, not labelled yet", "rows": len(raw), "file_sha256": _sha256(REAL)}
+        return {"status": "drawn, not labelled yet", "rows": len(raw), "file_sha256": _sha256(path)}
     skipped = [r["id"] for r in labelled if r["hazards"].strip().lower() == "skip"]
     rows = [
         {"id": r["id"], "text": r["text"],
@@ -215,11 +224,17 @@ def _real_section() -> Dict:
     result.update({
         "status": "labelled",
         "claim": "measured on real #IMD and weather posts and headlines collected from 24 Sep 2026",
-        "file_sha256": _sha256(REAL),
+        # Who labelled the rows (hazards_real_v1.md). Quote the figure with it.
+        "labelled_by": "Claude, 27 Sep 2026, at Aditya's request; not a person (see hazards_real_v1.md)",
+        "file_sha256": _sha256(path),
         "rows_drawn": len(raw),
         "rows_skipped": len(skipped),
+        "file": str(path.relative_to(REPO_ROOT)),
         "by_stratum": dict(sorted(Counter(r["stratum"] for r in labelled).items())),
     })
+    if note:
+        result["independent"] = False
+        result["note"] = note
     return result
 
 
@@ -242,7 +257,8 @@ def build() -> Dict:
             "test": test,
         },
         "gate_on_test": gate(test),
-        "real_posts": _real_section(),
+        "real_posts": _real_section(REAL, REAL_V1_NOTE),
+        "real_posts_v2": _real_section(REAL_V2),
     }
 
 
@@ -260,7 +276,9 @@ def main() -> int:
     for h, c in gate_result["ps_seven"].items():
         print(f"  {h:<13} P={c['precision']} R={c['recall']} {'pass' if c['pass'] else 'MISS'}")
     print(f"  macro-F1 {gate_result['macro_f1']['value']}  negatives tagged {gate_result['negatives_tagged']['value']}")
-    print(f"  gate: {'PASS' if gate_result['pass'] else 'FAIL'}; real posts: {metrics['real_posts']['status']}")
+    v2 = metrics["real_posts_v2"]
+    print(f"  gate: {'PASS' if gate_result['pass'] else 'FAIL'}; real posts v2: {v2['status']}"
+          + (f", micro-F1 {v2['micro']['f1']}" if v2.get("status") == "labelled" else ""))
     return 1 if args.check and not gate_result["pass"] else 0
 
 
