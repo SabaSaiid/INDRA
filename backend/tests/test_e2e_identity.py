@@ -103,7 +103,9 @@ def test_the_app_will_not_import_as_an_e2e_backend_on_the_dev_database():
 
 def test_only_an_e2e_backend_mounts_the_identity_route():
     assert _import_app(**E2E).stdout.strip().endswith("True")
-    assert _import_app(ENVIRONMENT="production", DATABASE_URL=DEV_URL).stdout.strip().endswith("False")
+    # A production backend needs its own signing key since BUG-120.
+    production = dict(ENVIRONMENT="production", DATABASE_URL=DEV_URL, SECRET_KEY="k" * 40)
+    assert _import_app(**production).stdout.strip().endswith("False")
 
 
 # ── The route ─────────────────────────────────────────────────────────────────
