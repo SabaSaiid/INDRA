@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.empty import empty_or_503
 from app.core.security import TokenData, require_roles
-from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, SourceType
+from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, SourceType, Verdict
 from app.services import audit
 from app.services.fusion_engine import FusionEngine
 # Display label and thumbnail per event type. They live in the hazard taxonomy
@@ -103,6 +103,9 @@ def _event_item(row, include_boundary: bool) -> Dict[str, Any]:
         "confidence_score": row["confidence_score"],
         "verification": REVIEW_STATUS_LABELS.get(row["review_status"], "under-review"),
         "review_status": row["review_status"],
+        # Phase 4 T4: CORROBORATED | CONTRADICTED | UNCONFIRMED; null for an
+        # event last scored before receipt v2.
+        "verdict": row["verdict"],
         "quadrant": row["quadrant"],
         "impact_radius_km": row["impact_radius_km"],
         "lat": row["lat"],
@@ -139,6 +142,7 @@ def event_conditions(
     time_range: Optional[str] = None,
     bbox: Optional[str] = None,
     q: Optional[str] = None,
+    verdict: Optional[str] = None,
 ) -> Tuple[List[str], Dict[str, Any]]:
     """
     The WHERE conditions and bound parameters for GET /api/events' filters, over
@@ -154,6 +158,11 @@ def event_conditions(
         params["statuses"] = statuses
     else:
         conditions.append("review_status != 'REJECTED'")
+
+    verdicts = _csv("verdict", verdict, [v.value for v in Verdict])
+    if verdicts:
+        conditions.append("CAST(verdict AS text) = ANY(CAST(:verdicts AS text[]))")
+        params["verdicts"] = verdicts
 
     severities = _csv("severity", severity, [s.value for s in Severity])
     if severities:
@@ -252,6 +261,9 @@ async def list_events(
         None, description="Comma-separated review statuses; REJECTED is shown only when named"
     ),
     severity: Optional[str] = Query(None, description="Comma-separated: ADVISORY, MODERATE, HIGH, CRITICAL"),
+    verdict: Optional[str] = Query(
+        None, description="Comma-separated: CORROBORATED, CONTRADICTED, UNCONFIRMED"
+    ),
     state: Optional[str] = Query(None, max_length=120, description="Exact state name, any case"),
     district: Optional[str] = Query(None, max_length=120, description="Exact district name, any case"),
     source_type: Optional[str] = Query(
@@ -276,7 +288,7 @@ async def list_events(
         date_from=date_from, date_to=date_to, event_type=event_type, family=family,
         review_status=review_status, severity=severity, state=state, district=district,
         source_type=source_type, min_confidence=min_confidence, time_range=time_range,
-        bbox=bbox, q=q,
+        bbox=bbox, q=q, verdict=verdict,
     )
 
     includes = _csv("include", include, INCLUDES, normalise=str.lower) or []
@@ -296,7 +308,7 @@ async def list_events(
             CAST(severity AS text) AS severity, confidence_score,
             CAST(review_status AS text) AS review_status, quadrant, impact_radius_km,
             ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
-            verified_at,
+            verified_at, CAST(verdict AS text) AS verdict,
             district, state, place_precision{boundary_column}
         FROM verified_events
         WHERE {where_clause}
@@ -311,7 +323,7 @@ async def list_events(
     filtered = any(
         v is not None
         for v in (date_from, date_to, event_type, family, review_status, state, district,
-                  source_type, min_confidence, q)
+                  source_type, min_confidence, q, verdict)
     ) or offset > 0
 
     db_error = None
@@ -428,7 +440,7 @@ async def event_distribution(
 
 EXPORT_COLUMNS = [
     "id", "event_code", "event_type", "family", "label", "severity", "confidence_score",
-    "factor_coverage", "review_status", "quadrant", "impact_radius_km", "lat", "lng",
+    "factor_coverage", "verdict", "review_status", "quadrant", "impact_radius_km", "lat", "lng",
     "district", "state", "place_precision", "report_count", "verified_at", "updated_at",
 ]
 
@@ -436,6 +448,7 @@ EXPORT_SQL = """
     SELECT id, event_code, CAST(event_type AS text) AS event_type,
            CAST(severity AS text) AS severity, confidence_score,
            CAST(verification_receipt->>'factor_coverage' AS double precision) AS factor_coverage,
+           CAST(verdict AS text) AS verdict,
            CAST(review_status AS text) AS review_status, CAST(quadrant AS text) AS quadrant,
            impact_radius_km, ST_Y(center_point) AS lat, ST_X(center_point) AS lng,
            district, state, place_precision,
@@ -479,6 +492,7 @@ async def export_events(
     family: Optional[str] = Query(None),
     review_status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
+    verdict: Optional[str] = Query(None),
     state: Optional[str] = Query(None, max_length=120),
     district: Optional[str] = Query(None, max_length=120),
     source_type: Optional[str] = Query(None),
@@ -508,7 +522,7 @@ async def export_events(
         date_from=date_from, date_to=date_to, event_type=event_type, family=family,
         review_status=review_status, severity=severity, state=state, district=district,
         source_type=source_type, min_confidence=min_confidence, time_range=time_range,
-        bbox=bbox, q=q,
+        bbox=bbox, q=q, verdict=verdict,
     )
     field, _, direction = sort.partition(":")
     direction = (direction or "desc").lower()
@@ -518,7 +532,7 @@ async def export_events(
 
     filters = {
         "from": date_from, "to": date_to, "event_type": event_type, "family": family,
-        "review_status": review_status, "severity": severity, "state": state,
+        "review_status": review_status, "severity": severity, "verdict": verdict, "state": state,
         "district": district, "source_type": source_type, "min_confidence": min_confidence,
         "time_range": time_range, "bbox": bbox, "q": q, "sort": sort,
     }
