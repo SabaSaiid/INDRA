@@ -12,7 +12,7 @@ from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 
 from app.core.database import Base
-from app.models.enums import EventType, Severity, ReviewStatus, Quadrant
+from app.models.enums import EventType, Severity, ReviewStatus, Quadrant, Verdict
 
 
 class VerifiedEvent(Base):
@@ -45,6 +45,14 @@ class VerifiedEvent(Base):
     # The event type's family (migration 0017): which reports it may absorb
     # when it merges (Phase 3 T6). NULL only for UNCLASSIFIED.
     hazard_family = Column(String(16), nullable=True)
+
+    # Phase 4 (migration 0020). What the evidence says (T4): NULL only for an
+    # event last scored before receipt v2.
+    verdict = Column(Enum(Verdict, name="verdict_enum"), nullable=True)
+    # The review claim (T7): who is reviewing it and since when. Expires 15
+    # minutes after claimed_at; readers compare the time, nothing clears it.
+    claimed_by = Column(String(50), nullable=True)
+    claimed_at = Column(DateTime(timezone=True), nullable=True)
 
     verified_at = Column(
         DateTime(timezone=True),
