@@ -36,8 +36,12 @@ outbox relay / process Kafka producer ──► indra.raw.reports (Redpanda)
    ├─ advisory ML         typed UnifiedMLResult at raw_reports.analysis.ml
    ├─ 2. cluster          DBSCAN, great-circle eps 5 km, min 2 samples (off the event loop)
    ├─ 3. stats            centroid, radius, max pairwise distance, in metres
-   ├─ 4. weather          station_readings within 3 h and 25 km  ─── miss → live Open-Meteo
-   ├─ 5. score            6-factor receipt, re-normalised over the factors that reported
+   ├─ 4. evidence         Phase 4: the hazard's own variable — an airport METAR within 50 km,
+   │                      else Open-Meteo (one hourly request per res-7 cell); floods keep the
+   │                      24 h rainfall (station_readings, else live); SACHET warnings in force;
+   │                      the published contradiction table; news counted by publisher
+   ├─ 5. score            receipt v2 (7 factors), re-normalised over the factors that reported,
+   │                      and a verdict: CORROBORATED · CONTRADICTED · UNCONFIRMED
    ├─ 6. severity         max(depth axis, corroboration axis), from the report texts
    └─ 7. persist          ONE transaction: event + boundary polygon + report links + audit row
    │
@@ -138,16 +142,23 @@ backend/app/
 
 ## The scoring model, precisely
 
-Six factors, fixed weights:
+Seven factors, fixed weights (receipt v2, Phase 4, 27 Sep; v1 in brackets):
 
 | Factor | Weight | State |
 |---|---|---|
-| Weather Station Corroboration | 0.25 | online |
+| Weather Station Corroboration | 0.20 (0.25) | online: the hazard's own variable, airport METAR preferred over the model; offline only when neither answers |
+| Official Warning (IMD/SDMA via SACHET) | 0.10 (—) | online while SACHET was polled in the last 30 min (0.0 when no warning of this hazard covers the event); offline otherwise |
 | Report Density Analysis | 0.20 | online |
-| Spatial Coherence Score | 0.20 | online |
-| Computer Vision Analysis | 0.15 | excluded from this legacy fusion score; separate advisory model output |
-| Source Reliability Index | 0.15 | online |
-| Anomaly Detection Signal | 0.05 | excluded from this legacy fusion score; separate advisory model output |
+| Spatial Coherence Score | 0.15 (0.20) | online |
+| Computer Vision Analysis | 0.15 | offline: layer 4, out of scope |
+| Source Reliability Index | 0.15 | online; news 0.75 from two independent publishers, 0.55 from one |
+| Anomaly Detection Signal | 0.05 | offline: layer 4, out of scope |
+
+**The verdict:** CONTRADICTED if the weather affirmatively says the opposite (the table in
+`services/evidence.py`; the weather factor then scores 0.0 and the event is capped at
+PENDING_HUMAN_REVIEW, never rejected); else CORROBORATED if the official warning or the weather
+scores ≥ 0.6; else UNCONFIRMED. **Late corroboration** re-scores an open event when a warning or a
+relevant airport observation arrives after it (`LATE_CORROBORATION` in the ledger).
 
 ```
 online          = { f : score(f) is not None }
