@@ -1057,8 +1057,9 @@ long the oldest has waited). Captured 23 Sep:
 | Message | Payload | When |
 |---|---|---|
 | `NEW_REPORT` | `{type, report}` | A report was accepted. Once per report id, now across a restart |
-| `VERIFIED_EVENT` | `{type, event}` | The pipeline created or updated an event |
-| `EVENT_REVIEWED` | `{type, event}` | A commander approved, rejected or re-graded one |
+| `VERIFIED_EVENT` | `{type, event}` | The pipeline created or updated an event. **Phase 4:** also when late corroboration re-scored one (`event.late_corroboration` says by what); `event.verdict` on every one |
+| `EVENT_REVIEWED` | `{type, event, review, claim_released}` | A commander approved, rejected or re-graded one. `claim_released` (Phase 4) is true when the decision released a review claim |
+| `EVENT_CLAIMED` | `{type, event: {id, event_code}, claim}` | **Phase 4.** A commander claimed an event for review; `claim` is `{operator_id, claimed_at, expires_at}`, or `null` with `released_by` when it was released. Show "being reviewed by …" |
 | `NEW_FEED_ITEM` | `{type, report}` | **Phase 2.** A poller collected a post or headline. Same payload as `NEW_REPORT` (`source_type` `SOCIAL_MEDIA` or `NEWS_MEDIA`; `latitude`/`longitude` may be `null`). A separate type so a news tick storing dozens of headlines does not fire dozens of `NEW_REPORT` refetches; a dashboard that ignores it is unaffected |
 
 `report` carries `raw_text`, `h3_res8`, `credibility_score` and `source_type`. The key is
@@ -1073,16 +1074,14 @@ connected browser.
 
 ## Proposed — Phase 4, 5 and 6
 
-Phase 2's four are built (above). **The rest are not built yet.** These are the names later phases will use, published now so the dashboard can be
-built against them. Shapes will be fixed in this file when each one lands; until then treat
-everything but the path as provisional.
+Phase 2's four are built (above), and Phase 4's four are written (above: the review queue,
+claiming, history and `?verdict=`; not yet tested). **The rest are not built yet.** These are the
+names later phases will use, published now so the dashboard can be built against them. Shapes will
+be fixed in this file when each one lands; until then treat everything but the path as
+provisional.
 
 | Phase | Endpoint | For |
 |---|---|---|
-| 4 | `GET /api/review/queue` | The review queue's tabs |
-| 4 | `POST /api/events/{id}/claim`, `DELETE /api/events/{id}/claim` | Claiming an event for review |
-| 4 | `GET /api/events/{id}/history` | An event's score and status over time |
-| 4 | `GET /api/events?verdict=` | Corroborated / contradicted / no official match |
 | 5 | `POST /api/reports/submit` as multipart | Photo and video upload |
 | 5 | `GET /api/media/{id}` | A report's media |
 | 5 | `DELETE /api/reports/{docket}` | A citizen withdrawing their own report |
