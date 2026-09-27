@@ -2095,3 +2095,235 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         except Exception:
             pass
         return None
+
+
+# ── Late corroboration: re-score an event when evidence arrives (Phase 4 T5) ───
+
+def _state_of(confidence: Any, verdict: Any, review_status: Any, severity: Any) -> Dict[str, Any]:
+    return {
+        "confidence_score": float(confidence) if confidence is not None else None,
+        "verdict": str(getattr(verdict, "value", verdict)) if verdict is not None else None,
+        "review_status": str(getattr(review_status, "value", review_status)),
+        "severity": str(getattr(severity, "value", severity)) if severity is not None else None,
+    }
+
+
+async def rescore_event(
+    db: AsyncSession,
+    event_id: UUID,
+    *,
+    trigger: str,
+    trigger_detail: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Re-score one existing event over its current reports and the evidence as it
+    stands now, with the pure score_cluster(). IMD often issues or upgrades a
+    warning after the first reports arrive: an event scored at 10:00 should
+    rise when the warning lands at 10:20.
+
+    * **Human decisions stand.** HUMAN_APPROVED keeps its status and a severity
+      or type override keeps its value; confidence and verdict still update, and
+      the ledger shows it. A REJECTED event is never touched.
+    * **Only a change is written.** If confidence, verdict, status and severity
+      all come out as stored, nothing is written and None is returned, so the
+      same trigger processed twice changes nothing.
+    * **A change writes three things, in one transaction:** the event, a
+      snapshot (`late:<trigger>`) and a `LATE_CORROBORATION` ledger row with
+      `{trigger, before, after}`. The caller broadcasts `VERIFIED_EVENT`.
+    * `updated_at` is left alone: it keys the merge window (BUG-035), and new
+      evidence about an event is not a new report of it.
+
+    Returns the event, as process_report returns it, when it changed.
+    """
+    try:
+        row = (await db.execute(
+            text("""
+                SELECT event_code, CAST(review_status AS text), verification_receipt,
+                       CAST(event_type AS text), CAST(severity AS text), confidence_score,
+                       CAST(verdict AS text), impact_radius_km
+                FROM verified_events
+                WHERE id = CAST(:id AS uuid)
+                FOR UPDATE
+            """),
+            {"id": str(event_id)},
+        )).fetchone()
+        if row is None or row[1] == ReviewStatus.REJECTED.value:
+            await db.rollback()
+            return None
+        event_code, prior_status, old_receipt, stored_type, stored_severity, stored_conf, \
+            stored_verdict, impact_radius = row
+        old_receipt = old_receipt or {}
+        human_review = old_receipt.get("human_review") or None
+        before = _state_of(stored_conf, stored_verdict, prior_status, stored_severity)
+
+        report_ids = await _event_report_ids(db, event_id)
+        reports = await _cluster_reports(db, report_ids)
+        if not reports:
+            await db.rollback()
+            return None
+        source_types = await _source_types(db, report_ids)
+        report_texts = [r["raw_text"] for r in reports]
+        observed_ids = [r["id"] for r in reports if "not_an_observation" not in r["flags"]]
+
+        geo = GeoClusteringService(db)
+        stats = await geo.get_cluster_stats(observed_ids or report_ids)
+        if not stats["count"] or stats["centroid_lat"] is None:
+            await db.rollback()
+            return None
+
+        typed = decide_event_type(reports)
+        event_type, event_type_basis = typed["event_type"], typed["basis"]
+        override_type = (human_review or {}).get("event_type_override")
+        if override_type and override_type != event_type:
+            event_type_basis = {
+                **event_type_basis,
+                "override": {
+                    "event_type": override_type,
+                    "machine_vote": event_type,
+                    "operator_id": human_review.get("operator_id"),
+                },
+            }
+            event_type = override_type
+        density = effective_reporters(reports)
+        place = reverse_geocode(stats["centroid_lat"], stats["centroid_lng"])
+
+        evidence = await _gather_evidence(
+            db,
+            event_type=event_type,
+            lat=stats["centroid_lat"],
+            lng=stats["centroid_lng"],
+            reports=reports,
+            report_ids=observed_ids or report_ids,
+            district=place.district if place else None,
+        )
+        scored = score_cluster(
+            stats,
+            source_types,
+            report_texts=report_texts,
+            event_type=event_type,
+            event_type_basis=event_type_basis,
+            density=density,
+            eps_km=family_params(family_of(event_type)).eps_km,
+            cluster_basis=(old_receipt.get("cluster") or {}).get("clustering"),
+            evidence=evidence,
+        )
+        receipt = scored["receipt"]
+        confidence = scored["confidence"]
+        severity = scored["severity"]
+        verdict = scored["verdict"]
+        caps = scored["caps"]
+
+        if human_review and human_review.get("severity_override"):
+            severity = Severity(human_review["severity_override"])
+            receipt["provenance"]["severity"] = "human_override"
+        if prior_status == ReviewStatus.HUMAN_APPROVED.value:
+            review_status = ReviewStatus.HUMAN_APPROVED
+            quadrant = FusionEngine.human_approved_quadrant(severity)
+        else:
+            quadrant = FusionEngine().assign_quadrant(severity, confidence)
+            review_status = FusionEngine().determine_review_status(
+                confidence, severity=severity, caps=caps
+            )
+        receipt["routing"] = _routing(severity, confidence, review_status, caps)
+        if human_review:
+            receipt["human_review"] = human_review
+        # Kept from the stored receipt: advisory ML output (layer 4, frozen) is
+        # not recomputed here, and the place is the one the event was stored at.
+        for key in ("ml_event_grouping", "location"):
+            if key in old_receipt:
+                receipt[key] = old_receipt[key]
+
+        after = _state_of(confidence, verdict, review_status, severity)
+        if after == before:
+            await db.rollback()
+            return None
+
+        receipt["late_corroboration"] = {
+            "trigger": trigger,
+            "detail": trigger_detail or {},
+            "at": clock.now().isoformat(),
+            "before": before,
+        }
+        await db.execute(
+            text("""
+                UPDATE verified_events SET
+                    event_type = CAST(:etype AS event_type_enum),
+                    hazard_family = :family,
+                    severity = CAST(:sev AS severity_enum),
+                    confidence_score = :conf,
+                    review_status = CAST(:status AS review_status_enum),
+                    quadrant = CAST(:quad AS quadrant_enum),
+                    verdict = CAST(:verdict AS verdict_enum),
+                    verification_receipt = CAST(:receipt AS jsonb)
+                WHERE id = CAST(:id AS uuid)
+            """),
+            {
+                "id": str(event_id),
+                "etype": event_type,
+                "family": family_of(event_type),
+                "sev": severity.value,
+                "conf": confidence,
+                "status": review_status.value,
+                "quad": quadrant.value,
+                "verdict": verdict.value,
+                "receipt": json.dumps(receipt),
+            },
+        )
+        report_count = len(report_ids)
+        await write_snapshot(
+            db,
+            event_id,
+            confidence=confidence,
+            factor_coverage=receipt.get("factor_coverage"),
+            report_count=report_count,
+            verdict=verdict.value,
+            review_status=review_status.value,
+            severity=severity.value,
+            trigger=f"late:{trigger}",
+            receipt_version=receipt.get("receipt_version"),
+            details=trigger_detail,
+        )
+        await audit.record(
+            db,
+            event_id=event_id,
+            operator_id=audit.SYSTEM_PIPELINE_OPERATOR,
+            action=AuditAction.LATE_CORROBORATION,
+            reason=(
+                f"{event_code} re-scored by {trigger}: confidence {before['confidence_score']} -> "
+                f"{confidence}, {before['verdict']} -> {verdict.value}, "
+                f"{before['review_status']} -> {review_status.value}"
+            ),
+            details={"trigger": trigger, "trigger_detail": trigger_detail or {},
+                     "before": before, "after": after},
+        )
+        await db.commit()
+        logger.info(
+            f"Late corroboration: {event_code} re-scored by {trigger} — "
+            f"{before['confidence_score']} -> {confidence}, verdict {verdict.value}, "
+            f"status {review_status.value}"
+        )
+        return {
+            "id": str(event_id),
+            "event_code": event_code,
+            "event_type": event_type,
+            "severity": severity.value,
+            "confidence_score": confidence,
+            "review_status": review_status.value,
+            "quadrant": quadrant.value,
+            "verdict": verdict.value,
+            "impact_radius_km": impact_radius,
+            "lat": stats["centroid_lat"],
+            "lng": stats["centroid_lng"],
+            "report_count": report_count,
+            "merged": False,
+            "late_corroboration": {"trigger": trigger, "before": before},
+            "verification_receipt": receipt,
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Late corroboration of {event_id} by {trigger} failed: {e}", exc_info=True)
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        return None
