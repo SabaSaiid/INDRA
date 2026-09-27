@@ -300,10 +300,13 @@ exact sum of its children, nothing smoothed or spread.
 
 ---
 
-## Scene 5b — A fabricated heatwave, caught by a thermometer (Phase 4, not yet rehearsed)
+## Scene 5b — A fabricated heatwave, caught by a thermometer (Phase 4)
 
-*Written 27 Sep with the Phase 4 code; rehearse it on the server after the testing pass, and
-record a frozen copy for the offline fallback.*
+*Run live on the server 27 Sep, 23:32 IST: case A was Uttarkashi under an Extreme Uttarakhand SDMA
+rain warning with 54.6 mm fallen, **0.712 CORROBORATED**; case B was five "47 degree" reports 5 km
+from Dehradun airport, which measured 20.0 °C, **0.4369 CONTRADICTED**; exit code 0. That run's
+inputs are committed as `data/demo/verification_cases.json` for the offline fallback. Rehearse it
+live again on the day: the places change with the weather.*
 
 ```bash
 backend/.venv/bin/python scripts/run_verification_demo.py --record data/demo/verification_cases.json
@@ -320,7 +323,7 @@ Point at case B's contradiction line: the station, its distance and the temperat
 Then at case A's official-warning line: which office issued it, how severe, until when.
 
 If there is no genuine case today (no warning, no rain anywhere), the script says so and exits 1;
-it never invents one. Offline, replay the last recording:
+it never invents one. Offline, replay the recording (it prints the time it was recorded; say so):
 
 ```bash
 backend/.venv/bin/python scripts/run_verification_demo.py --frozen data/demo/verification_cases.json
