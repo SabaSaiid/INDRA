@@ -1,25 +1,53 @@
 # INDRA — Bug Register
 
-> Historical backend defect record. MiniLM and "vision/anomaly missing" findings below describe
-> the state when discovered, not the current frozen six-component AI/ML subsystem. The newer
-> `origin/main` backend fixes and additions remain recorded here. For current AI/ML claims and
-> merged-branch verification, use [ML architecture](ML_ARCHITECTURE.md) and
-> [ML validation](ML_VALIDATION_REPORT.md); do not treat old cold-MiniLM measurements as a live
-> runtime dependency.
+| | |
+|---|---|
+| **Scope** | The core platform: layers 1, 2, 3, 5, 6, 7 and 8a, plus the test suites and infrastructure. A layer 4 or layer 9 defect is recorded when it affects this code or its suite, and handed to that layer's owner |
+| **Entries** | BUG-001 … BUG-122 |
+| **Last reviewed** | 28 Sep 2026 |
 
-**What this is:** every defect found in the backend (layers 1, 2, 3, 5, 6, 7, 8a) since the
-16 Sep 2026 sprint began, through Phase 1 (23 Sep) and the 24 Sep triage of the frontend team's
-backend report, what was done about it, and — for the ones still open — the honest sentence
-to say if someone asks. Nothing has been removed: rows change status, they do not disappear.
+Every defect found since the 16 Sep 2026 sprint began: what was observed, what was done about it
+and, for anything not fixed, the honest sentence to say if asked. **Nothing is ever removed.** An
+entry changes status and never disappears, and a fix is appended to the entry it closes. The log
+below is chronological. The summary directly below it is the current state.
 
 **Why it is published.** A defect list is the most useful document a team can share and the one
-most often kept private. A teammate who hits `command not found: docker` or a reviewer who asks
-whether the audit trail can be edited should find the answer here rather than ask. If you are
-demonstrating INDRA, read the **carried** rows at the bottom before you start.
+most often kept private. A teammate who hits `command not found: docker`, or a reviewer who asks
+whether the audit trail can be edited, should find the answer here without having to ask.
 
-**Last updated: 27 Sep 2026: the demo-data removal of 25 Sep (BUG-045 fixed, BUG-093 … BUG-100), then
-Phase 3's testing pass and three real-post samples (BUG-081, BUG-090 … BUG-092, BUG-101 … BUG-114 fixed;
-BUG-115 … BUG-118 open).**
+> **Reading older entries.** Entries describe the system as it was when they were found. The
+> MiniLM measurements and "vision/anomaly missing" findings predate the frozen AI/ML components of
+> PR #39. For layer 4's current state see [ML architecture](ML_ARCHITECTURE.md) and
+> [ML validation](ML_VALIDATION_REPORT.md).
+
+## Current status — 28 Sep 2026
+
+### Open
+
+| Bug | Sev | Layer | Summary |
+|---|:-:|---|---|
+| BUG-099 | S3 | 7 | Test and demo rows remain in the committed `data/live/` snapshot. The exporter is fixed; deleting the rows is the remaining step |
+| BUG-059 | S3 | Tests | One test compares `CORS_ORIGINS` with the code default and fails on a server that adds its public origin |
+| BUG-066 | S3 | 6 | The merge catchment (`impact_radius_km + eps`) has no upper bound |
+| BUG-106 | S3 | 4 | Two dataset-hash tests in layer 4's package fail on LF checkouts. Handed to the ML owner; these are the suite's only failures |
+| BUG-115 … BUG-118 | S3 | 3 | Hazard-tagger misses measured on the third independent real-post sample (16 of 100 rows). Bounded: a posts-only event always waits for a human |
+
+### Accepted
+
+| Bug | Status | Summary |
+|---|---|---|
+| BUG-010 | `BY-DESIGN` | The audit chain cannot detect a truncated tail without an external anchor for the head hash |
+| BUG-011 | `BY-DESIGN` | Two backends on one broker re-deliver reports, so the rule is one backend process |
+| BUG-013 | `BY-DESIGN` | The dedup threshold is measured from both sides; catching more paraphrases would discard real witnesses |
+| BUG-019 | `BY-DESIGN` | Re-normalisation means losing a weak factor can raise the score. Coverage is published beside it |
+| BUG-015 | `WONT-FIX` | The layer 4 event-type classifier never met its gate and stays frozen. Rule-based tagging replaced it |
+
+### Recently closed
+
+BUG-120 (S1): the server's JWT signing key was the published default. Fixed in code, so production
+refuses it, and the key on the server was rotated on 27 Sep. BUG-121 and BUG-122 (S2): SACHET
+warnings and per-hazard weather now enter the score, merged in PR #47. **Every other entry is
+`FIXED`**, with its commit and the test that covers it.
 
 **Rule this file runs on:** a bug is written here **the moment it is observed**, before it is
 fixed. A bug that was fixed but never recorded is a bug that comes back during the demo.
@@ -1621,7 +1649,7 @@ A monotone spline over 0-0-1-0-0; now linear with dots, whole-number axis, a tot
   card should say "all time", that is its label on the dashboard.
 - **The map's default view** (report item 4): frontend only; no backend endpoint serves map defaults.
 
-# Phase 2 — 24 Sep 2026 (branch `aditya_24sep_c`, written, not yet tested)
+# Phase 2 — 24 Sep 2026 (branch `aditya_24sep_c`; found while written, since tested and merged)
 
 ### BUG-081 — The consumer silently dropped a report the pipeline failed on
 **S1** · Layer 2 · **`IN-PROGRESS`** — fix written, not yet run (Phase 2 T8)
@@ -1638,7 +1666,7 @@ tests in the phase file pass.
 **24 Sep: `FIXED`.** The T8 consumer tests pass (retry twice, dead-letter on the third, commit only
 after, nothing committed when the dead-letter topic is unreachable), PR #35.
 
-# Phase 3 — 25 Sep 2026 (branch `aditya_25sept`, written, not yet tested)
+# Phase 3 — 25 Sep 2026 (branch `aditya_25sept`; found while written, since tested and merged)
 
 ### BUG-090 — Clustering ran DBSCAN over every unassigned report ever stored
 **S2** · Layer 5 · **`IN-PROGRESS`** — fix written, not yet run (Phase 3 T5)
@@ -1909,7 +1937,7 @@ first ("तेज आंधी से गिरा … होर्डिंग"
 published without a human.
 
 ### BUG-120 — The team server signed its tokens with the key published in the source
-**S1** · Layers 8a, infra · **`FIXED` in code**, the key on the server **not yet rotated** · Found by:
+**S1** · Layers 8a, infra · **`FIXED`**: in code, and the server's key rotated 27 Sep, 18:30 IST · Found by:
 checking the server before deploying the sign-in (27 Sep, read-only: the value was compared, never
 printed)
 
@@ -1921,7 +1949,7 @@ characters, and the backend does not start (`test_secret_key.py`). **Before depl
 the server's key**; rotating it ends every session, and the dashboard fetches a new token.
 
 ### BUG-121 — SACHET warnings were collected and read by no scoring code
-**S2** · Layer 6 · **`FIXED`** on `aditya_27sep_phase4` (PR #47), tested 27 Sep; not yet deployed
+**S2** · Layer 6 · **`FIXED`** on `aditya_27sep_phase4`, tested 27 Sep, merged to `main` (PR #47)
 (`test_official_warnings.py`, `test_late_corroboration.py`)
 
 Every IMD, CWC and SDMA warning has been stored with its polygon since 21 Sep, and the confidence
@@ -1931,7 +1959,7 @@ match its hazard family, scored on the agency's own CAP severity, offline when S
 warning stored after an event re-scores it (`LATE_CORROBORATION`).
 
 ### BUG-122 — The weather factor read only rainfall, so nothing could contradict a fabricated claim
-**S2** · Layers 1, 6 · **`FIXED`** on `aditya_27sep_phase4` (PR #47), tested 27 Sep; not yet deployed
+**S2** · Layers 1, 6 · **`FIXED`** on `aditya_27sep_phase4`, tested 27 Sep, merged to `main` (PR #47)
 (`test_evidence.py`, `test_verification_pipeline.py`, the verification demo live and `--frozen`)
 
 A heatwave, fog, dust-storm or gale event had no weather evidence for or against it, and the
