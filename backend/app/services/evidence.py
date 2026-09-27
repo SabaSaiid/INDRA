@@ -759,3 +759,83 @@ def station_evidence(
             "stations_considered": len(stations),
         },
     )
+
+
+# ── Station beats model (T2, point 4) ─────────────────────────────────────────
+
+# How far apart the two scores must be before the receipt says they disagree.
+DISAGREEMENT = 0.4
+
+
+def combine_weather(
+    event_type: Optional[str],
+    model: Evidence,
+    station: Optional[Evidence],
+) -> Evidence:
+    """
+    The Weather Station Corroboration factor's evidence: one score, one source,
+    and every line behind it.
+
+    * **A measured quantity** (visibility, wind, temperature): when a station
+      measured it, the station sets the score and the model is a second line.
+      If they disagree sharply the station still wins, and the receipt says so.
+    * **A phenomenon reported as a code** (TS, GR, DS): the stronger of the two.
+      A code missing from one airport's report is not a measurement that the
+      storm did not happen 20 km away, so it cannot outvote the model.
+    * **The rain family:** the model's millimetres stay primary, since a METAR
+      carries no rainfall amount; the station's rain codes are the second line,
+      and the score when the model is offline.
+    """
+    etype = event_type or "URBAN_FLOOD"
+    lines: List[str] = []
+    if station is None or not station.online:
+        if model.online:
+            return _with_lines(model, [model.reason])
+        return model
+
+    if not model.online:
+        chosen = station
+    elif etype in RAIN_FAMILY_TYPES:
+        chosen = model
+    elif etype in SCALAR_TYPES:
+        chosen = station
+    else:
+        chosen = station if station.score >= model.score else model
+
+    other = model if chosen is station else station
+    lines.append(chosen.reason)
+    if other.online or other.reason:
+        prefix = "" if other.reason.startswith(("Open-Meteo", "CAMS", "IMD", "Airport")) else "also: "
+        lines.append(prefix + other.reason)
+
+    disagreement = None
+    if model.online and station.online and abs(station.score - model.score) >= DISAGREEMENT \
+            and etype not in RAIN_FAMILY_TYPES:
+        disagreement = {
+            "station_score": station.score,
+            "model_score": model.score,
+            "used": chosen.source,
+        }
+        lines.append(
+            f"the station ({station.score:.2f}) and the model ({model.score:.2f}) disagree; "
+            + ("the measurement is used" if chosen is station else "the stronger report is used")
+        )
+
+    detail = dict(chosen.detail)
+    detail["station"] = station.detail if station is not None else None
+    detail["model"] = model.detail
+    if disagreement:
+        detail["disagreement"] = disagreement
+    return Evidence(
+        chosen.score, "computed", chosen.variable, chosen.value, window=chosen.window,
+        source=chosen.source, reason="; ".join(lines),
+        detail={**detail, "lines": lines},
+    )
+
+
+def _with_lines(e: Evidence, lines: List[str]) -> Evidence:
+    return Evidence(
+        e.score, e.state, e.variable, e.value, window=e.window, source=e.source,
+        contradiction=e.contradiction, reason=e.reason,
+        detail={**e.detail, "model": e.detail, "station": None, "lines": lines},
+    )
