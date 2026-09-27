@@ -176,7 +176,7 @@ async def test_all_five_reports_are_linked_to_the_event(db):
     assert linked == 5
 
 
-async def test_receipt_is_persisted_with_six_weighted_factors(db):
+async def test_receipt_is_persisted_with_seven_weighted_factors(db):
     ids = await seed_cluster(db)
 
     result = await process_report(db, {"id": str(ids[0])})
@@ -189,11 +189,16 @@ async def test_receipt_is_persisted_with_six_weighted_factors(db):
     ).scalar()
 
     assert receipt is not None
-    assert len(receipt["factors"]) == 6
+    # Receipt v2 (Phase 4): the official warning is the seventh factor.
+    assert receipt["receipt_version"] == 2
+    assert len(receipt["factors"]) == 7
     assert sum(f["weight_pct"] for f in receipt["factors"]) == pytest.approx(100.0)
     # The receipt must say which factors are measured and which are offline.
     assert receipt["provenance"]["report_density"] == "computed"
     assert receipt["provenance"]["weather_station"] == "computed"
+    assert receipt["provenance"]["official_warning"] == "computed"
+    assert receipt["verdict"]["value"] == "UNCONFIRMED"
+    assert receipt["factor_coverage"] == 0.8
     assert receipt["provenance"]["source_reliability"] == "computed"
     assert receipt["provenance"]["vision_analysis"] == "offline"
     assert receipt["provenance"]["anomaly_detection"] == "offline"
