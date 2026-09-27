@@ -40,7 +40,7 @@ from app.core.config import get_settings
 from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, Verdict
 from app.services import audit, clock
 from app.services.dedup import DedupService, find_similar_text
-from app.services.fusion_engine import FusionEngine, source_reliability_score
+from app.services.fusion_engine import FusionEngine, decide_verdict, source_reliability_score
 from app.services import severity_rules
 from app.services.corroboration import effective_reporters, news_corroboration
 from app.services.evidence import (
@@ -338,39 +338,17 @@ def _coherence_score(max_pairwise_km: float, eps_km: Optional[float] = None) -> 
     return round(0.5 * (1.0 + math.cos(math.pi * d / span)), 4)
 
 
-# Hazards whose events the Weather Station Corroboration factor can speak to.
-# It reads 24 h rainfall, and until Phase 4 brings per-hazard weather evidence
-# a rainfall figure says nothing for or against a heatwave, fog, a dust storm or
-# a gale: the factor is offline for those, with a note, rather than scoring a
-# dry day against a heatwave.
-RAIN_CORROBORATED_TYPES = frozenset({
-    "URBAN_FLOOD", "CLOUDBURST", "CYCLONE_INUNDATION", "RIVER_BREACH", "LANDSLIDE", "RAINFALL",
-    "THUNDERSTORM", "LIGHTNING", "HAILSTORM", "CYCLONE",
-})
-WEATHER_NOT_YET_NOTE = (
-    "rainfall does not corroborate this hazard; per-hazard weather evidence arrives in Phase 4"
-)
-
-
-def rain_corroborates(event_type: Optional[str]) -> bool:
-    return event_type is None or event_type in RAIN_CORROBORATED_TYPES
-
-
-def review_caps(event_type: Optional[str], source_types: Sequence[Any]) -> List[str]:
+def review_caps(
+    event_type: Optional[str], source_types: Sequence[Any], verdict: Optional[Any] = None
+) -> List[str]:
     """
-    Why an event may not be auto-published, whatever its confidence:
-
-    * `unclassified` — nothing says what hazard it is (Phase 3 T6);
-    * `posts_only` — every report is a post or a headline: posts corroborate,
-      they do not verify on their own (T9).
+    Why an event may not be auto-published, whatever its confidence. Defined
+    with the review gate in fusion_engine.review_caps (Phase 4 T4): contradicted,
+    unclassified, posts_only.
     """
-    caps = []
-    if event_type == EventType.UNCLASSIFIED.value:
-        caps.append("unclassified")
-    sources = {str(getattr(t, "value", t)) for t in source_types}
-    if sources and sources <= FEED_SOURCE_TYPES:
-        caps.append("posts_only")
-    return caps
+    from app.services.fusion_engine import review_caps as _caps
+
+    return _caps(event_type, source_types, verdict)
 
 
 def capped(review_status: ReviewStatus, caps: Sequence[str]) -> ReviewStatus:
@@ -380,10 +358,54 @@ def capped(review_status: ReviewStatus, caps: Sequence[str]) -> ReviewStatus:
     return review_status
 
 
+def _legacy_evidence(
+    event_type: Optional[str],
+    weather: Optional[float],
+    rainfall_mm: Optional[float],
+    weather_source: str,
+) -> Dict[str, Any]:
+    """
+    The evidence bundle for a caller that passes only the old rainfall pair
+    (a pure test, a script): the rain family's 24 h figure and nothing else.
+    The official factor is offline, since no feed was read.
+    """
+    from app.services.evidence import RAIN_24H_TYPES
+
+    etype = event_type or "URBAN_FLOOD"
+    if weather is not None and (etype in RAIN_24H_TYPES or etype == "CLOUDBURST"):
+        where = (
+            "polled station reading" if weather_source == "station_reading"
+            else "Open-Meteo modelled precipitation"
+        )
+        reason = (
+            f"{rainfall_mm:.1f} mm rainfall in past 24 h ({where})"
+            if rainfall_mm is not None else "Weather Station Corroboration data integrated"
+        )
+        weather_ev = Evidence(
+            float(weather), "computed", "24 h precipitation", rainfall_mm,
+            source="open_meteo_model", reason=reason,
+            detail={"rain_24h_mm": rainfall_mm},
+        )
+    else:
+        weather_ev = offline("no weather evidence was gathered for this call")
+    return {
+        "window": None,
+        "weather": weather_ev,
+        "model": weather_ev,
+        "station": None,
+        "stations_seen": 0,
+        "official": offline("no official-warning lookup was made for this call"),
+        "contradiction": None,
+        "news": None,
+        "rainfall_mm": rainfall_mm if weather is not None else None,
+        "weather_source": weather_source,
+    }
+
+
 def score_cluster(
     stats: Dict[str, Any],
     source_types: Sequence[Any],
-    weather: Optional[float],
+    weather: Optional[float] = None,
     rainfall_mm: Optional[float] = None,
     *,
     report_texts: Sequence[str],
@@ -393,16 +415,22 @@ def score_cluster(
     density: Optional[Dict[str, Any]] = None,
     eps_km: Optional[float] = None,
     cluster_basis: Optional[Dict[str, Any]] = None,
+    evidence: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Pure scoring step: cluster geometry + source mix + weather + report text →
-    receipt, severity, quadrant and review status.
+    Pure scoring step: cluster geometry + source mix + evidence + report text →
+    receipt v2, verdict, severity, quadrant and review status.
 
-    Phase 3 adds, all keyword-only and optional so a pre-Phase-3 caller scores
-    exactly as before:
+    **Phase 4** passes `evidence`, _gather_evidence()'s bundle: the weather
+    factor for this hazard (station or model, T1–T2), the official warning
+    (T4), the contradiction (T3) and the news publisher count (T6). A caller
+    that passes only the old `weather` / `rainfall_mm` pair gets the rain
+    family's 24 h figure as the weather factor and the official factor offline.
+
+    Phase 3 added, all keyword-only and optional:
 
     * `event_type` and its `event_type_basis` (T6): the hazard's own severity
-      axis (T7), the review caps, and whether rainfall is evidence at all;
+      axis (T7) and the review caps;
     * `density` — effective_reporters() (T8): Report Density scores n_eff, not
       the report count, and the receipt shows the arithmetic;
     * `eps_km` — the family's radius, for Spatial Coherence (T5);
@@ -420,24 +448,36 @@ def score_cluster(
     offline; nothing is invented.
     """
     fusion = FusionEngine()
+    if evidence is None:
+        evidence = _legacy_evidence(event_type, weather, rainfall_mm, weather_source)
 
     density_input = density["n_eff"] if density is not None else stats["count"]
     density_score = _density_score(density_input)
     eps = eps_km or settings.DBSCAN_EPS_KM
     coherence = _coherence_score(stats["max_pairwise_km"], eps)
-    reliability = source_reliability_score(source_types)
-    if not rain_corroborates(event_type):
-        weather, rainfall_mm = None, None
+
+    news = evidence.get("news")
+    news_score = news["score"] if news else None
+    reliability = source_reliability_score(source_types, news_score)
+
+    # A contradiction scores the weather factor 0.0, online, whatever it read
+    # (T3): the reason goes first on its line.
+    contradiction = evidence.get("contradiction")
+    weather_ev: Evidence = evidence["weather"]
+    if contradiction:
+        weather_ev = contradicted(weather_ev, contradiction)
+    official_ev: Evidence = evidence["official"]
+    contradictions = [contradiction] if contradiction else []
 
     receipt = fusion.compute_receipt(
-        weather_score=weather,
+        weather_score=weather_ev.score,
+        official_score=official_ev.score,
         report_density_score=density_score,
         spatial_score=coherence,
-        # Image and anomaly models now produce separate advisory ML evidence,
-        # but their synthetic-development scores are not calibrated fusion
-        # factors. Passing None excludes them from the weighted mean instead
-        # of treating missing or advisory output as 0.0. The absent factors
-        # remain visible in `factor_coverage` and provenance below.
+        # Image and anomaly models produce separate advisory ML evidence, but
+        # they are layer 4, frozen, and not calibrated fusion factors. They are
+        # permanently offline here: excluded from the weighted mean, and
+        # visible in `factor_coverage` and provenance below.
         vision_score=None,
         reliability_score=reliability,
         anomaly_score=None,
@@ -454,32 +494,35 @@ def score_cluster(
         )
     else:
         density_text = f"{stats['count']} corroborating report(s) in cluster"
-    evidence = {
-        "Report Density Analysis": density_text,
-        "Spatial Coherence Score": (
+    reliability_text = None
+    if reliability is not None:
+        reliability_text = f"highest-reliability source among {', '.join(distinct_sources)}"
+        if news and news["score"] is not None:
+            reliability_text += f"; news {news['score']:.2f}, {news['line']}"
+    evidence_text = {
+        "report_density": density_text,
+        "spatial_coherence": (
             f"cluster diameter {stats['max_pairwise_km']:.2f} km "
             f"against {eps * 2:.0f} km search diameter"
         ),
+        "source_reliability": reliability_text,
+        "weather_station": weather_ev.reason or None,
+        "official_warning": official_ev.reason or None,
+        "vision_analysis": "layer 4 (AI/ML) is out of scope: permanently offline",
+        "anomaly_detection": "layer 4 (AI/ML) is out of scope: permanently offline",
     }
-    if reliability is not None:
-        evidence["Source Reliability Index"] = (
-            f"highest-reliability source among {', '.join(distinct_sources)}"
-        )
-    if weather is not None and rainfall_mm is not None:
-        # Which path produced the number is part of the evidence, not a detail:
-        # a stored reading came from this platform's own polled feed, a live one
-        # from a request made while scoring.
-        origin = (
-            "polled station reading"
-            if weather_source == "station_reading"
-            else "Open-Meteo modelled precipitation"
-        )
-        evidence["Weather Station Corroboration"] = (
-            f"{rainfall_mm:.1f} mm rainfall in past 24 h ({origin})"
-        )
+    sources = {
+        "weather_station": weather_ev.source,
+        "official_warning": official_ev.source,
+    }
     for factor in receipt["factors"]:
-        if factor["factor"] in evidence:
-            factor["evidence"] = evidence[factor["factor"]]
+        text_ = evidence_text.get(factor["key"])
+        if text_:
+            factor["evidence"] = text_
+        if factor["key"] in sources:
+            factor["source"] = sources[factor["key"]]
+        if factor["key"] == "weather_station" and weather_ev.contradiction:
+            factor["contradiction"] = True
 
     # The count axis uses stats["count"] (geometry-derived, consistent with the
     # density factor) rather than len(report_texts): a report with no geom_point
@@ -487,15 +530,15 @@ def score_cluster(
     decided = _derive_severity(report_texts, stats["count"], event_type=event_type)
     severity = decided["severity"]
     quadrant = fusion.assign_quadrant(severity, confidence)
-    caps = review_caps(event_type, source_types)
-    review_status = capped(
-        fusion.determine_review_status(
-            confidence,
-            settings.AUTO_PUBLISH_THRESHOLD,
-            settings.HUMAN_REVIEW_THRESHOLD,
-            severity=severity,
-        ),
-        caps,
+
+    verdict = decide_verdict(contradictions, official_ev.score, weather_ev.score)
+    caps = review_caps(event_type, source_types, verdict["verdict"])
+    review_status = fusion.determine_review_status(
+        confidence,
+        settings.AUTO_PUBLISH_THRESHOLD,
+        settings.HUMAN_REVIEW_THRESHOLD,
+        severity=severity,
+        caps=caps,
     )
 
     def _state(value: Optional[float]) -> str:
@@ -506,7 +549,8 @@ def score_cluster(
     receipt["provenance"] = {
         "report_density": "computed",
         "spatial_coherence": "computed",
-        "weather_station": _state(weather),
+        "weather_station": _state(weather_ev.score),
+        "official_warning": _state(official_ev.score),
         "vision_analysis": "offline",
         "source_reliability": _state(reliability),
         "anomaly_detection": "offline",
@@ -515,6 +559,21 @@ def score_cluster(
         # down if a commander has set a severity_override.
         "severity": decided["provenance"],
     }
+    # The evidence behind each independent factor, whole: its source (an
+    # airport's METAR, the Open-Meteo model, a SACHET warning), its window,
+    # its lines and the numbers they were read from.
+    receipt["evidence"] = {
+        "weather_station": weather_ev.as_dict(),
+        "official_warning": official_ev.as_dict(),
+    }
+    if evidence.get("window") is not None:
+        receipt["evidence_window"] = evidence["window"].as_dict()
+    receipt["contradictions"] = [
+        {"factor": c["factor"], "rule": c["rule"], "reason": c["reason"]} for c in contradictions
+    ]
+    receipt["verdict"] = {"value": verdict["verdict"].value, **verdict["basis"]}
+    if news and news["count"]:
+        receipt["news_basis"] = news
     # Severity as auditable as confidence: which axis won, what depth was found
     # and what phrase it came from. A new top-level block rather than more keys
     # under provenance, whose key set is asserted exactly by the determinism test.
@@ -535,14 +594,12 @@ def score_cluster(
         receipt["event_type_basis"] = event_type_basis
     if density is not None:
         receipt["density_basis"] = density["basis"]
-    if rainfall_mm is not None:
+    if evidence.get("rainfall_mm") is not None:
         receipt["weather"] = {
-            "rainfall_24h_mm": rainfall_mm,
+            "rainfall_24h_mm": evidence["rainfall_mm"],
             "provider": "open-meteo",
-            "source": weather_source,
+            "source": evidence.get("weather_source") or weather_source,
         }
-    elif not rain_corroborates(event_type):
-        receipt["weather"] = {"note": WEATHER_NOT_YET_NOTE}
 
     return {
         "receipt": receipt,
@@ -551,6 +608,8 @@ def score_cluster(
         "quadrant": quadrant,
         "review_status": review_status,
         "caps": caps,
+        "verdict": verdict["verdict"],
+        "contradictions": contradictions,
     }
 
 
@@ -1687,7 +1746,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         event_type_basis = typed["basis"]
         density = effective_reporters(reports)
 
-        if rain_corroborates(event_type):
+        if event_type is None or event_type in EVIDENCE_RAIN_TYPES:
             weather, rainfall_mm, weather_source = await _weather_for_cluster(
                 db, stats["centroid_lat"], stats["centroid_lng"]
             )
