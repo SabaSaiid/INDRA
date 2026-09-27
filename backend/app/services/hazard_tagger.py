@@ -100,9 +100,13 @@ Tense (T2)
 `past` for an old story ("last year", "years ago", "#throwback", "old video",
 पिछले साल, पुरानी तस्वीर, or an earlier year such as "2019 floods" — but not
 "worst since 2019"). A report that also says the hazard is happening now
-("since morning", "right now", "ho rahi hai", "lashed", "recorded", हुई, रही)
-is an observation, whatever else it says: "rain lashed Mumbai; more expected
-tomorrow" is evidence, not a forecast. A Hindi auxiliary (रहा, रही, हुई …) marks
+("since morning", "right now", "ho rahi hai", "lashed", "recorded", "amid",
+"continues", "receding", हुई, रही, "रात से लगातार") is an observation, whatever
+else it says: "rain lashed Mumbai; more expected tomorrow" is evidence, not a
+forecast. "Now through 6:45 PM" is the end of a warning, not "now". Words that
+say it happened ("hits", "caused", "triggered", "wreaked havoc", "मचाई तबाही")
+also outrank a forecast, but not an old story: "rainfall caused flash flooding
+on August 29, 2026" can still be `past`. A Hindi auxiliary (रहा, रही, हुई …) marks
 an observation only in the 4 tokens after a hazard word: in "बारिश का अलर्ट … लोगों
 को किया जा रहा सतर्क" it belongs to another verb. "Kal" is both yesterday and
 tomorrow in Hindi, so it sets nothing.
@@ -642,7 +646,9 @@ _SENTENCE_RE = re.compile(r"[.!?।\n]+")
 _FORECAST_RE = re.compile(
     r"\b(?:will|likely|unlikely|expected|expect|expects|forecasts?|forecasted|predicted|predicts?|prediction"
     r"|possible|possibility|probable|probability|tomorrow|outlook|nowcast|warns?|warned|warnings?"
-    r"|chances?\s+of|(?:orange|yellow|red)\s+alert|alert\s+(?:issued|for|has\s+been)|advisory\s+(?:issued|for)"
+    r"|chances?\s+of|(?:orange|yellow|red)\s+alerts?|alert\s+(?:issued|for|has\s+been)|advisory\s+(?:issued|for)"
+    r"|within\s+(?:the\s+next\s+)?(?:\d+\s+|a\s+few\s+|few\s+)?hours"
+    r"|to\s+(?:hit|lash|batter|pound|strike|intensify)"
     r"|next\s+(?:\d+|few|two|three)\s+(?:hours|days)|coming\s+(?:hours|days)|next\s+week"
     r"|(?:till|until)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next|the\s+weekend)"
     r"|(?:rain|rainfall|weather|flood|storm|cyclone|heat|heatwave|cold\s?wave|fog|thunderstorm)\s+alerts?"
@@ -654,13 +660,20 @@ _FORECAST_HI = frozenset(fold(w) for w in ("संभावना", "पूर�
 _FORECAST_HI_SEQ = ((fold("आने"), fold("वाले")),)
 
 _OBSERVED_RE = re.compile(
-    r"\b(?:now|currently|at\s+the\s+moment|since|ongoing|recorded|reported|received|lash(?:es|ed|ing)"
+    r"\b(?:now(?!\s+(?:through|until|till)\b)|currently|at\s+the\s+moment|since|ongoing|recorded|reported"
+    r"|received|lash(?:es|ed|ing)|amid|continu(?:es|ed|ing)|reced(?:es|ed|ing)"
     r"|batter(?:s|ed|ing)|pound(?:s|ed|ing)|killed|died|dead|stranded|trapped|uprooted|submerged"
     r"|waterlogged|inundated|evacuated|rescued"
     r"|abhi|ho\s+rah[aie]|chal\s+rah[aie]|rah[aie]\s+hai|rahe\s+hain|hui|hua|huyi)\b"
 )
 _OBSERVED_HI = frozenset(fold(w) for w in ("रही", "रहा", "रहे", "हुई", "हुआ", "गिरे", "गिरी", "रिकॉर्ड",
                                             "रिकार्ड", "दर्ज"))
+# "रात से लगातार": continuously since, happening now.
+_OBSERVED_HI_SEQ = ((fold("से"), fold("लगातार")), ("se", "lagatar"))
+# It happened: not a forecast, though it may be an old story ("rainfall caused
+# flash flooding in the Grand Canyon on August 29"), so these do not outrank past.
+_OCCURRED_RE = re.compile(r"\b(?:hits|caus(?:ed|es|ing)|triggered|wreak(?:ed|s|ing)\s+havoc)\b")
+_OCCURRED_HI = frozenset(fold(w) for w in ("मचाई", "मचाया", "बरपाया"))
 # A Hindi auxiliary marks an observation only this close after a hazard word.
 OBSERVED_HI_SPAN = 4
 
@@ -974,7 +987,8 @@ def _tense(text: str, tokens: _Tokens, reference_year: int, hazard_ends: Sequenc
         words[j] in _OBSERVED_HI
         for end in hazard_ends
         for j in range(end + 1, min(len(words), end + 1 + OBSERVED_HI_SPAN))
-    )
+    ) or any(_seq_at(words, i, seq) for seq in _OBSERVED_HI_SEQ for i in range(len(words)))
+    occurred = bool(_OCCURRED_RE.search(text)) or any(w in _OCCURRED_HI for w in words)
 
     past = bool(_PAST_RE.search(text)) or any(
         _seq_at(words, i, seq) for seq in _PAST_HI_SEQ for i in range(len(words))
@@ -995,7 +1009,7 @@ def _tense(text: str, tokens: _Tokens, reference_year: int, hazard_ends: Sequenc
 
     if past and not observed:
         return "past"
-    if forecast and not observed:
+    if forecast and not (observed or occurred):
         return "forecast"
     return None
 
