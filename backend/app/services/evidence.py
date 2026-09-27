@@ -839,3 +839,234 @@ def _with_lines(e: Evidence, lines: List[str]) -> Evidence:
         contradiction=e.contradiction, reason=e.reason,
         detail={**e.detail, "model": e.detail, "station": None, "lines": lines},
     )
+
+
+# ── Contradictions (T3) ───────────────────────────────────────────────────────
+#
+# A contradiction is recorded **only when the evidence affirmatively shows the
+# opposite**, never because data is missing. The rules, published:
+#
+# | Type                          | Contradicted when                                     |
+# |-------------------------------|-------------------------------------------------------|
+# | HEATWAVE                      | the deciding maximum < 35 °C (plains), < 25 °C (hills)|
+# | COLD_WAVE                     | the deciding minimum > 18 °C                          |
+# | FOG                           | every station within 25 km reads minimum visibility   |
+# |                               | > 5,000 m through the window; with none, the model    |
+# |                               | reads > 8,000 m                                       |
+# | STRONG_WIND                   | the station's maximum wind/gust < 15 km/h **and** the |
+# |                               | model's maximum gust < 20 km/h                        |
+# | THUNDERSTORM, LIGHTNING       | a station within 25 km observed, none reports TS,     |
+# |                               | VCTS, CB/TCU or showers, **and** the model has no     |
+# |                               | code ≥ 80 and CAPE < 100                              |
+# | URBAN_FLOOD, RAINFALL,        | the model says 0.0 mm in 24 h **and** no station      |
+# | CLOUDBURST                    | within 25 km reports RA, DZ, SH or TS                 |
+# | DUST_STORM                    | dust < 50 µg/m³, visibility > 8 km, gusts < 20 km/h   |
+# | CYCLONE                       | no cyclone warning in force within 500 km (T4's data) |
+#
+# Never contradicted: a HAILSTORM (hail is too local for any feed to rule out),
+# a RIVER_BREACH (rain may have fallen upstream), a LANDSLIDE or a storm surge,
+# and a THUNDERSTORM whose only station is more than 25 km away
+# (thunderstorms are local). "The deciding" value is the station's when one
+# measured it (station beats model), the model's otherwise.
+
+HEAT_CONTRADICTION_PLAINS_C = 35.0
+HEAT_CONTRADICTION_HILLS_C = 25.0
+COLD_CONTRADICTION_C = 18.0
+FOG_CONTRADICTION_STATION_M = 5000.0
+FOG_CONTRADICTION_MODEL_M = 8000.0
+WIND_CONTRADICTION_STATION_KMH = 15.0
+WIND_CONTRADICTION_MODEL_KMH = 20.0
+THUNDER_CONTRADICTION_CAPE = 100.0
+DUST_CONTRADICTION_UGM3 = 50.0
+DUST_CONTRADICTION_VISIBILITY_M = 8000.0
+DUST_CONTRADICTION_GUST_KMH = 20.0
+CYCLONE_CONTRADICTION_KM = 500
+
+FLOOD_ALTERNATIVE = (
+    "no rain measured nearby in 24 h; waterlogging from another cause "
+    "(a burst main, say) is possible; a human should check"
+)
+
+NEVER_CONTRADICTED = frozenset({
+    "HAILSTORM", "RIVER_BREACH", "LANDSLIDE", "CYCLONE_INUNDATION", "UNCLASSIFIED",
+})
+
+
+def _within(stations: Sequence[Mapping[str, Any]], km: float) -> List[Mapping[str, Any]]:
+    return [s for s in stations if s["distance_km"] <= km]
+
+
+def _name(s: Mapping[str, Any]) -> str:
+    return f"{s['station']} ({s['name']}, {s['distance_km']:.0f} km)"
+
+
+def find_contradiction(
+    event_type: Optional[str],
+    weather: Evidence,
+    model: Evidence,
+    stations: Sequence[Mapping[str, Any]],
+    window: Window,
+    *,
+    cyclone_warning_nearby: Optional[bool] = None,
+) -> Optional[Dict[str, str]]:
+    """
+    {"factor", "rule", "reason"} when the weather affirmatively says the
+    opposite of the claim, else None. `weather` is combine_weather()'s result,
+    `model` the model evidence alone, `stations` group_stations()'s summaries.
+    `cyclone_warning_nearby` is None when SACHET is stale: then nothing is known.
+    """
+    etype = event_type or "URBAN_FLOOD"
+    if etype in NEVER_CONTRADICTED:
+        return None
+    m = model.detail or {}
+    label = window.label()
+    deciding_station = weather.source == AIRPORT_METAR
+    st = (weather.detail or {}).get("station") or {}
+
+    if etype == "HEATWAVE":
+        hill = bool(m.get("hill"))
+        limit = HEAT_CONTRADICTION_HILLS_C if hill else HEAT_CONTRADICTION_PLAINS_C
+        if deciding_station:
+            chosen = next((s for s in stations if s["station"] == st.get("station")), None)
+            value = chosen["max_temp_c"] if chosen else None
+            who = f"airport {_name(chosen)} measured" if chosen else None
+        else:
+            value, who = m.get("max_temp_c"), "the Open-Meteo model gives"
+        if value is not None and value < limit:
+            return {
+                "factor": "weather_station",
+                "rule": f"maximum below {limit:.0f} °C ({'hills' if hill else 'plains'})",
+                "reason": (f"{who} a maximum of {value:.1f} °C in {label}; a heatwave claim is "
+                           f"contradicted below {limit:.0f} °C on the {'hills' if hill else 'plains'}"),
+            }
+        return None
+
+    if etype == "COLD_WAVE":
+        if deciding_station:
+            chosen = next((s for s in stations if s["station"] == st.get("station")), None)
+            value = chosen["min_temp_c"] if chosen else None
+            who = f"airport {_name(chosen)} measured" if chosen else None
+        else:
+            value, who = m.get("min_temp_c"), "the Open-Meteo model gives"
+        if value is not None and value > COLD_CONTRADICTION_C:
+            return {
+                "factor": "weather_station",
+                "rule": f"minimum above {COLD_CONTRADICTION_C:.0f} °C",
+                "reason": (f"{who} a minimum of {value:.1f} °C in {label}; a cold wave claim is "
+                           f"contradicted above {COLD_CONTRADICTION_C:.0f} °C"),
+            }
+        return None
+
+    if etype == "FOG":
+        near = [s for s in _within(stations, STATION_FULL_KM) if s["min_visibility_m"] is not None]
+        if near:
+            if all(s["min_visibility_m"] > FOG_CONTRADICTION_STATION_M
+                   and "FG" not in _bases(s["codes"]) for s in near):
+                best = min(near, key=lambda s: s["min_visibility_m"])
+                return {
+                    "factor": "weather_station",
+                    "rule": f"station visibility above {FOG_CONTRADICTION_STATION_M:,.0f} m",
+                    "reason": (f"airport {_name(best)} never saw visibility below "
+                               f"{best['min_visibility_m']:,.0f} m in {label}"),
+                }
+            return None
+        value = m.get("min_visibility_m")
+        if value is not None and value > FOG_CONTRADICTION_MODEL_M:
+            return {
+                "factor": "weather_station",
+                "rule": f"model visibility above {FOG_CONTRADICTION_MODEL_M:,.0f} m, no station",
+                "reason": (f"no airport within {STATION_FULL_KM:.0f} km; the Open-Meteo model's "
+                           f"minimum visibility is {value:,.0f} m in {label}"),
+            }
+        return None
+
+    if etype == "STRONG_WIND":
+        chosen = next((s for s in stations if s["station"] == st.get("station")), None) \
+            if deciding_station else None
+        station_wind = chosen["max_wind_kmh"] if chosen else None
+        model_gust = m.get("max_gust_kmh")
+        if station_wind is not None and model_gust is not None \
+                and station_wind < WIND_CONTRADICTION_STATION_KMH \
+                and model_gust < WIND_CONTRADICTION_MODEL_KMH:
+            return {
+                "factor": "weather_station",
+                "rule": "station wind below 15 km/h and model gusts below 20 km/h",
+                "reason": (f"airport {_name(chosen)} measured at most {station_wind:.0f} km/h and "
+                           f"the model's gusts reach only {model_gust:.0f} km/h in {label}"),
+            }
+        return None
+
+    if etype in ("THUNDERSTORM", "LIGHTNING"):
+        near = _within(stations, STATION_FULL_KM)
+        if not near or not m.get("available"):
+            return None
+        quiet = all(
+            not (_bases(s["codes"]) & {"TS", "SH"})
+            and not any(b.startswith(("VCTS", "VCSH")) for b in _bases(s["codes"]))
+            and not s["convective"]
+            for s in near
+        )
+        codes = m.get("codes") or []
+        cape = m.get("max_cape")
+        model_quiet = (not codes or max(codes) < 80) and cape is not None \
+            and cape < THUNDER_CONTRADICTION_CAPE
+        if quiet and model_quiet:
+            return {
+                "factor": "weather_station",
+                "rule": "no TS, CB or showers within 25 km, and a stable model",
+                "reason": (f"airport {_name(near[0])} reported no thunderstorm, CB cloud or showers, "
+                           f"and the model shows no shower code and CAPE {cape:,.0f} J/kg in {label}"),
+            }
+        return None
+
+    if etype in ("URBAN_FLOOD", "RAINFALL", "CLOUDBURST"):
+        rain = m.get("rain_24h_mm")
+        if rain is None or rain > 0.0:
+            return None
+        wet = [s for s in _within(stations, STATION_FULL_KM)
+               if _bases(s["codes"]) & {"RA", "DZ", "SH", "TS"}]
+        if wet:
+            return None
+        nearest = _within(stations, STATION_FULL_KM)
+        seen = (f"; airport {_name(nearest[0])} reported "
+                f"{', '.join(nearest[0]['codes']) or 'no present weather'}") if nearest else ""
+        return {
+            "factor": "weather_station",
+            "rule": "0.0 mm in 24 h and no rain code within 25 km",
+            "reason": f"the model gives 0.0 mm in the past 24 h{seen}: {FLOOD_ALTERNATIVE}",
+        }
+
+    if etype == "DUST_STORM":
+        dust, vis, gust = m.get("max_dust"), m.get("min_visibility_m"), m.get("max_gust_kmh")
+        if None in (dust, vis, gust):
+            return None
+        if dust < DUST_CONTRADICTION_UGM3 and vis > DUST_CONTRADICTION_VISIBILITY_M \
+                and gust < DUST_CONTRADICTION_GUST_KMH:
+            return {
+                "factor": "weather_station",
+                "rule": "dust below 50 µg/m³, visibility above 8 km, gusts below 20 km/h",
+                "reason": (f"the model gives dust up to {dust:,.0f} µg/m³, visibility no lower than "
+                           f"{vis:,.0f} m and gusts to {gust:.0f} km/h in {label}"),
+            }
+        return None
+
+    if etype == "CYCLONE":
+        if cyclone_warning_nearby is False:
+            return {
+                "factor": "official_warning",
+                "rule": f"no cyclone warning in force within {CYCLONE_CONTRADICTION_KM} km",
+                "reason": (f"no IMD or SDMA cyclone warning is in force within "
+                           f"{CYCLONE_CONTRADICTION_KM} km of this event"),
+            }
+        return None
+
+    return None
+
+
+def contradicted(e: Evidence, contradiction: Mapping[str, str]) -> Evidence:
+    """The factor's evidence once contradicted: 0.0, online, the reason first."""
+    return Evidence(
+        0.0, "computed", e.variable, e.value, window=e.window, source=e.source,
+        contradiction=True, reason=f"CONTRADICTED: {contradiction['reason']}",
+        detail={**e.detail, "contradiction": dict(contradiction), "score_before": e.score},
+    )
