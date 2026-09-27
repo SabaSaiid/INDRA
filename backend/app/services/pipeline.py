@@ -37,12 +37,27 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.models.enums import AuditAction, EventType, ReviewStatus, Severity
-from app.services import audit
+from app.models.enums import AuditAction, EventType, ReviewStatus, Severity, Verdict
+from app.services import audit, clock
 from app.services.dedup import DedupService, find_similar_text
 from app.services.fusion_engine import FusionEngine, source_reliability_score
 from app.services import severity_rules
-from app.services.corroboration import effective_reporters
+from app.services.corroboration import effective_reporters, news_corroboration
+from app.services.evidence import (
+    PARTIAL_TYPES,
+    RAIN_FAMILY_TYPES,
+    Evidence,
+    Window,
+    combine_weather,
+    contradicted,
+    evidence_window,
+    find_contradiction,
+    group_stations,
+    model_evidence,
+    offline,
+    station_evidence,
+)
+from app.services.official_warnings import official_warning_evidence
 from app.services.event_typing import decide_event_type
 from app.services.hazards import family_of, types_in_family
 from app.services.geo_clustering import GeoClusteringService, family_params
@@ -50,7 +65,7 @@ from app.services.report_flags import CREDIBILITY_FLOOR, FLAGS
 from app.services.geocoding import reverse_geocode
 from app.services.ml_adapter import analyze_stored_event_group, analyze_stored_report
 from app.services.text_processing import core_text, extract_metadata
-from app.services.weather import rainfall_to_score, weather_score
+from app.services.weather import fetch_air_quality, fetch_hourly, rainfall_to_score, weather_score
 
 logger = logging.getLogger("indra.services.pipeline")
 settings = get_settings()
@@ -1132,6 +1147,124 @@ async def _weather_for_cluster(
 
     score, rainfall_mm = await weather_score(lat, lng)
     return score, rainfall_mm, "open_meteo_live"
+
+
+# ── Phase 4: gathering the evidence for one cluster ────────────────────────────
+
+# Types whose evidence reads the 24 h rainfall path above (the rain family, and
+# a cyclone, whose rain is partial evidence).
+EVIDENCE_RAIN_TYPES = frozenset(RAIN_FAMILY_TYPES | {"CYCLONE"})
+# Types whose evidence reads the hourly model series (T1): everything but the
+# plain rain family, which reads its 24 h figure only, and UNCLASSIFIED.
+EVIDENCE_HOURLY_TYPES = frozenset({
+    "CLOUDBURST", "CYCLONE", "CYCLONE_INUNDATION", "HEATWAVE", "COLD_WAVE", "FOG",
+    "STRONG_WIND", "THUNDERSTORM", "LIGHTNING", "HAILSTORM", "DUST_STORM",
+})
+
+
+def observed_span(reports: Sequence[Dict[str, Any]], fallback: datetime):
+    """
+    (first, last) observation time of a cluster: its observations, or every
+    report when all of them are forecasts, or `fallback` twice with none.
+    """
+    observed = [r["at"] for r in reports if r.get("at") and "not_an_observation" not in r["flags"]]
+    times = observed or [r["at"] for r in reports if r.get("at")]
+    if not times:
+        return fallback, fallback
+    return min(times), max(times)
+
+
+async def _gather_evidence(
+    db: AsyncSession,
+    *,
+    event_type: Optional[str],
+    lat: float,
+    lng: float,
+    reports: Sequence[Dict[str, Any]],
+    report_ids: Optional[Sequence[UUID]] = None,
+    event_id: Optional[UUID] = None,
+    district: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Everything independent of the reports that speaks to this event (T1–T6),
+    ready for score_cluster(evidence=…):
+
+    * `window` — where the evidence is read (services/evidence.py);
+    * `weather` — the Weather Station Corroboration factor: the airport's
+      measurement where one is near, the model otherwise;
+    * `official` — the official-warning factor (SACHET);
+    * `contradiction` — the published rule the weather broke, or None;
+    * `news` — the publisher count (T6);
+    * `rainfall_mm`, `weather_source` — the rain family's 24 h figure and
+      where it came from, for the receipt's `weather` block as before.
+
+    I/O happens here and only here; each source that fails is offline, never
+    an exception.
+    """
+    now = clock.now()
+    span_start, span_end = observed_span(reports, now)
+    window = evidence_window(event_type, span_start, span_end, now)
+
+    rain_score = rainfall_mm = None
+    weather_source = "not_applicable"
+    if event_type is None or event_type in EVIDENCE_RAIN_TYPES:
+        rain_score, rainfall_mm, weather_source = await _weather_for_cluster(db, lat, lng)
+
+    series = air = None
+    if event_type in EVIDENCE_HOURLY_TYPES:
+        series = await fetch_hourly(lat, lng)
+        if event_type == "DUST_STORM":
+            air = await fetch_air_quality(lat, lng)
+
+    model = model_evidence(
+        event_type, window, series, air=air,
+        rainfall_mm=rainfall_mm, rainfall_origin=weather_source, rain_score=rain_score,
+    )
+    stations: List[Dict[str, Any]] = []
+    station = None
+    if event_type != EventType.UNCLASSIFIED.value:
+        observations = await _metar_observations(db, lat, lng, window.start, window.end)
+        stations = group_stations(observations, window)
+        hill_hint = model.detail.get("hill") if series is not None else None
+        station = station_evidence(event_type, stations, window, hill_hint=hill_hint)
+    weather = combine_weather(event_type, model, station)
+
+    official, cyclone_nearby = await official_warning_evidence(
+        db, event_type, now=now, lat=lat, lng=lng,
+        report_ids=report_ids, event_id=event_id, district=district,
+    )
+    contradiction = find_contradiction(
+        event_type, weather, model, stations, window, cyclone_warning_nearby=cyclone_nearby,
+    )
+
+    news_items = [
+        {
+            "publisher_domain": r.get("publisher_domain"),
+            "publisher": r.get("publisher_name") or r.get("publisher"),
+            "forecast": "not_an_observation" in r["flags"],
+            "in_cluster": True,
+        }
+        for r in reports
+        if r.get("source_type") == "NEWS_MEDIA"
+    ]
+    news_items += await _district_warning_news(
+        db, exclude_ids=[r["id"] for r in reports], family=family_of(event_type),
+        district=district, start=window.start, end=window.end,
+    )
+
+    return {
+        "now": now,
+        "window": window,
+        "weather": weather,
+        "model": model,
+        "station": station,
+        "stations_seen": len(stations),
+        "official": official,
+        "contradiction": contradiction,
+        "news": news_corroboration(news_items),
+        "rainfall_mm": rainfall_mm,
+        "weather_source": weather_source,
+    }
 
 
 async def _source_types(db: AsyncSession, report_ids: Sequence[UUID]) -> List[str]:
