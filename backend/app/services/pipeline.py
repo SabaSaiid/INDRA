@@ -1792,29 +1792,42 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         event_type_basis = typed["basis"]
         density = effective_reporters(reports)
 
-        if event_type is None or event_type in EVIDENCE_RAIN_TYPES:
-            weather, rainfall_mm, weather_source = await _weather_for_cluster(
-                db, stats["centroid_lat"], stats["centroid_lng"]
-            )
-        else:
-            weather, rainfall_mm, weather_source = None, None, "not_applicable"
+        # Where the event is, in words. Named here rather than at step 7
+        # because the official-warning factor (Phase 4 T4) and the district's
+        # news (T6) are matched on the district.
+        place = reverse_geocode(stats["centroid_lat"], stats["centroid_lng"])
+        district = place.district if place else None
+        footprint_ids = observed_ids or list(scoring_ids)
 
-        def _score(etype: str, etype_basis: Dict[str, Any]) -> Dict[str, Any]:
+        # The evidence depends on the type (a heatwave reads temperature, fog
+        # visibility), so it is gathered per type: a commander's override
+        # below re-scores under the type they gave.
+        evidence_by_type: Dict[Optional[str], Dict[str, Any]] = {}
+
+        async def _score(etype: str, etype_basis: Dict[str, Any]) -> Dict[str, Any]:
+            if etype not in evidence_by_type:
+                evidence_by_type[etype] = await _gather_evidence(
+                    db,
+                    event_type=etype,
+                    lat=stats["centroid_lat"],
+                    lng=stats["centroid_lng"],
+                    reports=reports,
+                    report_ids=footprint_ids,
+                    district=district,
+                )
             return score_cluster(
                 stats,
                 source_types,
-                weather,
-                rainfall_mm,
                 report_texts=report_texts,
-                weather_source=weather_source,
                 event_type=etype,
                 event_type_basis=etype_basis,
                 density=density,
                 eps_km=family_params(family_of(etype)).eps_km,
                 cluster_basis=cluster.get("basis"),
+                evidence=evidence_by_type[etype],
             )
 
-        scored = _score(event_type, event_type_basis)
+        scored = await _score(event_type, event_type_basis)
         receipt = scored["receipt"]
         ml_event_grouping = await analyze_stored_event_group(db, scoring_ids)
         receipt["ml_event_grouping"] = ml_event_grouping
@@ -1823,6 +1836,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         quadrant = scored["quadrant"]
         review_status = scored["review_status"]
         caps = scored["caps"]
+        verdict = scored["verdict"]
 
         # ── 7. Persist, with the decision's audit row, in one transaction ───
         impact_radius = max(stats["radius_km"], 0.5)
@@ -1860,12 +1874,13 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     },
                 }
                 event_type = override_type
-                scored = _score(event_type, event_type_basis)
+                scored = await _score(event_type, event_type_basis)
                 receipt = scored["receipt"]
                 receipt["ml_event_grouping"] = ml_event_grouping
                 confidence = scored["confidence"]
                 severity = scored["severity"]
                 caps = scored["caps"]
+                verdict = scored["verdict"]
 
             if prior_status == ReviewStatus.REJECTED.value:
                 # Rejected between _find_mergeable_event and the lock. Leave the
@@ -1893,19 +1908,18 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 quadrant = FusionEngine().assign_quadrant(severity, confidence)
                 # Routing depends on severity too (BUG-067), so a commander's
                 # override to HIGH keeps the event in front of a human; and the
-                # caps (unclassified, posts only) hold on a merge as on a create.
-                review_status = capped(
-                    FusionEngine().determine_review_status(confidence, severity=severity),
-                    caps,
+                # caps (contradicted, unclassified, posts only) hold on a merge
+                # as on a create.
+                review_status = FusionEngine().determine_review_status(
+                    confidence, severity=severity, caps=caps
                 )
             receipt["routing"] = _routing(severity, confidence, review_status, caps)
             if human_review:
                 receipt["human_review"] = human_review
 
-        # Name the centroid. This goes in its own receipt block rather than
-        # into `provenance`, which test_scoring_determinism pins key-for-key
-        # because it is the record of which factors ran.
-        place = reverse_geocode(stats["centroid_lat"], stats["centroid_lng"])
+        # Name the centroid (resolved at step 6). This goes in its own receipt
+        # block rather than into `provenance`, which test_scoring_determinism
+        # pins key-for-key because it is the record of which factors ran.
         receipt["location"] = {
             "district": place.district if place else None,
             "state": place.state if place else None,
@@ -1933,6 +1947,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             "precision": place.precision if place else None,
             "etype": event_type,
             "family": family_of(event_type),
+            "verdict": verdict.value,
         }
 
         if existing is not None:
@@ -1953,6 +1968,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                         district = :district,
                         state = :state,
                         place_precision = :precision,
+                        verdict = CAST(:verdict AS verdict_enum),
                         -- Without this the merge window is keyed on creation
                         -- time and an active event stops accepting reports.
                         updated_at = NOW()
@@ -1969,7 +1985,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                         (id, event_code, event_type, severity, confidence_score,
                          review_status, quadrant, impact_radius_km, center_point,
                          verification_receipt, district, state, place_precision,
-                         hazard_family, updated_at)
+                         hazard_family, verdict, updated_at)
                     VALUES
                         (CAST(:id AS uuid), :code,
                          CAST(:etype AS event_type_enum),
@@ -1981,7 +1997,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326),
                          CAST(:receipt AS jsonb),
                          :district, :state, :precision,
-                         :family, NOW())
+                         :family, CAST(:verdict AS verdict_enum), NOW())
                 """),
                 {**common, "code": event_code},
             )
@@ -2003,6 +2019,22 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             )
         ).scalar() or linked
 
+        # The event's history (T7): every score write is a snapshot, so the
+        # dashboard can draw confidence over time.
+        await write_snapshot(
+            db,
+            event_id,
+            confidence=confidence,
+            factor_coverage=receipt.get("factor_coverage"),
+            report_count=report_count,
+            verdict=verdict.value,
+            review_status=review_status.value,
+            severity=severity.value,
+            trigger="created" if existing is None else "merge",
+            receipt_version=receipt.get("receipt_version"),
+            details={"report_id": str(report_id), "linked": linked},
+        )
+
         # The audit trail records decisions, not traffic: one row when an event
         # is created, one when a merge changes its status, none otherwise.
         if review_status.value != prior_status:
@@ -2013,7 +2045,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 action=PIPELINE_AUDIT_ACTIONS[review_status],
                 reason=(
                     f"{event_code} {action}: {event_type}, confidence {confidence} over "
-                    f"{report_count} reports -> {review_status.value}"
+                    f"{report_count} reports, {verdict.value} -> {review_status.value}"
                 ),
                 details={
                     "from_status": prior_status,
@@ -2022,6 +2054,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                     "report_count": report_count,
                     "severity": severity.value,
                     "event_type": event_type,
+                    "verdict": verdict.value,
                     "caps": caps,
                 },
             )
@@ -2031,7 +2064,8 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
 
         logger.info(
             f"Pipeline: {action} {event_code} ({event_id}) with {report_count} reports — "
-            f"severity={severity.value} confidence={confidence} status={review_status.value}"
+            f"severity={severity.value} confidence={confidence} verdict={verdict.value} "
+            f"status={review_status.value}"
         )
 
         return {
@@ -2042,6 +2076,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
             "confidence_score": confidence,
             "review_status": review_status.value,
             "quadrant": quadrant.value,
+            "verdict": verdict.value,
             "impact_radius_km": impact_radius,
             "lat": stats["centroid_lat"],
             "lng": stats["centroid_lng"],
