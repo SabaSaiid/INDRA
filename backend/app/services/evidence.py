@@ -364,12 +364,14 @@ def model_evidence(
     air: Optional[HourlySeries] = None,
     rainfall_mm: Optional[float] = None,
     rainfall_origin: Optional[str] = None,
+    rain_score: Optional[float] = None,
 ) -> Evidence:
     """
     What Open-Meteo says about this hazard over the window. `rainfall_mm` is the
     24 h accumulation the rain family has always read (a stored reading or its
     own request, pipeline._weather_for_cluster), passed in so its path and its
-    receipts stay exactly as they were.
+    receipts stay exactly as they were. `rain_score` is the score that path
+    returned with it; the IMD curve over `rainfall_mm` when not given.
     """
     etype = event_type or "URBAN_FLOOD"
     label = window.label()
@@ -380,7 +382,10 @@ def model_evidence(
     if etype == "UNCLASSIFIED":
         return offline("no hazard type to check the weather against", window=label)
 
-    rain_score = rainfall_to_score(rainfall_mm) if rainfall_mm is not None else None
+    if rainfall_mm is None:
+        rain_score = None
+    elif rain_score is None:
+        rain_score = rainfall_to_score(rainfall_mm)
 
     if etype in ("URBAN_FLOOD", "RAINFALL", "RIVER_BREACH"):
         if rain_score is None:
