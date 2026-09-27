@@ -181,6 +181,11 @@ class Settings(BaseSettings):
     # decimated and the row records that it was.
     SACHET_MAX_POLYGON_POINTS: int = 2000
 
+    # Phase 4 T5: re-score open events when a SACHET warning or a relevant
+    # METAR observation is stored after them. Off means evidence only counts
+    # for events scored after it arrived, as before Phase 4.
+    LATE_CORROBORATION_ENABLED: bool = True
+
     # Optional METAR, Mastodon and Google News pollers from origin/main.
     METAR_POLLER_ENABLED: bool = False
     METAR_POLL_INTERVAL_SECONDS: int = 600
