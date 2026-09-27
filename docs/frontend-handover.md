@@ -550,6 +550,61 @@ with a `404`. It builds the dashboard with `NEXT_PUBLIC_API_BASE_URL=$E2E_API_UR
 
 ---
 
+## 20. What changed in `frontend/` on 27 Sep: the 25 Sep removal merged with your languages, settings and alerts
+
+The demo-data removal (section 19) was written on 25 Sep, before your languages (#42), settings
+(#43) and alerts page (#38) landed. Merging `main` into it conflicted in 17 dashboard files. On
+Aditya's request they were resolved on the backend side; the rule was **your translations and
+features stay, and nothing the branch removed comes back**.
+
+| File | Base | What was applied on top |
+|---|---|---|
+| `profile`, `Sidebar`, `Topbar`, `WelcomeHeader` | the branch's (it had replaced the persona switcher with sign-in) | your `t()` labels, the language picker, the translated duty statuses |
+| `SettingsDrawer`, `settings/page.tsx` | yours (the rewrite) | the removals below |
+| the other 11 | line by line | both sides |
+
+**Removed again from the drawer and the settings page** (they had come back in the rewrite):
+
+- the weather readout that no station sent: 32.4 °C, 68 km/h, 85.5 mm, "Patna Station #04",
+  "Weather Telemetry Output Sample", "Calculated Weather Station Output" (BUG-095);
+- the MGRS option, its Security toggle and `advancedCoordFormats`: `formatCoordinates(…, 'mgrs')`
+  printed digits of the latitude and longitude, not a Military Grid Reference;
+- "LIVE SYNC ACTIVE" (settings are saved in this browser only);
+- siren copy saying the tone plays "for high-threat events" or "disaster alerts": nothing calls
+  `playAlertSound` except the test buttons. It is labelled "Alert Tone" and says so. If the
+  alerts page starts playing it on a real engine alert, change the copy back.
+
+The coordinate card is now "Format example (New Delhi)", not "Live Reference Matrix".
+`useSettings` keeps `formatRainfall` (the analytics page uses it on real station rainfall) and a
+DD/DMS `formatCoordinates`; `formatTemperature` and `formatWindSpeed` are gone with the readout.
+
+**Needs a translation key:** the live indicators show real socket state in English: "Updates live" /
+"Updates paused" (events, reports) and "Live" / "Offline — reconnecting" (sidebar, welcome header).
+Please add a key rather than reusing `nav.telemetry_live`: "Telemetry live" is on the ban list in
+`e2e/invented.ts`, because it used to show whatever the connection did.
+
+**Alerts page:** acknowledge and resolve now act as the signed-in operator (the session's username
+and token, not the persona), and answer "Sign in to acknowledge an alert" without a session. The
+engine should check that token.
+
+**E2E:** `playwright.config.ts` builds with `NEXT_PUBLIC_ALERT_ENGINE_BASE_URL` and `_WS_URL`
+pointed at the E2E backend (the engine does not run there); the drawer test clicks through to
+Units & Coordinates. All 30 tests pass.
+
+**Left for you, not changed** (your new features, but each claims something the platform does not
+do yet):
+
+| Where | What it says | What is true |
+|---|---|---|
+| drawer, Alert Broadcasts; settings §5 | "Emergency Email Alerts", "SMS & WhatsApp Broadcast" | the address or number is saved in this browser only; nothing sends it anywhere. The alert engine mails only `ALERT_EMAIL_RECIPIENTS` from its own `.env` |
+| drawer, General | "Station Identification & Node: INDRA National Node-01 HQ New Delhi" | there is one server, in Mumbai (`ap-south-1`) |
+| drawer, Security | "Password change requires backend authentication API" | right: there is no change-password route. Passwords are set by an admin with `scripts/set_operator_password.py` |
+
+**Signing in on the team server:** since this merge the four accounts have passwords set on the
+server with `scripts/set_operator_password.py`; there is no default password anywhere. Ask Aditya.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |
@@ -567,5 +622,5 @@ taking out of the backend.
 ---
 
 **Questions:** ask me. If something needs a new response shape or a new message type, say so and I
-will add it backend-side. I change `frontend/` only on a stated request (sections 0, 16 and 19),
+will add it backend-side. I change `frontend/` only on a stated request (sections 0, 16, 19 and 20),
 and every such change is written up here.
