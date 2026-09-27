@@ -1,12 +1,16 @@
 # INDRA — Setup
 
-**What this is:** how to get the stack running from a fresh clone. Verified end to end on
-21 Sep 2026; migration head and health gate re-checked 22 Sep. Updated 25 Sep: operator
-accounts and their passwords, the disposable E2E backend, and no demo mode.
-The AI/ML layer's frozen local adapter arrived with PR #39 (26 Sep).
+How to get the stack running from a fresh clone: environment, infrastructure, schema, operator
+accounts, tests and the dashboard.
 
-If you only want to *run the demo*, this page plus [`demo-runbook.md`](demo-runbook.md) is
-everything.
+| | |
+|---|---|
+| **Applies to** | `main` after Phase 4 (PR #47), migration head `0020_verification_v2` |
+| **Last reviewed** | 28 Sep 2026 |
+
+The [project README](../README.md#quick-start) has the short version. This page explains each step
+and what to do when one fails. To present INDRA, continue with
+[`demo-runbook.md`](demo-runbook.md).
 
 ---
 
@@ -14,15 +18,16 @@ everything.
 
 | | |
 |---|---|
-| Docker + Docker Compose | for PostGIS, Redis and Redpanda |
-| Python 3.11+ | backend |
-| Node.js | frontend only — skip it if you are working on the backend |
+| Docker with Compose v2 | PostGIS, Redis, Redpanda and SeaweedFS |
+| Python 3.11+ | the backend and the scripts |
+| Node.js 18+ and npm | the dashboard only; skip them if you are working on the backend |
+| `make`, `openssl`, `jq` | the developer commands, key generation and the checks below |
 
-> **On Aditya's machine, Docker Desktop lives on an external SSD** and every `/usr/local/bin/docker*`
-> entry is a symlink into it. If the drive is unmounted, those symlinks dangle and every command
-> fails with `command not found: docker`, which looks exactly like Docker never being installed.
-> **Mount the drive — do not reinstall.** With the drive mounted but the daemon stopped, the error
-> is instead `Cannot connect to the Docker daemon`; start Docker.app and wait.
+> **Docker installed on an external volume.** If Docker Desktop lives on an external drive, every
+> `/usr/local/bin/docker*` entry is a symlink into it. With the drive unmounted those symlinks
+> dangle and every command fails with `command not found: docker`, which looks exactly like Docker
+> was never installed. **Mount the drive; do not reinstall.** With the drive mounted but the
+> daemon stopped, the error is `Cannot connect to the Docker daemon` instead: start Docker and wait.
 
 ---
 
@@ -97,7 +102,16 @@ S3 API listens on `127.0.0.1:8333` only.
 cd backend
 python3 -m venv .venv                     # if it does not exist
 .venv/bin/pip install -r requirements.txt
-.venv/bin/alembic upgrade head            # → 0019_operator_password_hash (head)
+.venv/bin/alembic upgrade head            # → 0020_verification_v2 (head)
+```
+
+**Upgrading a database that already holds events past `0020`?** Run the backfill once, from the
+repo root, so every stored event gets a v2 receipt and a verdict. It is idempotent: a second run
+changes nothing and says so.
+
+```bash
+backend/.venv/bin/python scripts/rescore_events.py --dry-run    # what would change
+backend/.venv/bin/python scripts/rescore_events.py
 ```
 
 **Read the output of `alembic upgrade head`.** A silently failed migration leaves a database with
@@ -215,8 +229,8 @@ is the real one, and a test report there is fabricated data in the audit trail.
 
 ## 6. Frontend
 
-Owned by the rest of the team. (On 22 and 25 Sep, on request, the backend side fixed defects in
-it; they are written up in [`frontend-handover.md`](frontend-handover.md).)
+The command center is maintained by the frontend team. Backend changes that affect it are
+written up in [`frontend-handover.md`](frontend-handover.md).
 
 ```bash
 cd frontend && npm install && npm run dev      # http://localhost:3000
