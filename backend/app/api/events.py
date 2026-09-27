@@ -732,6 +732,9 @@ async def review_event(
       and preserves HUMAN_APPROVED and severity_override (pipeline.py step 7).
     * The status change and its audit row commit together; EVENT_REVIEWED is
       broadcast only after the commit.
+    * **Claims (Phase 4 T7).** A decision releases the event's claim. While
+      another commander holds an unexpired claim, a commander's decision is a
+      409 naming the holder; an ADMIN may still decide.
     """
     event_uuid = _event_uuid_or_404(event_id)
     # The account's operator_id from its token (OP-CMD-001 and so on); a token
@@ -743,7 +746,8 @@ async def review_event(
             await db.execute(
                 text("""
                     SELECT id, event_code, review_status, severity, quadrant,
-                           confidence_score, verification_receipt, CAST(event_type AS text)
+                           confidence_score, verification_receipt, CAST(event_type AS text),
+                           claimed_by, claimed_at
                     FROM verified_events
                     WHERE id = CAST(:id AS uuid)
                     FOR UPDATE
@@ -759,8 +763,17 @@ async def review_event(
         await db.rollback()
         raise HTTPException(status_code=404, detail="Event not found")
 
-    _, event_code, status, severity, quadrant, confidence, receipt, event_type = row
+    _, event_code, status, severity, quadrant, confidence, receipt, event_type, \
+        holder, claimed_at = row
     receipt = receipt or {}
+
+    from app.services import clock
+
+    if claim_active(holder, claimed_at, clock.now()) and holder != operator_id \
+            and operator.role != "ADMIN":
+        await db.rollback()
+        raise _claimed_by_other(holder, claimed_at)
+    claim_released = bool(holder)
     allowed_from, audit_action = REVIEW_TRANSITIONS[body.action]
     if status == ReviewStatus.REJECTED.value or (
         allowed_from is not None and status not in allowed_from
@@ -848,7 +861,10 @@ async def review_event(
                     quadrant = CAST(:quad AS quadrant_enum),
                     event_type = CAST(:etype AS event_type_enum),
                     hazard_family = :family,
-                    verification_receipt = CAST(:receipt AS jsonb)
+                    verification_receipt = CAST(:receipt AS jsonb),
+                    -- A decision releases the review claim (T7).
+                    claimed_by = NULL,
+                    claimed_at = NULL
                 WHERE id = CAST(:id AS uuid)
             """),
             {
@@ -893,6 +909,8 @@ async def review_event(
                 "reason": body.reason,
                 "at": human_review["at"],
             },
+            # True when the decision released a review claim (T7).
+            "claim_released": claim_released,
         })
     except Exception as e:
         # The decision is committed; a failed broadcast must not report it as failed.
