@@ -1,33 +1,34 @@
-# Handover — Backend → Dashboard
+# Handover — Backend → Command Center
 
-**From:** Aditya (layers 1–3, 5, 6, 7, 8a) · **To:** whoever owns `INDRA/frontend/`
-**Covers:** every backend change from 16–25 Sep 2026 that the dashboard can see, and — new on
-22 Sep — **what was changed inside `frontend/` that day, and why** (section 0). **New on 23 Sep:
-section 13, Phase 1** — sixteen event types, the PS's filters, citizen dockets, and no lost reports.
-**New on 24 Sep: section 14** — a browser test the map redesign broke, and the frontend team's
-backend report, checked — **and section 15**: the dashboard shows its own review status instead of
-the API's, so a commander's approval never appears. **Also 24 Sep: the team server is on HTTPS** at
-`https://indra-sixthsense.duckdns.org` (section 13, last row). **Also new on 24 Sep: section 16**
-— Aditya repaired seven dashboard pages inside `frontend/` (his go-ahead for that day), which also
-closes section 15. Please read 16 before your next merge into `frontend/`.
-**New on 25 Sep: section 19** — every demo value, invented operator and password removed from the
-dashboard, and a real sign-in in place of the persona switcher, made inside `frontend/` at Aditya's
-request. Sections 9, 10, 11, 14 and 18 are corrected to match. Please read 19 before your next merge
-into `frontend/`.
+| | |
+|---|---|
+| **From** | Aditya, core platform (layers 1–3, 5, 6, 7, 8a) |
+| **To** | The owners of `frontend/`, the command center (layer 9) |
+| **Covers** | Every backend change from 16 Sep 2026 onwards that the dashboard can see, and every change made inside `frontend/` from the backend side, with the reason |
+| **Latest** | Section 21, Phase 4: verdicts, contradictions, the review queue and claims, merged to `main` (PR #47) |
+| **Last reviewed** | 28 Sep 2026 |
 
-**Up to 20 Sep, `frontend/` was never touched from the backend side.** On 21 Sep that changed, on
-request: PRs #25 and #27 carry `fix(9)` / `feat(9)` / `refactor(frontend)` commits that removed
-the mock-data fallbacks, added the live map layers and self-refresh, and fixed BUG-043/044 (see
-`git log --author=kraditya9241 -- frontend/`). On 22 Sep, again on request, a larger set of
-frontend fixes followed — section 0 lists every one. This file supersedes the three notes that used to live in `aditya/`
-(`handover-verified-event-ws.md`, `handover-review-provenance.md`,
-`handover-20sep-geo-and-confidence.md`); they stay where they are as history.
+Full endpoint shapes are in [`api-contract.md`](api-contract.md). Sections are in the order the
+changes happened, and a section is corrected in place when a later change supersedes it.
 
-Most of this is new data you can use. The two items that needed a change — item 8 (`ADVISORY`)
-and item 12 (the production build) — are **done** as of 22 Sep, as is item 11 (gating the API).
-Item 9 is visible whether you act on it or not.
+### Where to start
 
-Full endpoint shapes: [`api-contract.md`](api-contract.md).
+| If you… | Read |
+|---|---|
+| are merging into `frontend/` | Sections **0, 16, 19 and 20**: the changes made inside `frontend/` on request (22, 24, 25 and 27 Sep), each a separate commit with its reason |
+| are building the verification UI | Section **21**: receipt v2, the `verdict` badge and filter, contradictions, the review queue, claims and event history |
+| are wiring live data | Sections **1** (WebSocket messages), **13** (Phase 1: event types, filters, dockets), **17** (Phase 2: feeds, search, export) and **18** (Phase 3: hazards) |
+| are showing a confidence score | Sections **2–4**: coverage, and what each receipt factor reports |
+| want to know what never to mock | The last section, *Things that are not coming* |
+
+### History of backend-side changes to `frontend/`
+
+Until 20 Sep `frontend/` was never touched from the backend side. Since 21 Sep it has been, on
+request only: PRs #25 and #27 removed the mock-data fallbacks, added the live map layers and
+self-refresh, and fixed BUG-043/044 (`git log --author=kraditya9241 -- frontend/`). Sections 0, 16,
+19 and 20 list every later change. This file supersedes the three earlier notes in the working
+notes (`handover-verified-event-ws.md`, `handover-review-provenance.md`,
+`handover-20sep-geo-and-confidence.md`).
 
 ---
 
@@ -425,9 +426,8 @@ need the 24 Sep backend (feed warnings, rainfall, feed status) against a deploye
 
 ## 17. Phase 2 (24 Sep): five live feeds, airport weather, a data lake, search and export
 
-**Backend status: written, not yet tested** (branch `aditya_24sep_c`). The shapes are in
-[`api-contract.md`](api-contract.md), each marked "Phase 2"; none is captured from a running stack
-yet. **Nothing here breaks the dashboard as it is:** every existing response keeps its shape, the one
+**Backend status: tested, merged (PR #35) and deployed 24 Sep.** The shapes are in
+[`api-contract.md`](api-contract.md), each marked "Phase 2". **Nothing here breaks the dashboard as it is:** every existing response keeps its shape, the one
 behaviour change to an existing route keeps the map drawing exactly what it drew, and everything
 else is additive. No file in `frontend/` was touched.
 
@@ -443,7 +443,7 @@ else is additive. No file in `frontend/` was touched.
 | **`/healthz` gains `object_store`** | Non-critical, like Redis: down or unconfigured makes the whole status `degraded`, never `unhealthy`. The admin console can show it beside `outbox_backlog` | optional |
 | **`total_reports` in `/api/dashboard/summary` now includes collected posts and headlines**; `citizen_reports` does not | If the KPI card is labelled "Total reports", "Signals collected" would now describe it better; or show `citizen_reports` there instead | behaviour note |
 
-**Test, once the branch is deployed:** `curl -s localhost:8000/api/meta/sources | python3 -m json.tool`
+**To test it:** `curl -s localhost:8000/api/meta/sources | python3 -m json.tool`
 lists seven feeds and `dead_letters`; `curl -s 'localhost:8000/api/stations/latest?feed=metar' | head -c 400`
 shows airport observations once `METAR_POLLER_ENABLED=true`.
 
@@ -451,7 +451,7 @@ shows airport observations once `METAR_POLLER_ENABLED=true`.
 
 ## 18. Phase 3 (25 Sep): every hazard gets its own type, severity and evidence
 
-**Backend status: written, not yet tested** (branch `aditya_25sept`). Shapes are in
+**Backend status: tested, merged (PRs #41 and #44) and deployed 27 Sep.** Shapes are in
 [`api-contract.md`](api-contract.md), marked "Phase 3". **Nothing here breaks the dashboard as it
 is:** every change is a new value in an existing field or a new key. No file in `frontend/` was
 touched.
@@ -469,7 +469,7 @@ touched.
 | **Provenance reports** gain `platform`, `publisher`, `url`, `place_precision`, `hazard_primary`, `flags`, `flag_basis` | Posts and headlines that joined the event show where they came from (link out to the post); flagged reports get a badge with the reason ("promotional: a phone number") | recommended |
 | **Search**: `hazard_primary`, `hazards`, `flags` on every row; new `?flag=` filter; `?hazard=` now matches tagged text; `status` `held` now means "cannot cluster" (no district, a forecast, or clustering off) | **F3, the data explorer**: hazard and flag badges and filters. Relabel `held` from "not clustered until hazard tagging" to "context only" | recommended |
 
-**Test, once the branch is deployed:** `cd backend && .venv/bin/pytest -q tests/test_hazards.py
+**To test it:** `cd backend && .venv/bin/pytest -q tests/test_hazards.py
 tests/test_severity_rules.py tests/test_report_intake.py tests/test_event_filters.py
 tests/test_reports_api.py` (against `indra_test`). To see a `HEATWAVE` or `FOG` receipt in a browser,
 submit two differently worded reports within 5 km to the E2E backend (`make e2e-backend`, port 8100,
@@ -607,8 +607,9 @@ server with `scripts/set_operator_password.py`; there is no default password any
 
 ## 21. Phase 4 (27 Sep): verification — station evidence, contradictions, verdicts and the review queue
 
-**Backend status: tested 27 Sep, not yet merged or deployed** (branch `aditya_27sep_phase4`, PR
-#47; suite 1,788 passed, the 2 failures are BUG-106, layer 4's). Shapes are in
+**Backend status: tested 27 Sep and merged to `main`** (PR #47; suite 1,788 passed, the 2 failures
+are BUG-106, layer 4's). The endpoints are live wherever `main` is deployed, after
+`alembic upgrade head` and `scripts/rescore_events.py`. Shapes are in
 [`api-contract.md`](api-contract.md), marked "Phase 4". **Nothing here breaks the dashboard as it
 is:** the receipt gains factors and keys, the list gains `verdict`, and the endpoints are new. The
 only behaviour change to an existing call: `PATCH /api/events/{id}/review` answers `409` when
@@ -627,7 +628,7 @@ claiming. No file in `frontend/` was touched.
 | **`GET /api/events/{id}/history`** | A confidence-over-time chart from the `snapshot` entries and a status timeline from both kinds | **new** |
 | **`LATE_CORROBORATION`** ledger rows and `receipt.late_corroboration` | "Raised by an IMD warning at 10:20" in the ledger and on the receipt | recommended |
 
-**Test, once the branch is deployed:** the review queue and claims need a commander token
+**To test it:** the review queue and claims need a commander token
 (sign-in, section 19). To see a contradiction, the E2E backend (`make e2e-backend`, port 8100) with a
 heatwave report near an airport whose METAR reads under 35 °C; never the API on :8000.
 `scripts/run_verification_demo.py` prints a genuine and a fabricated case side by side without
@@ -639,7 +640,7 @@ writing anything.
 
 | | |
 |---|---|
-| **INDRA-issued alerts** — no SMS, email or broadcast | Cancelled 20 Sep. The warnings page shows *official* SACHET warnings (`GET /api/alerts/agency`); INDRA itself issues none |
+| **Alerts from the core backend** — no SMS, email or broadcast | Left the core platform's scope 20 Sep. The warnings page shows *official* SACHET warnings (`GET /api/alerts/agency`). Alerting is the separate `alert_engine/` service (layer 8b, PR #38), maintained by its owners and not running on the team server |
 | **Risk zones** | Not built, not scheduled |
 | **Image / vision analysis** | Out of scope. `media_url` is stored as a string and nothing opens it |
 | **Anomaly detection** | Out of scope. Permanently `offline` in the receipt |
