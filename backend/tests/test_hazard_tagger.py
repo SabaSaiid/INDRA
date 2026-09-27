@@ -259,3 +259,75 @@ def test_real_post_faults(text, hazards):
 )
 def test_real_post_tense(text, tense):
     assert tag_hazards(text)["tense"] == tense
+
+
+# ── Found on the second 100 real posts (27 Sep): BUG-113, BUG-114 ──────────────
+
+@pytest.mark.parametrize(
+    "text, hazards",
+    [
+        # BUG-113: a tag list at the end of a post that is not about weather.
+        ("New cafe opened on MG Road, the coffee is great #Pune #WeekendVibes #MonsoonRains", set()),
+        ("Is it autumn already? The leaves are turning #nature #coldwave", set()),
+        # …a tag used as a word, or beside weather words, still counts.
+        ("#Landslide blocks the Rishikesh highway", {"LANDSLIDE"}),
+        ("IMD says more showers today #BengaluruRains", {"RAINFALL"}),
+        ("Schools closed in Lucknow #coldwave", {"COLD_WAVE"}),
+        ("Mercury touched 47 in Banda #heatwave", {"HEATWAVE"}),
+        # …and so does a post of nothing but tags, or a photo's tags.
+        ("#Cyclone #Andhra #Kakinada", {"CYCLONE"}),
+        ("Morning at the lake #landscape #fog #nikon", {"FOG"}),
+        # Creative writing and laughter: not a report.
+        ("mist on the paddy / a heron waits / heavy rain #haiku #poetry", set()),
+        ("When the office AC is your only friend 😂 #heatwave", set()),
+        # A model code is a product.
+        ("The new Cyclone V3 blender is on sale", set()),
+        ("Cyclone Dana nears the Odisha coast", {"CYCLONE"}),
+        # BUG-114: more Hindi forms.
+        ("बुंदेलखंड में लू का वार जारी", {"HEATWAVE"}),
+        ("बांदा में लू की स्थिति बनी हुई है", {"HEATWAVE"}),
+        ("देर रात आंधी-पानी से कई गांवों की बिजली गुल", {"THUNDERSTORM", "STRONG_WIND", "RAINFALL"}),
+        ("आंधी से पानी की टंकी गिरी", {"DUST_STORM"}),
+        ("निचली बस्तियों में घुसा पानी", {"URBAN_FLOOD"}),
+        ("60 किमी की रफ्तार से चली हवाएं, कई खंभे टूटे", {"STRONG_WIND"}),
+        # A threat: dropped beside something happening now, a forecast alone.
+        ("Heavy rain lashing Assam since morning, flood threat in 12 districts", {"RAINFALL"}),
+        ("Risk of flooding in low-lying Patna", {"URBAN_FLOOD"}),
+        ("कोसी के किनारे बाढ़ का खतरा", {"URBAN_FLOOD"}),
+        ("गंगा खतरे के निशान के पार", {"RIVER_BREACH"}),
+    ],
+)
+def test_second_real_post_faults(text, hazards):
+    assert {h["type"] for h in tag_hazards(text)["hazards"]} == hazards
+
+
+def test_a_threat_alone_is_a_forecast():
+    r = tag_hazards("Flood threat looms over Darbhanga")
+    assert {h["type"] for h in r["hazards"]} == {"URBAN_FLOOD"}
+    assert r["tense"] == "forecast"
+
+
+def test_a_hindi_wind_speed_is_read():
+    r = tag_hazards("कल 70 KM की रफ्तार से चलेंगी तेज हवाएं")
+    assert r["wind_kmh"] == 70.0
+    assert "STRONG_WIND" in {h["type"] for h in r["hazards"]}
+
+
+@pytest.mark.parametrize(
+    "text, tense",
+    [
+        ("Orange alerts issued for four districts of Kerala, heavy rain likely", "forecast"),
+        ("Heavy rain to lash Konkan within the next 6 hours", "forecast"),
+        ("Dust storm warning in force now through 5 PM", "forecast"),
+        ("Hail hits Shimla, orange alert for tomorrow", None),
+        ("Waters receding in Silchar, alert stays", None),
+        ("सुबह से लगातार बारिश, शाम तक अलर्ट", None),
+        ("चक्रवात ने तट पर मचाई तबाही, फिर से अलर्ट", None),
+        # "Caused" says it happened, not that it is happening now.
+        ("Floods caused havoc in Kedarnath in 2013", "past"),
+        # Readiness after a disaster is not a forecast.
+        ("Wall collapse in heavy rain; the district remains on high alert", None),
+    ],
+)
+def test_second_real_post_tense(text, tense):
+    assert tag_hazards(text)["tense"] == tense
