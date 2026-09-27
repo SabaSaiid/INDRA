@@ -607,7 +607,8 @@ server with `scripts/set_operator_password.py`; there is no default password any
 
 ## 21. Phase 4 (27 Sep): verification — station evidence, contradictions, verdicts and the review queue
 
-**Backend status: written, not yet tested** (branch `aditya_27sep_phase4`). Shapes are in
+**Backend status: tested 27 Sep, not yet merged or deployed** (branch `aditya_27sep_phase4`, PR
+#47; suite 1,788 passed, the 2 failures are BUG-106, layer 4's). Shapes are in
 [`api-contract.md`](api-contract.md), marked "Phase 4". **Nothing here breaks the dashboard as it
 is:** the receipt gains factors and keys, the list gains `verdict`, and the endpoints are new. The
 only behaviour change to an existing call: `PATCH /api/events/{id}/review` answers `409` when
