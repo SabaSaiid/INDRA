@@ -81,10 +81,17 @@ SOURCE_RELIABILITY: Dict[SourceType, float] = {
 }
 
 
-def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
+def source_reliability_score(
+    source_types: Iterable[Any], news_score: Optional[float] = None
+) -> Optional[float]:
     """
     The Source Reliability factor for a cluster: the *maximum* reliability
     among its reports' sources.
+
+    `news_score` (Phase 4 T6, corroboration.news_corroboration) replaces the
+    NEWS_MEDIA prior: 0.75 when two or more independent publishers carry the
+    event, 0.55 for one. It counts even when the news items are warning-tense
+    headlines of the event's district that are not in the cluster itself.
 
     Maximum rather than mean, because one official gauge reading corroborating
     five citizen reports should lift the event — averaging would let the
@@ -97,9 +104,16 @@ def source_reliability_score(source_types: Iterable[Any]) -> Optional[float]:
     scores = []
     for raw in source_types:
         try:
-            scores.append(SOURCE_RELIABILITY[SourceType(raw)])
-        except (ValueError, KeyError):
+            source = SourceType(raw)
+        except ValueError:
             logger.warning(f"Unknown source_type {raw!r} ignored for source reliability")
+            continue
+        if source is SourceType.NEWS_MEDIA and news_score is not None:
+            continue  # counted once, below, by the publisher rule
+        if source in SOURCE_RELIABILITY:
+            scores.append(SOURCE_RELIABILITY[source])
+    if news_score is not None:
+        scores.append(float(news_score))
     return max(scores) if scores else None
 
 
