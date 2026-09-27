@@ -1907,3 +1907,15 @@ circulation" → CYCLONE; "Is rain coming?" → RAINFALL; "नदी में �
 first ("तेज आंधी से गिरा … होर्डिंग", "आंधी से बिजली का तार गिरा") is missed as STRONG_WIND. 8 of v3's
 100. Like BUG-113, these reach only a commander's review queue: a posts-only event is never
 published without a human.
+
+### BUG-120 — The team server signed its tokens with the key published in the source
+**S1** · Layers 8a, infra · **`FIXED` in code**, the key on the server **not yet rotated** · Found by:
+checking the server before deploying the sign-in (27 Sep, read-only: the value was compared, never
+printed)
+
+The server's `.env` had `SECRET_KEY` equal to the default in `core/config.py` and `.env.example`, so
+anyone who had read the repository could sign a commander's or an admin's token and use the public
+API without a password. Operator passwords (BUG-093) do not help while the signing key is public.
+Fix: `Settings` refuses, with `ENVIRONMENT=production`, the published key or any key under 32
+characters, and the backend does not start (`test_secret_key.py`). **Before deploying this, rotate
+the server's key**; rotating it ends every session, and the dashboard fetches a new token.
