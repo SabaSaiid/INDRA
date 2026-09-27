@@ -142,6 +142,9 @@ class Settings(BaseSettings):
 
     # ── External signals ───────────────────────────────────────────────────
     OPEN_METEO_API_URL: str = "https://api.open-meteo.com/v1/forecast"
+    # Phase 4 T1: dust (µg/m³) for DUST_STORM evidence. No key, like the
+    # forecast API; the value is CAMS's model estimate, and the receipt says so.
+    OPEN_METEO_AIR_QUALITY_URL: str = "https://air-quality-api.open-meteo.com/v1/air-quality"
     WEATHER_TIMEOUT_SECONDS: float = 3.0
 
     # ── Station poller (layer 1: the one scheduled external feed) ──────────
