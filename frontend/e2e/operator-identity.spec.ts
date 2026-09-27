@@ -106,10 +106,14 @@ test.describe('the signed-in operator is the account the backend holds', () => {
   test('the settings drawer shows no invented telemetry', async ({ page }) => {
     await page.goto('/');
     await page.getByLabel('Platform Settings').click();
-    await expect(page.getByLabel('Close settings drawer')).toBeVisible();
+    await expect(page.getByLabel('Close configuration drawer')).toBeVisible();
+    const opened = await page.locator('body').innerText();
+    // The drawer opens on General since 26 Sep; the readout sat on the Units tab.
+    await page.getByTitle(/^Units & Coordinates/).click();
     await page.screenshot({ path: path.join(SHOTS, 'identity-03-settings-drawer.png') });
 
-    const body = await page.locator('body').innerText();
-    expect(markersIn(body, TELEMETRY_MARKERS), 'the drawer shows invented telemetry').toEqual([]);
+    const units = await page.locator('body').innerText();
+    expect(markersIn(opened + units, TELEMETRY_MARKERS), 'the drawer shows invented telemetry').toEqual([]);
+    expect(units, 'the drawer offers the removed MGRS grid').not.toMatch(/MGRS/);
   });
 });
