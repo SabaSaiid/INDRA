@@ -18,7 +18,12 @@ and [validation](ML_VALIDATION_REPORT.md).
 
 ### How is confidence computed?
 
-Six weighted factors. The score is the weighted mean **over the factors that actually reported**:
+> **Receipt v2 (Phase 4, written 27 Sep, not yet measured):** seven factors. The official warning
+> (IMD and SDMA, via SACHET) joins at 10%; the weather falls to 20% and spatial coherence to 15%.
+> With vision and anomaly offline the coverage is still 0.80. The worked example below is v1 and
+> will be re-measured after the Phase 4 testing pass.
+
+Six weighted factors (v1). The score is the weighted mean **over the factors that actually reported**:
 
 ```
 confidence = Σ_online(weight × score) / Σ_online(weight)
@@ -155,6 +160,40 @@ a Commander or Admin token and stores who filed it; provenance shows that name b
 Be precise about the limit: the route is exactly as trusted as the account behind it. Since 25 Sep
 no password ships with the dashboard or the code; each operator signs in with a password set for
 that deployment and stored only as a bcrypt hash. There is no MFA (BUG-025, closed 22 Sep).
+
+### How do you catch a fake heatwave?
+
+*(Phase 4, written 27 Sep, not yet tested; the numbers to quote come from the testing pass.)*
+
+With a thermometer. Every event is checked against **its own hazard's measurement**: a heatwave
+against the maximum temperature, fog against visibility, a thunderstorm against the weather code
+and CAPE, a flood against 24-hour rainfall. When an airport is within 50 km, its METAR (the
+observation IMD's aerodrome office makes every half hour) is the evidence, and the model is shown
+beside it; a measurement beats a model.
+
+If five people report 47 °C and the airport 14 km away never went above 27 °C in the last 24 hours,
+the receipt records a **contradiction**, names the station and the reading, scores the weather
+factor 0.0, and the event's verdict is **CONTRADICTED**. It cannot auto-publish, however many
+reports agree, and it goes to the review queue's "contradicted" tab.
+
+Two things it never does. **It never rejects automatically**: a missing or contrary signal is not
+proof that nobody saw anything, so a human decides. **It never contradicts from missing data**: if
+the weather feed is down, the factor is offline, not a strike against the report. The rules are
+published (`backend/app/services/evidence.py`), for example a heatwave is contradicted below 35 °C
+on the plains and 25 °C in the hills, a hailstorm is never contradicted (too local for any feed),
+and a flood with 0 mm of rain says "waterlogging from another cause is possible; a human should
+check".
+
+### What if IMD issues the warning later?
+
+*(Phase 4, written 27 Sep, not yet tested.)*
+
+The event rises. When the SACHET poller stores a new or revised warning, or an airport reports fog,
+a thunderstorm or a squall, every open event of that hazard it covers (updated in the last 24 hours,
+not rejected) is re-scored with the new evidence. If its confidence, verdict or status changes, the
+event is updated, a `LATE_CORROBORATION` row goes into the ledger with the before and after, and
+the dashboard is told. A commander's decision stands: an approved event stays approved, and only its
+confidence and verdict move. The history endpoint shows exactly when and why.
 
 ### How do you know the audit trail wasn't edited?
 
