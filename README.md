@@ -323,8 +323,8 @@ flowchart TD
 ```
 Citizen report ──► REST ──► Redpanda ──► consumer ──► dedup ──► DBSCAN cluster
                                                                       │
-   METAR · Open-Meteo · SACHET warnings ──► receipt v2 + verdict ◄──┘
-                                                        │
+     METAR · Open-Meteo · SACHET warnings ──► receipt v2 + verdict ◄──┘
+                                              │
    WebSocket ◄── verified_events row + audit row (one transaction)
        │
        └── commander: PATCH /review ──► HUMAN_APPROVED + audit row ──► EVENT_REVIEWED
