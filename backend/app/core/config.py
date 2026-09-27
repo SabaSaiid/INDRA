@@ -6,7 +6,7 @@ Loads all environment variables via pydantic-settings.
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from functools import lru_cache
 
 # `.env` lives at the repo root, but uvicorn is started from `backend/` (see
@@ -15,6 +15,11 @@ from functools import lru_cache
 # locations to this file instead; a `backend/.env`, if present, wins.
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
 _REPO_ROOT = _BACKEND_DIR.parent
+
+# The JWT signing key this file has always shipped. Anyone who has read the
+# repository can sign a commander's token with it, so production refuses it.
+PUBLISHED_SECRET_KEY = "indra_super_secret_jwt_key_sih2026"
+MIN_PRODUCTION_SECRET_KEY_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -29,7 +34,8 @@ class Settings(BaseSettings):
     # ── Backend API ────────────────────────────────────────────────────────
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
-    SECRET_KEY: str = "indra_super_secret_jwt_key_sih2026"
+    # Development default only: production refuses it (see the check below).
+    SECRET_KEY: str = PUBLISHED_SECRET_KEY
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 8
     # HMAC key for X-Reporter-Id; empty disables reporter_hash rather than
@@ -52,6 +58,19 @@ class Settings(BaseSettings):
         if v.startswith("postgresql://") and not v.startswith("postgresql+asyncpg://"):
             return v.replace("postgresql://", "postgresql+asyncpg://", 1)
         return v
+
+    @model_validator(mode="after")
+    def refuse_a_published_key_in_production(self) -> "Settings":
+        if self.ENVIRONMENT.strip().lower() == "production" and (
+            self.SECRET_KEY == PUBLISHED_SECRET_KEY or len(self.SECRET_KEY) < MIN_PRODUCTION_SECRET_KEY_LENGTH
+        ):
+            raise ValueError(
+                "ENVIRONMENT=production needs its own SECRET_KEY of at least "
+                f"{MIN_PRODUCTION_SECRET_KEY_LENGTH} characters, not the one in the source: anyone could sign "
+                "tokens with that. Set one in .env, e.g. "
+                "python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+        return self
 
 
     # ── Redis ──────────────────────────────────────────────────────────────
