@@ -27,7 +27,7 @@ Last reviewed **28 Sep 2026**, against `main` after Phase 4 (PR #47).
 
 | Document | Audience |
 |---|---|
-| [Frontend handover](frontend-handover.md) | Owners of the command center (`frontend/`): every backend change the dashboard can see, and what it needs from the dashboard |
+| [Frontend handover](frontend-handover.md) | Saba Saeed, owner of the command center (`frontend/`): every backend change the dashboard can see, and what it needs from the dashboard |
 | [AI/ML architecture](ML_ARCHITECTURE.md) · [model card](ML_MODEL_CARD.md) · [data card](ML_DATA_CARD.md) · [inference contract](ML_INFERENCE_CONTRACT.md) · [validation report](ML_VALIDATION_REPORT.md) · [limitations](ML_LIMITATIONS.md) | Layer 4, maintained by its owner. Detailed working documents are in [`backend/app/ml/docs/`](../backend/app/ml/docs/) |
 | [Alert engine integration](ALERT_ENGINE_INTEGRATION.md) · [frontend integration](ALERT_ENGINE_FRONTEND_INTEGRATION.md) · [reality audit](ALERT_ENGINE_REALITY_AUDIT.md) | Layer 8b, the standalone service in [`alert_engine/`](../alert_engine/), maintained by its owner |
 

@@ -84,7 +84,7 @@ carries the report stream. Redis holds caches and short-lived memory. An S3-comp
 | 7 | **Data platform** | Built | PostgreSQL 16 + PostGIS 3.4 with 20 migrations. A SHA-256 audit chain guarded by a trigger. Event snapshots. Redis for caches and dedup memory, never load-bearing. A SeaweedFS lake of raw messages and poller payloads. Historical exports to CSV and GeoJSON |
 | 8a | **Real-time API** | Built | 14 routers under `/api`, `WS /ws/events`, `/healthz`. JWT authentication backed by bcrypt accounts, RBAC on every write, a review queue with 15-minute claims, event history, provenance and the audit ledger |
 | 8b | **Alert engine** | Separate service | [`alert_engine/`](../alert_engine/), a standalone FastAPI service on port 8001 with its own rules and SMTP delivery, maintained by its owner. It is not run in the reference deployment, and the core platform issues no alerts. `GET /api/alerts/agency` serves **official** warnings collected from SACHET. See [Alert engine integration](ALERT_ENGINE_INTEGRATION.md) |
-| 9 | **Command center** | Built | Next.js 14 dashboard in [`frontend/`](../frontend/): live map, events, reports, review, alerts page, analytics, admin, teams, profile, 12-language UI |
+| 9 | **Command center** | Built | Next.js 14 dashboard in [`frontend/`](../frontend/), built by Saba Saeed: live map, events, reports, review, alerts page, analytics, admin, teams, profile, 12-language UI |
 
 ---
 

@@ -229,7 +229,7 @@ is the real one, and a test report there is fabricated data in the audit trail.
 
 ## 6. Frontend
 
-The command center is maintained by the frontend team. Backend changes that affect it are
+The command center is built and maintained by Saba Saeed. Backend changes that affect it are
 written up in [`frontend-handover.md`](frontend-handover.md).
 
 ```bash

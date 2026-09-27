@@ -419,7 +419,7 @@ Legend: ✅ built · 🟡 partly built · ⬜ not built · ↗ built as a separa
 | 7 | **Data Platform** | The memory | ✅ PostgreSQL + PostGIS for everything of record, a tamper-evident hash-chained audit log, Redis for short-lived memory, and SeaweedFS for the raw data lake. |
 | 8a | **Real-Time API** | Serving it out | ✅ REST and WebSocket. Every action that changes something needs a signed-in operator with the right role. Commanders work from a review queue and "claim" an event so that two people don't decide the same one. |
 | 8b | **Alert Engine** | Telling people | ↗ Built by another team member as a separate service (`alert_engine/`). It is not run on the team server, and the core platform itself sends no SMS or email. |
-| 9 | **IMD Command Center** | The control room | ✅ The Next.js dashboard, built by the frontend team: live map, events, reports, review, official warnings, analytics and a 12-language interface. |
+| 9 | **IMD Command Center** | The control room | ✅ The Next.js dashboard, built by Saba Saeed: live map, events, reports, review, official warnings, analytics and a 12-language interface. |
 
 **If you remember one thing from this section:** a citizen's report really does travel all the
 way through, is checked against real thermometers, rain and official warnings, and comes out as
