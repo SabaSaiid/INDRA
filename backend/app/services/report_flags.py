@@ -17,6 +17,22 @@ commander can read, not a model:
 | `forward_marker`     | "forwarded as received", "forward to all", "share maximum", "please share", "viral", "must watch" | 0.6 |
 | `coordinated`        | the same text from 3+ different reporters within 10 minutes (set by the pipeline, which can see the other reports) | 0.5 |
 
+**Phase 5** adds two groups that are not about the text, listed here so one
+table says what every flag costs:
+
+| flag                 | set by                                                   | credibility × |
+|----------------------|----------------------------------------------------------|---------------|
+| `new_account`        | a social account less than 7 days old (T7, `account_signals.py`) | 0.6 |
+| `few_followers`      | fewer than 5 followers (T7)                              | 0.8 |
+| `bot_account`        | the platform marks the account a bot (T7)                | 0.8, and at most 0.5 of a witness in n_eff |
+| `duplicate_media`    | the same file as another reporter's (T3, `media_rules.py`) | — the two count as one witness |
+| `recycled_suspect`   | near-identical to media seen more than 48 h earlier (T3) | 0.3 |
+| `old_capture`        | photo taken more than 48 h before the observation (T3)   | 0.4 |
+| `future_capture`     | photo taken more than 1 h after the report (T3)          | 0.7 |
+| `location_mismatch`  | photo's GPS more than 25 km from the report's (T3)       | 0.5 |
+| `no_metadata`        | no EXIF (T3)                                             | — noted only |
+| `edited`             | EXIF names an editing app (T3)                           | — noted only |
+
 Multipliers compound, with a floor of 0.05, on top of the source-and-length
 credibility of `services/credibility.py`, which stays the starting value.
 
@@ -44,8 +60,28 @@ FLAGS: Dict[str, Optional[float]] = {
     "shouting": 0.9,
     "forward_marker": 0.6,
     "coordinated": 0.5,
+    # Phase 5 T7: account signals for social sources.
+    "new_account": 0.6,
+    "few_followers": 0.8,
+    "bot_account": 0.8,
+    # Phase 5 T3: photos and videos. Set by the media worker after the report
+    # is stored, each at most once per report.
+    "duplicate_media": None,
+    "recycled_suspect": 0.3,
+    "old_capture": 0.4,
+    "future_capture": 0.7,
+    "location_mismatch": 0.5,
+    "no_metadata": None,
+    "edited": None,
 }
 CREDIBILITY_FLOOR = 0.05
+
+# The flags no text rule sets: the pipeline, the social poller or the media
+# worker adds them, knowing something the text alone cannot show.
+TEXT_FLAGS = (
+    "promotional", "not_an_observation", "past_event", "implausible_value",
+    "exaggeration", "shouting", "forward_marker",
+)
 
 SHOUTING_MIN_LETTERS = 20
 SHOUTING_CAPITALS_SHARE = 0.6
