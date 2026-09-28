@@ -94,6 +94,10 @@ class RawReport(Base):
     hazard_primary = Column(String(32), nullable=True)
     hazard_family = Column(String(16), nullable=True)
     flags = Column(ARRAY(Text), nullable=False, default=list, server_default="{}")
+    # Migration 0023 (Phase 5 T5): when the citizen withdrew the report. The
+    # text and exact position are redacted and its media deleted; the row stays
+    # so the docket still answers "withdrawn".
+    withdrawn_at = Column(DateTime(timezone=True), nullable=True)
 
     # Constraints
     __table_args__ = (
