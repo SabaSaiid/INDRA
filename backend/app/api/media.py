@@ -329,7 +329,9 @@ async def upload_part(
     if n == 1:
         sniffed = sniff(body[:SNIFF_BYTES])
         if sniffed is None or sniffed.kind != session["kind"]:
-            what = "not a photo or video" if sniffed is None else f"a {sniffed.kind}, not a {session['kind']}"
+            what = "not a photo or video" if sniffed is None else (
+                "a video, not a photo" if sniffed.kind == "video" else "a photo, not a video"
+            )
             await _reject(db, session, f"refused on its first bytes: {what}")
             logger.info(f"Upload {session['id']} refused on part 1: {what}")
             raise HTTPException(status_code=415, detail="Only photos and videos can be attached")
