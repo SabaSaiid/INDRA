@@ -283,6 +283,23 @@ pollers are off.
 **deliberately not written here**: this repository is shared, and infrastructure identifiers do not
 belong in it. Ask Aditya for access.
 
+**Two daily jobs run on a server** (Phase 5), each a systemd timer with its unit files in
+[`infra/systemd/`](../infra/systemd/): `indra-retention` (03:30, `scripts/retention.py`: deletes
+stored photos and videos past their retention period) and `indra-cleanup-uploads` (03:45,
+`scripts/cleanup_uploads.py`: aborts uploads abandoned half-way). Both are idempotent, and
+`Persistent=true` runs a missed day at the next boot. The units assume the project at `/opt/indra`
+and the user `kali`; edit `User=` and the paths for another machine, then install them:
+
+```bash
+sudo install -m 644 infra/systemd/indra-*.service infra/systemd/indra-*.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now indra-retention.timer indra-cleanup-uploads.timer
+systemctl list-timers 'indra-*'                 # when each runs next
+sudo journalctl -u indra-retention -n 20        # what the last run did
+```
+
+On a laptop, run the two scripts by hand when you need them (each takes `--dry-run`).
+
 ---
 
 ## When something is wrong
