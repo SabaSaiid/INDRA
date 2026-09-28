@@ -639,8 +639,8 @@ writing anything.
 
 ## 22. Phase 5 (28 Sep): photos and videos, recycled-media flags, reporter reputation, rate limits, withdrawal
 
-**Backend status: code written 28 Sep, not yet tested, not merged.** Shapes may still move in the
-testing pass; this section will say so when they are final. **Nothing here breaks the dashboard as
+**Backend status: written and tested 28 Sep (PR #50), not yet merged or deployed.** The shapes
+below are final; the testing pass changed one behaviour, noted at `REPORT_MEDIA_READY`. **Nothing here breaks the dashboard as
 it is:** every change is a new endpoint, a new field or a new WebSocket message, and
 `POST /api/reports/submit` still takes exactly the JSON it takes today. No file in `frontend/` was
 touched.
@@ -657,7 +657,7 @@ citizen site, not the dashboard). When a file has been checked, every dashboard 
 | **`POST /api/media/signed-urls`** `{ids, size: "thumb"\|"full"}` → `{urls: {id: url}, external: {id: true}, unavailable: {id: reason}, expires_in: 600}`; ANALYST, COMMANDER or ADMIN token | Use each URL directly in `<img src>` / `<video src>` (no header needed). They expire after 10 min: on an image `error`, mint again. `thumb` for the grid (≤ 320 px), `full` on click (≤ 1,600 px, or the video). A Mastodon attachment's "URL" is the author's own link (`external: true`): open it in a new tab, never embed a copy | **new** |
 | `GET /api/media/{id}/file?…` (the signed URL) | Videos seek: it answers `Range` requests with 206 | — |
 | `original: true` on the same call | Only for a "view original (with GPS)" action in verification work. Every use writes a `MEDIA_ORIGINAL_ACCESS` ledger row naming the operator; please put that sentence next to the button | optional |
-| **`REPORT_MEDIA_READY`** `{report_id, event_id, media: [{id, kind, status, flags, duration_s?}]}` | Update the card's media strip in place, without refetching the list. No URL and no docket in it, on purpose | **new** |
+| **`REPORT_MEDIA_READY`** `{report_id, event_id, media: [{id, kind, status, flags, duration_s?}]}` | Update the card's media strip in place, without refetching the list. No URL and no docket in it, on purpose. **When `event_id` is set, refetch that event:** a photo that changes no number updates only the receipt's `media` line, and no `VERIFIED_EVENT` is sent for it (a flagged photo that moves the score sends one first) | **new** |
 | **WebSocket heartbeat:** send `{"type": "ping"}`, receive `{"type": "pong"}` | Ping every 30 s so no proxy on the path closes the socket as idle. `pong` needs no handling | recommended |
 | Provenance (`GET /api/events/{id}/provenance`): each report gains `media` (id, kind, status, flags, `flag_basis` with every reason, EXIF capture time, size, duration) and `reputation` | Thumbnails in the provenance list, each flag as a badge with its reason in words (below), and "reporter history: 0 approved, 2 rejected → × 0.75" under the report | **new** |
 | Receipt: `media` block (`line`, `checked`, `flags`) and `vision_analysis` evidence text "image content is not analysed; media is checked for reuse and metadata only" | Show `media.line` under the factors, e.g. "2 photos checked: 1 captured 14 minutes before the report; no reuse found". `vision_analysis` stays offline, and saying so is the design | recommended |
