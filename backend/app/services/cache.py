@@ -232,6 +232,10 @@ redis.call('ZREMRANGEBYSCORE', key, '-inf', now - window)
 local count = redis.call('ZCARD', key)
 if count >= limit then
   local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+  -- A limit of 0 refuses everything and leaves the set empty: wait a window.
+  if oldest[2] == nil then
+    return {0, ARGV[1]}
+  end
   return {0, oldest[2]}
 end
 redis.call('ZADD', key, now, ARGV[4])
@@ -248,7 +252,9 @@ def _memory_window(key: str, limit: int, window_s: float, now: float):
     if len(stamps) >= limit:
         _memory_windows[key] = stamps
         _memory_windows.move_to_end(key)
-        return False, max(1, int(stamps[0] + window_s - now + 0.999))
+        # A limit of 0 refuses everything and keeps no stamps: wait a window.
+        oldest = stamps[0] if stamps else now
+        return False, max(1, int(oldest + window_s - now + 0.999))
     stamps.append(now)
     _memory_windows[key] = stamps
     _memory_windows.move_to_end(key)
