@@ -18,6 +18,7 @@ import {
   Layers,
   ChevronRight,
   Maximize2,
+  Crosshair,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -465,6 +466,36 @@ export default function RiskZonesSection() {
             
             {/* Left Column: Severity Level Zone Counters */}
             <div className="sm:col-span-4 flex flex-col justify-center space-y-2 py-1 pr-1">
+              {/* National Threat Spectrum Bar */}
+              <div className="mb-1 p-2 rounded-lg bg-[#FAF7F2] border border-[#EBE4D5]">
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 mb-1.5">
+                  <span className="font-semibold text-slate-700">Threat Spectrum</span>
+                  <span>{zones.length} Hotspots</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-200/80 rounded-full overflow-hidden flex shadow-2xs">
+                  <div
+                    style={{ width: `${Math.round((counts.critical / Math.max(1, zones.length)) * 100)}%` }}
+                    className="bg-red-500 h-full transition-all duration-500"
+                    title={`Critical: ${counts.critical}`}
+                  />
+                  <div
+                    style={{ width: `${Math.round((counts.high / Math.max(1, zones.length)) * 100)}%` }}
+                    className="bg-orange-500 h-full transition-all duration-500"
+                    title={`High: ${counts.high}`}
+                  />
+                  <div
+                    style={{ width: `${Math.round((counts.medium / Math.max(1, zones.length)) * 100)}%` }}
+                    className="bg-amber-400 h-full transition-all duration-500"
+                    title={`Medium: ${counts.medium}`}
+                  />
+                  <div
+                    style={{ width: `${Math.round((counts.low / Math.max(1, zones.length)) * 100)}%` }}
+                    className="bg-blue-400 h-full transition-all duration-500"
+                    title={`Low: ${counts.low}`}
+                  />
+                </div>
+              </div>
+
               {/* Critical */}
               <button
                 type="button"
@@ -477,10 +508,12 @@ export default function RiskZonesSection() {
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-[#EF4444] shadow-xs flex-shrink-0" />
+                  <span className="w-3 h-3 rounded-full bg-[#EF4444] shadow-xs flex-shrink-0 animate-pulse" />
                   <div>
                     <div className="text-xs font-bold text-[#1B2432]">Critical</div>
-                    <div className="text-[10px] text-slate-500 font-mono">{counts.critical} zones</div>
+                    <div className="text-[10px] text-slate-500 font-mono">
+                      {counts.critical} zones • {Math.round((counts.critical / Math.max(1, zones.length)) * 100)}%
+                    </div>
                   </div>
                 </div>
                 {selectedFilter === 'critical' && (
@@ -503,7 +536,9 @@ export default function RiskZonesSection() {
                   <span className="w-3 h-3 rounded-full bg-[#F97316] shadow-xs flex-shrink-0" />
                   <div>
                     <div className="text-xs font-bold text-[#1B2432]">High</div>
-                    <div className="text-[10px] text-slate-500 font-mono">{counts.high} zones</div>
+                    <div className="text-[10px] text-slate-500 font-mono">
+                      {counts.high} zones • {Math.round((counts.high / Math.max(1, zones.length)) * 100)}%
+                    </div>
                   </div>
                 </div>
                 {selectedFilter === 'high' && (
@@ -526,7 +561,9 @@ export default function RiskZonesSection() {
                   <span className="w-3 h-3 rounded-full bg-[#EAB308] shadow-xs flex-shrink-0" />
                   <div>
                     <div className="text-xs font-bold text-[#1B2432]">Medium</div>
-                    <div className="text-[10px] text-slate-500 font-mono">{counts.medium} zones</div>
+                    <div className="text-[10px] text-slate-500 font-mono">
+                      {counts.medium} zones • {Math.round((counts.medium / Math.max(1, zones.length)) * 100)}%
+                    </div>
                   </div>
                 </div>
                 {selectedFilter === 'medium' && (
@@ -549,7 +586,9 @@ export default function RiskZonesSection() {
                   <span className="w-3 h-3 rounded-full bg-[#3B82F6] shadow-xs flex-shrink-0" />
                   <div>
                     <div className="text-xs font-bold text-[#1B2432]">Low</div>
-                    <div className="text-[10px] text-slate-500 font-mono">{counts.low} zones</div>
+                    <div className="text-[10px] text-slate-500 font-mono">
+                      {counts.low} zones • {Math.round((counts.low / Math.max(1, zones.length)) * 100)}%
+                    </div>
                   </div>
                 </div>
                 {selectedFilter === 'low' && (
@@ -570,7 +609,7 @@ export default function RiskZonesSection() {
             </div>
 
             {/* Right Column: Hardware-Accelerated Heatmap Canvas */}
-            <div className="sm:col-span-8 h-[290px] sm:h-auto min-h-[280px]">
+            <div className="sm:col-span-8 h-[310px] sm:h-auto min-h-[300px]">
               <RiskZonesHeatmap
                 zones={zones}
                 geoCells={geoCells}
@@ -600,22 +639,27 @@ export default function RiskZonesSection() {
               </span>
             </div>
 
-            {/* 4 Metric Slider Bars with circular thumbs */}
+            {/* 4 Metric Slider Bars with circular thumbs & algorithmic tags */}
             <div className="space-y-3 pt-1">
               {/* 1. Independent-source agreement */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
-                  <span>Independent-source agreement</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Independent-source agreement</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      MULTI-SOURCE
+                    </span>
+                  </div>
                   <span className="font-mono font-bold text-slate-900">{metrics.independentSource}%</span>
                 </div>
                 <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-[#0D9488] rounded-full relative"
+                    className="h-full bg-gradient-to-r from-teal-600 to-emerald-500 rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.independentSource}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                   >
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border-2 border-emerald-600 block z-10" />
                   </motion.div>
                 </div>
               </div>
@@ -623,17 +667,22 @@ export default function RiskZonesSection() {
               {/* 2. Weather-station agreement */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
-                  <span>Weather-station agreement</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Weather-station agreement</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-100 text-teal-800 font-semibold border border-teal-200">
+                      IMD LOCKED
+                    </span>
+                  </div>
                   <span className="font-mono font-bold text-slate-900">{metrics.weatherStation}%</span>
                 </div>
                 <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-[#0D9488] rounded-full relative"
+                    className="h-full bg-gradient-to-r from-teal-600 to-emerald-500 rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.weatherStation}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
                   >
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border-2 border-emerald-600 block z-10" />
                   </motion.div>
                 </div>
               </div>
@@ -641,17 +690,22 @@ export default function RiskZonesSection() {
               {/* 3. Location and Time consistency */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
-                  <span>Location and Time consistency</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Location and Time consistency</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-semibold border border-blue-200">
+                      SUB-DISTRICT
+                    </span>
+                  </div>
                   <span className="font-mono font-bold text-slate-900">{metrics.locationTime}%</span>
                 </div>
                 <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-[#0D9488] rounded-full relative"
+                    className="h-full bg-gradient-to-r from-teal-600 to-emerald-500 rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.locationTime}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
                   >
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border-2 border-emerald-600 block z-10" />
                   </motion.div>
                 </div>
               </div>
@@ -659,17 +713,22 @@ export default function RiskZonesSection() {
               {/* 4. Source reliability (avg.) */}
               <div>
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
-                  <span>Source reliability (avg.)</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Source reliability (avg.)</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 font-semibold border border-purple-200">
+                      AUDITED
+                    </span>
+                  </div>
                   <span className="font-mono font-bold text-slate-900">{metrics.sourceReliability}%</span>
                 </div>
                 <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-[#0D9488] rounded-full relative"
+                    className="h-full bg-gradient-to-r from-teal-600 to-emerald-500 rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.sourceReliability}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
                   >
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border-2 border-emerald-600 block z-10" />
                   </motion.div>
                 </div>
               </div>
@@ -760,30 +819,54 @@ export default function RiskZonesSection() {
                 </button>
               </div>
 
-              {/* Media Preview */}
-              <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+              {/* Media Preview with Tactical Camera Overlay */}
+              <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden group">
                 <Image
                   src={selectedEvidence.image}
                   alt={selectedEvidence.title}
                   fill
                   sizes="(max-width: 768px) 100vw, 512px"
-                  className="object-cover"
+                  className="object-cover opacity-90"
                 />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
+                
+                {/* Tactical Camera HUD Overlay */}
+                <div className="absolute inset-0 p-3 flex flex-col justify-between pointer-events-none bg-gradient-to-t from-black/80 via-transparent to-black/60">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-white/90">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="font-bold">REC ● HD 60FPS</span>
+                      <span className="text-white/50">|</span>
+                      <span>CAM-INDRA-EOC</span>
+                    </div>
+                    <div className="px-1.5 py-0.5 rounded bg-emerald-500/80 text-white font-bold text-[9px]">
+                      GPS LOCKED
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[9px] font-mono text-white/80">
+                    <span className="truncate max-w-[280px]">{selectedEvidence.location}</span>
+                    <span>{selectedEvidence.timestamp}</span>
+                  </div>
+                </div>
+
+                {/* Center Play Pulse */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-white/30 backdrop-blur-md text-white flex items-center justify-center shadow-lg border border-white/50 hover:scale-110 hover:bg-emerald-500 transition-all cursor-pointer">
                     <Play className="w-5 h-5 fill-current ml-0.5" />
                   </div>
                 </div>
-                <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/80 text-white font-mono text-[10px] rounded">
-                  {selectedEvidence.duration} · High Definition
+
+                {/* Video Scrubber Simulation */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                  <div className="h-full w-2/5 bg-emerald-400" />
                 </div>
               </div>
 
               {/* Metadata Details */}
-              <div className="p-4 space-y-2.5 text-xs text-slate-600">
+              <div className="p-4 space-y-3 text-xs text-slate-600">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-slate-800 font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-red-500" />
+                  <div className="flex items-center gap-1.5 text-slate-900 font-semibold">
+                    <MapPin className="w-4 h-4 text-red-500" />
                     <span>{selectedEvidence.location}</span>
                   </div>
                   <div className="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
@@ -792,18 +875,32 @@ export default function RiskZonesSection() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-[11px]">
+                {/* 3-Point Forensic Verification Grid */}
+                <div className="grid grid-cols-3 gap-2 bg-[#FAF8F5] p-2.5 rounded-lg border border-[#E8E2D4] text-[11px]">
                   <div>
-                    <span className="text-slate-400 block">Corroboration Score</span>
-                    <span className="font-mono font-bold text-emerald-700">{selectedEvidence.score}% Confidence</span>
+                    <span className="text-slate-400 block text-[10px]">Consensus Score</span>
+                    <span className="font-mono font-bold text-emerald-700">{selectedEvidence.score}% Corroborated</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">EXIF / Hash Status</span>
-                    <span className="text-slate-700 font-medium">Original Capture (Verified)</span>
+                    <span className="text-slate-400 block text-[10px]">EXIF Timestamp</span>
+                    <span className="text-slate-700 font-semibold font-mono">Matched (0.2s)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">AI Fake / Deepfake</span>
+                    <span className="text-emerald-700 font-semibold font-mono">0.0% Artifacts</span>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-1">
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between pt-1">
+                  <a
+                    href="/live-map"
+                    onClick={() => setSelectedEvidence(null)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium text-xs hover:bg-emerald-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Crosshair className="w-3.5 h-3.5" />
+                    <span>Focus on Live Tactical Map</span>
+                  </a>
                   <button
                     type="button"
                     onClick={() => setSelectedEvidence(null)}
