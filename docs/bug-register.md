@@ -1967,3 +1967,25 @@ airport observations collected since Phase 2 were read by nothing. Phase 4 reads
 variable (Open-Meteo, and an airport's METAR within 50 km where it measured) and records a
 contradiction, from a published table, only when the evidence affirmatively says the opposite:
 the event is then CONTRADICTED and held for a human, never rejected automatically.
+
+# Phase 5 code phase — 28 Sep 2026
+
+### BUG-123 — A withdrawn report's text stays in the lake's raw copy of the report stream
+**S3** · Layer 7 · **`OPEN`** · Found by: writing the withdrawal (Phase 5 T5), 28 Sep
+
+`DELETE /api/reports/{docket}` redacts the report's row and the outbox copy of its message, deletes
+its media, and takes it out of its event. The lake archiver (Phase 2 T9) has already written the
+message as published, text and coordinates included, into a batched gzipped object in `indra-lake`,
+and nothing rewrites those. Expected: a withdrawal removes the text everywhere INDRA keeps it.
+Fix options: rewrite the affected lake objects from a withdrawal queue, or keep the lake's report
+stream for a bounded time. Until then the withdrawal's own docstring and the privacy notes say so.
+
+### BUG-124 — `GET /api/reports/recent` is open and returns citizen report text and exact coordinates
+**S2** · Layer 8a · **`OPEN`** · Found by: the citizen website plan (`webpage.MD` §13), 27 Sep; recorded 28 Sep
+
+The Field Reports layer is fed by an unauthenticated route that returns each citizen report's text
+(first 300 characters) and GPS position. Tolerable while the only reports were the team's own test
+submissions; not once real citizens report from the public site. Phase 5 keeps media URLs out of it
+(ids only) but does not change the text or the coordinates, because the dashboard reads them without
+a token. Needs a decision with the frontend owner before the citizen site goes live: put the route
+behind sign-in (the dashboard already has a session) or coarsen what it returns to anyone.
