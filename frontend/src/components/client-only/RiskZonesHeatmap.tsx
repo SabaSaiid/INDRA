@@ -11,17 +11,7 @@ import {
   type StateMapFeature,
 } from '@/data/india-map-paths';
 import { cn } from '@/lib/utils';
-import {
-  Radio,
-  ShieldAlert,
-  ShieldCheck,
-  AlertTriangle,
-  Info,
-  Maximize2,
-  Compass,
-  RotateCcw,
-  Sparkles,
-} from 'lucide-react';
+import type { GeoHeatmapCell } from '@/lib/api';
 
 export interface RiskZoneFeature {
   id: string;
@@ -38,6 +28,7 @@ export interface RiskZoneFeature {
 
 interface RiskZonesHeatmapProps {
   zones: RiskZoneFeature[];
+  geoCells?: GeoHeatmapCell[];
   activeFilter?: 'all' | 'critical' | 'high' | 'medium' | 'low';
   viewMode?: 'severity' | 'fly';
   connectOvi?: boolean;
@@ -47,6 +38,7 @@ interface RiskZonesHeatmapProps {
 
 export default function RiskZonesHeatmap({
   zones,
+  geoCells = [],
   activeFilter = 'all',
   viewMode = 'severity',
   connectOvi = true,
@@ -69,7 +61,6 @@ export default function RiskZonesHeatmap({
     const animate = (timestamp: number) => {
       if (!start) start = timestamp;
       const elapsed = timestamp - start;
-      // Cycle every 4.5 seconds
       const progress = (elapsed % 4500) / 4500;
       setRadarAngle(progress * 100);
       animId = requestAnimationFrame(animate);
@@ -92,6 +83,117 @@ export default function RiskZonesHeatmap({
       return { ...z, svgX: x, svgY: y };
     });
   }, [filteredZones]);
+
+  // Real dynamic thermal spots from geoCells (H3 report density) and zones (verified events)
+  const thermalSpots = useMemo(() => {
+    const spots: Array<{
+      id: string;
+      x: number;
+      y: number;
+      outerRadius: number;
+      midRadius: number;
+      coreRadius: number;
+      coreColor: string;
+      midColor: string;
+      outerColor: string;
+      coreOpacity: number;
+      midOpacity: number;
+      outerOpacity: number;
+    }> = [];
+
+    // 1. Process real H3 report clusters (from raw_reports)
+    if (geoCells && geoCells.length > 0) {
+      const maxCount = Math.max(...geoCells.map((c) => c.report_count), 1);
+      geoCells.forEach((cell, idx) => {
+        const [x, y] = projectCoordinates(cell.lng, cell.lat);
+        if (x < 10 || x > 590 || y < 10 || y > 670) return;
+
+        const ratio = cell.report_count / maxCount;
+        const isDense = ratio > 0.35;
+        const isMed = ratio > 0.12;
+
+        spots.push({
+          id: `h3-${cell.h3 || idx}`,
+          x,
+          y,
+          outerRadius: Math.round(26 + ratio * 36),
+          midRadius: Math.round(15 + ratio * 22),
+          coreRadius: Math.round(7 + ratio * 14),
+          coreColor: isDense ? '#EF4444' : isMed ? '#F97316' : '#EAB308',
+          midColor: isDense ? '#F97316' : '#EAB308',
+          outerColor: isDense ? '#FBBF24' : '#60A5FA',
+          coreOpacity: Math.min(0.95, 0.45 + ratio * 0.5),
+          midOpacity: Math.min(0.75, 0.3 + ratio * 0.4),
+          outerOpacity: Math.min(0.45, 0.15 + ratio * 0.25),
+        });
+      });
+    }
+
+    // 2. Process real verified disaster events (from events table)
+    zones.forEach((zone) => {
+      const [x, y] = projectCoordinates(zone.lng, zone.lat);
+      if (x < 10 || x > 590 || y < 10 || y > 670) return;
+
+      const isCrit = zone.level === 'critical';
+      const isHigh = zone.level === 'high';
+      const isMed = zone.level === 'medium';
+
+      spots.push({
+        id: `zone-spot-${zone.id}`,
+        x,
+        y,
+        outerRadius: isCrit ? 58 : isHigh ? 44 : isMed ? 32 : 22,
+        midRadius: isCrit ? 34 : isHigh ? 26 : isMed ? 18 : 13,
+        coreRadius: isCrit ? 16 : isHigh ? 12 : isMed ? 8 : 5,
+        coreColor: isCrit ? '#DC2626' : isHigh ? '#F97316' : isMed ? '#EAB308' : '#3B82F6',
+        midColor: isCrit ? '#F97316' : isHigh ? '#F59E0B' : isMed ? '#FBBF24' : '#60A5FA',
+        outerColor: isCrit ? '#F59E0B' : isHigh ? '#FBBF24' : '#93C5FD',
+        coreOpacity: isCrit ? 0.92 : isHigh ? 0.8 : isMed ? 0.65 : 0.45,
+        midOpacity: isCrit ? 0.7 : isHigh ? 0.55 : isMed ? 0.45 : 0.3,
+        outerOpacity: isCrit ? 0.4 : isHigh ? 0.3 : isMed ? 0.2 : 0.15,
+      });
+    });
+
+    return spots;
+  }, [geoCells, zones]);
+
+  // Dynamically calculate threat metrics per state from real events and reports
+  const stateThreatMap = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        level: 'critical' | 'high' | 'medium' | 'low';
+        eventsCount: number;
+        totalReports: number;
+        primaryHazard: string;
+      }
+    >();
+
+    zones.forEach((z) => {
+      const stateKey = (z.state || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+      if (!stateKey) return;
+
+      const existing = map.get(stateKey) || {
+        level: 'low' as const,
+        eventsCount: 0,
+        totalReports: 0,
+        primaryHazard: z.hazard,
+      };
+
+      existing.eventsCount += 1;
+      existing.totalReports += z.reportsCount || 1;
+
+      const sevPrecedence = { critical: 4, high: 3, medium: 2, low: 1 };
+      if (sevPrecedence[z.level] > sevPrecedence[existing.level]) {
+        existing.level = z.level;
+        existing.primaryHazard = z.hazard;
+      }
+
+      map.set(stateKey, existing);
+    });
+
+    return map;
+  }, [zones]);
 
   // Handle click on zone beacon
   const handleZoneClick = (z: RiskZoneFeature, e: React.MouseEvent) => {
@@ -128,6 +230,15 @@ export default function RiskZonesHeatmap({
         </div>
       )}
 
+      {/* ── Live Data Status Indicator ── */}
+      <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 px-2 py-0.8 rounded-md bg-white/90 text-slate-700 text-[10px] font-mono shadow-xs border border-[#E8E2D4]">
+        <span className={cn("w-1.5 h-1.5 rounded-full", connectOvi ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
+        <span className="font-semibold">{zones.length} Verified Incidents</span>
+        {geoCells.length > 0 && (
+          <span className="text-slate-400">({geoCells.length} H3 Clusters)</span>
+        )}
+      </div>
+
       {/* ── Main Responsive India Risk SVG Map ── */}
       <svg
         viewBox={INDIA_MAP_VIEWBOX}
@@ -148,54 +259,18 @@ export default function RiskZonesHeatmap({
             <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#0F172A" floodOpacity="0.12" />
           </filter>
 
-          {/* ── Heatmap Color Gradients (Matching the Reference Screenshot) ── */}
-          
-          {/* 1. Southern Peninsula Blue Base */}
-          <linearGradient id="southBlueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.55" />
-            <stop offset="35%" stopColor="#93C5FD" stopOpacity="0.8" />
-            <stop offset="65%" stopColor="#60A5FA" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.9" />
+          {/* Thermal Diffusion Blur Filter for organic heat dissipation */}
+          <filter id="thermalDiffusion" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="20" result="blur" />
+          </filter>
+
+          {/* National Baseline Atmospheric Gradient */}
+          <linearGradient id="nationalAtmosphere" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#F8FAFC" stopOpacity="0.9" />
+            <stop offset="35%" stopColor="#F1F5F9" stopOpacity="0.8" />
+            <stop offset="65%" stopColor="#E2E8F0" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#93C5FD" stopOpacity="0.4" />
           </linearGradient>
-
-          {/* 2. Primary Gangetic Plains Heat Core (Red -> Orange -> Yellow -> Blue fade) */}
-          <radialGradient id="gangeticHeat" cx="46%" cy="34%" r="44%" fx="46%" fy="34%">
-            <stop offset="0%" stopColor="#DC2626" stopOpacity="0.95" />
-            <stop offset="28%" stopColor="#EF4444" stopOpacity="0.92" />
-            <stop offset="52%" stopColor="#F97316" stopOpacity="0.88" />
-            <stop offset="74%" stopColor="#EAB308" stopOpacity="0.82" />
-            <stop offset="94%" stopColor="#60A5FA" stopOpacity="0.1" />
-            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
-          </radialGradient>
-
-          {/* 3. Northern Sub-pocket (Himachal / Punjab slope) */}
-          <radialGradient id="northHeat" cx="35%" cy="19%" r="13%" fx="35%" fy="19%">
-            <stop offset="0%" stopColor="#DC2626" stopOpacity="0.95" />
-            <stop offset="55%" stopColor="#F97316" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#F97316" stopOpacity="0.0" />
-          </radialGradient>
-
-          {/* 4. Assam / Northeast Warm Flare */}
-          <radialGradient id="northeastHeat" cx="81%" cy="36%" r="20%" fx="81%" fy="36%">
-            <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.88" />
-            <stop offset="55%" stopColor="#EAB308" stopOpacity="0.65" />
-            <stop offset="100%" stopColor="#E2E8F0" stopOpacity="0.0" />
-          </radialGradient>
-
-          {/* 5. Smooth J&K Neutral Wash Fade */}
-          <linearGradient id="northNeutralFade" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0.75" />
-            <stop offset="14%" stopColor="#E2E8F0" stopOpacity="0.5" />
-            <stop offset="26%" stopColor="#EF4444" stopOpacity="0.0" />
-          </linearGradient>
-
-          {/* Real-time Breathing Glow Filter */}
-          {connectOvi && (
-            <filter id="liveGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          )}
 
           {/* Fly Mode Radar Scan Gradient */}
           <linearGradient id="radarSweepGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -213,55 +288,52 @@ export default function RiskZonesHeatmap({
           filter="url(#indiaShadow)"
         />
 
-        {/* ── 2. Regional Risk Heatmap Contours (Clipped to India Silhouette) ── */}
+        {/* ── 2. Dynamic 100% Real-Data Driven Heatmap Layer (Clipped to India Silhouette) ── */}
         <g clipPath="url(#indiaSilhouetteClip)">
-          {/* Base South Peninsula Cool Blue */}
+          {/* Baseline National Landmass Gradient */}
           <rect
             x="0"
             y="0"
             width="600"
             height="680"
-            fill="url(#southBlueGrad)"
+            fill="url(#nationalAtmosphere)"
+          />
+
+          {/* Real Thermal Emission Contours synthesized with Gaussian Diffusion */}
+          <g
+            filter="url(#thermalDiffusion)"
             className={cn(connectOvi && 'transition-opacity duration-1000')}
-          />
-
-          {/* Gangetic Core: Crimson / Red / Orange / Golden Heat Contours */}
-          <rect
-            x="0"
-            y="0"
-            width="600"
-            height="680"
-            fill="url(#gangeticHeat)"
-            className={cn(connectOvi && 'animate-pulse')}
-            style={{ animationDuration: '4s' }}
-          />
-
-          {/* Northern Himalayan High-Risk Sub-Pocket */}
-          <rect
-            x="0"
-            y="0"
-            width="600"
-            height="680"
-            fill="url(#northHeat)"
-          />
-
-          {/* Northeast / Assam Monsoon Inundation Flare */}
-          <rect
-            x="0"
-            y="0"
-            width="600"
-            height="680"
-            fill="url(#northeastHeat)"
-          />
-
-          {/* Smooth Northern Neutral Wash (Ladakh / J&K) */}
-          <rect
-            x="0"
-            y="0"
-            width="600"
-            height="680"
-            fill="url(#northNeutralFade)"
-          />
+            opacity={connectOvi ? 0.95 : 0.85}
+          >
+            {thermalSpots.map((spot) => (
+              <g key={spot.id}>
+                {/* Outer warm diffusion halo */}
+                <circle
+                  cx={spot.x}
+                  cy={spot.y}
+                  r={spot.outerRadius}
+                  fill={spot.outerColor}
+                  opacity={spot.outerOpacity}
+                />
+                {/* Mid-temperature contour */}
+                <circle
+                  cx={spot.x}
+                  cy={spot.y}
+                  r={spot.midRadius}
+                  fill={spot.midColor}
+                  opacity={spot.midOpacity}
+                />
+                {/* High-intensity thermal core */}
+                <circle
+                  cx={spot.x}
+                  cy={spot.y}
+                  r={spot.coreRadius}
+                  fill={spot.coreColor}
+                  opacity={spot.coreOpacity}
+                />
+              </g>
+            ))}
+          </g>
 
           {/* Fly / Radar Scan Beam Overlay */}
           {viewMode === 'fly' && (
@@ -286,18 +358,55 @@ export default function RiskZonesHeatmap({
           )}
         </g>
 
-        {/* ── 3. Internal State Boundaries ── */}
-        <g fill="none">
+        {/* ── 3. Internal State Boundaries with Dynamic Threat Tint ── */}
+        <g>
           {INDIA_STATES.map((state) => {
+            const stateKey = state.name.toLowerCase().replace(/[^a-z]/g, '');
+            const threat = stateThreatMap.get(stateKey);
             const isHovered = hoveredState?.id === state.id;
+
+            let fill = 'transparent';
+            let stroke = '#64748B';
+            let strokeWidth = 0.55;
+            let strokeOpacity = 0.35;
+
+            if (threat) {
+              if (threat.level === 'critical') {
+                fill = isHovered ? 'rgba(239, 68, 68, 0.28)' : 'rgba(239, 68, 68, 0.12)';
+                stroke = isHovered ? '#B91C1C' : '#DC2626';
+                strokeWidth = isHovered ? 1.5 : 0.85;
+                strokeOpacity = isHovered ? 0.95 : 0.7;
+              } else if (threat.level === 'high') {
+                fill = isHovered ? 'rgba(249, 115, 22, 0.24)' : 'rgba(249, 115, 22, 0.09)';
+                stroke = isHovered ? '#C2410C' : '#EA580C';
+                strokeWidth = isHovered ? 1.4 : 0.8;
+                strokeOpacity = isHovered ? 0.9 : 0.65;
+              } else if (threat.level === 'medium') {
+                fill = isHovered ? 'rgba(234, 179, 8, 0.20)' : 'rgba(234, 179, 8, 0.07)';
+                stroke = isHovered ? '#B45309' : '#D97706';
+                strokeWidth = isHovered ? 1.3 : 0.75;
+                strokeOpacity = isHovered ? 0.85 : 0.6;
+              } else {
+                fill = isHovered ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.05)';
+                stroke = isHovered ? '#1D4ED8' : '#3B82F6';
+                strokeWidth = isHovered ? 1.2 : 0.65;
+                strokeOpacity = isHovered ? 0.8 : 0.55;
+              }
+            } else if (isHovered) {
+              fill = 'rgba(255, 255, 255, 0.35)';
+              stroke = '#1E293B';
+              strokeWidth = 1.3;
+              strokeOpacity = 0.85;
+            }
+
             return (
               <path
                 key={state.id}
                 d={state.d}
-                stroke={isHovered ? '#1E293B' : '#475569'}
-                strokeWidth={isHovered ? 1.6 : 0.75}
-                strokeOpacity={isHovered ? 0.9 : 0.45}
-                fill={isHovered ? 'rgba(255, 255, 255, 0.35)' : 'transparent'}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                strokeOpacity={strokeOpacity}
                 className="transition-all duration-150 cursor-pointer"
                 onMouseEnter={() => setHoveredState(state)}
                 onMouseLeave={() => setHoveredState(null)}
@@ -315,7 +424,7 @@ export default function RiskZonesHeatmap({
           strokeOpacity="0.65"
         />
 
-        {/* ── 5. Sri Lanka Outline (Matching Reference Image) ── */}
+        {/* ── 5. Sri Lanka Outline (Official Reference Geometry) ── */}
         <path
           d={SRI_LANKA_PATH}
           fill="#F1F5F9"
@@ -330,11 +439,9 @@ export default function RiskZonesHeatmap({
             const isSelected = selectedZone?.id === zone.id;
             const isHovered = hoveredZone?.id === zone.id;
 
-            // Colors based on risk level
             const isCrit = zone.level === 'critical';
             const isHigh = zone.level === 'high';
             const isMed = zone.level === 'medium';
-            const isLow = zone.level === 'low';
 
             const fillColor = isCrit
               ? '#DC2626'
@@ -422,29 +529,42 @@ export default function RiskZonesHeatmap({
                 <div className="text-[10px] text-slate-300">{hoveredZone.hazard}</div>
                 <div className="text-[9px] text-slate-400 font-mono mt-0.5 flex items-center justify-between">
                   <span>{hoveredZone.state}</span>
-                  <span>{hoveredZone.reportsCount} reports</span>
+                  <span>{hoveredZone.reportsCount} field reports</span>
                 </div>
               </div>
             ) : hoveredState ? (
               <div>
-                <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <span className="font-bold text-white tracking-tight">{hoveredState.name}</span>
-                  <span
-                    className={cn(
-                      'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase',
-                      hoveredState.level === 'critical' && 'bg-red-500/20 text-red-400 border border-red-500/30',
-                      hoveredState.level === 'high' && 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
-                      hoveredState.level === 'medium' && 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
-                      hoveredState.level === 'low' && 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                    )}
-                  >
-                    {hoveredState.level}
-                  </span>
-                </div>
-                <div className="text-[10px] text-slate-300">{hoveredState.hazard}</div>
-                <div className="text-[9px] text-slate-400 font-mono mt-0.5">
-                  {hoveredState.alerts} active district alerts
-                </div>
+                {(() => {
+                  const stateKey = hoveredState.name.toLowerCase().replace(/[^a-z]/g, '');
+                  const threat = stateThreatMap.get(stateKey);
+                  return (
+                    <>
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <span className="font-bold text-white tracking-tight">{hoveredState.name}</span>
+                        <span
+                          className={cn(
+                            'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase',
+                            threat?.level === 'critical' && 'bg-red-500/20 text-red-400 border border-red-500/30',
+                            threat?.level === 'high' && 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
+                            threat?.level === 'medium' && 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+                            threat?.level === 'low' && 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+                            !threat && 'bg-slate-700/60 text-slate-300 border border-slate-600'
+                          )}
+                        >
+                          {threat ? threat.level : 'NORMAL'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-300">
+                        {threat ? threat.primaryHazard : 'Baseline Atmospheric Conditions'}
+                      </div>
+                      <div className="text-[9px] text-slate-400 font-mono mt-0.5">
+                        {threat
+                          ? `${threat.eventsCount} verified disaster events • ${threat.totalReports} reports`
+                          : 'Continuous IMD Doppler & State EOC feed active'}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : null}
           </motion.div>
