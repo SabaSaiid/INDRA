@@ -13,6 +13,8 @@ from app.api.meta import router as meta_router
 from app.api.stations import router as stations_router
 from app.api.report_search import router as report_search_router
 from app.api.review import router as review_router
+from app.api.media import router as media_router
+from app.api.admin import router as admin_router
 
 __all__ = [
     "dashboard_router",
@@ -29,5 +31,7 @@ __all__ = [
     "stations_router",
     "report_search_router",
     "review_router",
+    "media_router",
+    "admin_router",
 ]
 
