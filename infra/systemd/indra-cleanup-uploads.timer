@@ -1,0 +1,13 @@
+# Daily at 03:45 on the server's clock (Asia/Kolkata), after retention.
+# Persistent=true runs a missed day at the next boot.
+
+[Unit]
+Description=Run INDRA abandoned upload cleanup daily
+
+[Timer]
+OnCalendar=*-*-* 03:45:00
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

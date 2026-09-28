@@ -1,0 +1,21 @@
+# Aborts photo and video uploads abandoned half-way (Phase 5 T1): a session
+# still `uploading` after MEDIA_WINDOW_HOURS can never finish, so its parts are
+# freed in the store and its row marked `rejected` (`abandoned`).
+# Run once a day by indra-cleanup-uploads.timer. Idempotent.
+#
+#   sudo systemctl start indra-cleanup-uploads.service
+#   sudo journalctl -u indra-cleanup-uploads -n 50
+
+[Unit]
+Description=INDRA abandoned upload cleanup
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=kali
+WorkingDirectory=/opt/indra
+EnvironmentFile=/opt/indra/.env
+ExecStart=/opt/indra/.venv/bin/python scripts/cleanup_uploads.py
+StandardOutput=journal
+StandardError=journal
