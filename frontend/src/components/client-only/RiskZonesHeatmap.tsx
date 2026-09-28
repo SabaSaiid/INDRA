@@ -1,10 +1,27 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import * as maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  INDIA_STATES,
+  COMBINED_INDIA_PATH,
+  SRI_LANKA_PATH,
+  INDIA_MAP_VIEWBOX,
+  projectCoordinates,
+  type StateMapFeature,
+} from '@/data/india-map-paths';
 import { cn } from '@/lib/utils';
-import { RotateCcw } from 'lucide-react';
+import {
+  Radio,
+  ShieldAlert,
+  ShieldCheck,
+  AlertTriangle,
+  Info,
+  Maximize2,
+  Compass,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
 
 export interface RiskZoneFeature {
   id: string;
@@ -28,39 +45,6 @@ interface RiskZonesHeatmapProps {
   className?: string;
 }
 
-// Light carto basemap style matching the reference image
-const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-  sources: {
-    carto_light: {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-      ],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors, © CARTO',
-    },
-  },
-  layers: [
-    {
-      id: 'carto-light-layer',
-      type: 'raster',
-      source: 'carto_light',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  ],
-};
-
-// India geographic bounds
-const INDIA_BOUNDS: [[number, number], [number, number]] = [
-  [68.1, 7.5],   // Southwest coordinates [lng, lat]
-  [97.4, 35.5],  // Northeast coordinates [lng, lat]
-];
-
 export default function RiskZonesHeatmap({
   zones,
   activeFilter = 'all',
@@ -69,374 +53,428 @@ export default function RiskZonesHeatmap({
   onZoneSelect,
   className,
 }: RiskZonesHeatmapProps) {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredState, setHoveredState] = useState<StateMapFeature | null>(null);
   const [hoveredZone, setHoveredZone] = useState<RiskZoneFeature | null>(null);
+  const [selectedZone, setSelectedZone] = useState<RiskZoneFeature | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
-  const flyTourTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const currentTourIndexRef = useRef(0);
-  const zonesRef = useRef(zones);
-  zonesRef.current = zones;
-  const onZoneSelectRef = useRef(onZoneSelect);
-  onZoneSelectRef.current = onZoneSelect;
+  const [radarAngle, setRadarAngle] = useState(0);
+
+  // Radar sweep animation when in "Fly / Real" mode
+  useEffect(() => {
+    if (viewMode !== 'fly') return;
+    let animId: number;
+    let start: number | null = null;
+
+    const animate = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      // Cycle every 4.5 seconds
+      const progress = (elapsed % 4500) / 4500;
+      setRadarAngle(progress * 100);
+      animId = requestAnimationFrame(animate);
+    };
+
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [viewMode]);
 
   // Filter features based on activeFilter
-  const filteredZones = React.useMemo(() => {
+  const filteredZones = useMemo(() => {
     if (activeFilter === 'all') return zones;
     return zones.filter((z) => z.level === activeFilter);
   }, [zones, activeFilter]);
 
-  // Convert zones to GeoJSON FeatureCollection
-  const geojsonData: GeoJSON.FeatureCollection<GeoJSON.Point> = React.useMemo(() => ({
-    type: 'FeatureCollection',
-    features: filteredZones.map((z) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [z.lng, z.lat],
-      },
-      properties: {
-        id: z.id,
-        name: z.name,
-        state: z.state,
-        level: z.level,
-        score: z.score,
-        hazard: z.hazard,
-        reportsCount: z.reportsCount,
-        verified: z.verified ? 1 : 0,
-        // Intensity weight for heatmap: Critical=1.0, High=0.75, Medium=0.5, Low=0.25
-        weight: z.level === 'critical' ? 1.0 : z.level === 'high' ? 0.75 : z.level === 'medium' ? 0.5 : 0.25,
-      },
-    })),
-  }), [filteredZones]);
-
-  // Initialize MapLibre instance
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: LIGHT_MAP_STYLE,
-      center: [79.2, 22.8],
-      zoom: 3.8,
-      minZoom: 3.2,
-      maxZoom: 10,
-      maxBounds: [
-        [60.0, 4.0],
-        [105.0, 39.0],
-      ],
-      attributionControl: false,
-      dragRotate: false,
-      pitchWithRotate: false,
+  // Projected coordinates for zones
+  const projectedZones = useMemo(() => {
+    return filteredZones.map((z) => {
+      const [x, y] = projectCoordinates(z.lng, z.lat);
+      return { ...z, svgX: x, svgY: y };
     });
+  }, [filteredZones]);
 
-    map.fitBounds(INDIA_BOUNDS, {
-      padding: { top: 20, bottom: 20, left: 20, right: 20 },
-      animate: false,
-    });
+  // Handle click on zone beacon
+  const handleZoneClick = (z: RiskZoneFeature, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = selectedZone?.id === z.id ? null : z;
+    setSelectedZone(next);
+    onZoneSelect?.(next);
+  };
 
-    map.on('load', () => {
-      // 1. Add Source
-      map.addSource('risk-zones-source', {
-        type: 'geojson',
-        data: geojsonData,
-      });
-
-      // 2. Add Hardware-Accelerated Heatmap Layer
-      map.addLayer({
-        id: 'risk-zones-heatmap',
-        type: 'heatmap',
-        source: 'risk-zones-source',
-        maxzoom: 9,
-        paint: {
-          // Point weight based on score
-          'heatmap-weight': [
-            'interpolate',
-            ['linear'],
-            ['get', 'weight'],
-            0, 0.1,
-            1, 1.0,
-          ],
-          // Heatmap intensity by zoom level
-          'heatmap-intensity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            3, 1.2,
-            7, 2.5,
-          ],
-          // Color ramp matching reference: Blue (Low) -> Yellow (Medium) -> Orange (High) -> Red (Critical)
-          'heatmap-color': [
-            'interpolate',
-            ['linear'],
-            ['heatmap-density'],
-            0.0, 'rgba(255, 255, 255, 0)',
-            0.15, 'rgba(59, 130, 246, 0.55)',   // Blue (Low)
-            0.38, 'rgba(234, 179, 8, 0.75)',    // Yellow (Medium)
-            0.65, 'rgba(249, 115, 22, 0.85)',   // Orange (High)
-            0.92, 'rgba(239, 68, 68, 0.95)',    // Red (Critical)
-          ],
-          // Heatmap radius: increases smoothly as you zoom in
-          'heatmap-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            3, 22,
-            6, 42,
-            9, 65,
-          ],
-          'heatmap-opacity': 0.88,
-        },
-      });
-
-      // 3. Hotspot circle markers for interactive hover & inspection
-      map.addLayer({
-        id: 'risk-zones-points',
-        type: 'circle',
-        source: 'risk-zones-source',
-        minzoom: 3.5,
-        paint: {
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            3.5, 4,
-            7, 8,
-          ],
-          'circle-color': [
-            'match',
-            ['get', 'level'],
-            'critical', '#EF4444',
-            'high', '#F97316',
-            'medium', '#EAB308',
-            /* default / low */ '#3B82F6',
-          ],
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#FFFFFF',
-          'circle-opacity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            3.5, 0.4,
-            5.5, 0.85,
-          ],
-        },
-      });
-
-      // 4. Subtle Outer Pulse Glow for Critical / High zones
-      map.addLayer({
-        id: 'risk-zones-glow',
-        type: 'circle',
-        source: 'risk-zones-source',
-        filter: ['in', ['get', 'level'], ['literal', ['critical', 'high']]],
-        paint: {
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            3.5, 8,
-            7, 18,
-          ],
-          'circle-color': [
-            'match',
-            ['get', 'level'],
-            'critical', '#EF4444',
-            'high', '#F97316',
-            '#F97316',
-          ],
-          'circle-opacity': 0.22,
-          'circle-stroke-width': 1,
-          'circle-stroke-color': [
-            'match',
-            ['get', 'level'],
-            'critical', '#EF4444',
-            'high', '#F97316',
-            '#F97316',
-          ],
-          'circle-stroke-opacity': 0.45,
-        },
-      });
-
-      setMapLoaded(true);
-    });
-
-    // Hover tooltip tracking
-    map.on('mousemove', 'risk-zones-points', (e) => {
-      if (e.features && e.features.length > 0) {
-        map.getCanvas().style.cursor = 'pointer';
-        const props = e.features[0].properties as any;
-        const matched = zonesRef.current.find((z) => z.id === props.id);
-        if (matched) {
-          setHoveredZone(matched);
-          setTooltipPos({ x: e.point.x, y: e.point.y });
-        }
-      }
-    });
-
-    map.on('mouseleave', 'risk-zones-points', () => {
-      map.getCanvas().style.cursor = '';
-      setHoveredZone(null);
-      setTooltipPos(null);
-    });
-
-    map.on('click', 'risk-zones-points', (e) => {
-      if (e.features && e.features.length > 0) {
-        const props = e.features[0].properties as any;
-        const matched = zonesRef.current.find((z) => z.id === props.id);
-        if (matched) {
-          onZoneSelectRef.current?.(matched);
-          map.flyTo({
-            center: [matched.lng, matched.lat],
-            zoom: 6.5,
-            duration: 1200,
-          });
-        }
-      }
-    });
-
-    mapRef.current = map;
-
-    // Optimized ResizeObserver to prevent canvas stretch/distortion
-    const resizeObserver = new ResizeObserver(() => {
-      map.resize();
-    });
-    resizeObserver.observe(mapContainerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-      if (flyTourTimerRef.current) clearInterval(flyTourTimerRef.current);
-      map.remove();
-      mapRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sync data dynamically without recreating the map
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
-    const source = mapRef.current.getSource('risk-zones-source') as maplibregl.GeoJSONSource;
-    if (source) {
-      source.setData(geojsonData);
-    }
-  }, [geojsonData, mapLoaded]);
-
-  // Handle "Fly / Real" mode
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
-
-    if (viewMode === 'fly') {
-      const topZones = zones.filter((z) => z.level === 'critical' || z.level === 'high');
-      if (topZones.length === 0) return;
-
-      currentTourIndexRef.current = 0;
-      const flyToNext = () => {
-        const target = topZones[currentTourIndexRef.current % topZones.length];
-        currentTourIndexRef.current++;
-        mapRef.current?.flyTo({
-          center: [target.lng, target.lat],
-          zoom: 5.8,
-          duration: 3500,
-          essential: true,
-        });
-      };
-
-      flyToNext();
-      flyTourTimerRef.current = setInterval(flyToNext, 6500);
-
-      return () => {
-        if (flyTourTimerRef.current) clearInterval(flyTourTimerRef.current);
-      };
-    } else {
-      if (flyTourTimerRef.current) clearInterval(flyTourTimerRef.current);
-      mapRef.current.fitBounds(INDIA_BOUNDS, {
-        padding: { top: 20, bottom: 20, left: 20, right: 20 },
-        duration: 1500,
-      });
-    }
-  }, [viewMode, mapLoaded, zones]);
-
-  // Reset to full view helper
-  const handleResetView = useCallback(() => {
-    if (!mapRef.current) return;
-    mapRef.current.fitBounds(INDIA_BOUNDS, {
-      padding: { top: 20, bottom: 20, left: 20, right: 20 },
-      duration: 1200,
+  // Handle mouse move for floating tooltip position
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setTooltipPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
     });
   }, []);
 
   return (
-    <div className={cn('relative w-full h-full min-h-[320px] overflow-hidden rounded-xl bg-slate-50 border border-slate-100', className)}>
-      {/* MapLibre WebGL Canvas Container */}
-      <div ref={mapContainerRef} className="w-full h-full" />
-
-      {/* Floating Tactical Overlay Controls */}
-      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-        <button
-          type="button"
-          onClick={handleResetView}
-          title="Reset to All-India View"
-          className="p-1.5 rounded-md bg-white/95 text-slate-700 shadow-2xs border border-slate-200/80 hover:bg-white hover:text-slate-900 transition-all cursor-pointer backdrop-blur-xs text-[11px] font-mono flex items-center gap-1"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-          <span className="hidden sm:inline">Reset</span>
-        </button>
-      </div>
-
-      {/* OVI Status Pulse Badge inside map */}
-      {connectOvi && (
-        <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/95 border border-emerald-200 shadow-2xs backdrop-blur-xs text-[10px] font-mono text-emerald-800">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="font-semibold">OVI Real-time</span>
-          <span className="text-[9px] text-slate-400">· 60fps WebGL</span>
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className={cn(
+        'relative w-full h-full min-h-[300px] flex items-center justify-center select-none overflow-hidden rounded-xl bg-gradient-to-b from-[#FAF8F5] to-[#F3EFE8]/70 border border-[#E8E2D4]/60 p-1 sm:p-2',
+        className
+      )}
+    >
+      {/* ── Top-right Fly / Radar Telemetry Badge (when fly active) ── */}
+      {viewMode === 'fly' && (
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900/90 text-white text-[10px] font-mono shadow-sm backdrop-blur-xs border border-slate-700">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+          <span>RADAR: DOPPLER SWEEP (0.22Hz)</span>
         </div>
       )}
 
-      {/* Interactive Hover Tooltip */}
-      {hoveredZone && tooltipPos && (
-        <div
-          className="absolute pointer-events-none z-30 transform -translate-x-1/2 -translate-y-full -mt-2 bg-slate-900/95 text-white p-2.5 rounded-lg shadow-xl border border-slate-700/80 backdrop-blur-md text-[11px] min-w-[180px]"
-          style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
-        >
-          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1 mb-1">
-            <span className="font-semibold text-white truncate">{hoveredZone.name}</span>
-            <span
-              className={cn(
-                'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                hoveredZone.level === 'critical'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : hoveredZone.level === 'high'
-                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                  : hoveredZone.level === 'medium'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-              )}
-            >
-              {hoveredZone.level}
-            </span>
-          </div>
+      {/* ── Main Responsive India Risk SVG Map ── */}
+      <svg
+        viewBox={INDIA_MAP_VIEWBOX}
+        className={cn(
+          'w-full h-full max-h-[360px] sm:max-h-[390px] drop-shadow-sm transition-transform duration-300',
+          viewMode === 'fly' && 'scale-[1.02]'
+        )}
+        style={{ overflow: 'visible' }}
+      >
+        <defs>
+          {/* India Boundary Clip Path */}
+          <clipPath id="indiaSilhouetteClip">
+            <path d={COMBINED_INDIA_PATH} />
+          </clipPath>
 
-          <div className="space-y-0.5 text-slate-300 text-[10px]">
-            <div className="flex justify-between">
-              <span className="text-slate-400">State:</span>
-              <span className="font-medium text-slate-200">{hoveredZone.state}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Primary Hazard:</span>
-              <span className="font-medium text-slate-200">{hoveredZone.hazard}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Risk Score:</span>
-              <span className="font-mono font-bold text-amber-400">{Math.round(hoveredZone.score * 100)}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Citizen Reports:</span>
-              <span className="font-mono text-slate-200">{hoveredZone.reportsCount}</span>
-            </div>
-          </div>
+          {/* India Landmass Drop Shadow */}
+          <filter id="indiaShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#0F172A" floodOpacity="0.12" />
+          </filter>
+
+          {/* ── Heatmap Color Gradients (Matching the Reference Screenshot) ── */}
+          
+          {/* 1. Southern Peninsula Blue Base */}
+          <linearGradient id="southBlueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.55" />
+            <stop offset="35%" stopColor="#93C5FD" stopOpacity="0.8" />
+            <stop offset="65%" stopColor="#60A5FA" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.9" />
+          </linearGradient>
+
+          {/* 2. Primary Gangetic Plains Heat Core (Red -> Orange -> Yellow -> Blue fade) */}
+          <radialGradient id="gangeticHeat" cx="46%" cy="34%" r="44%" fx="46%" fy="34%">
+            <stop offset="0%" stopColor="#DC2626" stopOpacity="0.95" />
+            <stop offset="28%" stopColor="#EF4444" stopOpacity="0.92" />
+            <stop offset="52%" stopColor="#F97316" stopOpacity="0.88" />
+            <stop offset="74%" stopColor="#EAB308" stopOpacity="0.82" />
+            <stop offset="94%" stopColor="#60A5FA" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
+          </radialGradient>
+
+          {/* 3. Northern Sub-pocket (Himachal / Punjab slope) */}
+          <radialGradient id="northHeat" cx="35%" cy="19%" r="13%" fx="35%" fy="19%">
+            <stop offset="0%" stopColor="#DC2626" stopOpacity="0.95" />
+            <stop offset="55%" stopColor="#F97316" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#F97316" stopOpacity="0.0" />
+          </radialGradient>
+
+          {/* 4. Assam / Northeast Warm Flare */}
+          <radialGradient id="northeastHeat" cx="81%" cy="36%" r="20%" fx="81%" fy="36%">
+            <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.88" />
+            <stop offset="55%" stopColor="#EAB308" stopOpacity="0.65" />
+            <stop offset="100%" stopColor="#E2E8F0" stopOpacity="0.0" />
+          </radialGradient>
+
+          {/* 5. Smooth J&K Neutral Wash Fade */}
+          <linearGradient id="northNeutralFade" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0.75" />
+            <stop offset="14%" stopColor="#E2E8F0" stopOpacity="0.5" />
+            <stop offset="26%" stopColor="#EF4444" stopOpacity="0.0" />
+          </linearGradient>
+
+          {/* Real-time Breathing Glow Filter */}
+          {connectOvi && (
+            <filter id="liveGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          )}
+
+          {/* Fly Mode Radar Scan Gradient */}
+          <linearGradient id="radarSweepGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#10B981" stopOpacity="0.0" />
+            <stop offset="70%" stopColor="#10B981" stopOpacity="0.15" />
+            <stop offset="98%" stopColor="#10B981" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#34D399" stopOpacity="0.9" />
+          </linearGradient>
+        </defs>
+
+        {/* ── 1. Base Silhouette & Drop Shadow ── */}
+        <path
+          d={COMBINED_INDIA_PATH}
+          fill="#FAF8F5"
+          filter="url(#indiaShadow)"
+        />
+
+        {/* ── 2. Regional Risk Heatmap Contours (Clipped to India Silhouette) ── */}
+        <g clipPath="url(#indiaSilhouetteClip)">
+          {/* Base South Peninsula Cool Blue */}
+          <rect
+            x="0"
+            y="0"
+            width="600"
+            height="680"
+            fill="url(#southBlueGrad)"
+            className={cn(connectOvi && 'transition-opacity duration-1000')}
+          />
+
+          {/* Gangetic Core: Crimson / Red / Orange / Golden Heat Contours */}
+          <rect
+            x="0"
+            y="0"
+            width="600"
+            height="680"
+            fill="url(#gangeticHeat)"
+            className={cn(connectOvi && 'animate-pulse')}
+            style={{ animationDuration: '4s' }}
+          />
+
+          {/* Northern Himalayan High-Risk Sub-Pocket */}
+          <rect
+            x="0"
+            y="0"
+            width="600"
+            height="680"
+            fill="url(#northHeat)"
+          />
+
+          {/* Northeast / Assam Monsoon Inundation Flare */}
+          <rect
+            x="0"
+            y="0"
+            width="600"
+            height="680"
+            fill="url(#northeastHeat)"
+          />
+
+          {/* Smooth Northern Neutral Wash (Ladakh / J&K) */}
+          <rect
+            x="0"
+            y="0"
+            width="600"
+            height="680"
+            fill="url(#northNeutralFade)"
+          />
+
+          {/* Fly / Radar Scan Beam Overlay */}
+          {viewMode === 'fly' && (
+            <g>
+              <rect
+                x="0"
+                y={`${radarAngle * 6.5 - 80}`}
+                width="600"
+                height="80"
+                fill="url(#radarSweepGrad)"
+              />
+              <line
+                x1="0"
+                y1={`${radarAngle * 6.5}`}
+                x2="600"
+                y2={`${radarAngle * 6.5}`}
+                stroke="#10B981"
+                strokeWidth="1.8"
+                strokeOpacity="0.85"
+              />
+            </g>
+          )}
+        </g>
+
+        {/* ── 3. Internal State Boundaries ── */}
+        <g fill="none">
+          {INDIA_STATES.map((state) => {
+            const isHovered = hoveredState?.id === state.id;
+            return (
+              <path
+                key={state.id}
+                d={state.d}
+                stroke={isHovered ? '#1E293B' : '#475569'}
+                strokeWidth={isHovered ? 1.6 : 0.75}
+                strokeOpacity={isHovered ? 0.9 : 0.45}
+                fill={isHovered ? 'rgba(255, 255, 255, 0.35)' : 'transparent'}
+                className="transition-all duration-150 cursor-pointer"
+                onMouseEnter={() => setHoveredState(state)}
+                onMouseLeave={() => setHoveredState(null)}
+              />
+            );
+          })}
+        </g>
+
+        {/* ── 4. Outer Boundary Definition ── */}
+        <path
+          d={COMBINED_INDIA_PATH}
+          fill="none"
+          stroke="#334155"
+          strokeWidth="1.15"
+          strokeOpacity="0.65"
+        />
+
+        {/* ── 5. Sri Lanka Outline (Matching Reference Image) ── */}
+        <path
+          d={SRI_LANKA_PATH}
+          fill="#F1F5F9"
+          stroke="#64748B"
+          strokeWidth="0.8"
+          strokeOpacity="0.75"
+        />
+
+        {/* ── 6. Interactive Risk Zone Beacons ── */}
+        <g>
+          {projectedZones.map((zone) => {
+            const isSelected = selectedZone?.id === zone.id;
+            const isHovered = hoveredZone?.id === zone.id;
+
+            // Colors based on risk level
+            const isCrit = zone.level === 'critical';
+            const isHigh = zone.level === 'high';
+            const isMed = zone.level === 'medium';
+            const isLow = zone.level === 'low';
+
+            const fillColor = isCrit
+              ? '#DC2626'
+              : isHigh
+              ? '#F97316'
+              : isMed
+              ? '#EAB308'
+              : '#3B82F6';
+
+            const outerRadius = isCrit ? (isSelected ? 9 : 7) : isHigh ? 6 : 4.5;
+            const innerRadius = isCrit ? (isSelected ? 4 : 3.2) : isHigh ? 2.8 : 2.2;
+
+            return (
+              <g
+                key={zone.id}
+                className="cursor-pointer transition-transform"
+                onClick={(e) => handleZoneClick(zone, e)}
+                onMouseEnter={() => setHoveredZone(zone)}
+                onMouseLeave={() => setHoveredZone(null)}
+              >
+                {/* Pulsing Outer Ring for Critical and High zones */}
+                {(isCrit || isHigh || isSelected) && (
+                  <circle
+                    cx={zone.svgX}
+                    cy={zone.svgY}
+                    r={outerRadius * 1.8}
+                    fill={fillColor}
+                    opacity={isSelected ? 0.5 : 0.3}
+                    className={isCrit ? 'animate-ping' : undefined}
+                    style={{
+                      transformOrigin: `${zone.svgX}px ${zone.svgY}px`,
+                      animationDuration: '2.4s',
+                    }}
+                  />
+                )}
+
+                {/* Beacon Core Dot */}
+                <circle
+                  cx={zone.svgX}
+                  cy={zone.svgY}
+                  r={innerRadius}
+                  fill={fillColor}
+                  stroke="#FFFFFF"
+                  strokeWidth={isCrit || isSelected ? 1.2 : 0.8}
+                  className="transition-all duration-150 hover:scale-125"
+                />
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+
+      {/* ── Floating Tooltip / Popover for State or Zone Hover ── */}
+      <AnimatePresence>
+        {(hoveredZone || hoveredState) && tooltipPos && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.12 }}
+            style={{
+              position: 'absolute',
+              left: Math.min(Math.max(tooltipPos.x - 70, 10), (containerRef.current?.clientWidth || 300) - 180),
+              top: Math.max(tooltipPos.y - 75, 10),
+              pointerEvents: 'none',
+            }}
+            className="z-30 px-2.5 py-1.5 rounded-lg bg-slate-900/95 text-white shadow-xl text-xs font-sans border border-slate-700 backdrop-blur-xs min-w-[150px]"
+          >
+            {hoveredZone ? (
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <span className="font-bold text-white tracking-tight">{hoveredZone.name}</span>
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase',
+                      hoveredZone.level === 'critical' && 'bg-red-500/20 text-red-400 border border-red-500/30',
+                      hoveredZone.level === 'high' && 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
+                      hoveredZone.level === 'medium' && 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+                      hoveredZone.level === 'low' && 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    )}
+                  >
+                    {hoveredZone.level}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-300">{hoveredZone.hazard}</div>
+                <div className="text-[9px] text-slate-400 font-mono mt-0.5 flex items-center justify-between">
+                  <span>{hoveredZone.state}</span>
+                  <span>{hoveredZone.reportsCount} reports</span>
+                </div>
+              </div>
+            ) : hoveredState ? (
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <span className="font-bold text-white tracking-tight">{hoveredState.name}</span>
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase',
+                      hoveredState.level === 'critical' && 'bg-red-500/20 text-red-400 border border-red-500/30',
+                      hoveredState.level === 'high' && 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
+                      hoveredState.level === 'medium' && 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+                      hoveredState.level === 'low' && 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    )}
+                  >
+                    {hoveredState.level}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-300">{hoveredState.hazard}</div>
+                <div className="text-[9px] text-slate-400 font-mono mt-0.5">
+                  {hoveredState.alerts} active district alerts
+                </div>
+              </div>
+            ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Active Zone Selection Badge (if pinned) ── */}
+      {selectedZone && (
+        <div className="absolute bottom-2 left-2 z-20 flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/95 text-slate-800 text-[11px] shadow-sm border border-[#E8E2D4]">
+          <span
+            className={cn(
+              'w-2 h-2 rounded-full',
+              selectedZone.level === 'critical' && 'bg-red-500',
+              selectedZone.level === 'high' && 'bg-orange-500',
+              selectedZone.level === 'medium' && 'bg-amber-500',
+              selectedZone.level === 'low' && 'bg-blue-500'
+            )}
+          />
+          <span className="font-semibold">{selectedZone.name}</span>
+          <span className="text-slate-400 font-mono">({selectedZone.hazard})</span>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedZone(null);
+              onZoneSelect?.(null);
+            }}
+            className="text-slate-400 hover:text-slate-700 ml-1 text-xs"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>

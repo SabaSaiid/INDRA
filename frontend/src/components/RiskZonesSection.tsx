@@ -522,69 +522,77 @@ export default function RiskZonesSection() {
               </span>
             </div>
 
-            {/* 4 Metric Slider Bars */}
-            <div className="space-y-2.5">
+            {/* 4 Metric Slider Bars with circular thumbs */}
+            <div className="space-y-3 pt-1">
               {/* 1. Independent-source agreement */}
               <div>
-                <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
                   <span>Independent-source agreement</span>
                   <span className="font-mono font-bold text-slate-900">{metrics.independentSource}%</span>
                 </div>
-                <div className="relative h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-teal-600 rounded-full"
+                    className="h-full bg-[#0D9488] rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.independentSource}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
-                  />
+                  >
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                  </motion.div>
                 </div>
               </div>
 
               {/* 2. Weather-station agreement */}
               <div>
-                <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
                   <span>Weather-station agreement</span>
                   <span className="font-mono font-bold text-slate-900">{metrics.weatherStation}%</span>
                 </div>
-                <div className="relative h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-teal-600 rounded-full"
+                    className="h-full bg-[#0D9488] rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.weatherStation}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
-                  />
+                  >
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                  </motion.div>
                 </div>
               </div>
 
               {/* 3. Location and Time consistency */}
               <div>
-                <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
                   <span>Location and Time consistency</span>
                   <span className="font-mono font-bold text-slate-900">{metrics.locationTime}%</span>
                 </div>
-                <div className="relative h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-teal-600 rounded-full"
+                    className="h-full bg-[#0D9488] rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.locationTime}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-                  />
+                  >
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                  </motion.div>
                 </div>
               </div>
 
               {/* 4. Source reliability (avg.) */}
               <div>
-                <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-800 mb-1.5">
                   <span>Source reliability (avg.)</span>
                   <span className="font-mono font-bold text-slate-900">{metrics.sourceReliability}%</span>
                 </div>
-                <div className="relative h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div className="relative h-2.5 w-full bg-slate-200/85 rounded-full">
                   <motion.div
-                    className="h-full bg-teal-600 rounded-full"
+                    className="h-full bg-[#0D9488] rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${metrics.sourceReliability}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
-                  />
+                  >
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-slate-300 block z-10" />
+                  </motion.div>
                 </div>
               </div>
             </div>
