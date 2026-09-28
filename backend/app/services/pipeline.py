@@ -2171,6 +2171,26 @@ def _state_of(confidence: Any, verdict: Any, review_status: Any, severity: Any) 
     }
 
 
+def _with_media_block(stored: Dict[str, Any], fresh: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    The stored receipt with only its media block and its vision line's wording
+    taken from a fresh scoring (Phase 5), or None when they already agree.
+    """
+    if stored.get("media") == fresh.get("media"):
+        return None
+    out = json.loads(json.dumps(stored, default=str))
+    if fresh.get("media"):
+        out["media"] = fresh["media"]
+    else:
+        out.pop("media", None)
+    vision = next((f.get("evidence") for f in fresh.get("factors") or []
+                   if f.get("key") == "vision_analysis"), None)
+    for factor in out.get("factors") or []:
+        if factor.get("key") == "vision_analysis" and vision:
+            factor["evidence"] = vision
+    return out
+
+
 async def rescore_event(
     db: AsyncSession,
     event_id: UUID,
@@ -2299,7 +2319,21 @@ async def rescore_event(
 
         after = _state_of(confidence, verdict, review_status, severity)
         if after == before:
-            await db.rollback()
+            # Phase 5: a clean photo changes no number, but it still belongs
+            # in the receipt's media line ("1 photo checked: … no reuse
+            # found"). That block is information, not a factor, so only it and
+            # the vision line's wording are refreshed in place: no snapshot,
+            # no ledger row, and nothing else in the stored receipt moves.
+            refreshed = _with_media_block(old_receipt, receipt)
+            if refreshed is None:
+                await db.rollback()
+                return None
+            await db.execute(
+                text("UPDATE verified_events SET verification_receipt = CAST(:r AS jsonb) "
+                     "WHERE id = CAST(:id AS uuid)"),
+                {"id": str(event_id), "r": json.dumps(refreshed, default=str)},
+            )
+            await db.commit()
             return None
 
         receipt["late_corroboration"] = {
