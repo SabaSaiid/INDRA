@@ -72,7 +72,9 @@ async def run(dry_run: bool) -> int:
     from sqlalchemy.ext.asyncio import create_async_engine
 
     from app.core.config import get_settings
+    from app.services import reputation
     from app.services.ingest import derive_text_fields
+    from app.services.report_flags import TEXT_FLAGS
 
     engine = create_async_engine(get_settings().DATABASE_URL, echo=False)
     scanned = changed = 0
@@ -86,14 +88,24 @@ async def run(dry_run: bool) -> int:
                 updates = []
                 for rid, raw_text, source_type, analysis, primary, family, flags, credibility in rows:
                     scanned += 1
-                    # `coordinated` comes from other reports, not the text:
-                    # kept as the pipeline set it, with its reason.
-                    kept = [f for f in (flags or []) if f == "coordinated"]
-                    new = derive_text_fields(source_type, raw_text or "", rid, extra_flags=kept)
-                    if kept and new["analysis"] is not None and analysis:
-                        reason = (analysis.get("flag_basis") or {}).get("coordinated")
-                        if reason:
-                            new["analysis"].setdefault("flag_basis", {})["coordinated"] = reason
+                    # Flags the text cannot show — `coordinated` (other
+                    # reports), and since Phase 5 the media and account flags —
+                    # are kept as they were set, with their reasons.
+                    kept = [f for f in (flags or []) if f not in TEXT_FLAGS]
+                    reasons = (analysis or {}).get("flag_basis") or {}
+                    new = derive_text_fields(
+                        source_type, raw_text or "", rid, extra_flags=kept,
+                        extra_basis={f: reasons[f] for f in kept if f in reasons},
+                    )
+                    # Phase 5 T6: the reporter's record as it stood when the
+                    # report was stored is applied again, not dropped.
+                    record = (analysis or {}).get("reputation")
+                    if record and new["analysis"] is not None:
+                        adjusted = reputation.apply(new["credibility"], record["approved"], record["rejected"])
+                        new["analysis"]["reputation"] = reputation.reputation_basis(
+                            record["approved"], record["rejected"], new["credibility"], adjusted
+                        )
+                        new["credibility"] = adjusted
                     same = (
                         _comparable(new["analysis"]) == _comparable(analysis)
                         and new["hazard_primary"] == primary
