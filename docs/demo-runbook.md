@@ -303,7 +303,7 @@ exact sum of its children, nothing smoothed or spread.
 
 ---
 
-## Scene 5b — A fabricated heatwave, caught by a thermometer (Phase 4)
+## Scene 5b — A fabricated heatwave caught by a thermometer, and a recycled photo (Phases 4 and 5)
 
 *Run live on the server 27 Sep, 23:32 IST: case A was Uttarkashi under an Extreme Uttarakhand SDMA
 rain warning with 54.6 mm fallen, **0.712 CORROBORATED**; case B was five "47 degree" reports 5 km
@@ -331,6 +331,23 @@ it never invents one. Offline, replay the recording (it prints the time it was r
 ```bash
 backend/.venv/bin/python scripts/run_verification_demo.py --frozen data/demo/verification_cases.json
 ```
+
+**Case C, a recycled 2023 flood photo (Phase 5).** The same command prints a third case: a citizen
+flood report whose photo is a re-save of an image first seen on Mastodon three days earlier, with
+the camera date 14 Aug 2023. Both pictures are drawn by the script and labelled synthetic; the
+extraction and the rules are the media worker's own. Live on the server 28 Sep, 19:54 IST, the
+closing lines read:
+
+```
+A  genuine urban flood, Muzaffarpur, Bihar  → CORROBORATED  (official 0.85, weather 0.00; confidence 0.537)
+B  fabricated heatwave, Ranchi, Jharkhand   → CONTRADICTED  (VERC max 24.0 °C)
+C  recycled 2023 flood photo                → media flagged (first seen 25 Sep; taken 14 Aug 2023)
+```
+
+Point at C's two reasons, then at "the report is kept and shown: flagged, never rejected". Its
+credibility falls 0.6 → 0.072, so it counts 0.12 of a witness. If asked "does it look at the
+picture?": no, it checks reuse and metadata only; `vision_analysis` is offline by design. For a
+real example, Q&A "What if the photo is old?" has the two re-posted images found in real posts.
 
 ---
 

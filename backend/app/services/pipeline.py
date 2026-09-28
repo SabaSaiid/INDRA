@@ -61,6 +61,7 @@ from app.services.official_warnings import official_warning_evidence
 from app.services.event_typing import decide_event_type
 from app.services.hazards import family_of, types_in_family
 from app.services.geo_clustering import GeoClusteringService, family_params
+from app.services.media_rules import VISION_OFFLINE_TEXT
 from app.services.report_flags import CREDIBILITY_FLOOR, FLAGS
 from app.services.geocoding import reverse_geocode
 from app.services.ml_adapter import analyze_stored_event_group, analyze_stored_report
@@ -421,10 +422,18 @@ def score_cluster(
     eps_km: Optional[float] = None,
     cluster_basis: Optional[Dict[str, Any]] = None,
     evidence: Optional[Dict[str, Any]] = None,
+    media: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Pure scoring step: cluster geometry + source mix + evidence + report text →
     receipt v2, verdict, severity, quadrant and review status.
+
+    **Phase 5** passes `media`, _event_media()'s summary of the cluster's
+    photos and videos. It is information, not a factor: the reuse and metadata
+    flags already lowered each report's credibility, and so n_eff. The receipt
+    gains a `media` block with its line, and `vision_analysis` stays offline
+    with the words "image content is not analysed; media is checked for reuse
+    and metadata only".
 
     **Phase 4** passes `evidence`, _gather_evidence()'s bundle: the weather
     factor for this hazard (station or model, T1–T2), the official warning
@@ -513,7 +522,10 @@ def score_cluster(
         "source_reliability": reliability_text,
         "weather_station": weather_ev.reason or None,
         "official_warning": official_ev.reason or None,
-        "vision_analysis": "layer 4 (AI/ML) is out of scope: permanently offline",
+        "vision_analysis": (
+            "layer 4 (AI/ML) is out of scope: permanently offline; " + VISION_OFFLINE_TEXT
+            if media else "layer 4 (AI/ML) is out of scope: permanently offline"
+        ),
         "anomaly_detection": "layer 4 (AI/ML) is out of scope: permanently offline",
     }
     sources = {
@@ -599,6 +611,8 @@ def score_cluster(
         receipt["event_type_basis"] = event_type_basis
     if density is not None:
         receipt["density_basis"] = density["basis"]
+    if media:
+        receipt["media"] = media
     if evidence.get("rainfall_mm") is not None:
         receipt["weather"] = {
             "rainfall_24h_mm": evidence["rainfall_mm"],
@@ -936,7 +950,12 @@ async def _cluster_reports(db: AsyncSession, report_ids: Sequence[UUID]) -> List
                        reporter_hash, credibility_score, COALESCE(flags, '{}'::text[]),
                        COALESCE(source_meta->>'publisher_domain', source_meta->>'publisher'),
                        COALESCE(observed_at, created_at),
-                       source_meta->>'publisher_domain', source_meta->>'publisher'
+                       source_meta->>'publisher_domain', source_meta->>'publisher',
+                       -- Phase 5 T3: the files the report carries, so reporters
+                       -- who sent the same one count once.
+                       ARRAY(SELECT m.sha256 FROM report_media m
+                             WHERE m.report_id = raw_reports.id AND m.status = 'ready'
+                               AND m.sha256 IS NOT NULL)
                 FROM raw_reports
                 WHERE id = ANY(CAST(:ids AS uuid[]))
                   AND duplicate_of IS NULL
@@ -961,9 +980,46 @@ async def _cluster_reports(db: AsyncSession, report_ids: Sequence[UUID]) -> List
             "at": r[9],
             "publisher_domain": r[10],
             "publisher_name": r[11],
+            "media_sha256": list(r[12] or []),
         }
         for r in rows
     ]
+
+
+async def _event_media(db: AsyncSession, report_ids: Sequence[UUID]) -> Optional[Dict[str, Any]]:
+    """
+    The receipt's media line for a cluster (Phase 5 T3): what was checked and
+    what was found, from media_rules.media_summary. None when the reports
+    carry no media, or on any failure (the line is information, not a factor).
+    """
+    from app.services.media_rules import media_summary
+
+    ids = [str(rid) for rid in report_ids]
+    if not ids:
+        return None
+    try:
+        async with db.begin_nested():
+            rows = (await db.execute(
+                text("""
+                    SELECT m.kind, m.status, COALESCE(m.flags, '{}'::text[]), m.flag_basis,
+                           m.exif_taken_at, COALESCE(r.observed_at, r.created_at)
+                    FROM report_media m
+                    JOIN raw_reports r ON r.id = m.report_id
+                    WHERE m.report_id = ANY(CAST(:ids AS uuid[]))
+                      AND r.duplicate_of IS NULL
+                      AND m.status IN ('uploading', 'processing', 'ready')
+                    ORDER BY m.created_at, m.id
+                """),
+                {"ids": ids},
+            )).fetchall()
+    except Exception as e:
+        logger.warning(f"Media lookup for the receipt failed: {type(e).__name__}: {e}")
+        return None
+    return media_summary(
+        {"kind": r[0], "status": r[1], "flags": list(r[2] or []), "flag_basis": r[3] or {},
+         "exif_taken_at": r[4], "observed_at": r[5]}
+        for r in rows
+    )
 
 
 # ── Phase 4: what the evidence queries read ────────────────────────────────────
@@ -1796,6 +1852,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
         event_type = typed["event_type"]
         event_type_basis = typed["basis"]
         density = effective_reporters(reports)
+        media = await _event_media(db, scoring_ids)
 
         # Where the event is, in words. Named here rather than at step 7
         # because the official-warning factor (Phase 4 T4) and the district's
@@ -1830,6 +1887,7 @@ async def process_report(db: AsyncSession, report: dict) -> Optional[dict]:
                 eps_km=family_params(family_of(etype)).eps_km,
                 cluster_basis=cluster.get("basis"),
                 evidence=evidence_by_type[etype],
+                media=media,
             )
 
         scored = await _score(event_type, event_type_basis)
@@ -2113,6 +2171,26 @@ def _state_of(confidence: Any, verdict: Any, review_status: Any, severity: Any) 
     }
 
 
+def _with_media_block(stored: Dict[str, Any], fresh: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    The stored receipt with only its media block and its vision line's wording
+    taken from a fresh scoring (Phase 5), or None when they already agree.
+    """
+    if stored.get("media") == fresh.get("media"):
+        return None
+    out = json.loads(json.dumps(stored, default=str))
+    if fresh.get("media"):
+        out["media"] = fresh["media"]
+    else:
+        out.pop("media", None)
+    vision = next((f.get("evidence") for f in fresh.get("factors") or []
+                   if f.get("key") == "vision_analysis"), None)
+    for factor in out.get("factors") or []:
+        if factor.get("key") == "vision_analysis" and vision:
+            factor["evidence"] = vision
+    return out
+
+
 async def rescore_event(
     db: AsyncSession,
     event_id: UUID,
@@ -2211,6 +2289,7 @@ async def rescore_event(
             eps_km=family_params(family_of(event_type)).eps_km,
             cluster_basis=(old_receipt.get("cluster") or {}).get("clustering"),
             evidence=evidence,
+            media=await _event_media(db, report_ids),
         )
         receipt = scored["receipt"]
         confidence = scored["confidence"]
@@ -2240,7 +2319,21 @@ async def rescore_event(
 
         after = _state_of(confidence, verdict, review_status, severity)
         if after == before:
-            await db.rollback()
+            # Phase 5: a clean photo changes no number, but it still belongs
+            # in the receipt's media line ("1 photo checked: … no reuse
+            # found"). That block is information, not a factor, so only it and
+            # the vision line's wording are refreshed in place: no snapshot,
+            # no ledger row, and nothing else in the stored receipt moves.
+            refreshed = _with_media_block(old_receipt, receipt)
+            if refreshed is None:
+                await db.rollback()
+                return None
+            await db.execute(
+                text("UPDATE verified_events SET verification_receipt = CAST(:r AS jsonb) "
+                     "WHERE id = CAST(:id AS uuid)"),
+                {"id": str(event_id), "r": json.dumps(refreshed, default=str)},
+            )
+            await db.commit()
             return None
 
         receipt["late_corroboration"] = {

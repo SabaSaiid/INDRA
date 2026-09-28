@@ -54,6 +54,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from app.core.config import get_settings
+from app.services.account_signals import account_flags
 from app.services.geocoding import place_from_text
 from app.services.ingest import StoreError, reporter_hash_for, store_report
 from app.services.text_processing import URL_RE, canonical_url, html_to_text
@@ -159,6 +160,14 @@ def status_to_report(status: Dict[str, Any], instance: str, tag: str) -> Optiona
     if status.get("reblog"):
         source_meta["collected_via_boost"] = True
 
+    # Phase 5 T7: the account's age (when it posted), followers and bot flag.
+    flags, basis = account_flags(
+        account_created_at=account.get("created_at"),
+        followers_count=account.get("followers_count"),
+        bot=account.get("bot"),
+        posted_at=original.get("created_at"),
+    )
+
     return {
         "source_type": "SOCIAL_MEDIA",
         "raw_text": text,
@@ -173,6 +182,8 @@ def status_to_report(status: Dict[str, Any], instance: str, tag: str) -> Optiona
         "source_meta": source_meta,
         "issue_docket": False,
         "place_precision": place["precision"],
+        "extra_flags": flags,
+        "extra_basis": basis,
     }
 
 
@@ -368,6 +379,12 @@ async def poll_once(
                         continue
                     if stored.created:
                         result.written += 1
+                        # Phase 5 T4: its images (and a video's preview) are
+                        # hashed into the recycled-media index.
+                        if mapped["source_meta"].get("media"):
+                            from app.workers.media_worker import enqueue_social
+
+                            enqueue_social(stored.id)
 
                 newest = _newest_id(page.statuses, result.cursors.get(key))
                 if newest:

@@ -159,6 +159,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Lake archiver startup skipped (non-fatal): {e}")
 
+    # Phase 5 T2–T4: EXIF, hashes, safe copies and the recycled-media rules for
+    # every completed upload and every collected post's attachments.
+    media_task = None
+    try:
+        from app.workers.media_worker import start_media_worker
+        media_task = asyncio.create_task(start_media_worker())
+    except Exception as e:
+        logger.warning(f"Media worker startup skipped (non-fatal): {e}")
+
     yield
 
     # Shutdown
@@ -197,7 +206,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    for task in (metar_task, mastodon_task, news_task, archiver_task):
+    for task in (metar_task, mastodon_task, news_task, archiver_task, media_task):
         if task:
             task.cancel()
             try:
@@ -299,6 +308,8 @@ from app.api import (
     stations_router,
     report_search_router,
     review_router,
+    media_router,
+    admin_router,
 )
 app.include_router(dashboard_router)
 app.include_router(events_router)
@@ -315,6 +326,10 @@ app.include_router(stations_router)
 app.include_router(report_search_router)
 # Phase 4 T7: the review queue.
 app.include_router(review_router)
+# Phase 5: photo and video uploads, and serving them to officials.
+app.include_router(media_router)
+# Phase 5 T6: the source credibility table.
+app.include_router(admin_router)
 # Only on the Playwright backend: the suite checks which database it is about
 # to write to before it runs a spec. Everywhere else the path is a 404.
 if settings.ENVIRONMENT == "e2e":
@@ -365,10 +380,22 @@ async def health_check():
 
 @app.websocket("/ws/events")
 async def websocket_events_endpoint(websocket: WebSocket):
+    """
+    The dashboard's live feed. A client may send `{"type": "ping"}` and gets
+    `{"type": "pong"}` back (webpage.MD §8.7): a dashboard that pings every
+    30 s keeps any proxy on the path, Cloudflare included, from closing the
+    socket as idle. Anything else a client sends is ignored, as before.
+    """
     await ws_manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
             logger.debug(f"Received client payload: {data}")
+            try:
+                message = json.loads(data)
+            except ValueError:
+                continue
+            if isinstance(message, dict) and message.get("type") == "ping":
+                await websocket.send_text(json.dumps({"type": "pong"}))
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)

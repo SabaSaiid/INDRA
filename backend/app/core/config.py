@@ -102,6 +102,47 @@ class Settings(BaseSettings):
     LAKE_FLUSH_SECONDS: int = 60
     LAKE_FLUSH_BYTES: int = 5 * 1024 * 1024
 
+    # ── Media (Phase 5) ────────────────────────────────────────────────────
+    # How long after a report was received its device may still attach photos
+    # and videos (webpage.MD §8.3): the outbox may deliver a report late, but
+    # not its media a week later.
+    MEDIA_WINDOW_HOURS: int = 24
+    # Signs the short-lived URLs the API serves media under (T5, webpage.MD
+    # §8.5). Empty: no URL can be signed and media serving answers 503.
+    MEDIA_URL_SECRET: str = ""
+    MEDIA_URL_TTL_SECONDS: int = 600
+    # What a signed URL starts with, e.g. https://indra-sixthsense.duckdns.org.
+    # Empty: a relative URL (/api/media/…), which works for a page served from
+    # the API's own origin or behind the same proxy.
+    PUBLIC_API_BASE: str = ""
+    # Retention (T5, DPDP Act 2023): citizen originals, the EXIF-free copies,
+    # and the private copies of social media kept only for hashing (T4).
+    MEDIA_RETENTION_DAYS: int = 90
+    MEDIA_DERIVATIVE_RETENTION_DAYS: int = 180
+    SOCIAL_MEDIA_RETENTION_DAYS: int = 30
+    # T4: download Mastodon attachments to hash them. Off: posts keep only the
+    # attachment URLs, as before Phase 5.
+    SOCIAL_MEDIA_HASHING_ENABLED: bool = True
+    MEDIA_DOWNLOAD_TIMEOUT_SECONDS: float = 20.0
+    # The media worker: off means completed uploads wait in `processing` until
+    # a worker runs (nothing is lost; the sweep picks them up).
+    MEDIA_WORKER_ENABLED: bool = True
+    MEDIA_WORKER_SWEEP_SECONDS: int = 60
+    # The version of the privacy notice in force, returned with every 202 so
+    # the citizen site can show the one that applies (T5).
+    PRIVACY_NOTICE_VERSION: str = "2026-09-28"
+
+    # ── Rate limits (Phase 5 T8) ───────────────────────────────────────────
+    # Sliding 10-minute windows in Redis, in process memory when Redis is down.
+    # The per-IP limit is 300, not the plan's 30: Indian mobile carriers put a
+    # whole town behind one address (CGNAT), and the per-device limit does the
+    # fine work (webpage.MD §11.6, B10).
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_WINDOW_SECONDS: int = 600
+    RATE_LIMIT_REPORTS_PER_REPORTER: int = 10
+    RATE_LIMIT_REPORTS_PER_IP: int = 300
+    RATE_LIMIT_TRACK_PER_IP_PER_MINUTE: int = 60
+
     # ── AI & Verification Thresholds ───────────────────────────────────────
     # AUTO_PUBLISH_THRESHOLD is deliberately high: publishing a disaster without
     # a human in the loop is the most expensive mistake this system can make.

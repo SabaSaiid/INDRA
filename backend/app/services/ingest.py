@@ -31,9 +31,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.services import kafka
+from app.services import kafka, reputation
 from app.services.credibility import compute_credibility
-from app.services.report_flags import FLAGS, adjust_credibility, text_flags
+from app.services.report_flags import FLAGS, adjust_credibility, credibility_multiplier, text_flags
 from app.services.text_processing import clean_text, detect_language, extract_metadata
 
 logger = logging.getLogger("indra.services.ingest")
@@ -88,8 +88,9 @@ def normalise_docket(raw: str) -> Optional[str]:
 APPROVED_REVIEW_STATUSES = {"HUMAN_APPROVED", "AUTO_PUBLISHED"}
 
 
-def docket_status(duplicate_of, event_id, review_status, processed_at) -> str:
+def docket_status(duplicate_of, event_id, review_status, processed_at, *, withdrawn_at=None) -> str:
     """
+    withdrawn         the citizen took it back (Phase 5 T5)
     received          stored; the pipeline has not finished with it yet
     duplicate         suppressed as a copy of an earlier report
     not_yet_an_event  processed, but alone: nothing corroborates it (yet)
@@ -97,6 +98,8 @@ def docket_status(duplicate_of, event_id, review_status, processed_at) -> str:
     event_approved    linked to an event published by a human or automatically
     event_rejected    linked to an event a commander rejected
     """
+    if withdrawn_at is not None:
+        return "withdrawn"
     if duplicate_of is not None:
         return "duplicate"
     if event_id is not None:
@@ -206,14 +209,19 @@ def analyse(raw_text: str, report_id) -> Optional[dict]:
 
 
 def derive_text_fields(
-    source_type: str, raw_text: str, report_id, extra_flags: Sequence[str] = ()
+    source_type: str,
+    raw_text: str,
+    report_id,
+    extra_flags: Sequence[str] = (),
+    extra_basis: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """
     Everything ingest derives from a report's text, in one place so the
     backfill (scripts/backfill_hazards.py) writes exactly what a newly stored
     report gets. `extra_flags` carries a flag the text alone cannot show —
-    `coordinated`, which the pipeline sets from other reports — so a backfill
-    keeps it:
+    `coordinated`, which the pipeline sets from other reports, or a social
+    account's flags (Phase 5 T7), with their reasons in `extra_basis` — so a
+    backfill keeps it:
 
         analysis         the layer-3 extraction (None if it failed)
         hazard_primary   the hazard the text is about, or None
@@ -230,6 +238,11 @@ def derive_text_fields(
         flags = [f for f in FLAGS if f in set(flags) | set(extra)]
         if analysis is not None:
             analysis["flags"] = flags
+            if extra_basis:
+                analysis["flag_basis"] = {
+                    **(analysis.get("flag_basis") or {}),
+                    **{f: extra_basis[f] for f in extra if f in extra_basis},
+                }
     return {
         "analysis": analysis,
         "hazard_primary": fields.get("hazard_primary"),
@@ -313,6 +326,8 @@ async def store_report(
     source_meta: Optional[Dict[str, Any]] = None,
     issue_docket: bool = True,
     place_precision: str = "gps",
+    extra_flags: Sequence[str] = (),
+    extra_basis: Optional[Dict[str, str]] = None,
 ) -> StoredReport:
     """
     Store one report and its outbox message in a single transaction, then try
@@ -328,6 +343,10 @@ async def store_report(
     `gps` for a device's fix — the default, and what every HTTP route stores —
     or `district`, `state` or `none` for a post placed from its text. Both
     coordinates are None exactly when the precision is `none`.
+
+    `extra_flags` (with their reasons in `extra_basis`) are flags the text
+    cannot show, such as a social account's (Phase 5 T7); they cost
+    credibility exactly as a text flag does.
     """
     if place_precision not in PLACE_PRECISIONS:
         raise StoreError(f"unknown place_precision {place_precision!r}")
@@ -338,9 +357,23 @@ async def store_report(
         )
 
     report_id = uuid.uuid4()
-    derived = derive_text_fields(source_type, raw_text, report_id)
+    derived = derive_text_fields(
+        source_type, raw_text, report_id, extra_flags=extra_flags, extra_basis=extra_basis
+    )
     credibility = derived["credibility"]
     analysis = derived["analysis"]
+
+    # Phase 5 T6: the reporter's record of human decisions scales what this
+    # report counts for, × (0.5 + trust), capped at 1.0. The line goes into
+    # the report's analysis so provenance can show it.
+    record = await _reporter_record(db, reporter_hash)
+    if record is not None and (record["approved"] or record["rejected"]):
+        adjusted = reputation.apply(credibility, record["approved"], record["rejected"])
+        if analysis is not None:
+            analysis["reputation"] = reputation.reputation_basis(
+                record["approved"], record["rejected"], credibility, adjusted
+            )
+        credibility = adjusted
     # The H3 cell is a claim about a 0.46 km hexagon, so only a GPS fix earns
     # one: a district centroid in the heat map would light up a street nobody
     # reported from.
@@ -392,10 +425,18 @@ async def store_report(
         "flags": derived["flags"],
     }
 
+    counted = {
+        "reporter_hash": reporter_hash,
+        "source_type": source_type,
+        "platform": platform,
+        "flagged": credibility_multiplier(derived["flags"]) != 1.0,
+    }
     for attempt in range(1, _DOCKET_ATTEMPTS + 1):
         docket = new_docket() if issue_docket else None
         try:
-            outbox_id = await _insert(db, report_id, topic, payload, {**row, "docket": docket})
+            outbox_id = await _insert(
+                db, report_id, topic, payload, {**row, "docket": docket}, counted=counted
+            )
             if outbox_id is None:
                 return StoredReport(id=None, docket=None, queued=False, created=False)
             break
@@ -415,11 +456,27 @@ async def store_report(
     return StoredReport(id=report_id, docket=docket, queued=queued)
 
 
-async def _insert(db, report_id, topic, payload, row) -> Optional[int]:
+async def _reporter_record(db, reporter_hash: Optional[str]) -> Optional[Dict[str, int]]:
+    """The reporter's stats (Phase 5 T6), or None. A failed lookup costs the reputation, never the report."""
+    if not reporter_hash:
+        return None
+    try:
+        async with db.begin_nested():
+            return await reputation.lookup(db, reporter_hash)
+    except Exception as e:
+        logger.warning(f"Reporter record not read, stored without reputation: {type(e).__name__}: {e}")
+        return None
+
+
+async def _insert(db, report_id, topic, payload, row, counted: Optional[Dict[str, Any]] = None) -> Optional[int]:
     """
     The report and its message, committed together. Returns the outbox id, or
     None when the report was already stored (a fed item seen again), in which
     case nothing is written.
+
+    `counted` adds the report to its reporter's record (Phase 5 T6) in the same
+    transaction, inside a savepoint: a failure there loses the count, never
+    the report.
     """
     inserted = (await db.execute(_INSERT_REPORT, row)).fetchone()
     if inserted is None:
@@ -430,6 +487,18 @@ async def _insert(db, report_id, topic, payload, row) -> Optional[int]:
         "key": str(report_id),
         "payload": json.dumps(payload),
     })).scalar_one()
+    if counted and counted.get("reporter_hash"):
+        try:
+            async with db.begin_nested():
+                await reputation.note_report(
+                    db,
+                    counted["reporter_hash"],
+                    source_type=counted["source_type"],
+                    platform=counted.get("platform"),
+                    flagged=bool(counted.get("flagged")),
+                )
+        except Exception as e:
+            logger.warning(f"Report {report_id} not counted in its reporter's record: {e}")
     await db.commit()
     return outbox_id
 

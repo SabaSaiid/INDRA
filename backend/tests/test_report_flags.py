@@ -160,8 +160,10 @@ def test_six_outlets_carrying_one_story_count_by_publisher():
 
 def test_the_basis_shows_the_arithmetic():
     basis = effective_reporters([_r(0.57, "a"), _r(0.57)])["basis"]
+    # Phase 5 added merged_by_shared_media (T3) and bot_reporters (T7).
     assert set(basis) == {
         "reports", "distinct_reporters", "n_eff", "excluded", "unverified_reporters", "publishers",
-        "baseline", "rule",
+        "baseline", "rule", "merged_by_shared_media", "bot_reporters",
     }
     assert basis["baseline"] == 0.6
+    assert (basis["merged_by_shared_media"], basis["bot_reporters"]) == (0, 0)

@@ -32,6 +32,18 @@ ANONYMOUS_BY_DESIGN = {
     ("POST", "/api/reports/submit"),
 }
 
+# Phase 5: the same citizen channel attaching photos to, or withdrawing, a
+# report it filed. No account, but not open either: each needs the X-Reporter-Id
+# whose keyed hash the report stored, or it is 403 (test_media_upload.py,
+# test_withdrawal.py). Checked below to change nothing for a caller without one.
+DEVICE_OWNED = {
+    ("POST", "/api/media/uploads"),
+    ("PUT", "/api/media/uploads/{upload_id}/parts/{n}"),
+    ("POST", "/api/media/uploads/{upload_id}/complete"),
+    ("DELETE", "/api/reports/{docket}"),
+}
+ANONYMOUS_BY_DESIGN |= DEVICE_OWNED
+
 
 def _mutating_routes():
     """
@@ -74,6 +86,15 @@ async def test_every_mutating_route_refuses_an_anonymous_caller(api, method, pat
     r = await api.request(method, _concrete(path), json={})
 
     assert r.status_code == 401, f"{method} {path} answered {r.status_code}: {r.text}"
+
+
+@pytest.mark.parametrize("method,path", [pytest.param(m, p, id=f"{m} {p}") for m, p in sorted(DEVICE_OWNED)])
+async def test_every_device_owned_route_does_nothing_without_the_device(api, method, path):  # noqa: F811
+    assert (method, path) in set(_mutating_routes())
+    concrete = _concrete(path.replace("{n}", "1"))
+    body = {"docket": "R-00000000", "mime": "image/jpeg", "size_bytes": 1000} if path == "/api/media/uploads" else {}
+    r = await api.request(method, concrete, json=body)
+    assert r.status_code in (403, 404), f"{method} {path} answered {r.status_code}: {r.text}"
 
 
 # ── Teams ─────────────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
 | **From** | Aditya, core platform (layers 1–3, 5, 6, 7, 8a) |
 | **To** | Saba Saeed, owner of `frontend/`, the command center (layer 9) |
 | **Covers** | Every backend change from 16 Sep 2026 onwards that the dashboard can see, and every change made inside `frontend/` from the backend side, with the reason |
-| **Latest** | Section 21, Phase 4: verdicts, contradictions, the review queue and claims, merged to `main` (PR #47) |
+| **Latest** | Section 22, Phase 5: photos and videos, media flags, reputation, rate limits (code written 28 Sep, not yet tested) |
 | **Last reviewed** | 28 Sep 2026 |
 
 Full endpoint shapes are in [`api-contract.md`](api-contract.md). Sections are in the order the
@@ -17,6 +17,7 @@ changes happened, and a section is corrected in place when a later change supers
 |---|---|
 | are merging into `frontend/` | Sections **0, 16, 19 and 20**: the changes made inside `frontend/` on request (22, 24, 25 and 27 Sep), each a separate commit with its reason |
 | are building the verification UI | Section **21**: receipt v2, the `verdict` badge and filter, contradictions, the review queue, claims and event history |
+| are showing photos and videos | Section **22**: signed URLs, `REPORT_MEDIA_READY`, the media flags and the source credibility table |
 | are wiring live data | Sections **1** (WebSocket messages), **13** (Phase 1: event types, filters, dockets), **17** (Phase 2: feeds, search, export) and **18** (Phase 3: hazards) |
 | are showing a confidence score | Sections **2–4**: coverage, and what each receipt factor reports |
 | want to know what never to mock | The last section, *Things that are not coming* |
@@ -636,13 +637,54 @@ writing anything.
 
 ---
 
+## 22. Phase 5 (28 Sep): photos and videos, recycled-media flags, reporter reputation, rate limits, withdrawal
+
+**Backend status: written and tested 28 Sep (PR #50), not yet merged or deployed.** The shapes
+below are final; the testing pass changed one behaviour, noted at `REPORT_MEDIA_READY`. **Nothing here breaks the dashboard as
+it is:** every change is a new endpoint, a new field or a new WebSocket message, and
+`POST /api/reports/submit` still takes exactly the JSON it takes today. No file in `frontend/` was
+touched.
+
+**How a photo reaches the dashboard.** The report's text goes first, on its own, and shows up at
+once as today. Its photos and videos follow in 5 MiB parts (`/api/media/uploads…`, used by the
+citizen site, not the dashboard). When a file has been checked, every dashboard gets
+`REPORT_MEDIA_READY`; the pictures themselves come from a signed-in call, because the socket and
+`/api/reports/recent` are open and must never carry a link to a citizen's photo.
+
+| Change | What the dashboard can do with it | |
+|---|---|---|
+| `GET /api/reports/recent` items gain `media_count`, `media_kinds`, `media_ids`, `media_flags` (ids only, never a URL) | A camera icon and count on the Field Reports card; a "suspicious media" filter from `media_flags` | **new** |
+| **`POST /api/media/signed-urls`** `{ids, size: "thumb"\|"full"}` → `{urls: {id: url}, external: {id: true}, unavailable: {id: reason}, expires_in: 600}`; ANALYST, COMMANDER or ADMIN token | Use each URL directly in `<img src>` / `<video src>` (no header needed). They expire after 10 min: on an image `error`, mint again. `thumb` for the grid (≤ 320 px), `full` on click (≤ 1,600 px, or the video). A Mastodon attachment's "URL" is the author's own link (`external: true`): open it in a new tab, never embed a copy | **new** |
+| `GET /api/media/{id}/file?…` (the signed URL) | Videos seek: it answers `Range` requests with 206 | — |
+| `original: true` on the same call | Only for a "view original (with GPS)" action in verification work. Every use writes a `MEDIA_ORIGINAL_ACCESS` ledger row naming the operator; please put that sentence next to the button | optional |
+| **`REPORT_MEDIA_READY`** `{report_id, event_id, media: [{id, kind, status, flags, duration_s?}]}` | Update the card's media strip in place, without refetching the list. No URL and no docket in it, on purpose. **When `event_id` is set, refetch that event:** a photo that changes no number updates only the receipt's `media` line, and no `VERIFIED_EVENT` is sent for it (a flagged photo that moves the score sends one first) | **new** |
+| **WebSocket heartbeat:** send `{"type": "ping"}`, receive `{"type": "pong"}` | Ping every 30 s so no proxy on the path closes the socket as idle. `pong` needs no handling | recommended |
+| Provenance (`GET /api/events/{id}/provenance`): each report gains `media` (id, kind, status, flags, `flag_basis` with every reason, EXIF capture time, size, duration) and `reputation` | Thumbnails in the provenance list, each flag as a badge with its reason in words (below), and "reporter history: 0 approved, 2 rejected → × 0.75" under the report | **new** |
+| Receipt: `media` block (`line`, `checked`, `flags`) and `vision_analysis` evidence text "image content is not analysed; media is checked for reuse and metadata only" | Show `media.line` under the factors, e.g. "2 photos checked: 1 captured 14 minutes before the report; no reuse found". `vision_analysis` stays offline, and saying so is the design | recommended |
+| New report flags (in `flags` and `flag_basis`): `recycled_suspect`, `old_capture`, `future_capture`, `location_mismatch`, `duplicate_media`, `no_metadata`, `edited`, and for Mastodon posts `new_account`, `few_followers`, `bot_account` | Badges in words: `recycled_suspect` → "Seen before (first 23 Sep)"; `old_capture` → "Taken 14 Aug 2023"; `location_mismatch` → "Photo taken 40 km away"; `duplicate_media` → "Same file as another report"; `new_account` → "New account". Neutral grey for `no_metadata` and `edited`, which carry no penalty. Use `flag_basis` for the exact words | **new** |
+| **`GET /api/admin/sources`** (ANALYST+): per source type and platform, per news publisher, the 20 most active reporters **as hashes only**, and `rate_limited_24h` | The source credibility table in the admin panel | **new** |
+| `GET /api/meta/sources` gains `rate_limited: {rejected_24h, per_reporter, per_ip}` | "Rejected by rate limit in 24 h: N" on the data-sources page | optional |
+| `POST /api/reports/submit` can answer **429** with `Retry-After` (10 per device, 300 per address, per 10 min); the 202 body gains `privacy_notice_version` | The dashboard's own report form: "Too many reports from this device, try again in N seconds" | recommended |
+| `GET /api/reports/track/{docket}` has a new `status`: **`withdrawn`**; lookups are limited to 60 a minute per address (429) | The tracking page's status text | small |
+
+**Things to know.** A withdrawn report (the citizen used `DELETE /api/reports/{docket}` from their
+own phone) leaves its event, and its text reads "[withdrawn]"; it no longer appears in
+`/api/reports/recent`. Media of a report is never shown publicly; only signed-in officials see it,
+because faces and homes are not blurred.
+
+**To test it:** `scripts/run_verification_demo.py` now prints case C, a recycled 2023 flood photo,
+flagged `recycled_suspect` and `old_capture`, without writing anything. For real uploads use the E2E
+backend (`make e2e-backend`, port 8100), never the API on :8000.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |
 |---|---|
 | **Alerts from the core backend** — no SMS, email or broadcast | Left the core platform's scope 20 Sep. The warnings page shows *official* SACHET warnings (`GET /api/alerts/agency`). Alerting is the separate `alert_engine/` service (layer 8b, PR #38), maintained by its owners and not running on the team server |
 | **Risk zones** | Not built, not scheduled |
-| **Image / vision analysis** | Out of scope. `media_url` is stored as a string and nothing opens it |
+| **Image / vision analysis** | Out of scope. Since Phase 5 photos and videos are stored and checked for **reuse and metadata** (hashes, EXIF), never for what they show; `vision_analysis` stays offline. `media_url` is still a string nothing opens |
 | **Anomaly detection** | Out of scope. Permanently `offline` in the receipt |
 | **Event-type classification by a model** | Trained, measured below its gate, unwired, and frozen with the rest of layer 4. The 16 types are tagged by published rules instead (Phase 3, section 18) |
 

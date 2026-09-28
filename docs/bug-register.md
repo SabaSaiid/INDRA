@@ -1967,3 +1967,61 @@ airport observations collected since Phase 2 were read by nothing. Phase 4 reads
 variable (Open-Meteo, and an airport's METAR within 50 km where it measured) and records a
 contradiction, from a published table, only when the evidence affirmatively says the opposite:
 the event is then CONTRADICTED and held for a human, never rejected automatically.
+
+# Phase 5 code phase — 28 Sep 2026
+
+### BUG-123 — A withdrawn report's text stays in the lake's raw copy of the report stream
+**S3** · Layer 7 · **`OPEN`** · Found by: writing the withdrawal (Phase 5 T5), 28 Sep
+
+`DELETE /api/reports/{docket}` redacts the report's row and the outbox copy of its message, deletes
+its media, and takes it out of its event. The lake archiver (Phase 2 T9) has already written the
+message as published, text and coordinates included, into a batched gzipped object in `indra-lake`,
+and nothing rewrites those. Expected: a withdrawal removes the text everywhere INDRA keeps it.
+Fix options: rewrite the affected lake objects from a withdrawal queue, or keep the lake's report
+stream for a bounded time. Until then the withdrawal's own docstring and the privacy notes say so.
+
+### BUG-124 — `GET /api/reports/recent` is open and returns citizen report text and exact coordinates
+**S2** · Layer 8a · **`OPEN`** · Found by: the citizen website plan (`webpage.MD` §13), 27 Sep; recorded 28 Sep
+
+The Field Reports layer is fed by an unauthenticated route that returns each citizen report's text
+(first 300 characters) and GPS position. Tolerable while the only reports were the team's own test
+submissions; not once real citizens report from the public site. Phase 5 keeps media URLs out of it
+(ids only) but does not change the text or the coordinates, because the dashboard reads them without
+a token. Needs a decision with the frontend owner before the citizen site goes live: put the route
+behind sign-in (the dashboard already has a session) or coarsen what it returns to anyone.
+
+### BUG-125 — A rate limit of 0 answered 500 instead of 429
+**S3** · Layer 8a · **`FIXED`** (`412acd0`) · Found by: the Phase 5 testing pass, T8, 28 Sep
+
+Setting `RATE_LIMIT_REPORTS_PER_REPORTER=0` (an operator shutting citizen submissions off) made
+`cache.sliding_window` read the oldest stamp of an empty window: `IndexError` in the memory
+fallback, and a nil in the Redis script that then fell through to the same code. Every submission
+got a 500. Expected: 429 with a full window in `Retry-After`. Both paths now wait a whole window
+when nothing is stored; `test_rate_limit.py` checks it on memory and on a real Redis.
+
+### BUG-126 — A clean photo never reached its event's receipt
+**S2** · Layer 6 · **`FIXED`** (`95f3b0a`) · Found by: the Phase 5 testing pass, T3, 28 Sep
+
+The receipt's media line ("1 photo checked: 1 captured 14 minutes before the report; no reuse
+found") is written by `pipeline.rescore_event`, which writes nothing unless confidence, verdict,
+status or severity changes. A photo with no flag changes none of them, and photos arrive after
+the report's text, so most events would never have shown the line. Now, when no number moves but
+the media summary does, only the receipt's `media` block and the vision line's wording are
+refreshed in place: no snapshot and no ledger row, because they are information, not a score.
+`test_media_worker.py` checks that nothing else in the receipt changes.
+
+### BUG-127 — `backfill_hazards.py` would re-derive a withdrawn report from "[withdrawn]"
+**S3** · Layer 3 · **`FIXED`** (`addfecf`) · Found by: the Phase 5 testing pass, 28 Sep
+
+The backfill re-reads every row's text. On a withdrawal's tombstone that text is "[withdrawn]", so
+it would have written a fresh `analysis` back over the one the withdrawal cleared. The backfill now
+skips rows with `withdrawn_at` set.
+
+### BUG-128 — An event whose every report is withdrawn keeps its last score
+**S3** · Layer 6 · **`OPEN`** (needs a decision) · Found by: the Phase 5 code read-through; confirmed in testing, 28 Sep
+
+`rescore_event` returns early when an event has no reports left, so the event stays on the map and
+in the queue with the confidence its reports once gave it. It takes every reporter of an event
+withdrawing to happen. Options: leave it (a commander still sees it and can reject it), or mark it
+in the receipt and the ledger with "no reports remain" and hold it for review. Rejecting it
+automatically would be a machine making a commander's decision, which INDRA never does.

@@ -23,15 +23,26 @@ ingest and read by nothing. It now counts **effective independent reporters**:
   - no id at all: **the report is its own reporter.** Independence cannot be
     proven, but neither can collusion; the receipt counts these as unverified.
 
+**Phase 5** adds two rules:
+
+* **One file, one witness** (T3, `duplicate_media`): reporters whose reports
+  carry the same photo or video (the same SHA-256) are counted together, once.
+  A WhatsApp forward sent in by five people is one sighting, not five.
+* **A bot counts at most 0.5** (T7, `bot_account`): a bot re-posting news is
+  not a witness. A group of reporters sharing a file counts as its best
+  member, so a citizen who took the photo still counts in full.
+
 `density_basis` in the receipt shows the arithmetic:
 
     {"reports": 5, "distinct_reporters": 4, "n_eff": 3.62, "excluded": 1,
-     "unverified_reporters": 2, "publishers": 1, "baseline": 0.6}
+     "unverified_reporters": 2, "publishers": 1, "baseline": 0.6,
+     "merged_by_shared_media": 1, "bot_reporters": 0}
 """
 
 from typing import Any, Dict, Mapping, Sequence, Tuple
 
 CITIZEN_BASELINE = 0.60
+BOT_MAX_WITNESS = 0.5
 
 
 def reporter_key(report: Mapping[str, Any]) -> Tuple[str, str]:
@@ -46,9 +57,24 @@ def reporter_key(report: Mapping[str, Any]) -> Tuple[str, str]:
     return ("unverified", str(report.get("id")))
 
 
+def _witness_weight(credibility: float, bot: bool) -> float:
+    """What one reporter's best report is worth: min(1, c / 0.60), and at most 0.5 for a bot."""
+    weight = min(1.0, credibility / CITIZEN_BASELINE)
+    return min(BOT_MAX_WITNESS, weight) if bot else weight
+
+
 def effective_reporters(reports: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
     """{"n_eff": float, "basis": {...}} for a cluster's reports."""
     best: Dict[Tuple[str, str], float] = {}
+    bots: set = set()
+    shared_owner: Dict[str, Tuple[str, str]] = {}
+    parent: Dict[Tuple[str, str], Tuple[str, str]] = {}
+
+    def root(key: Tuple[str, str]) -> Tuple[str, str]:
+        while parent.get(key, key) != key:
+            key = parent[key]
+        return key
+
     excluded = counted = 0
     for report in reports:
         if report.get("duplicate_of") is not None:
@@ -58,10 +84,30 @@ def effective_reporters(reports: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
             continue
         counted += 1
         key = reporter_key(report)
-        credibility = float(report.get("credibility") or 0.0)
-        best[key] = max(best.get(key, 0.0), credibility)
+        flags = report.get("flags") or []
+        weight = _witness_weight(float(report.get("credibility") or 0.0), "bot_account" in flags)
+        if "bot_account" in flags:
+            bots.add(key)
+        best[key] = max(best.get(key, 0.0), weight)
+        parent.setdefault(key, key)
+        # One file, one witness (T3): join this reporter with whoever sent the
+        # same file first.
+        for sha in report.get("media_sha256") or []:
+            if not sha:
+                continue
+            if sha in shared_owner:
+                a, b = root(key), root(shared_owner[sha])
+                if a != b:
+                    parent[a] = b
+            else:
+                shared_owner[sha] = key
 
-    n_eff = round(sum(min(1.0, c / CITIZEN_BASELINE) for c in best.values()), 4)
+    groups: Dict[Tuple[str, str], float] = {}
+    for key, weight in best.items():
+        r = root(key)
+        groups[r] = max(groups.get(r, 0.0), weight)
+
+    n_eff = round(sum(groups.values()), 4)
     return {
         "n_eff": n_eff,
         "basis": {
@@ -72,7 +118,12 @@ def effective_reporters(reports: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
             "unverified_reporters": sum(1 for kind, _ in best if kind == "unverified"),
             "publishers": sum(1 for kind, _ in best if kind == "publisher"),
             "baseline": CITIZEN_BASELINE,
-            "rule": "sum over distinct reporters of min(1, best credibility / 0.60); forecasts excluded",
+            # Phase 5: reporters counted together because they sent the same
+            # file (T3), and bots, whose weight is capped at 0.5 (T7).
+            "merged_by_shared_media": len(best) - len(groups),
+            "bot_reporters": len(bots),
+            "rule": "sum over distinct reporters of min(1, best credibility / 0.60); forecasts excluded; "
+                    "reporters sharing a file count once; a bot at most 0.5",
         },
     }
 

@@ -1,7 +1,8 @@
 """
 INDRA Platform — Metadata API
 GET /api/meta/filters — every value the event filters can take, with how many events have it
-GET /api/meta/sources — whether each feed INDRA reads is alive, and how much it has stored
+GET /api/meta/sources — whether each feed INDRA reads is alive, and how much it has stored;
+                        since Phase 5 T8, how many submissions the rate limits refused
 
 The filter bar should offer only values that exist in the data: a "Cold wave"
 option with nothing behind it is a dead end, and a list hard-coded in the
@@ -234,4 +235,19 @@ async def data_sources(db: AsyncSession = Depends(get_db)):
         "last_error": dead.get("last_error"),
         "topic": settings.KAFKA_DLQ_TOPIC,
     }
-    return {"generated_at": now.isoformat(), "feeds": feeds, "dead_letters": dead_letters}
+    # Phase 5 T8: submissions and docket lookups refused by the rate limits in
+    # the last 24 h, so a flood attempt is visible. 0 is the healthy answer.
+    from app.services.rate_limit import rejected_last_24h
+
+    rate_limited = {
+        "rejected_24h": await rejected_last_24h(),
+        "enabled": settings.RATE_LIMIT_ENABLED,
+        "per_reporter": f"{settings.RATE_LIMIT_REPORTS_PER_REPORTER} per {settings.RATE_LIMIT_WINDOW_SECONDS // 60} min",
+        "per_ip": f"{settings.RATE_LIMIT_REPORTS_PER_IP} per {settings.RATE_LIMIT_WINDOW_SECONDS // 60} min",
+    }
+    return {
+        "generated_at": now.isoformat(),
+        "feeds": feeds,
+        "dead_letters": dead_letters,
+        "rate_limited": rate_limited,
+    }

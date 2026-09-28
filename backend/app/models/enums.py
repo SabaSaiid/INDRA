@@ -105,6 +105,14 @@ class AuditAction(str, enum.Enum):
     # the event (an IMD warning, an airport observation) changed its score,
     # verdict or status. Details: {trigger, before, after}.
     LATE_CORROBORATION = "LATE_CORROBORATION"
+    # Added 28 Sep (migration 0021, Phase 5 T5): an analyst was given a link to
+    # a report's original photo or video, EXIF and GPS included. Details:
+    # {media_ids, report_ids}. No event_id: it is about media, not a decision.
+    MEDIA_ORIGINAL_ACCESS = "MEDIA_ORIGINAL_ACCESS"
+    # Added 28 Sep (migration 0023, Phase 5 T5): a citizen withdrew their
+    # report by its docket. Details: {report_id, docket, event_code,
+    # media_deleted}.
+    REPORT_WITHDRAWN = "REPORT_WITHDRAWN"
 
 
 class TeamStatus(str, enum.Enum):
