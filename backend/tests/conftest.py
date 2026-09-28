@@ -379,4 +379,9 @@ async def wipe_event_tables(session) -> None:
     await session.execute(text("DELETE FROM outbox"))
     await session.execute(text("DELETE FROM raw_reports"))
     await session.execute(text("DELETE FROM verified_events"))
+    # Phase 5: a reporter's record changes what their next report counts for,
+    # so one test's rejections must not follow a device id into the next.
+    # report_media and reporter_decisions go with their reports and events.
+    if (await session.execute(text("SELECT to_regclass('reporter_stats')"))).scalar() is not None:
+        await session.execute(text("DELETE FROM reporter_stats"))
     await session.commit()
