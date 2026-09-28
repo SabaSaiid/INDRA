@@ -95,6 +95,29 @@ async def filed(api, n: int = 1, **kw) -> Dict[str, str]:
     return r.json()
 
 
+async def upload_media(api, data: bytes, *, n: int = 1, docket: str = None, mime: str = "image/jpeg") -> str:
+    """
+    Attach `data` to a report as device n through the real upload routes (a new
+    report unless `docket` is given): start, every 5 MiB part, complete.
+    Returns the media id, left `processing` for the worker.
+    """
+    from app.services.media_types import CHUNK_SIZE
+
+    if docket is None:
+        docket = (await filed(api, n))["docket"]
+    r = await api.post("/api/media/uploads", json={"docket": docket, "mime": mime, "size_bytes": len(data)},
+                       headers=device(n))
+    assert r.status_code == 201, r.text
+    uid = r.json()["upload_id"]
+    for i in range(0, len(data), CHUNK_SIZE):
+        part = await api.put(f"/api/media/uploads/{uid}/parts/{i // CHUNK_SIZE + 1}",
+                             content=data[i:i + CHUNK_SIZE], headers=device(n))
+        assert part.status_code == 200, part.text
+    done = await api.post(f"/api/media/uploads/{uid}/complete", headers=device(n))
+    assert done.status_code == 202, done.text
+    return uid
+
+
 async def make_event(db, *, status: str = "PENDING_HUMAN_REVIEW", report_ids=()) -> str:
     """An event, with the given reports in it."""
     event_id = str(uuid.uuid4())
