@@ -11,6 +11,8 @@ exactly two customers:
   `NEW_REPORT`, so a Kafka re-delivery does not show the same report twice;
   and, since Phase 2 T8, how many times each message has failed the pipeline,
   so the third failure sends it to the dead-letter topic.
+* `services/rate_limit.py` (Phase 5 T8) — sliding windows per device and per
+  IP address, and the count of refused submissions.
 
 **Redis is never load-bearing.** Every call falls back to process memory on any
 error, so a stopped Redis degrades the service (`/healthz` says `degraded`) and
@@ -75,6 +77,7 @@ def clear() -> None:
     """Drop the in-memory fallbacks. Does not touch Redis."""
     _memory_values.clear()
     _memory_seen.clear()
+    _memory_windows.clear()
 
 
 def backend() -> str:
@@ -210,6 +213,75 @@ async def incr(key: str, ttl_seconds: int) -> int:
     while len(_memory_values) > MEMORY_VALUE_SIZE:
         _memory_values.popitem(last=False)
     return value
+
+
+# ── Sliding windows (Phase 5 T8: rate limits) ─────────────────────────────────
+#
+# A sorted set per key, scored by time: drop what is older than the window,
+# count what is left, and admit the request only if the count is under the
+# limit. One Lua script, so the check and the add are atomic even with several
+# requests at once. A refused request is not added, so a client that keeps
+# retrying does not push its own window further out.
+
+_WINDOW_LUA = """
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local limit = tonumber(ARGV[3])
+redis.call('ZREMRANGEBYSCORE', key, '-inf', now - window)
+local count = redis.call('ZCARD', key)
+if count >= limit then
+  local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+  return {0, oldest[2]}
+end
+redis.call('ZADD', key, now, ARGV[4])
+redis.call('EXPIRE', key, math.ceil(window) + 1)
+return {1, '0'}
+"""
+
+MEMORY_WINDOWS_SIZE = 20000
+_memory_windows: "OrderedDict[str, list]" = OrderedDict()
+
+
+def _memory_window(key: str, limit: int, window_s: float, now: float):
+    stamps = [t for t in _memory_windows.get(key, []) if t > now - window_s]
+    if len(stamps) >= limit:
+        _memory_windows[key] = stamps
+        _memory_windows.move_to_end(key)
+        return False, max(1, int(stamps[0] + window_s - now + 0.999))
+    stamps.append(now)
+    _memory_windows[key] = stamps
+    _memory_windows.move_to_end(key)
+    while len(_memory_windows) > MEMORY_WINDOWS_SIZE:
+        _memory_windows.popitem(last=False)
+    return True, 0
+
+
+async def sliding_window(key: str, limit: int, window_s: float, now: Optional[float] = None):
+    """
+    (allowed, retry_after_s): whether one more request fits `limit` requests
+    per `window_s` seconds under `key`, and if not, how many seconds until the
+    oldest one leaves the window. Never raises.
+
+    With Redis down this is a window per process: degraded, but still
+    limiting (T8's "Redis stopped → the limit still enforced per process").
+    """
+    import uuid as _uuid
+
+    now = time.time() if now is None else now
+    client = await _get_client()
+    if client is not None:
+        try:
+            allowed, oldest = await client.eval(
+                _WINDOW_LUA, 1, key, repr(now), repr(float(window_s)), int(limit), _uuid.uuid4().hex
+            )
+            _mark_up()
+            if int(allowed) == 1:
+                return True, 0
+            return False, max(1, int(float(oldest) + window_s - now + 0.999))
+        except Exception as e:
+            _mark_down(f"EVAL window {key}: {type(e).__name__}: {e}")
+    return _memory_window(key, limit, window_s, now)
 
 
 async def delete(key: str) -> None:
