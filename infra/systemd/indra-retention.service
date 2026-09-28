@@ -1,0 +1,21 @@
+# Deletes stored photos and videos past their retention period (Phase 5 T5).
+# Run once a day by indra-retention.timer; scripts/retention.py has the policy.
+# Idempotent: a second run deletes nothing. A store that is down fails the run,
+# and the next day's run picks up where it stopped.
+#
+#   sudo systemctl start indra-retention.service     # run it now
+#   sudo journalctl -u indra-retention -n 50         # what the last run did
+
+[Unit]
+Description=INDRA media retention (delete originals and copies past their period)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=kali
+WorkingDirectory=/opt/indra
+EnvironmentFile=/opt/indra/.env
+ExecStart=/opt/indra/.venv/bin/python scripts/retention.py
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,13 @@
+# Daily at 03:30 on the server's clock (Asia/Kolkata). Persistent=true runs a
+# missed day at the next boot, which matters on a box that is often stopped.
+
+[Unit]
+Description=Run INDRA media retention daily
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

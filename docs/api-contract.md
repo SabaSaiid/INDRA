@@ -6,8 +6,8 @@ script, or a reviewer with `curl`.
 
 | | |
 |---|---|
-| **Applies to** | `main` after Phase 4 (PR #47), plus the Phase 5 section at the end: **code written 28 Sep, not yet tested** |
-| **Last reviewed** | 28 Sep 2026, against the routers. Phases 1–4 are tested; Phase 4's endpoints and receipt on 27 Sep |
+| **Applies to** | `main` after Phase 5 (PR #50), deployed to the team server 28 Sep |
+| **Last reviewed** | 28 Sep 2026, against the routers. Phases 1–5 are tested; Phase 4's endpoints and receipt on 27 Sep, Phase 5's on 28 Sep |
 | **Interactive docs** | `/docs` (Swagger UI) and `/openapi.json` on any running backend |
 
 Every endpoint below was read out of its router. An example marked *captured* was copied from
@@ -1071,12 +1071,12 @@ connected browser.
 
 ---
 
-## Phase 5 — photos and videos, reputation, rate limits, withdrawal (code written 28 Sep, not yet tested)
+## Phase 5 — photos and videos, reputation, rate limits, withdrawal (tested and deployed 28 Sep)
 
-**Status: written, untested, not merged.** Everything here is read from the code; nothing has been
-captured from a running stack yet. The shapes are the intended ones and may be corrected in the
-testing pass. Two departures from the phase file, both from the 27 Sep citizen-site plan
-(`webpage.MD` §8.3, §8.5): the upload is **resumable parts**, not one multipart form, and media is
+**Status: tested 28 Sep, merged (PR #50) and deployed to the team server the same evening.** The
+testing pass kept every shape below and changed one behaviour, noted at `REPORT_MEDIA_READY`. Two
+departures from the phase file, both from the 27 Sep citizen-site plan (`webpage.MD` §8.3, §8.5):
+the upload is **resumable parts**, not one multipart form, and media is
 served through **URLs the API signs itself**, not a 302 to the object store (which listens on
 127.0.0.1 and cannot be reached by a browser).
 

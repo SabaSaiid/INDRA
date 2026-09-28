@@ -450,7 +450,8 @@ Please report vulnerabilities privately to the maintainers rather than in a publ
 
 ## Project status
 
-The core platform (layers 1–3 and 5–8a) is feature-complete through Phase 4 and merged to `main`.
+The core platform (layers 1–3 and 5–8a) is feature-complete through Phase 5, merged to `main` and
+deployed to the team server.
 
 | Phase | Scope | State |
 |---|---|---|
@@ -458,7 +459,7 @@ The core platform (layers 1–3 and 5–8a) is feature-complete through Phase 4 
 | 2 · Collect everything | METAR, Mastodon and Google News pollers, object store and data lake, DLQ, search and export | Done |
 | 3 · Every hazard | Multilingual hazard tagger, per-family clustering, hazard-specific severity, misleading-text flags | Done |
 | 4 · Verification | Receipt v2, official-warning factor, per-hazard weather evidence, verdicts, late corroboration, review queue and claims | Done ([#47](https://github.com/SabaSaiid/INDRA/pull/47)) |
-| 5 · Media and trust | Photo and video upload, citizen withdrawal, per-source credibility administration | Planned |
+| 5 · Media and trust | Resumable photo and video upload, EXIF and recycled-media checks, reporter reputation, rate limits, EXIF-free serving, retention and withdrawal | Done ([#50](https://github.com/SabaSaiid/INDRA/pull/50)) |
 | 6 · Scale | Analytics endpoints, bulk ingestion of real archives, load testing | Planned |
 
 ### Known limitations

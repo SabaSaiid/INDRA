@@ -64,7 +64,7 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 ```bash
 cd backend && .venv/bin/alembic upgrade head && cd ..
-# → 0019_operator_password_hash (head); 0020_verification_v2 once Phase 4 is merged
+# → 0023_report_withdrawal (head)
 ```
 
 **Do not skip the output of that command.** A silently failed migration leaves a database with no
