@@ -273,9 +273,6 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Risk Zones Heatmap & Multi-factor Verification Section */}
-                    <RiskZonesSection />
-
                     {/* Bottom Row: Distribution + Trend + Live Feed */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                       <EventDistributionChart />

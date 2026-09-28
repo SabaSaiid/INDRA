@@ -18,6 +18,10 @@ const GlobeEventMap = dynamic(() => import('@/components/client-only/GlobeEventM
   loading: () => <MapCardSkeleton />,
 });
 
+const RiskZonesSection = dynamic(() => import('@/components/RiskZonesSection'), {
+  ssr: false,
+});
+
 export default function LiveMapPage() {
   const { t } = useTranslation();
   const {
@@ -138,6 +142,9 @@ export default function LiveMapPage() {
           <div className="w-full">
             <GlobeEventMap canvasClassName="h-[clamp(420px,calc(100dvh-352px),1100px)]" />
           </div>
+
+          {/* Risk Zones Heatmap, Verification consensus, and Recent Evidence */}
+          <RiskZonesSection />
         </main>
       </div>
     </div>
