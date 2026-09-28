@@ -15,12 +15,15 @@ from app.models.teams import Team
 from app.models.profiles import UserProfile
 from app.models.agency_alerts import AgencyAlert
 from app.models.event_snapshots import EventSnapshot
+from app.models.report_media import ReportMedia
+from app.models.reporter_stats import ReporterDecision, ReporterStats
 
 __all__ = [
     "SourceType", "EventType", "Severity", "ReviewStatus", "Quadrant",
     "Agency", "AuditAction",
     "TeamStatus", "TeamAgency", "DutyStatus", "OperatorRole", "Verdict",
     "VerifiedEvent", "RawReport", "StationReading", "AuditLog",
-    "Team", "UserProfile", "AgencyAlert", "EventSnapshot",
+    "Team", "UserProfile", "AgencyAlert", "EventSnapshot", "ReportMedia",
+    "ReporterStats", "ReporterDecision",
 ]
 
