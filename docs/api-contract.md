@@ -6,7 +6,7 @@ script, or a reviewer with `curl`.
 
 | | |
 |---|---|
-| **Applies to** | `main` after Phase 4 (PR #47) |
+| **Applies to** | `main` after Phase 4 (PR #47), plus the Phase 5 section at the end: **code written 28 Sep, not yet tested** |
 | **Last reviewed** | 28 Sep 2026, against the routers. Phases 1–4 are tested; Phase 4's endpoints and receipt on 27 Sep |
 | **Interactive docs** | `/docs` (Swagger UI) and `/openapi.json` on any running backend |
 
@@ -35,7 +35,11 @@ the dashboard, the API and the WebSocket: `https://indra-sixthsense.duckdns.org`
 | `/api/review` | **queue**: pending, contradicted, suspicious, high-impact and recent tabs (Phase 4) | requires an **analyst** token |
 | `/api/events` | **export** (Phase 2) | requires an **analyst** token |
 | `/api/reports` | submit, **official**, **track**, trend, recent | `official` requires a token |
+| `/api/reports` | **withdraw** (`DELETE /{docket}`, Phase 5) | the `X-Reporter-Id` that filed the report |
 | `/api/reports` | **search**, **export** (Phase 2) | require an **analyst** token |
+| `/api/media` | **uploads** in 5 MiB parts (Phase 5) | the `X-Reporter-Id` that filed the report |
+| `/api/media` | **signed-urls**, and the **file** behind a signed URL (Phase 5) | signed-urls: **analyst** or above; file: the signature |
+| `/api/admin` | **sources**: the source credibility table (Phase 5) | requires an **analyst** token |
 | `/api/meta` | **filters**: the values the event filters can take; **sources**: whether each feed is alive | open |
 | `/api/feed` | recent activity | open |
 | `/api/geo` | heatmap, rainfall stations | open |
@@ -1067,20 +1071,139 @@ connected browser.
 
 ---
 
-## Planned — Phases 5 and 6
+## Phase 5 — photos and videos, reputation, rate limits, withdrawal (code written 28 Sep, not yet tested)
 
-Phase 2's four and Phase 4's four (the review queue, claiming, history and `?verdict=`) are built
-and documented above. **The endpoints below are not built yet.** These are the
-names later phases will use, published now so the dashboard can be built against them. Shapes will
-be fixed in this file when each one lands; until then treat everything but the path as
-provisional.
+**Status: written, untested, not merged.** Everything here is read from the code; nothing has been
+captured from a running stack yet. The shapes are the intended ones and may be corrected in the
+testing pass. Two departures from the phase file, both from the 27 Sep citizen-site plan
+(`webpage.MD` §8.3, §8.5): the upload is **resumable parts**, not one multipart form, and media is
+served through **URLs the API signs itself**, not a 302 to the object store (which listens on
+127.0.0.1 and cannot be reached by a browser).
+
+### Uploads — `/api/media/uploads` (the citizen site; header `X-Reporter-Id`)
+
+The text of a report goes first (`POST /api/reports/submit`, unchanged); its files follow, each in
+parts of exactly 5,242,880 bytes (5 MiB), only the last shorter.
+
+| Call | Body | Answer |
+|---|---|---|
+| `POST /api/media/uploads` | `{docket, mime, size_bytes, file_name?}` (`file_name` is never stored) | **201** `{upload_id, media_id, kind, chunk_size: 5242880, parts}` |
+| `PUT /api/media/uploads/{upload_id}/parts/{n}` | the raw bytes of part n (1-based) | **200** `{n, etag}`; sending a part again replaces it |
+| `GET /api/media/uploads/{upload_id}` | — | `{upload_id, status, reason, chunk_size, parts, received_parts: [1, 2]}` |
+| `POST /api/media/uploads/{upload_id}/complete` | — | **202** `{media_id, status: "processing"}`; again → the same 202 |
+
+| Refusal | When |
+|---|---|
+| **403** | `X-Reporter-Id` is not the one that filed the report (or the report has no reporter hash) |
+| **404** | no report with that docket; no such upload |
+| **409** | more than `MEDIA_WINDOW_HOURS` (24) after the report was received; the report was withdrawn; the upload is not `uploading`; `complete` with parts missing → `{"detail", "missing_parts": [2]}` |
+| **413** | a photo over 10 MB, a video over 50 MB, a 5th file, more than 80 MB per report, a part over 5,242,880 bytes |
+| **415** | a declared type that is not `image/*` or `video/*`; **part 1 whose first bytes are not** JPEG, PNG, WebP, HEIC, MP4 or MOV (the upload is aborted and its row `rejected`) |
+| **422** | a part number outside 1…parts; a part whose length is not the expected one |
+| **503** `media_store_unavailable` | the object store is down (the report itself is unaffected) |
+
+A completed file is processed by the media worker: EXIF, SHA-256, perceptual hash (a video: ffprobe
+and four frame hashes, at most 60 s long), EXIF-free copies and a 320 px thumbnail, the recycled-media
+rules, a re-score of the report's event, then `REPORT_MEDIA_READY` (below). Status goes
+`uploading → processing → ready`, or `rejected` with a `reason` (`unreadable: …`, a video over 60 s,
+`abandoned` after 24 h by `scripts/cleanup_uploads.py`).
+
+### Serving — `POST /api/media/signed-urls` (ANALYST, COMMANDER, ADMIN) and `GET /api/media/{id}/file`
+
+```json
+// POST /api/media/signed-urls   {"ids": ["a91e…", "c03b…"], "size": "thumb"}
+{
+  "urls": {"a91e…": "https://…/api/media/a91e…/file?size=thumb&exp=1790000000&sig=…"},
+  "external": {},
+  "size": "thumb",
+  "expires_in": 600,
+  "unavailable": {"c03b…": "media is processing"}
+}
+```
+
+* `size`: `thumb` (≤ 320 px JPEG, a video's poster thumbnail) or `full` (≤ 1,600 px JPEG, or the
+  metadata-stripped video). Neither carries EXIF or GPS.
+* `original: true` → links to the originals, EXIF included, and **one `MEDIA_ORIGINAL_ACCESS`
+  ledger row** naming the operator and the media. If that row cannot be written, no link is given (503).
+* A Mastodon attachment's URL is the author's own link, listed in `external`: INDRA never re-hosts it.
+* `GET /api/media/{id}/file?size=&exp=&sig=` streams the bytes: **200**, or **206** with
+  `Content-Range` for a `Range` request, **416** for an unsatisfiable range, **403** for an expired
+  or altered link, **404** for a copy retention has removed. `Cache-Control: private, max-age=600`.
+* `sig = HMAC-SHA256(MEDIA_URL_SECRET, "{id}:{size}:{exp}")`; without `MEDIA_URL_SECRET` → 503.
+
+### Changes to existing routes
+
+| Route | Change |
+|---|---|
+| `POST /api/reports/submit` | **429** with `Retry-After` over 10 reports per device or 300 per address in 10 minutes (nothing stored). The 202 body gains `privacy_notice_version`. `/official` is exempt |
+| `GET /api/reports/track/{docket}` | new status **`withdrawn`**; **429** over 60 lookups a minute per address |
+| `GET /api/reports/recent` | items gain `media_count`, `media_kinds`, `media_ids`, `media_flags` — ids only, never a URL; withdrawn reports are left out |
+| `GET /api/events/{id}/provenance` | each report gains `media` (`id, origin, kind, status, reason, flags, flag_basis, exif_taken_at, width, height, duration_s, source_url` for social, `received_at`) and `reputation` (`{approved, rejected, trust, multiplier, line, …}` or null) |
+| Receipt | `media` block `{line, checked, photos, videos, processing, flags, rule}` when the event's reports carry media; `vision_analysis` stays **offline**, its evidence text adding "image content is not analysed; media is checked for reuse and metadata only". `density_basis` gains `merged_by_shared_media` and `bot_reporters` |
+| `GET /api/meta/sources` | gains `rate_limited: {rejected_24h, enabled, per_reporter, per_ip}` |
+| `/ws/events` | a client's `{"type": "ping"}` gets `{"type": "pong"}` |
+
+### `DELETE /api/reports/{docket}` — a citizen withdraws a report (header `X-Reporter-Id`)
+
+**200** `{docket, status: "withdrawn", media_deleted, event_rescored, event_code, already}`;
+**403** from any other device; **404** for an unknown docket; again → 200 with `already: true`.
+The text becomes "[withdrawn]"; the exact position, analysis and `source_meta` are cleared; its
+media is deleted; it leaves its event, which is re-scored; a `REPORT_WITHDRAWN` ledger row is
+written. The row stays as a tombstone (docket, times, district, state).
+
+### `GET /api/admin/sources` (ANALYST, COMMANDER, ADMIN)
+
+```json
+{
+  "sources": [{"source_type": "CITIZEN_APP", "platform": null, "reports": 120, "in_approved_events": 14,
+               "in_rejected_events": 3, "flagged": 9, "flagged_share": 0.075, "prior": 0.6}],
+  "publishers": [{"publisher": "The Hindu", "domain": "thehindu.com", "items": 40, "approved_events": 2,
+                  "rejected_events": 0, "flagged_share": 0.0, "prior": 0.55, "trust": 0.75}],
+  "top_reporters": [{"reporter_hash": "9f2c…", "source_type": "CITIZEN_APP", "platform": null, "reports": 12,
+                     "approved": 0, "rejected": 2, "flagged": 1, "trust": 0.25, "multiplier": 0.75,
+                     "first_seen": "…", "last_seen": "…"}],
+  "rate_limited_24h": 0,
+  "rules": {"trust": "(approved + 1) / (approved + rejected + 2); only human decisions count", "…": "…"}
+}
+```
+
+Reporter hashes are the only identifiers. Values above are illustrative, not captured.
+
+### WebSocket `REPORT_MEDIA_READY`
+
+```json
+{"type": "REPORT_MEDIA_READY", "report_id": "5f0c…", "event_id": null,
+ "media": [{"id": "a91e…", "kind": "image", "status": "ready", "flags": ["no_metadata"]},
+           {"id": "c03b…", "kind": "video", "status": "ready", "flags": [], "duration_s": 24.0}]}
+```
+
+No URL and no docket: the socket is open. (`webpage.MD` §8.7 drafted it with the docket; a docket is
+the citizen's credential, so it is left out.)
+
+### New flags (in `flags`, with reasons in `flag_basis`)
+
+| Flag | Rule | Credibility × |
+|---|---|---|
+| `duplicate_media` | the same SHA-256 as another reporter's earlier media | — (the reporters count as one witness) |
+| `recycled_suspect` | a pHash or video frame within Hamming distance 8 of media first seen more than 48 h earlier | 0.3 |
+| `old_capture` | EXIF capture more than 48 h before `observed_at` | 0.4 |
+| `future_capture` | EXIF capture more than 1 h after the report was received | 0.7 |
+| `location_mismatch` | EXIF GPS more than 25 km from the report's GPS | 0.5 |
+| `no_metadata`, `edited` | no EXIF; EXIF names an editing app | — noted only |
+| `new_account`, `few_followers`, `bot_account` | Mastodon account under 7 days old; under 5 followers; a bot (at most 0.5 of a witness) | 0.6, 0.8, 0.8 |
+
+Reporter reputation: `credibility × (0.5 + trust)`, at most 1.0, with
+`trust = (approved + 1) / (approved + rejected + 2)` from commanders' approvals and rejections only.
+
+---
+
+## Planned — Phase 6
+
+**The endpoints below are not built yet.** These are the names Phase 6 will use, published now so
+the dashboard can be built against them. Treat everything but the path as provisional.
 
 | Phase | Endpoint | For |
 |---|---|---|
-| 5 | `POST /api/reports/submit` as multipart | Photo and video upload |
-| 5 | `GET /api/media/{id}` | A report's media |
-| 5 | `DELETE /api/reports/{docket}` | A citizen withdrawing their own report |
-| 5 | `GET /api/admin/sources` | Per-source credibility |
 | 6 | `GET /api/analytics/kpis`, `/timeseries`, `/by-state`, `/latency`, `/verification-funnel` | The analytics page |
 | 6 | `POST /api/ingest/batch` | Bulk import of real archives; a load test only ever against an isolated test backend |
 
