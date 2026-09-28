@@ -418,30 +418,45 @@ export default function RiskZonesSection() {
     const receipt = selectedEventDetail?.verification_receipt;
     const repCount = selectedEventDetail?.corroborating_reports_count ?? selectedZone.reportsCount ?? 1;
 
+    // Direct extraction from verification_receipt factors if available
+    const factors = Array.isArray(receipt?.factors) ? receipt.factors : [];
+    const densityFactor = factors.find((f: any) => f.key === 'report_density');
+    const weatherFactor = factors.find((f: any) => f.key === 'weather_station');
+    const spatialFactor = factors.find((f: any) => f.key === 'spatial_coherence');
+    const reliabilityFactor = factors.find((f: any) => f.key === 'source_reliability');
+
     // 1. Independent source agreement:
-    const indepScore = Math.min(
-      99,
-      Math.max(68, Math.round(70 + Math.min(repCount, 5) * 5.8))
-    );
+    const indepScore =
+      densityFactor?.raw_score != null
+        ? Math.round(densityFactor.raw_score * 100)
+        : Math.min(99, Math.max(68, Math.round(70 + Math.min(repCount, 5) * 5.8)));
 
     // 2. Weather station agreement from real METAR or confidence
-    const weatherScore = Math.min(
-      99,
-      Math.max(75, Math.round((selectedEventDetail?.confidence_score ?? selectedZone.score) * 100))
-    );
+    const weatherScore =
+      weatherFactor?.raw_score != null
+        ? Math.round(weatherFactor.raw_score * 100)
+        : Math.min(99, Math.max(75, Math.round((selectedEventDetail?.confidence_score ?? selectedZone.score) * 100)));
 
     // 3. Location and Time consistency
+    const spatialRaw = spatialFactor?.raw_score != null ? Math.round(spatialFactor.raw_score * 100) : null;
     const prec = selectedEventDetail?.place_precision || 'district';
-    const locScore = prec === 'exact' ? 98 : prec === 'district' ? 91 : 82;
+    const locScore = spatialRaw ?? (prec === 'exact' ? 98 : prec === 'district' ? 91 : 82);
 
     // 4. Source reliability
-    const relScore = selectedZone.verified ? 96 : 84;
+    const relRaw = reliabilityFactor?.raw_score != null ? Math.round(reliabilityFactor.raw_score * 100) : null;
+    const relScore = relRaw ?? (selectedZone.verified ? 96 : 84);
 
     const stationIcao =
       receipt?.evidence?.weather_station?.station_code ||
       nearestMetar?.station.icao ||
       'IMD AWS';
     const stationDist = nearestMetar?.distanceKm ? `${nearestMetar.distanceKm} km` : 'Near';
+
+    const contradictions = Array.isArray(receipt?.contradictions) ? receipt.contradictions : [];
+    const contradictionStatus =
+      contradictions.length === 0
+        ? '0 Contradictions (PASS)'
+        : `${contradictions.length} Contradictions Flagged`;
 
     return {
       independentSource: indepScore,
@@ -453,6 +468,7 @@ export default function RiskZonesSection() {
       stationLabel: `${stationIcao} (${stationDist})`,
       precisionLabel: prec === 'exact' ? 'EXACT CENTROID' : 'DISTRICT CORRIDOR',
       reliabilityLabel: selectedZone.verified ? 'PUBLISHED & AUDITED' : 'PRE-VERIFICATION',
+      contradictionStatus,
     };
   }, [selectedZone, selectedEventDetail, nearestMetar, panIndiaMetrics, liveEventsRaw]);
 
@@ -1192,7 +1208,7 @@ export default function RiskZonesSection() {
                     <div className="p-2 rounded bg-white border border-slate-200">
                       <span className="text-slate-400 block text-[10px]">Physical Contradiction Check</span>
                       <span className="font-semibold text-emerald-700 font-mono">
-                        0 Contradictions (PASS)
+                        {activeMetrics.contradictionStatus || '0 Contradictions (PASS)'}
                       </span>
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
