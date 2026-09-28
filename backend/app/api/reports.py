@@ -6,22 +6,25 @@ POST /api/reports/submit          — stores the report with its outbox message,
 POST /api/reports/official        — the same, for an authenticated COMMANDER/ADMIN,
                                     stored as OFFICIAL_DISPATCH with who filed it
 GET  /api/reports/track/{docket}  — where a report is now, for the citizen holding its docket
+DELETE /api/reports/{docket}      — the citizen who filed it takes it back (Phase 5 T5)
 """
 
 import logging
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Header, Query, HTTPException
+from fastapi import APIRouter, Depends, Header, Query, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import AwareDatetime, BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.empty import empty_or_503
 from app.core.security import TokenData, require_roles
 from app.models.enums import EventType
+from app.services import rate_limit
 from app.services.geocoding import (
     LocationUnresolvedError,
     OutOfIndiaBoundsError,
@@ -195,6 +198,9 @@ async def _ingest(
             "queued": stored.queued,
             "will_retry": not stored.queued,
             "source_type": source_type,
+            # Phase 5 T5: the privacy notice in force, so the form can show the
+            # one that applied to this report.
+            "privacy_notice_version": get_settings().PRIVACY_NOTICE_VERSION,
         },
     )
 
@@ -202,6 +208,7 @@ async def _ingest(
 @router.post("/submit", status_code=202)
 async def submit_report(
     report: ReportSubmission,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     x_reporter_id: Optional[str] = Header(None, max_length=200),
 ):
@@ -216,7 +223,11 @@ async def submit_report(
     `X-Reporter-Id` is a random id the client generates once and keeps. Only a
     keyed hash of it is stored, so reports from one device can be linked to
     each other and never to the device.
+
+    **Rate-limited** (Phase 5 T8): 10 reports per device and 300 per address
+    in 10 minutes, then 429 with `Retry-After`; nothing is stored.
     """
+    await rate_limit.check_report(request, x_reporter_id)
     return await _ingest(
         report, db, source_type="CITIZEN_APP", submitted_by=None, reporter_id=x_reporter_id
     )
@@ -287,7 +298,11 @@ async def list_recent_reports(
     it — were otherwise invisible everywhere except a total in the KPI strip
     (BUG-035, BUG-037).
     """
-    conditions = ["r.created_at >= NOW() - make_interval(hours => CAST(:hours AS int))"]
+    conditions = [
+        "r.created_at >= NOW() - make_interval(hours => CAST(:hours AS int))",
+        # Phase 5 T5: a withdrawn report is a tombstone, not a field report.
+        "r.withdrawn_at IS NULL",
+    ]
     if not include_feeds:
         conditions.append("COALESCE(r.place_precision, 'gps') = 'gps'")
     if unfused_only:
@@ -312,6 +327,12 @@ async def list_recent_reports(
     db_error = None
     try:
         rows = (await db.execute(query, {"limit": limit, "hours": hours})).fetchall()
+        # Phase 5: what media each report carries, as ids and kinds. Never a
+        # URL: this list is open; pictures come from POST /api/media/signed-urls.
+        from app.api.media import media_counts
+
+        media = await media_counts(db, [r[0] for r in rows])
+        no_media = {"media_count": 0, "media_kinds": [], "media_ids": [], "media_flags": []}
         return [
             {
                 "id": str(r[0]),
@@ -331,6 +352,7 @@ async def list_recent_reports(
                 "credibility_score": r[13],
                 "place_precision": r[14],
                 "platform": r[15],
+                **media.get(str(r[0]), no_media),
             }
             for r in rows
         ]
@@ -343,8 +365,44 @@ async def list_recent_reports(
     return empty_or_503("GET /api/reports/recent", list, db_error)
 
 
+@router.delete("/{docket}")
+async def withdraw_report(
+    docket: str,
+    db: AsyncSession = Depends(get_db),
+    x_reporter_id: Optional[str] = Header(None, max_length=200),
+):
+    """
+    A citizen takes their report back (Phase 5 T5; services/withdrawal.py).
+
+    Only with the `X-Reporter-Id` that filed it: anything else is 403. The
+    text and exact position are redacted, its photos and videos deleted, it
+    leaves its event, the event is re-scored, and the ledger records it.
+    Withdrawing twice answers 200 again and changes nothing.
+    """
+    from app.services import withdrawal
+
+    canonical = normalise_docket(docket)
+    if canonical is None:
+        raise HTTPException(status_code=404, detail="No report with that docket")
+    try:
+        return await withdrawal.withdraw(db, canonical, reporter_hash_for(x_reporter_id))
+    except withdrawal.NotFound:
+        raise HTTPException(status_code=404, detail="No report with that docket")
+    except withdrawal.NotYours:
+        raise HTTPException(status_code=403, detail="Only the device that filed this report can withdraw it")
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        logger.error(f"Withdrawal of {canonical} failed: {e}", exc_info=True)
+        raise HTTPException(status_code=503, detail="The report could not be withdrawn; try again")
+
+
 @router.get("/track/{docket}")
-async def track_report(docket: str, db: AsyncSession = Depends(get_db)):
+async def track_report(docket: str, request: Request, db: AsyncSession = Depends(get_db)):
     """
     Where a report is now, for the citizen holding its docket.
 
@@ -357,8 +415,10 @@ async def track_report(docket: str, db: AsyncSession = Depends(get_db)):
 
     Typing slips are forgiven (case, spaces, hyphens, O/I/L for 0/1/1). A
     docket that cannot exist is the same 404 as one that does not, so the
-    answer never helps anyone guess.
+    answer never helps anyone guess. Lookups are rate-limited per address
+    (60 a minute, Phase 5 T8), so nobody can walk the docket space either.
     """
+    await rate_limit.check_lookup(request)
     canonical = normalise_docket(docket)
     if canonical is None:
         raise HTTPException(status_code=404, detail="No report with that docket")
@@ -369,7 +429,7 @@ async def track_report(docket: str, db: AsyncSession = Depends(get_db)):
                 text("""
                     SELECT r.docket, r.created_at, r.duplicate_of, r.event_id,
                            r.processed_at, r.district, r.state,
-                           e.event_code, CAST(e.review_status AS text)
+                           e.event_code, CAST(e.review_status AS text), r.withdrawn_at
                     FROM raw_reports r
                     LEFT JOIN verified_events e ON e.id = r.event_id
                     WHERE r.docket = :docket
@@ -387,11 +447,13 @@ async def track_report(docket: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No report with that docket")
 
     (found, received_at, duplicate_of, event_id, processed_at,
-     district, state, event_code, review_status) = row
+     district, state, event_code, review_status, withdrawn_at) = row
     return {
         "docket": found,
         "received_at": received_at.isoformat() if received_at else None,
-        "status": docket_status(duplicate_of, event_id, review_status, processed_at),
+        "status": docket_status(
+            duplicate_of, event_id, review_status, processed_at, withdrawn_at=withdrawn_at
+        ),
         "event_code": event_code,
         "review_status": review_status,
         "district": district,
