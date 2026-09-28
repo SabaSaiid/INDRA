@@ -208,6 +208,69 @@ confidence and verdict move. The history endpoint shows exactly when and why. In
 warning arriving after the five Patna reports lifts the event by 0.85 × 0.10 / 0.80 = 0.106, from
 UNCONFIRMED and quarantined to CORROBORATED and in front of a reviewer.
 
+### What if the photo is old?
+
+*(Phase 5, tested 28 Sep.)*
+
+It is flagged, with the reason in words, and it counts for less. Every photo and video INDRA
+stores, from citizens and from every Mastodon post it has collected, gets an exact fingerprint
+(SHA-256) and a perceptual one (a 64-bit pHash that survives resizing and re-compression), and its
+EXIF capture time and place are read. Then published rules apply:
+
+- near-identical to an image first seen **more than 48 hours earlier** → `recycled_suspect`,
+  credibility × 0.3, "near-identical to an image first seen on 23 Oct 2024 (Mastodon)";
+- camera date **more than 48 hours before** the report → `old_capture`, × 0.4, "taken 14 Aug 2023,
+  3 years before the report";
+- taken **more than 25 km** from where the report was filed → `location_mismatch`, × 0.5;
+- the **same file** from two people → one witness, not two (a WhatsApp forward is one sighting).
+
+A photo with no EXIF is not held against anyone: WhatsApp strips it from everything. **Nothing is
+rejected automatically**; the report stays, flagged, in front of a human. And INDRA never claims to
+know what a picture shows: `vision_analysis` stays offline.
+
+This is not hypothetical. Hashing 60 real #IMD posts on 28 Sep (a copy of the team database) found
+two re-posted images: a Bengaluru rain meme from 25 May 2025, near-identical (2 of 64 bits) to one
+first posted on 23 Oct 2024, and a cyclone-alert graphic re-posted a week after it first appeared.
+The demo's case C shows the rule end to end (`scripts/run_verification_demo.py`).
+
+### What stops someone flooding you with fake reports?
+
+*(Phase 5, tested 28 Sep.)*
+
+Three things. **Rate limits**: 10 reports per device and 300 per network address in 10 minutes,
+then a 429 with the seconds to wait, and nothing stored. The per-address limit is high on purpose:
+Indian mobile carriers put a whole town behind one address, and the per-device limit does the fine
+work. A header sent from outside cannot pick its own address. With Redis down each server process
+still limits on its own. Refusals are counted on `/api/meta/sources`. **One device is one witness**:
+fifty reports from one phone count once in the density factor. And **reputation**: a device whose
+events commanders keep rejecting counts for less on its next report, by a published formula,
+`credibility × (0.5 + (approved + 1) / (approved + rejected + 2))`, at most 1.0. Only human
+decisions count; the machine's own score is not ground truth.
+
+The limit to be honest about: a determined attacker with many phones and many addresses gets many
+witnesses. That is what the weather and official-warning factors are for; a flood of fake heatwave
+reports beside an airport reading 24 °C is still contradicted.
+
+### What about citizens' data?
+
+*(Phase 5, tested 28 Sep.)*
+
+- A citizen's device is known only by a keyed hash of a random id their phone generates; the id
+  itself is never stored.
+- Their original photos, which carry the GPS of where they stood, are private. Officials see a copy
+  with **every metadata tag removed** (at most 1,600 px) through links that expire in 10 minutes;
+  the original is available to an analyst only, and every such link is written to the ledger.
+- Originals are deleted after 90 days unless the event was approved by a human, the copies after
+  180 days, and the private copies of Mastodon images (kept only to hash them) after 30 days. The
+  hashes stay, because they are what catches a recycled photo.
+- A citizen can **withdraw** a report with the device that filed it: its text and position are
+  redacted, its photos deleted, and its event re-scored without it.
+
+Two limits, stated plainly: the data lake's archived copy of the report stream is not rewritten by a
+withdrawal (BUG-123), and the open Field Reports list still returns report text and coordinates
+until it is put behind sign-in (BUG-124). Faces and number plates are not blurred, which is why
+photos are shown only to signed-in officials.
+
 ### How do you know the audit trail wasn't edited?
 
 Every decision writes a row into a **SHA-256 hash chain**: each row hashes the previous row's hash
