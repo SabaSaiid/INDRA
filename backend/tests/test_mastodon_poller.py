@@ -117,6 +117,38 @@ async def test_the_fixture_page_is_stored_as_social_posts(db, fake, one_tag):
 
 
 @pytest.mark.integration
+async def test_posts_with_attachments_go_to_the_media_worker_once(db, fake, one_tag, monkeypatch):
+    """Phase 5 T4: every stored post with media is hashed; a post seen again is not queued again."""
+    from app.workers import media_worker
+
+    queued = []
+    monkeypatch.setattr(media_worker, "enqueue_social", lambda report_id: queued.append(str(report_id)))
+    fake.pages[("mastodon.social", "IMD")] = STATUSES
+    await _poll(db, fake)
+
+    with_media = {str(r["id"]) for r in await _rows(db) if r["source_meta"]["media"]}
+    assert len(with_media) == 13
+    assert sorted(queued) == sorted(with_media)
+    queued.clear()
+    await _poll(db, fake)
+    assert queued == []
+
+
+@pytest.mark.integration
+async def test_account_flags_are_stored_with_their_reasons(db, fake, one_tag):
+    """Phase 5 T7: the fixture's zero-follower accounts are flagged and cost credibility."""
+    fake.pages[("mastodon.social", "IMD")] = STATUSES
+    await _poll(db, fake)
+    rows = (await db.execute(text(
+        "SELECT flags, credibility_score, analysis->'flag_basis' FROM raw_reports"
+    ))).fetchall()
+    flagged = [r for r in rows if "few_followers" in r[0]]
+    assert flagged and all(r[2]["few_followers"] == "0 followers" for r in flagged)
+    clean = [r for r in rows if not r[0]]
+    assert clean and max(r[1] for r in flagged) < max(r[1] for r in clean)
+
+
+@pytest.mark.integration
 async def test_the_next_poll_with_no_new_posts_writes_nothing(db, fake, one_tag):
     fake.pages[("mastodon.social", "IMD")] = STATUSES
     first = await _poll(db, fake)
