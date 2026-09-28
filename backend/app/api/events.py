@@ -877,6 +877,14 @@ async def review_event(
                 "receipt": json.dumps(receipt),
             },
         )
+        # Phase 5 T6: only human decisions build a reporter's record. Every
+        # distinct reporter in the event gets this decision, committed with it.
+        if body.action in ("approve", "reject"):
+            from app.services import reputation
+
+            await reputation.record_decision(
+                db, event_uuid, "approved" if body.action == "approve" else "rejected"
+            )
         await db.commit()
     except Exception as e:
         await db.rollback()
@@ -1063,6 +1071,53 @@ async def release_claim(
 
 # ── Provenance ─────────────────────────────────────────────────────────────────
 
+async def _provenance_media(db: AsyncSession, report_ids: List[Any]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Each report's photos and videos for provenance (Phase 5 T3): what was read
+    and what the rules said, with every reason. The EXIF place is not listed:
+    it is in the original, for whoever an analyst link is audited to. A social
+    attachment names its author's own URL; INDRA never re-hosts it. Empty on
+    a failure, which must not cost the rest of provenance.
+    """
+    ids = [str(r) for r in report_ids]
+    if not ids:
+        return {}
+    try:
+        async with db.begin_nested():
+            rows = (await db.execute(
+                text("""
+                    SELECT report_id, id, origin, kind, status, reason, COALESCE(flags, '{}'::text[]),
+                           flag_basis, exif_taken_at, width, height, duration_s,
+                           CASE WHEN origin = 'social' THEN source_url END, created_at
+                    FROM report_media
+                    WHERE report_id = ANY(CAST(:ids AS uuid[]))
+                    ORDER BY created_at, id
+                """),
+                {"ids": ids},
+            )).fetchall()
+    except Exception as e:
+        logger.warning(f"Media lookup failed in provenance: {e}")
+        return {}
+    out: Dict[str, List[Dict[str, Any]]] = {}
+    for r in rows:
+        out.setdefault(str(r[0]), []).append({
+            "id": str(r[1]),
+            "origin": r[2],
+            "kind": r[3],
+            "status": r[4],
+            "reason": r[5],
+            "flags": list(r[6] or []),
+            "flag_basis": r[7] or {},
+            "exif_taken_at": r[8].isoformat() if r[8] else None,
+            "width": r[9],
+            "height": r[10],
+            "duration_s": r[11],
+            "source_url": r[12],
+            "received_at": r[13].isoformat() if r[13] else None,
+        })
+    return out
+
+
 @router.get("/{event_id}/provenance")
 async def event_provenance(
     event_id: str,
@@ -1104,7 +1159,8 @@ async def event_provenance(
                            credibility_score, created_at, submitted_by,
                            platform, source_meta->>'publisher', source_meta->>'url',
                            COALESCE(place_precision, 'gps'), hazard_primary,
-                           COALESCE(flags, '{}'::text[]), analysis->'flag_basis'
+                           COALESCE(flags, '{}'::text[]), analysis->'flag_basis',
+                           analysis->'reputation'
                     FROM raw_reports
                     WHERE event_id = CAST(:id AS uuid)
                     ORDER BY created_at, id
@@ -1113,6 +1169,7 @@ async def event_provenance(
             )
         ).fetchall()
 
+        media_by_report = await _provenance_media(db, [r[0] for r in reports])
         audit_rows = await audit.fetch_rows(db, event_uuid)
         chain = await audit.verify_chain(db)
     except HTTPException:
@@ -1153,6 +1210,12 @@ async def event_provenance(
                 "hazard_primary": r[12],
                 "flags": list(r[13] or []),
                 "flag_basis": r[14] or {},
+                # Phase 5 T6: "reporter history: 0 approved, 2 rejected → × 0.75",
+                # when the reporter's record changed what the report counts for.
+                "reputation": r[15],
+                # Phase 5: the report's photos and videos, as ids, kinds and
+                # flags with their reasons. Pictures via POST /api/media/signed-urls.
+                "media": media_by_report.get(str(r[0]), []),
             }
             for r in reports
         ],
