@@ -5,7 +5,7 @@
 | **From** | Aditya, core platform (layers 1–3, 5, 6, 7, 8a) |
 | **To** | Saba Saeed, owner of `frontend/`, the command center (layer 9) |
 | **Covers** | Every backend change from 16 Sep 2026 onwards that the dashboard can see, and every change made inside `frontend/` from the backend side, with the reason |
-| **Latest** | Section 22, Phase 5: photos and videos, media flags, reputation, rate limits (code written 28 Sep, not yet tested) |
+| **Latest** | Section 22, Phase 5: photos and videos, media flags, reputation, rate limits (tested, merged and deployed 28 Sep) |
 | **Last reviewed** | 28 Sep 2026 |
 
 Full endpoint shapes are in [`api-contract.md`](api-contract.md). Sections are in the order the
@@ -639,7 +639,7 @@ writing anything.
 
 ## 22. Phase 5 (28 Sep): photos and videos, recycled-media flags, reporter reputation, rate limits, withdrawal
 
-**Backend status: written and tested 28 Sep (PR #50), not yet merged or deployed.** The shapes
+**Backend status: tested, merged (PR #50) and deployed 28 Sep.** The shapes
 below are final; the testing pass changed one behaviour, noted at `REPORT_MEDIA_READY`. **Nothing here breaks the dashboard as
 it is:** every change is a new endpoint, a new field or a new WebSocket message, and
 `POST /api/reports/submit` still takes exactly the JSON it takes today. No file in `frontend/` was
