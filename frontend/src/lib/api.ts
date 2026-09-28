@@ -812,6 +812,35 @@ export async function fetchStations(): Promise<RainfallStation[]> {
   return asArray<RainfallStation>(await getJson<unknown>(path), path);
 }
 
+// ─── Geo Heatmap (GET /api/geo/heatmap) ─────────────────────────────────────
+
+export interface GeoHeatmapCell {
+  h3: string;
+  lat: number;
+  lng: number;
+  report_count: number;
+  linked_report_count: number;
+}
+
+export interface GeoHeatmapResponse {
+  resolution: number;
+  window: string;
+  generated_at: string;
+  cells: GeoHeatmapCell[];
+}
+
+export async function fetchGeoHeatmap(params?: {
+  window?: '24h' | '48h' | '7d';
+  resolution?: number;
+}): Promise<GeoHeatmapResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.window) searchParams.set('window', params.window);
+  if (params?.resolution) searchParams.set('resolution', String(params.resolution));
+
+  const path = `/api/geo/heatmap${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  return getJson<GeoHeatmapResponse>(path);
+}
+
 // ─── Teams (Disaster Response Units & Hub) ───────────────────────────────────
 
 export async function fetchTeams(params?: {

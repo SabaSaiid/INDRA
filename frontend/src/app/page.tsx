@@ -11,6 +11,7 @@ import RecentEventsList from '@/components/RecentEventsList';
 import EventDistributionChart from '@/components/EventDistributionChart';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import LiveFeed from '@/components/LiveFeed';
+import RiskZonesSection from '@/components/RiskZonesSection';
 import { type KpiItem, type RecentEvent } from '@/lib/ui-config';
 import { fetchDashboardSummary, fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import { ErrorState } from '@/components/ui/empty-state';
@@ -185,40 +186,29 @@ export default function Home() {
 
         {/* Dashboard content — viewport-fit wrapper */}
         <main className="p-3 lg:p-4 max-w-[1600px] mx-auto">
-          <AnimatePresence mode="wait">
-            {isLoading ? (
-              <motion.div
-                key="skeleton"
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                {/* Skeleton header strip */}
-                <div className="h-9 mb-2.5" />
+          {isLoading ? (
+            <div key="skeleton" className="transition-opacity duration-300">
+              {/* Skeleton header strip */}
+              <div className="h-9 mb-2.5" />
 
-                {/* Skeleton KPIs */}
-                <KpiCardSkeleton />
+              {/* Skeleton KPIs */}
+              <KpiCardSkeleton />
 
-                {/* Skeleton map + list */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5 mb-2.5">
-                  <div className="lg:col-span-3"><MapCardSkeleton /></div>
-                  <div className="lg:col-span-2 flex flex-col"><ListCardSkeleton /></div>
-                </div>
+              {/* Skeleton map + list */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5 mb-2.5">
+                <div className="lg:col-span-3"><MapCardSkeleton /></div>
+                <div className="lg:col-span-2 flex flex-col"><ListCardSkeleton /></div>
+              </div>
 
-                {/* Skeleton bottom row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                  <ChartCardSkeleton />
-                  <ChartCardSkeleton />
-                  <ChartCardSkeleton />
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="content"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.4 }}
-              >
+              {/* Skeleton bottom row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                <ChartCardSkeleton />
+                <ChartCardSkeleton />
+                <ChartCardSkeleton />
+              </div>
+            </div>
+          ) : (
+            <div key="content">
                 {/* Executive Status Strip — replaces tall WelcomeHeader */}
                 <WelcomeHeader
                   viewMode={viewMode}
@@ -302,6 +292,10 @@ export default function Home() {
                         canvasClassName={MAP_FOCUS_HEIGHT}
                       />
                     </div>
+
+                    {/* Risk Zones Heatmap & Multi-factor Verification Section */}
+                    <RiskZonesSection />
+
                     {/* Events + Feed side by side below map */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                       <RecentEventsList
@@ -336,9 +330,8 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
         </main>
 
         {/* Verification Receipt Modal */}
