@@ -46,6 +46,9 @@ SELECT = """
            credibility_score
     FROM raw_reports
     WHERE (CAST(:after AS uuid) IS NULL OR id > CAST(:after AS uuid))
+      -- A withdrawn report is a tombstone (Phase 5 T5): its analysis was
+      -- cleared on purpose and "[withdrawn]" is not a text to tag.
+      AND withdrawn_at IS NULL
     ORDER BY id
     LIMIT :batch
 """
