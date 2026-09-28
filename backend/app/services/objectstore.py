@@ -8,6 +8,8 @@ nothing here uses anything beyond the plain S3 API.
     put(bucket, key, body)   exists(bucket, key)
     get(bucket, key)         presign(bucket, key)
     ensure_buckets()         ping()
+    delete, head, the multipart calls, download_to_file, upload_file and
+    open_range_sync (Phase 5: photo and video uploads)
 
 Two buckets:
 
@@ -267,3 +269,133 @@ async def ping() -> bool:
     """The store answers, with these credentials, for the lake bucket. For /healthz."""
     await _call(lambda: _get_client().head_bucket(Bucket=get_settings().S3_LAKE_BUCKET))
     return True
+
+
+async def delete(bucket: str, key: str) -> None:
+    """Remove one object. Deleting an object that is not there is not an error (S3's rule)."""
+    await _call(lambda: _get_client().delete_object(Bucket=bucket, Key=key))
+
+
+async def head(bucket: str, key: str) -> Optional[Dict[str, object]]:
+    """{"size", "content_type"} for one object, or None if there is no such object."""
+    try:
+        meta = await _call(lambda: _get_client().head_object(Bucket=bucket, Key=key))
+    except ObjectStoreUnavailable:
+        raise
+    except Exception as e:
+        if _is_missing(e):
+            return None
+        raise
+    return {"size": int(meta.get("ContentLength") or 0), "content_type": meta.get("ContentType")}
+
+
+# ── Multipart uploads (Phase 5, webpage.MD §8.3) ───────────────────────────────
+#
+# A phone sends a photo or video in 5 MiB parts, and each part it sends becomes
+# one S3 UploadPart, so the API never holds a whole video in memory and never
+# writes it to a temporary file. The store keeps the parts until the upload is
+# completed or aborted; ListParts is the one record of which parts arrived.
+
+async def create_multipart(bucket: str, key: str, content_type: str) -> str:
+    """Start a multipart upload; returns its UploadId."""
+    await _ensure_bucket(bucket)
+    response = await _call(
+        lambda: _get_client().create_multipart_upload(
+            Bucket=bucket, Key=key, ContentType=content_type
+        )
+    )
+    return str(response["UploadId"])
+
+
+async def upload_part(bucket: str, key: str, upload_id: str, n: int, body: bytes) -> str:
+    """Store part n (1-based) of an upload; returns its ETag. Sending a part again replaces it."""
+    response = await _call(
+        lambda: _get_client().upload_part(
+            Bucket=bucket, Key=key, UploadId=upload_id, PartNumber=int(n), Body=body
+        )
+    )
+    return str(response.get("ETag", "")).strip('"')
+
+
+async def list_parts(bucket: str, key: str, upload_id: str) -> List[Dict[str, object]]:
+    """Every part received so far, as [{"n", "etag", "size"}], in part order."""
+
+    def _list():
+        client = _get_client()
+        out: List[Dict[str, object]] = []
+        marker = 0
+        while True:
+            page = client.list_parts(
+                Bucket=bucket, Key=key, UploadId=upload_id, PartNumberMarker=marker
+            )
+            for p in page.get("Parts", []) or []:
+                out.append({
+                    "n": int(p["PartNumber"]),
+                    "etag": str(p.get("ETag", "")).strip('"'),
+                    "size": int(p.get("Size") or 0),
+                })
+            if not page.get("IsTruncated"):
+                break
+            marker = int(page.get("NextPartNumberMarker") or 0)
+            if not marker:
+                break
+        return sorted(out, key=lambda p: p["n"])
+
+    return await _call(_list)
+
+
+async def complete_multipart(
+    bucket: str, key: str, upload_id: str, parts: List[Dict[str, object]]
+) -> None:
+    """Join the parts into one object at `key`. `parts` as list_parts() returns them."""
+    manifest = {"Parts": [{"PartNumber": int(p["n"]), "ETag": f'"{p["etag"]}"'} for p in parts]}
+    await _call(
+        lambda: _get_client().complete_multipart_upload(
+            Bucket=bucket, Key=key, UploadId=upload_id, MultipartUpload=manifest
+        )
+    )
+
+
+async def abort_multipart(bucket: str, key: str, upload_id: str) -> None:
+    """Discard an upload and every part it received. An unknown upload is not an error."""
+    try:
+        await _call(
+            lambda: _get_client().abort_multipart_upload(Bucket=bucket, Key=key, UploadId=upload_id)
+        )
+    except ObjectStoreUnavailable:
+        raise
+    except Exception as e:
+        if not _is_missing(e):
+            raise
+
+
+# ── Files and ranges (the media worker and the media route) ────────────────────
+
+async def download_to_file(bucket: str, key: str, path: str) -> None:
+    """Stream one object to a local file, in chunks: a 50 MB video never sits in memory."""
+    await _call(lambda: _get_client().download_file(bucket, key, path))
+
+
+async def upload_file(
+    path: str, bucket: str, key: str, content_type: str = "application/octet-stream"
+) -> None:
+    """Stream a local file into one object (multipart above 8 MB, by boto3's own rule)."""
+    await _ensure_bucket(bucket)
+    await _call(
+        lambda: _get_client().upload_file(path, bucket, key, ExtraArgs={"ContentType": content_type})
+    )
+
+
+def open_range_sync(bucket: str, key: str, start: Optional[int] = None, end: Optional[int] = None):
+    """
+    A streaming GET of one object, or of bytes start–end of it (inclusive, as
+    in an HTTP Range header). Returns boto3's response: `Body` is a stream to
+    read in chunks, `ContentLength` and `ContentRange` describe what it holds.
+
+    Synchronous on purpose: the caller reads the body chunk by chunk in a worker
+    thread (api/media.py), so the object is never read whole into memory.
+    """
+    kwargs = {"Bucket": bucket, "Key": key}
+    if start is not None:
+        kwargs["Range"] = f"bytes={start}-{'' if end is None else end}"
+    return _get_client().get_object(**kwargs)
