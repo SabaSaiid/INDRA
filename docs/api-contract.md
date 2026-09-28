@@ -1180,6 +1180,12 @@ Reporter hashes are the only identifiers. Values above are illustrative, not cap
 No URL and no docket: the socket is open. (`webpage.MD` §8.7 drafted it with the docket; a docket is
 the citizen's credential, so it is left out.)
 
+When `event_id` is set, the event was re-scored first. A file that moves a number (a flag that
+lowers credibility, a shared file that merges two witnesses) sends `VERIFIED_EVENT` before this
+message, with a `LATE_CORROBORATION` ledger row whose trigger is `media:<id>`. A file that moves no
+number updates only the receipt's `media` block and the `vision_analysis` wording, in place, with no
+ledger row and no `VERIFIED_EVENT` (BUG-126): refetch the event to show the new media line.
+
 ### New flags (in `flags`, with reasons in `flag_basis`)
 
 | Flag | Rule | Credibility × |
