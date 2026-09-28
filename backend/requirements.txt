@@ -23,9 +23,15 @@ greenlet>=3.0.3
 python-Levenshtein>=0.25.1
 # S3 client for the object store (SeaweedFS in compose; any S3 API works).
 boto3>=1.34
+# Phase 5 T2: iPhone HEIC photos, and the 64-bit perceptual hash that spots a
+# re-saved old photo. Video metadata needs the ffmpeg package on the machine
+# (ffprobe and ffmpeg: `sudo apt install -y ffmpeg`), not a Python library.
+pillow-heif>=0.16
+ImageHash>=4.3
 
 # ── Test toolchain ─────────────────────────────────────────────────────────────
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
 aiosqlite>=0.20.0
 pyarrow>=25.0.1  # optional Parquet ingestion exercised by the full ML test suite
+piexif>=1.1.3    # Phase 5 T2 tests: writes EXIF into the photos the tests generate
