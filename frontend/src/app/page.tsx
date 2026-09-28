@@ -11,6 +11,7 @@ import RecentEventsList from '@/components/RecentEventsList';
 import EventDistributionChart from '@/components/EventDistributionChart';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import LiveFeed from '@/components/LiveFeed';
+import RiskZonesSection from '@/components/RiskZonesSection';
 import { type KpiItem, type RecentEvent } from '@/lib/ui-config';
 import { fetchDashboardSummary, fetchEvents, apiEventsToRecentEvents } from '@/lib/api';
 import { ErrorState } from '@/components/ui/empty-state';
@@ -283,6 +284,9 @@ export default function Home() {
                       </div>
                     </div>
 
+                    {/* Risk Zones Heatmap & Multi-factor Verification Section */}
+                    <RiskZonesSection />
+
                     {/* Bottom Row: Distribution + Trend + Live Feed */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                       <EventDistributionChart />
@@ -302,6 +306,10 @@ export default function Home() {
                         canvasClassName={MAP_FOCUS_HEIGHT}
                       />
                     </div>
+
+                    {/* Risk Zones Heatmap & Multi-factor Verification Section */}
+                    <RiskZonesSection />
+
                     {/* Events + Feed side by side below map */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                       <RecentEventsList
