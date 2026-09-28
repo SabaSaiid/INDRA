@@ -31,6 +31,15 @@ snapshot or ledger row is created.
 series, the airport observations, the warnings, SACHET's freshness), and
 `--frozen PATH` replays such a file without a network or a database, for
 rehearsing offline. There is no frozen file until a live run records one.
+
+* **Case C, recycled photo (Phase 5 T9).** A citizen flood report carrying a
+  photo that is both a re-save of an image INDRA first saw three days earlier
+  (a perceptual-hash match) and EXIF-dated 14 Aug 2023. Expected: the media
+  flagged **`recycled_suspect`** and **`old_capture`**, the report's
+  credibility lowered, both reasons printed, and the report kept: flagged,
+  never rejected. The two images are drawn by this script with Pillow, and
+  checked by the media worker's own extraction and rules; like A and B,
+  nothing is stored, so case C is the same in a live run and with `--frozen`.
 """
 
 from __future__ import annotations
@@ -397,6 +406,113 @@ async def live_inputs() -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, An
     return case_a, case_b, problems
 
 
+# ── Case C: a recycled photo (Phase 5 T9) ──────────────────────────────────────
+
+CASE_C_TEXT = f"{LABEL} Flood in our colony, water knee deep, see photo"
+CASE_C_TAKEN = "2023:08:14 09:12:00"
+CASE_C_FIRST_SEEN_DAYS = 3
+
+
+def _draw_flood_photo(width: int = 640, height: int = 480):
+    """A synthetic 'flood' picture: sky, a row of buildings, brown water. Deterministic."""
+    import random
+
+    from PIL import Image, ImageDraw
+
+    rng = random.Random(20230814)
+    image = Image.new("RGB", (width, height))
+    draw = ImageDraw.Draw(image)
+    for y in range(height // 2):
+        shade = 150 + int(80 * y / (height / 2))
+        draw.line([(0, y), (width, y)], fill=(shade - 40, shade - 20, shade))
+    x = 0
+    while x < width:
+        w, h = rng.randint(50, 110), rng.randint(90, 200)
+        tone = rng.randint(90, 180)
+        draw.rectangle([x, height // 2 - h + 60, x + w, height // 2 + 60], fill=(tone, tone - 20, tone - 40))
+        for wy in range(height // 2 - h + 75, height // 2 + 40, 28):
+            for wx in range(x + 8, x + w - 12, 22):
+                draw.rectangle([wx, wy, wx + 10, wy + 14], fill=(40, 50, 70))
+        x += w + rng.randint(4, 16)
+    for y in range(height // 2 + 40, height):
+        ripple = int(10 * math.sin(y / 6.0))
+        draw.line([(0, y), (width, y)], fill=(118 + ripple, 92 + ripple, 60))
+    return image
+
+
+def _jpeg_bytes(image, quality: int, exif=None) -> bytes:
+    from io import BytesIO
+
+    out = BytesIO()
+    if exif is not None:
+        image.save(out, format="JPEG", quality=quality, exif=exif)
+    else:
+        image.save(out, format="JPEG", quality=quality)
+    return out.getvalue()
+
+
+def run_case_c(now: datetime) -> Dict[str, Any]:
+    """Case C's check, in memory: extraction and rules exactly as the media worker runs them."""
+    from PIL import Image
+
+    from app.models.enums import SourceType
+    from app.services.corroboration import CITIZEN_BASELINE
+    from app.services.credibility import compute_credibility
+    from app.services.media_extract import extract_image
+    from app.services.media_rules import media_flags, media_summary
+    from app.services.report_flags import adjust_credibility
+
+    earlier = _draw_flood_photo()
+    first_seen = now - timedelta(days=CASE_C_FIRST_SEEN_DAYS)
+    stored = extract_image(_jpeg_bytes(earlier, 90), "image/jpeg")
+
+    # The same picture, resized and re-saved at 70%, with the camera date of 14 Aug 2023.
+    resaved = earlier.resize((576, 432), Image.LANCZOS)
+    exif = Image.Exif()
+    exif[306] = CASE_C_TAKEN           # DateTime
+    exif[271] = "synthetic"            # Make: this image was drawn, not photographed
+    photo = extract_image(_jpeg_bytes(resaved, 70, exif=exif), "image/jpeg")
+
+    report = {
+        "id": uuid.UUID(int=301), "reporter_hash": "demo-reporter-C", "latitude": None, "longitude": None,
+        "place_precision": "gps", "observed_at": now - timedelta(minutes=10), "created_at": now,
+    }
+    near = [{
+        "phash": stored.phash, "frame_phashes": [], "origin": "social", "platform": "mastodon",
+        "first_seen": first_seen,
+    }]
+    flags, basis = media_flags(photo.as_dict() | {"exif_taken_at": photo.exif_taken_at}, report, near=near)
+    before = compute_credibility(SourceType.CITIZEN_APP, CASE_C_TEXT)
+    after = adjust_credibility(before, flags)
+    summary = media_summary([{
+        "kind": "image", "status": "ready", "flags": flags, "flag_basis": basis,
+        "exif_taken_at": photo.exif_taken_at, "observed_at": report["observed_at"],
+    }])
+    return {
+        "flags": flags,
+        "basis": basis,
+        "credibility_before": before,
+        "credibility_after": after,
+        "witness_before": round(min(1.0, before / CITIZEN_BASELINE), 4),
+        "witness_after": round(min(1.0, after / CITIZEN_BASELINE), 4),
+        "media_line": summary["line"] if summary else None,
+        "first_seen": first_seen,
+    }
+
+
+def print_case_c(c: Dict[str, Any]) -> None:
+    print("— Case C: a recycled 2023 flood photo (both images drawn by this script, labelled synthetic)")
+    print(f"    report: {CASE_C_TEXT}")
+    print(f"    flags: {', '.join(c['flags']) or 'none'}")
+    for flag, reason in c["basis"].items():
+        print(f"    {flag}: {reason}")
+    print(f"    credibility {c['credibility_before']} -> {c['credibility_after']}; "
+          f"it counts {c['witness_before']:g} -> {c['witness_after']:g} of a witness")
+    print(f"    receipt: {c['media_line']}")
+    print("    the report is kept and shown: flagged, never rejected")
+    print()
+
+
 # ── Printing ───────────────────────────────────────────────────────────────────
 
 def _cell(text_: Any, width: int) -> str:
@@ -487,6 +603,8 @@ def main() -> int:
 
     a, b = score_case(case_a), score_case(case_b)
     print_side_by_side(a, b)
+    c = run_case_c(_dt(case_a["now"]))
+    print_case_c(c)
 
     ok = True
     for case, expected in ((a, "CORROBORATED"), (b, "CONTRADICTED")):
@@ -494,7 +612,16 @@ def main() -> int:
         if got != expected:
             ok = False
             print(f"Case {case['case']['case']}: expected {expected}, got {got}")
-    print("Every report above is synthetic and labelled; the places and readings are real.")
+    missing = [f for f in ("recycled_suspect", "old_capture") if f not in c["flags"]]
+    if missing:
+        ok = False
+        print(f"Case C: expected the flags recycled_suspect and old_capture; missing {missing}")
+
+    print()
+    print(f"A  genuine {a['event_type'].lower()}{'':<22} → {a['scored']['verdict'].value}")
+    print(f"B  fabricated heatwave{'':<16} → {b['scored']['verdict'].value}")
+    print(f"C  recycled 2023 flood photo{'':<10} → media flagged ({'; '.join(c['basis'].get(f, f) for f in ('recycled_suspect', 'old_capture'))})")
+    print("Every report above is synthetic and labelled; the places and readings of A and B are real.")
     return 0 if ok else 1
 
 
