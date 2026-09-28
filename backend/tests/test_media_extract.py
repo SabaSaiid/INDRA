@@ -196,6 +196,45 @@ def test_a_video_location_tag_gives_its_gps(tmp_path):
     assert (info.exif_lat, info.exif_lng) == (25.6, 85.1)
 
 
+def _iphone_mov(path: str) -> str:
+    """A QuickTime file with the keys an iPhone writes (mdta: location, creation date, make, model)."""
+    import subprocess
+
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=10", "-t", "2",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "use_metadata_tags",
+         "-metadata", "com.apple.quicktime.location.ISO6709=+25.5941+085.1376+050.000/",
+         "-metadata", "com.apple.quicktime.creationdate=2026-09-23T06:10:00+0530",
+         "-metadata", "com.apple.quicktime.make=Apple",
+         "-metadata", "com.apple.quicktime.model=iPhone 15", path],
+        check=True, capture_output=True, timeout=60,
+    )
+    return path
+
+
+@needs_ffmpeg
+def test_an_iphone_mov_gives_its_place_time_and_camera(tmp_path):
+    path = _iphone_mov(str(tmp_path / "IMG_0001.MOV"))
+    with open(path, "rb") as f:
+        from app.services.media_types import sniff
+
+        assert sniff(f.read(16)).mime == "video/quicktime"
+    info = extract_video(path, "video/quicktime")
+    assert (info.exif_lat, info.exif_lng) == (25.5941, 85.1376)
+    assert info.exif_taken_at == datetime(2026, 9, 23, 0, 40, tzinfo=timezone.utc)
+    assert (info.exif_make, info.exif_model) == ("Apple", "iPhone 15")
+
+
+@needs_ffmpeg
+def test_a_stripped_iphone_mov_keeps_no_apple_location_key(tmp_path):
+    src = _iphone_mov(str(tmp_path / "in.mov"))
+    dst = str(tmp_path / "out.mov")
+    strip_video(src, dst)
+    tags = ffprobe_tags(dst)
+    assert not any(k.startswith("com.apple.quicktime") for k in tags), tags
+    assert extract_video(dst, "video/quicktime").has_metadata is False
+
+
 @needs_ffmpeg
 def test_a_video_with_no_tags_has_no_metadata(tmp_path):
     info = extract_video(make_video(str(tmp_path / "bare.mp4"), seconds=2), "video/mp4")
