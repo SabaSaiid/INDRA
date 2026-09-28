@@ -618,11 +618,33 @@ def main() -> int:
         print(f"Case C: expected the flags recycled_suspect and old_capture; missing {missing}")
 
     print()
-    print(f"A  genuine {a['event_type'].lower()}{'':<22} → {a['scored']['verdict'].value}")
-    print(f"B  fabricated heatwave{'':<16} → {b['scored']['verdict'].value}")
-    print(f"C  recycled 2023 flood photo{'':<10} → media flagged ({'; '.join(c['basis'].get(f, f) for f in ('recycled_suspect', 'old_capture'))})")
+    for line in summary_lines(a, b, c):
+        print(line)
     print("Every report above is synthetic and labelled; the places and readings of A and B are real.")
     return 0 if ok else 1
+
+
+def summary_lines(a: Dict[str, Any], b: Dict[str, Any], c: Dict[str, Any]) -> List[str]:
+    """The three cases side by side, each with the reading that decided it (Phase 5 T9's shape)."""
+    fa = {f["key"]: f for f in a["scored"]["receipt"]["factors"]}
+    a_why = (f"official {_factor(fa['official_warning'])}, weather {_factor(fa['weather_station'])}; "
+             f"confidence {a['scored']['confidence']}")
+    readings = [o for o in b["case"].get("metar") or [] if o.get("temperature_c") is not None]
+    if readings:
+        top = max(readings, key=lambda o: o["temperature_c"])
+        b_why = f"{top['station_code']} max {top['temperature_c']:.1f} °C"
+    else:
+        b_why = "; ".join(x["rule"] for x in b["scored"]["receipt"]["contradictions"]) or "no contradiction"
+    ist = timezone(timedelta(hours=5, minutes=30))
+    c_why = f"first seen {c['first_seen'].astimezone(ist).strftime('%-d %b')}; taken 14 Aug 2023"
+    rows = [
+        ("A", f"genuine {a['event_type'].replace('_', ' ').lower()}, {_place(a)}",
+         a["scored"]["verdict"].value, a_why),
+        ("B", f"fabricated heatwave, {_place(b)}", b["scored"]["verdict"].value, b_why),
+        ("C", "recycled 2023 flood photo", "media flagged" if c["flags"] else "NOT FLAGGED", c_why),
+    ]
+    width = max(len(r[1]) for r in rows)
+    return [f"{letter}  {what:<{width}}  → {outcome:<13} ({why})" for letter, what, outcome, why in rows]
 
 
 if __name__ == "__main__":
