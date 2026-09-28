@@ -5,7 +5,7 @@ Abort photo and video uploads abandoned half-way (Phase 5 T1, webpage.MD §8.3).
     backend/.venv/bin/python scripts/cleanup_uploads.py --dry-run
     backend/.venv/bin/python scripts/cleanup_uploads.py
 
-Runs daily on the server from a systemd timer. An upload session still
+Runs daily on the server from a systemd timer (infra/systemd/). An upload session still
 `uploading` more than MEDIA_WINDOW_HOURS (24) after it started can never
 finish — the media window is shut — so its multipart upload is aborted in the
 object store, which frees every part it received, and its row is marked

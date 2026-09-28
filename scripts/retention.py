@@ -5,7 +5,7 @@ Delete stored media past its retention period (Phase 5 T5, DPDP Act 2023).
     backend/.venv/bin/python scripts/retention.py --dry-run
     backend/.venv/bin/python scripts/retention.py
 
-Runs daily on the server from a systemd timer (docs/runbook). The policy,
+Runs daily on the server from a systemd timer (infra/systemd/, docs/setup.md). The policy,
 published in the docs:
 
 | what                                   | kept for                              |
