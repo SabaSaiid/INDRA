@@ -705,6 +705,27 @@ The last two are the kind of invented telemetry the list below asks to remove be
 
 ---
 
+## 24. What the 29 Sep live check of the dashboard found (nothing in `frontend/` was changed)
+
+On 29 Sep every page of the deployed dashboard was opened in a headless browser, not signed in,
+with its console and network watched. **Eight of nine pages load with no console error and no
+failed API call** (`/`, `/live-map`, `/events`, `/reports`, `/analytics`, `/datasets`, `/admin`, and
+the receipt drawer on `/events`, which shows receipt v2 with its coverage line). Found, for you to
+decide; the backend needs nothing new for any of them:
+
+| What | Where | Effect today |
+|---|---|---|
+| **The warnings page calls the alert engine, which is not deployed.** `GET /api/alerts` answers 404 and `wss://…/ws/alerts` is refused (403) on every visit | `/alerts` (the `NEXT_PUBLIC_ALERT_ENGINE_*` URLs point at the team server, where only the core API runs) | Two console errors per visit; the official SACHET warnings from `GET /api/alerts/agency` still show. Either run the alert engine there or leave the variables unset so the page does not try |
+| **"Recent Evidence" shows three bundled stock images** (`/evidence/evidence-1.jpg` … `-3.jpg`) with invented durations (`02:15`, `01:45`, `00:50`) and titles such as "Doppler Radar Echo" | `RiskZonesSection.tsx`, about lines 477–530 | Looks like field footage INDRA holds. It holds none on the live site. Real photos are served by `POST /api/media/signed-urls` (signed in, §22); with none, an empty state is the honest one |
+| **The four "Verification · Fleet Average" bars still have floors** (68 %, 76 %, …) | as in §23 | Unchanged since §23 |
+| **The Field Reports page shows a citizen's text and exact coordinates to anyone** (`25.5941, 85.1376`) | `/reports`, from `GET /api/reports/recent`, which is open (BUG-124, S2) | Personal data under the DPDP Act on a public page. Aditya decides how the route is gated; the page will then need a token or a coarser position. Nothing changes until he says so |
+
+The heat layer of the Risk Zones panel is empty on the live site for a backend reason (BUG-132):
+only GPS-placed reports have heatmap cells, and no citizen has reported in 7 days. It fills as soon
+as one does; nothing to change on your side.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |
