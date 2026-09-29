@@ -7,7 +7,6 @@
     "postinstall": "npm run clean",
     "predev": "lsof -ti :3000 | xargs kill -9 2>/dev/null || true; rm -rf .next node_modules/.cache",
     "dev": "next dev",
-    "prebuild": "npm run clean",
     "build": "next build",
     "start": "next start",
     "doctor": "bash scripts/doctor.sh",
