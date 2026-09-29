@@ -21,6 +21,7 @@ import {
   Filter,
   ArrowRight,
   Activity,
+  Layers,
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -624,33 +625,62 @@ function TeamsContent() {
                   >
                     <div>
                       {/* Avatar and Badge */}
-                      <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-start justify-between gap-3 mb-3.5">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-blue-700 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-primary/20">
                           {member.avatar_initials}
                         </div>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-blue-50 text-primary border border-blue-100">
-                          {member.badge}
-                        </span>
+                        {member.badge ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-blue-50 text-primary border border-blue-100">
+                            {member.badge}
+                          </span>
+                        ) : null}
                       </div>
 
                       <h3 className="text-base font-bold text-text-primary leading-tight">
                         {member.name}
                       </h3>
-                      <p className="text-xs font-medium text-primary mt-0.5">
+                      <p className="text-xs font-semibold text-primary mt-0.5">
                         {member.role}
                       </p>
 
-                      <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
-                        <strong className="text-slate-800">Specialty:</strong> {member.specialty}
-                      </div>
+                      {/* Architecture Layer Pill */}
+                      {member.layer && (
+                        <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/80 border border-indigo-100/90 text-[11px] font-bold text-indigo-700">
+                          <Layers className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                          <span>{member.layer}</span>
+                        </div>
+                      )}
 
+                      {/* Dedicated Responsible For Box */}
+                      {member.responsibility && (
+                        <div className="mt-3 p-3 rounded-xl bg-amber-50/80 border border-amber-200/70 text-xs">
+                          <div className="flex items-center gap-1.5 font-bold text-amber-900 text-[10.5px] uppercase tracking-wider mb-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>Responsible For</span>
+                          </div>
+                          <p className="font-semibold text-slate-800 leading-relaxed text-[11.5px]">
+                            {member.responsibility}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Technical Specialty */}
+                      {member.specialty ? (
+                        <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                          <strong className="text-slate-800">Specialty:</strong> {member.specialty}
+                        </div>
+                      ) : null}
+
+                      {/* Bio */}
                       <p className="mt-3 text-xs text-text-secondary leading-relaxed">
                         {member.bio}
                       </p>
                     </div>
 
                     <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 font-medium">Core Contributor</span>
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {member.role?.includes('On Leave') ? 'Inactive (On Leave)' : 'Core Contributor'}
+                      </span>
                       <a
                         href={member.github}
                         target="_blank"

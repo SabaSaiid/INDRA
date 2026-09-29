@@ -361,11 +361,13 @@ export interface HackathonMember {
   id: string;
   name: string;
   role: string;
-  specialty: string;
+  layer?: string;
+  responsibility?: string;
+  specialty?: string;
   bio: string;
   avatar_initials: string;
   github: string;
-  badge: string;
+  badge?: string;
 }
 
 export interface HackathonTeamData {
