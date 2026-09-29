@@ -119,6 +119,7 @@ ${BOLD}COMMANDS:${RESET}
   ${GREEN}e2e-backend${RESET}            Launch a disposable backend on indra_e2e (port 8100) for Playwright
   ${GREEN}e2e-reset${RESET}              Drop and recreate the indra_e2e database
   ${GREEN}logs${RESET} [-n <lines>]       Stream live backend server logs (tail -f)
+  ${GREEN}seed${RESET} | ${GREEN}demo${RESET}           Seed realistic flood telemetry & analytics demo data
   ${GREEN}clean${RESET}                  Purge temporary cache files, .pyc, logs, and PID files
   ${GREEN}help${RESET}                   Display this help message
 
@@ -1191,10 +1192,23 @@ cmd_clean() {
     echo "${GREEN}✓ Project cleaned (Python bytecode, test cache, and Next.js build cache purged).${RESET}"
 }
 
+# --- Subcommand: seed ---
+cmd_seed() {
+    print_banner
+    echo "${BOLD}🌱 Seeding Realistic Flood Telemetry & Analytics Demo Data...${RESET}"
+    detect_python
+    if [[ -f "$ROOT_DIR/scripts/seed_analytics_demo.py" ]]; then
+        "$PYTHON_CMD" "$ROOT_DIR/scripts/seed_analytics_demo.py"
+    else
+        echo "${RED}✘ Error: scripts/seed_analytics_demo.py not found.${RESET}"
+        exit 1
+    fi
+}
+
 # --- Argument Parsing ---
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|test|e2e-backend|e2e-reset|logs|clean|help)
+        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|test|e2e-backend|e2e-reset|logs|clean|seed|demo|help)
             COMMAND="$1"
             shift
             if [[ "$COMMAND" == "infra" && $# -gt 0 && ! "$1" =~ ^- ]]; then
@@ -1305,6 +1319,9 @@ case "$COMMAND" in
         ;;
     clean)
         cmd_clean
+        ;;
+    seed|demo)
+        cmd_seed
         ;;
     help)
         show_help

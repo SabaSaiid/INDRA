@@ -1,24 +1,25 @@
-﻿================================================================================
+================================================================================
 INDRA - INTELLIGENT NATIONAL DISASTER & WEATHER PLATFORM (SIH 2026)
 HIGH-TECH VIDEO SHOWCASE & SACHET COMPARISON SCRIPT
 ================================================================================
 Target Duration: 3 Minutes (180 Seconds)
 Tone:            Authoritative, High-Tech, Crisp, Engineering-Driven
 BGM Mood:        Deep tension synth pulse -> energetic tech beat -> 
-                 cinematic bass drop in Act 5 -> epic closing swell.
+                 cinematic bass drop in Act 6 -> epic closing swell.
 
 ================================================================================
-OVERVIEW TIMELINE
+OVERVIEW TIMELINE (180 Seconds / 3:00 Minutes)
 ================================================================================
-[0:00 - 0:35] ACT 1: Ground Reality & SACHET Comparison (Top-Down vs Bottom-Up)
-[0:35 - 1:10] ACT 2: Reactive Ingestion & Haversine DBSCAN Spatial Clustering
-[1:10 - 1:45] ACT 3: Deterministic 7-Factor Verification Receipt v2
-[1:45 - 2:15] ACT 4: Mission Control: H3 Hexagons, Dispatch & SHA-256 Ledger
-[2:15 - 2:45] ACT 5: Orbit-Scale Roadmap: "The Sky is the Limit" (INSAT & Radar)
-[2:45 - 3:00] OUTRO: Sovereign Big Data Architecture for India
+[0:00 - 0:30] ACT 1: Ground Reality & SACHET Comparison (Top-Down vs Bottom-Up)
+[0:30 - 0:55] ACT 2: Reactive Ingestion, NLP Extraction & Haversine DBSCAN Clustering
+[0:55 - 1:25] ACT 3: Deterministic 7-Factor Verification Receipt v2
+[1:25 - 1:55] ACT 4: Big Data Analytics: Inundation Depth & District Prioritization
+[1:55 - 2:25] ACT 5: Mission Control: H3 Hexagons, NDRF Dispatch & SHA-256 Ledger
+[2:25 - 2:48] ACT 6: Orbit-Scale Roadmap: "The Sky is the Limit" (INSAT & Radar)
+[2:48 - 3:00] OUTRO: Sovereign Big Data Architecture for India
 
 ================================================================================
-ACT 1: THE GROUND REALITY & THE SACHET COMPARISON (0:00 - 0:35)
+ACT 1: THE GROUND REALITY & THE SACHET COMPARISON (0:00 - 0:30)
 ================================================================================
 
 TIME:       0:00 - 0:08 (8 seconds)
@@ -33,7 +34,7 @@ operations center faces severe telemetry overload: thousands of asynchronous
 distress calls, viral social noise, and unverified ground reports."
 
 --------------------------------------------------------------------------------
-TIME:       0:08 - 0:22 (14 seconds)
+TIME:       0:08 - 0:20 (12 seconds)
 VISUAL:     Split Screen Graphic:
             - Left: SACHET portal showing district-wide polygon alerts.
             - Right: Unstructured crowdsourced noise, WhatsApp forwards, panic.
@@ -47,7 +48,7 @@ citizens. But during acute disaster evolution, a critical gap remains: who
 validates real-time hyper-local ground reality?"
 
 --------------------------------------------------------------------------------
-TIME:       0:22 - 0:35 (13 seconds)
+TIME:       0:20 - 0:30 (10 seconds)
 VISUAL:     SACHET CAP XML feed parses into INDRA's reactive data stream.
             Highlight the 4 live KPI cards and the live WebSocket feed.
 ON-SCREEN:  BRIDGING THE TELEMETRY GAP
@@ -59,58 +60,45 @@ fusing it with citizen ground reports, Doppler models, and airport METAR
 telemetry to determine ground truth with mathematical precision."
 
 ================================================================================
-ACT 2: REACTIVE INGESTION & HAVERSINE DBSCAN CLUSTERING (0:35 - 1:10)
+ACT 2: INGESTION, NLP EXTRACTION & DBSCAN CLUSTERING (0:30 - 0:55)
 ================================================================================
 
-TIME:       0:35 - 0:47 (12 seconds)
+TIME:       0:30 - 0:42 (12 seconds)
 VISUAL:     Click "Report Incident" in topbar:
-            - Type Hinglish report: "Dharavi me 3 feet pani bhara hai, road blocked"
+            - Type Hinglish report: "Patna Rajendra Nagar me 75 cm pani bhara hai, road blocked"
             - Show GPS pin auto-snapping to district.
             - Click submit: Show instant generated Citizen Docket ID dialog.
 ON-SCREEN:  INGESTION & PRIVACY
             * Salted HMAC-SHA256 Reporter Pseudonymization
             * 737-District Census 2011 Gazetteer Validation
-            * Rule-Based NLP Entity & Physical Metric Extraction
+            * Rule-Based NLP Entity & Physical Metric Extraction (depth_cm)
 VOICEOVER:
 "It begins with ground telemetry. Reports are accepted anonymously via
 salted HMAC-SHA256 pseudonyms. Our Indic NLP engine parses English, Hindi,
-and Hinglish, extracting physical metric entities like flood depth and wind
-shear while validating coordinates against a 737-district spatial gazetteer."
+and Hinglish, extracting physical metric entities like water depth while
+validating coordinates against a 737-district spatial gazetteer."
 
 --------------------------------------------------------------------------------
-TIME:       0:47 - 0:58 (11 seconds)
-VISUAL:     Switch to /datasets view:
-            Show live pollers running: Open-Meteo rainfall, METAR Indian
-            aerodromes, Mastodon disaster feeds, and Google News RSS.
-ON-SCREEN:  TRANSACTIONAL STREAMING HIGHWAY
-            * Transactional Outbox Pattern (PostgreSQL -> Redpanda)
-            * Asynchronous C++ Kafka Broker Topics
-            * Automated Multi-Feed Poller Daemon Pool
-VOICEOVER:
-"Using a transactional outbox pattern, reports commit atomically to PostGIS
-and our high-throughput Redpanda Kafka bus, while background worker daemons
-continuously ingest METAR feeds from 172 Indian airports and live rainfall
-models."
-
---------------------------------------------------------------------------------
-TIME:       0:58 - 1:10 (12 seconds)
+TIME:       0:42 - 0:55 (13 seconds)
 VISUAL:     Screen recording of Event Clustering:
             Scattered report pins pull together into a tight cluster surrounded
             by a smooth concave-hull boundary polygon with a glowing border.
+            Cut to /datasets showing Redpanda stream and METAR poller.
 ON-SCREEN:  HAVERSINE DBSCAN SPATIOTEMPORAL CLUSTERING
             * Parameterized Spatial Epsilon (5 km - 25 km)
             * PostGIS ST_ConcaveHull Boundary Geometry (+250m Buffer)
-            * 16 Standardized Hazard Classes across 4 Families
+            * Transactional Outbox Pattern to Redpanda Kafka Broker
 VOICEOVER:
-"Off the main event loop, a great-circle haversine DBSCAN algorithm clusters
-signals across hazard-specific spatio-temporal thresholds, dynamically
-synthesizing PostGIS concave-hull polygons buffered by 250 meters."
+"Committing atomically via a transactional outbox to PostGIS and our Redpanda
+Kafka bus, a great-circle haversine DBSCAN algorithm clusters signals
+across hazard-specific spatio-temporal thresholds, synthesizing 250-meter
+buffered concave-hull polygons."
 
 ================================================================================
-ACT 3: THE 7-FACTOR DETERMINISTIC VERIFICATION RECEIPT (1:10 - 1:45)
+ACT 3: THE 7-FACTOR DETERMINISTIC VERIFICATION RECEIPT (0:55 - 1:25)
 ================================================================================
 
-TIME:       1:10 - 1:22 (12 seconds)
+TIME:       0:55 - 1:07 (12 seconds)
 VISUAL:     Click an event card. Open the "Event Verification Receipt Modal".
             Camera zooms in on the clean, glowing receipt breakdown.
 ON-SCREEN:  VERIFICATION RECEIPT v2
@@ -122,7 +110,7 @@ deterministic multi-sensor matrix. Every event produces an explainable
 mathematical receipt."
 
 --------------------------------------------------------------------------------
-TIME:       1:22 - 1:34 (12 seconds)
+TIME:       1:07 - 1:17 (10 seconds)
 VISUAL:     Camera highlights the factor rows:
             1. Weather Station Corroboration (20%)
             2. Official Warning (10%)
@@ -141,22 +129,72 @@ geodesic radius, intersects active SACHET warning polygons, filters
 coordinated bot attacks, and publishes its mathematical factor coverage."
 
 --------------------------------------------------------------------------------
-TIME:       1:34 - 1:45 (11 seconds)
+TIME:       1:17 - 1:25 (8 seconds)
 VISUAL:     Show the Verdict Stamp changing to CORROBORATED or CONTRADICTED.
             Show severity calculating: Water Depth >= 120 cm -> CRITICAL.
 ON-SCREEN:  DETERMINISTIC VERDICTS & SEVERITY
             CORROBORATED * CONTRADICTED * UNCONFIRMED
             Physical IMD Rainfall & Beaufort Wind Scales
 VOICEOVER:
-"If ground weather measurements refute an incident, the system flags it
+"If weather measurements refute an incident, the system flags it
 CONTRADICTED. When validated, severity evaluates along dual IMD and Beaufort
 physical matrices, mapping directly from Moderate to Critical."
 
 ================================================================================
-ACT 4: MISSION CONTROL: H3 HEXAGONS, DISPATCH & AUDIT (1:45 - 2:15)
+ACT 4: BIG DATA ANALYTICS: INUNDATION DEPTH & DISTRICT IMPACT (1:25 - 1:55)
 ================================================================================
 
+TIME:       1:25 - 1:35 (10 seconds)
+VISUAL:     Smooth camera transition to the dedicated Analytics Hub (/analytics):
+            Pan across the top macro KPIs (Verified Events, Total Field Reports,
+            Active Warnings, Monitored Weather Stations).
+ON-SCREEN:  BIG DATA SITUATIONAL INTELLIGENCE (/analytics)
+            * High-Velocity Stream Aggregation & Statistical Profiling
+            * Hydro-Meteorological Inundation Depth Quantification
+            * Automated Cross-District Severity Prioritization
+VOICEOVER:
+"Disaster commanders cannot triage thousands of individual reports during an
+active crisis. INDRA's Big Data Analytics suite instantly synthesizes raw
+signals into high-level macro intelligence for rapid decision-making."
+
+--------------------------------------------------------------------------------
+TIME:       1:35 - 1:45 (10 seconds)
+VISUAL:     Camera zooms into the "Water Inundation Depth Distribution" bar chart.
+            The 5 depth buckets (<15 cm, 15-30 cm, 30-60 cm, 60-120 cm, >120 cm)
+            animate in with high-contrast color tiers.
+            Hover over the ">120 cm" tier showing critical deep-water flooding.
+ON-SCREEN:  INUNDATION DEPTH STRATIFICATION
+            * Automated NLP Entity Parsing (analysis->>'depth_cm')
+            * 5 Calibrated Inundation Depth Buckets (<15 cm to >120 cm)
+            * Separating Minor Waterlogging from Critical Inundation
+VOICEOVER:
+"Through automated NLP entity extraction, field reports are categorized into
+calibrated flood depth tiers—instantly separating routine 15-centimeter street
+waterlogging from life-threatening inundation exceeding one meter."
+
+--------------------------------------------------------------------------------
 TIME:       1:45 - 1:55 (10 seconds)
+VISUAL:     Split display:
+            - Left: "Top Impacted Districts" ranking table (Patna, Muzaffarpur,
+              Darbhanga, Barpeta) showing event counts, peak severity badges,
+              and average flood depth.
+            - Right: "Verification Confidence Breakdown" doughnut chart showing
+              high-confidence corroborated incidents versus unverified claims.
+ON-SCREEN:  TACTICAL RESOURCE PRIORITIZATION
+            * Real-Time District Impact Ranking (Frequency * Severity * Mean Depth)
+            * Multi-Tier Verification Confidence Matrix (High >=0.8 to Unverified)
+            * Sub-Second Analytical Queries via PostgreSQL Window Functions
+VOICEOVER:
+"Our Top Districts ranking prioritizes crisis zones by event frequency and mean
+water depth, while the Verification Confidence breakdown guarantees relief
+resources are deployed strictly to corroborated epicenters—never wasted on
+viral rumors."
+
+================================================================================
+ACT 5: MISSION CONTROL: H3 HEXAGONS, DISPATCH & AUDIT (1:55 - 2:25)
+================================================================================
+
+TIME:       1:55 - 2:05 (10 seconds)
 VISUAL:     Navigate to Live Tactical Map (/live-map):
             Toggle layers: Warnings on/off, Weather radar, METAR stations,
             and Uber H3 hexagonal heatmaps.
@@ -170,7 +208,7 @@ rendering multi-resolution Uber H3 hexagonal heatmaps, tracking live hazard
 envelopes, and ingesting full-duplex WebSocket push notifications."
 
 --------------------------------------------------------------------------------
-TIME:       1:55 - 2:05 (10 seconds)
+TIME:       2:05 - 2:15 (10 seconds)
 VISUAL:     Jump to Teams Hub (/teams):
             Click an NDRF Battalion card, lock a 15-minute review claim,
             and click "Dispatch".
@@ -184,7 +222,7 @@ collisions, events enforce 15-minute optimistic concurrency claim locks
 before triggering tactical team dispatch."
 
 --------------------------------------------------------------------------------
-TIME:       2:05 - 2:15 (10 seconds)
+TIME:       2:15 - 2:25 (10 seconds)
 VISUAL:     Jump to Admin Console (/admin):
             Scroll through the SHA-256 Hash-Chained Audit Ledger with the green
             "CRYPTOGRAPHICALLY VALID" badge.
@@ -198,40 +236,31 @@ an append-only SHA-256 hash-chained ledger, protected by PostgreSQL database
 triggers that physically reject UPDATE and DELETE operations."
 
 ================================================================================
-ACT 5: ORBIT-SCALE ROADMAP: "SKY IS THE LIMIT" (2:15 - 2:45)
+ACT 6: ORBIT-SCALE ROADMAP: "SKY IS THE LIMIT" (2:25 - 2:48)
 ================================================================================
 
-TIME:       2:15 - 2:25 (10 seconds)
+TIME:       2:25 - 2:37 (12 seconds)
 VISUAL:     Cinematic B-roll: Earth from orbit zooming in on the Indian
-            subcontinent with glowing storm systems and orbital satellite paths.
-ON-SCREEN:  SCALABILITY ROADMAP
-            "They say the sky is the limit..."
-            "For INDRA, the sky literally IS the limit."
-VOICEOVER:
-"People often say the sky is the limit for software scalability. Well, for
-INDRA -- the sky literally IS the limit! Our architectural roadmap extends
-INDRA straight into geostationary orbit."
-
---------------------------------------------------------------------------------
-TIME:       2:25 - 2:35 (10 seconds)
-VISUAL:     INSAT-3D multispectral weather satellite loop + Doppler Weather Radar
-            (DWR) sweep. In the Verification Receipt, show Factor 6 (Computer
-            Vision) switching from "offline" to "ONLINE", lifting coverage to 100%.
+            subcontinent with glowing storm systems.
+            INSAT-3D multispectral weather satellite loop + Doppler Weather Radar
+            (DWR) sweep. In Verification Receipt, show Factor 6 (Computer Vision)
+            switching to "ONLINE", lifting coverage to 100%.
 ON-SCREEN:  SPACE-BORNE METEOROLOGICAL FUSION
+            * "They say the sky is the limit... For INDRA, the sky literally IS the limit."
             * INSAT-3D / 3DR Multispectral Telemetry (Thermal IR & Water Vapor)
             * Doppler Weather Radar (DWR) Radial Reflectivity Grids
             * Unlocking Factor 6 (CNN Computer Vision) -> 100% Verification Coverage
 VOICEOVER:
-"Next on our roadmap: direct ingestion of geostationary INSAT-3D and 3DR
-multispectral imagery alongside India's Doppler Weather Radar grid. This
-activates Factor 6 -- Convolutional Computer Vision -- elevating our
-mathematical verification coverage from 80% to a full 100%."
+"People say the sky is the limit for software scalability. For INDRA -- the sky
+literally IS the limit! Next on our roadmap: direct ingestion of INSAT-3D
+geostationary multispectral imagery and Doppler Radar, activating Convolutional
+Vision to lift verification coverage to a full 100%."
 
 --------------------------------------------------------------------------------
-TIME:       2:35 - 2:45 (10 seconds)
+TIME:       2:37 - 2:48 (11 seconds)
 VISUAL:     Animated architecture topology: Redpanda scaling to 100,000+
-            events/sec, distributed Redis Pub/Sub cluster highway, Kubernetes
-            Horizontal Pod Autoscalers (HPA), and geo-targeted cell push sirens.
+            events/sec, distributed Redis Pub/Sub cluster highway, and Kubernetes
+            Horizontal Pod Autoscalers (HPA).
 ON-SCREEN:  HIGH-THROUGHPUT DISTRIBUTED HORIZONTAL SCALE
             * Redpanda C++ Streaming Engine (100,000+ Events/sec IOPS)
             * Distributed Redis Pub/Sub Cluster Highway
@@ -243,10 +272,10 @@ workers. When extreme weather strikes an entire continent, INDRA scales
 horizontally without bottleneck."
 
 ================================================================================
-OUTRO: THE SOVEREIGN VISION (2:45 - 3:00)
+OUTRO: THE SOVEREIGN VISION (2:48 - 3:00)
 ================================================================================
 
-TIME:       2:45 - 2:55 (10 seconds)
+TIME:       2:48 - 2:55 (7 seconds)
 VISUAL:     Panoramic zoom-out from tactical 3D map showing verified incident
             nodes glowing across all 36 Indian States and UTs.
 ON-SCREEN:  INDRA
@@ -268,34 +297,51 @@ VOICEOVER:
 ================================================================================
 B-ROLL RECORDING CHECKLIST FOR YOUR VIDEO DEMO
 ================================================================================
-1. SACHET Reference:
-   - Visit https://sachet.ndma.gov.in
-   - Capture a 5-second pan of their national alert map for Act 1.
+0. Pre-Recording Data Preparation:
+   - Ensure backend and frontend are running:
+     ./start.sh bg
+   - Run the demo seed script to populate realistic multi-district flood telemetry:
+     python3 scripts/seed_analytics_demo.py
+   - Verify all charts and metrics are populated at http://localhost:3000/analytics
 
-2. Incident Submission:
+1. SACHET Reference (Act 1):
+   - Visit https://sachet.ndma.gov.in
+   - Capture a 5-second pan of their national alert map for Act 1 comparison.
+
+2. Incident Submission & Ingestion (Act 2):
    - Open http://localhost:3000
    - Click "Report Incident" topbar button.
-   - Enter: Location "Dharavi, Mumbai", Text "Dharavi me 3 feet pani bhara hai",
+   - Enter: Location "Patna, Bihar", Text "Patna Rajendra Nagar me 75 cm pani bhara hai",
      Hazard "Urban Flooding". Submit and capture the Citizen Docket ID popup.
 
-3. Datasets & Feeds:
+3. Datasets & Feeds (Act 2):
    - Open http://localhost:3000/datasets
    - Capture the active pollers (SACHET CAP, METAR, Open-Meteo, News).
 
-4. Verification Receipt:
+4. Verification Receipt (Act 3):
    - Open http://localhost:3000/events
    - Click any active incident card to open the "Event Verification Receipt".
    - Hover over the 7 factor scores, factor coverage (80%), and verdict stamp.
 
-5. 3D Tactical Map:
+5. Big Data Analytics Suite (Act 4) [CRITICAL FOR SIH26069]:
+   - Open http://localhost:3000/analytics
+   - Pan across the 4 top KPI cards (Events, Reports, Warnings, Weather Stations).
+   - Zoom in on the "Water Inundation Depth Distribution" bar chart (<15cm to >120cm).
+   - Highlight the "Top Impacted Districts" table (showing Patna, Muzaffarpur, Darbhanga
+     with event counts, peak severity badges, and mean flood depth).
+   - Hover over the "Verification Confidence Breakdown" doughnut chart.
+   - Show the dynamic "Reports Trend" chart displaying chronological report velocity.
+
+6. 3D Tactical Map (Act 5):
    - Open http://localhost:3000/live-map
    - Pan across India, toggle SACHET warning polygon layers and weather stations.
+   - Zoom in to show Uber H3 hexagonal density cells.
 
-6. Teams & Dispatch:
+7. Teams & Dispatch (Act 5):
    - Open http://localhost:3000/teams
    - Click an NDRF Battalion card, show operational status, click Dispatch.
 
-7. Audit Ledger:
+8. Audit Ledger (Act 5):
    - Open http://localhost:3000/admin
    - Scroll through the green SHA-256 hash-chained immutable ledger rows.
 
