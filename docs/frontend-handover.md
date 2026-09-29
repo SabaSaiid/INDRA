@@ -710,7 +710,7 @@ The last two are the kind of invented telemetry the list below asks to remove be
 | | |
 |---|---|
 | **Alerts from the core backend** — no SMS, email or broadcast | Left the core platform's scope 20 Sep. The warnings page shows *official* SACHET warnings (`GET /api/alerts/agency`). Alerting is the separate `alert_engine/` service (layer 8b, PR #38), maintained by its owners and not running on the team server |
-| **Risk zones** | Not built, not scheduled |
+| **Risk zones from the backend** | Not built, not scheduled: no endpoint scores or names a zone. The Risk Zones panel from PR #52 is drawn in the dashboard from `GET /api/events` and `GET /api/geo/heatmap`; its 90 baseline zones come from neither (section 23) |
 | **Image / vision analysis** | Out of scope. Since Phase 5 photos and videos are stored and checked for **reuse and metadata** (hashes, EXIF), never for what they show; `vision_analysis` stays offline. `media_url` is still a string nothing opens |
 | **Anomaly detection** | Out of scope. Permanently `offline` in the receipt |
 | **Event-type classification by a model** | Trained, measured below its gate, unwired, and frozen with the rest of layer 4. The 16 types are tagged by published rules instead (Phase 3, section 18) |
