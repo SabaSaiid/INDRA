@@ -83,10 +83,19 @@ STATUS_SQL = """
     END
 """
 
+# A report's media: the legacy media_url string, a post's attachments as the
+# poller listed them in source_meta, and (Phase 5) each photo or video a
+# citizen uploaded that the media worker has finished, counted as
+# GET /api/reports/recent counts them (status 'ready'). A post's attachments
+# also have report_media rows once hashed (origin 'social'); those are the same
+# files as source_meta's list, so only citizen uploads are added here.
+# Until 29 Sep (BUG-130) uploads were not counted at all.
 MEDIA_COUNT_SQL = """
     (CASE WHEN r.media_url IS NOT NULL THEN 1 ELSE 0 END
      + CASE WHEN jsonb_typeof(r.source_meta->'media') = 'array'
-            THEN jsonb_array_length(r.source_meta->'media') ELSE 0 END)
+            THEN jsonb_array_length(r.source_meta->'media') ELSE 0 END
+     + (SELECT count(*) FROM report_media m
+        WHERE m.report_id = r.id AND m.origin = 'citizen' AND m.status = 'ready'))
 """
 
 # Every hazard type the report's text is tagged with (analysis.hazards, the
