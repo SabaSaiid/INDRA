@@ -173,3 +173,163 @@ async def get_dashboard_summary(db: AsyncSession = Depends(get_db)):
     # error *and* on an empty result (BUG-004). These are the headline numbers on
     # the dashboard, so it was the worst place for it.
     return empty_or_503("GET /api/dashboard/summary", lambda: dict(EMPTY_KPIS), db_error)
+
+
+# ---------------------------------------------------------------------------
+# Analytics sub-endpoints (added 29 Sep)
+# ---------------------------------------------------------------------------
+
+@router.get("/inundation-depth")
+async def get_inundation_depth(db: AsyncSession = Depends(get_db)):
+    """
+    Returns the distribution of water inundation depths extracted from
+    raw_reports.analysis->>'depth_cm'. Bucketed into 5 ranges for a bar chart.
+
+    Only reports with a non-null depth_cm value and no duplicate_of pointer
+    are counted (duplicates would inflate the lower buckets).
+
+    Response: [{ bucket: str, count: int }]
+    """
+    query = text("""
+        SELECT
+            CASE
+                WHEN (analysis->>'depth_cm')::numeric < 15   THEN '< 15 cm'
+                WHEN (analysis->>'depth_cm')::numeric < 30   THEN '15 – 30 cm'
+                WHEN (analysis->>'depth_cm')::numeric < 60   THEN '30 – 60 cm'
+                WHEN (analysis->>'depth_cm')::numeric < 120  THEN '60 – 120 cm'
+                ELSE '> 120 cm'
+            END AS bucket,
+            CASE
+                WHEN (analysis->>'depth_cm')::numeric < 15   THEN 1
+                WHEN (analysis->>'depth_cm')::numeric < 30   THEN 2
+                WHEN (analysis->>'depth_cm')::numeric < 60   THEN 3
+                WHEN (analysis->>'depth_cm')::numeric < 120  THEN 4
+                ELSE 5
+            END AS sort_order,
+            COUNT(*) AS count
+        FROM raw_reports
+        WHERE
+            analysis IS NOT NULL
+            AND analysis->>'depth_cm' IS NOT NULL
+            AND duplicate_of IS NULL
+            AND (analysis->>'depth_cm')::numeric >= 0
+        GROUP BY 1, 2
+        ORDER BY sort_order
+    """)
+
+    db_error = None
+    try:
+        result = await db.execute(query)
+        rows = result.fetchall()
+        if rows is not None:
+            return [{"bucket": r[0], "count": int(r[2])} for r in rows]
+    except Exception as e:
+        db_error = e
+
+    return empty_or_503("GET /api/dashboard/inundation-depth", list, db_error)
+
+
+@router.get("/top-districts")
+async def get_top_districts(db: AsyncSession = Depends(get_db)):
+    """
+    Top 10 districts by number of verified events (AUTO_PUBLISHED or
+    HUMAN_APPROVED). Also returns a breakdown of severity so the table
+    can show a "critical / high / moderate" split.
+
+    Districts whose name is NULL are excluded — an unknown location is not
+    useful in a ranking table.
+
+    Response: [{
+        district: str, state: str | null,
+        total: int, critical: int, high: int, moderate: int, low: int
+    }]
+    """
+    query = text("""
+        SELECT
+            district,
+            state,
+            COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE severity::text = 'CRITICAL')  AS critical,
+            COUNT(*) FILTER (WHERE severity::text = 'HIGH')      AS high,
+            COUNT(*) FILTER (WHERE severity::text = 'MODERATE')  AS moderate,
+            COUNT(*) FILTER (WHERE severity::text NOT IN ('CRITICAL','HIGH','MODERATE')) AS low
+        FROM verified_events
+        WHERE
+            review_status IN ('AUTO_PUBLISHED', 'HUMAN_APPROVED')
+            AND district IS NOT NULL
+        GROUP BY district, state
+        ORDER BY total DESC
+        LIMIT 10
+    """)
+
+    db_error = None
+    try:
+        result = await db.execute(query)
+        rows = result.fetchall()
+        if rows is not None:
+            return [
+                {
+                    "district": r[0],
+                    "state": r[1],
+                    "total": int(r[2]),
+                    "critical": int(r[3]),
+                    "high": int(r[4]),
+                    "moderate": int(r[5]),
+                    "low": int(r[6]),
+                }
+                for r in rows
+            ]
+    except Exception as e:
+        db_error = e
+
+    return empty_or_503("GET /api/dashboard/top-districts", list, db_error)
+
+
+@router.get("/verification-breakdown")
+async def get_verification_breakdown(db: AsyncSession = Depends(get_db)):
+    """
+    Confidence score distribution for all non-rejected verified events.
+    Bucketed into 5 equal ranges so the frontend can draw a bar chart.
+    Also returns per-bucket counts for AUTO_PUBLISHED vs HUMAN_APPROVED
+    so the stacked variant can be drawn.
+
+    Response: [{
+        bucket: str, count: int, auto_published: int, human_approved: int
+    }]
+    """
+    query = text("""
+        SELECT
+            CASE
+                WHEN confidence_score < 0.2 THEN '0.0 – 0.2'
+                WHEN confidence_score < 0.4 THEN '0.2 – 0.4'
+                WHEN confidence_score < 0.6 THEN '0.4 – 0.6'
+                WHEN confidence_score < 0.8 THEN '0.6 – 0.8'
+                ELSE '0.8 – 1.0'
+            END AS bucket,
+            COUNT(*) AS count,
+            COUNT(*) FILTER (WHERE review_status = 'AUTO_PUBLISHED')  AS auto_published,
+            COUNT(*) FILTER (WHERE review_status = 'HUMAN_APPROVED')  AS human_approved
+        FROM verified_events
+        WHERE review_status != 'REJECTED'
+        GROUP BY 1
+        ORDER BY MIN(confidence_score)
+    """)
+
+    db_error = None
+    try:
+        result = await db.execute(query)
+        rows = result.fetchall()
+        if rows is not None:
+            return [
+                {
+                    "bucket": r[0],
+                    "count": int(r[1]),
+                    "auto_published": int(r[2]),
+                    "human_approved": int(r[3]),
+                }
+                for r in rows
+            ]
+    except Exception as e:
+        db_error = e
+
+    return empty_or_503("GET /api/dashboard/verification-breakdown", list, db_error)

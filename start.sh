@@ -264,8 +264,14 @@ start_frontend_bg() {
     local f_pids
     f_pids=$(get_pid_on_port "$FRONTEND_PORT")
     if [[ -n "$f_pids" ]]; then
-        echo "  Frontend Dashboard:    ${GREEN}● ACTIVE${RESET} (Port $FRONTEND_PORT already running PID: $f_pids)"
-        return 0
+        if curl -s -m 2 "http://127.0.0.1:$FRONTEND_PORT" >/dev/null 2>&1; then
+            echo "  Frontend Dashboard:    ${GREEN}● ACTIVE${RESET} (Port $FRONTEND_PORT already running PID: $f_pids)"
+            return 0
+        else
+            echo "  Frontend Dashboard:    ${YELLOW}⚠ UNRESPONSIVE/CORRUPTED${RESET} (Port $FRONTEND_PORT occupied by PID: $f_pids, recycling...)"
+            stop_frontend
+            sleep 1
+        fi
     fi
 
     ensure_frontend_deps || return 1

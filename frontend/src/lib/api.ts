@@ -1087,3 +1087,64 @@ export async function resolveEngineAlert(alertId: string, reason: string = "Reso
     return { success: false, error: err?.message || 'Network error' };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Analytics – new endpoints added 29 Sep
+// ---------------------------------------------------------------------------
+
+/** One bucket in the water inundation depth distribution chart. */
+export interface InundationDepthBucket {
+  bucket: string;   // e.g. '< 15 cm', '30 – 60 cm'
+  count: number;
+}
+
+/**
+ * GET /api/dashboard/inundation-depth
+ * Bucketed distribution of depth_cm values extracted from raw_reports.
+ * Returns [] when no reports have a depth reading yet.
+ */
+export async function fetchInundationDepth(): Promise<InundationDepthBucket[]> {
+  return getJson<InundationDepthBucket[]>('/api/dashboard/inundation-depth');
+}
+
+// ----
+
+/** One row in the Top Impacted Districts table. */
+export interface TopDistrictRow {
+  district: string;
+  state: string | null;
+  total: number;
+  critical: number;
+  high: number;
+  moderate: number;
+  low: number;
+}
+
+/**
+ * GET /api/dashboard/top-districts
+ * Top 10 districts by verified event count with severity breakdown.
+ * Returns [] when no verified events with a district name exist yet.
+ */
+export async function fetchTopDistricts(): Promise<TopDistrictRow[]> {
+  return getJson<TopDistrictRow[]>('/api/dashboard/top-districts');
+}
+
+// ----
+
+/** One bucket in the AI confidence / verification breakdown chart. */
+export interface VerificationBucket {
+  bucket: string;           // e.g. '0.6 – 0.8'
+  count: number;
+  auto_published: number;
+  human_approved: number;
+}
+
+/**
+ * GET /api/dashboard/verification-breakdown
+ * Distribution of AI confidence scores across all non-rejected events,
+ * split by how they were finally approved (auto vs human).
+ * Returns [] when no events exist yet.
+ */
+export async function fetchVerificationBreakdown(): Promise<VerificationBucket[]> {
+  return getJson<VerificationBucket[]>('/api/dashboard/verification-breakdown');
+}

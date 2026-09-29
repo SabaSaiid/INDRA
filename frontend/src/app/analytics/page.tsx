@@ -17,6 +17,9 @@ import Topbar from '@/components/Topbar';
 import { useSidebar } from '@/lib/useSidebar';
 import ReportsTrendChart from '@/components/ReportsTrendChart';
 import EventDistributionChart from '@/components/EventDistributionChart';
+import InundationDepthChart from '@/components/InundationDepthChart';
+import TopDistrictsTable from '@/components/TopDistrictsTable';
+import VerificationBreakdownChart from '@/components/VerificationBreakdownChart';
 import {
   ApiError,
   fetchSummaryCounts,
@@ -348,6 +351,14 @@ export default function AnalyticsPage() {
               <EventDistributionChart variant="embedded" />
             </div>
           </div>
+
+          {/* New analytics panels — backed by real SQL queries */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <InundationDepthChart />
+            <VerificationBreakdownChart />
+          </div>
+
+          <TopDistrictsTable />
 
           {/* The two live feeds, as stored */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
