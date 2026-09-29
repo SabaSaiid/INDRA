@@ -191,34 +191,30 @@ async def get_inundation_depth(db: AsyncSession = Depends(get_db)):
     Response: [{ bucket: str, count: int }]
     """
     query = text("""
-        WITH depths AS (
-            SELECT (analysis->>'depth_cm')::numeric AS depth_cm
-            FROM raw_reports
-            WHERE
-                analysis IS NOT NULL
-                AND analysis->>'depth_cm' IS NOT NULL
-                AND duplicate_of IS NULL
-                AND (analysis->>'depth_cm')::numeric >= 0
-        )
         SELECT
             CASE
-                WHEN depth_cm < 15   THEN '< 15 cm'
-                WHEN depth_cm < 30   THEN '15 – 30 cm'
-                WHEN depth_cm < 60   THEN '30 – 60 cm'
-                WHEN depth_cm < 120  THEN '60 – 120 cm'
+                WHEN (analysis->>'depth_cm')::numeric < 15   THEN '< 15 cm'
+                WHEN (analysis->>'depth_cm')::numeric < 30   THEN '15 – 30 cm'
+                WHEN (analysis->>'depth_cm')::numeric < 60   THEN '30 – 60 cm'
+                WHEN (analysis->>'depth_cm')::numeric < 120  THEN '60 – 120 cm'
                 ELSE '> 120 cm'
             END AS bucket,
-            COUNT(*) AS count
-        FROM depths
-        GROUP BY 1
-        ORDER BY
             CASE
-                WHEN depth_cm < 15   THEN 1
-                WHEN depth_cm < 30   THEN 2
-                WHEN depth_cm < 60   THEN 3
-                WHEN depth_cm < 120  THEN 4
+                WHEN (analysis->>'depth_cm')::numeric < 15   THEN 1
+                WHEN (analysis->>'depth_cm')::numeric < 30   THEN 2
+                WHEN (analysis->>'depth_cm')::numeric < 60   THEN 3
+                WHEN (analysis->>'depth_cm')::numeric < 120  THEN 4
                 ELSE 5
-            END
+            END AS sort_order,
+            COUNT(*) AS count
+        FROM raw_reports
+        WHERE
+            analysis IS NOT NULL
+            AND analysis->>'depth_cm' IS NOT NULL
+            AND duplicate_of IS NULL
+            AND (analysis->>'depth_cm')::numeric >= 0
+        GROUP BY 1, 2
+        ORDER BY sort_order
     """)
 
     db_error = None
@@ -226,7 +222,7 @@ async def get_inundation_depth(db: AsyncSession = Depends(get_db)):
         result = await db.execute(query)
         rows = result.fetchall()
         if rows is not None:
-            return [{"bucket": r[0], "count": int(r[1])} for r in rows]
+            return [{"bucket": r[0], "count": int(r[2])} for r in rows]
     except Exception as e:
         db_error = e
 
@@ -253,10 +249,10 @@ async def get_top_districts(db: AsyncSession = Depends(get_db)):
             district,
             state,
             COUNT(*) AS total,
-            COUNT(*) FILTER (WHERE severity = 'CRITICAL')  AS critical,
-            COUNT(*) FILTER (WHERE severity = 'HIGH')      AS high,
-            COUNT(*) FILTER (WHERE severity = 'MODERATE')  AS moderate,
-            COUNT(*) FILTER (WHERE severity = 'LOW')       AS low
+            COUNT(*) FILTER (WHERE severity::text = 'CRITICAL')  AS critical,
+            COUNT(*) FILTER (WHERE severity::text = 'HIGH')      AS high,
+            COUNT(*) FILTER (WHERE severity::text = 'MODERATE')  AS moderate,
+            COUNT(*) FILTER (WHERE severity::text NOT IN ('CRITICAL','HIGH','MODERATE')) AS low
         FROM verified_events
         WHERE
             review_status IN ('AUTO_PUBLISHED', 'HUMAN_APPROVED')
