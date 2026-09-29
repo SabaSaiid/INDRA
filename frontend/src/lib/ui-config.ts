@@ -361,6 +361,8 @@ export interface HackathonMember {
   id: string;
   name: string;
   role: string;
+  layer?: string;
+  responsibility?: string;
   specialty: string;
   bio: string;
   avatar_initials: string;

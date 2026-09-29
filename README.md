@@ -551,10 +551,12 @@ National Weather Big Data Analytics Platform** (theme: Disaster Management).
 
 | Area | Maintainer |
 |---|---|
-| Core platform: data sources, ingestion, processing, geo-analytics, event fusion, data platform, real-time API (layers 1–3, 5–8a) | Aditya ([@aditbytes](https://github.com/aditbytes)) |
-| AI/ML (layer 4) | Pritam Singh |
-| Alert engine (layer 8b) | Meenal Sinha |
-| Command center (layer 9) | Saba Saeed |
+| Command center frontend, tactical GIS map & analytics (layer 9) | Saba Saeed ([@SabaSaiid](https://github.com/SabaSaiid)) |
+| Core platform: data platform, geo-analytics, event fusion & real-time API (layers 1–3, 5–8a) | Aditya ([@aditbytes](https://github.com/aditbytes)) |
+| AI/ML subsystem, hazard classification & validation (layer 4) | Pritam Singh ([@pritamsingh019](https://github.com/pritamsingh019)) |
+| Real-time alert engine & production CI/CD (layer 8b & DevOps) | Meenal Sinha ([@MeenalSinha](https://github.com/MeenalSinha)) |
+| Data streaming, sensor feeds & weather telemetry (layers 1–2) | Salman Khurshid |
+| NLP sentence embeddings & semantic deduplication (layer 3) | Pragati Sahu |
 
 ## License
 
