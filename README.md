@@ -556,7 +556,7 @@ National Weather Big Data Analytics Platform** (theme: Disaster Management).
 | AI/ML subsystem, hazard classification & validation (layer 4) | Pritam Singh ([@pritamsingh019](https://github.com/pritamsingh019)) |
 | Real-time alert engine & production CI/CD (layer 8b & DevOps) | Meenal Sinha ([@MeenalSinha](https://github.com/MeenalSinha)) |
 | Data streaming, sensor feeds & weather telemetry (layers 1–2) | Salman Khurshid |
-| NLP sentence embeddings & semantic deduplication (layer 3) | Pragati Sahu |
+| Team member (on leave) | Pragati Sahu |
 
 ## License
 

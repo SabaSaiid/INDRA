@@ -116,14 +116,12 @@ SIXTH_SENSE_TEAM = {
         {
             "id": "ss-5",
             "name": "Pragati Sahu",
-            "role": "NLP & Semantic Deduplication Lead",
-            "layer": "Layer 3 — NLP & Deduplication",
-            "responsibility": "NLP Semantic Deduplication, Sentence Embeddings & Emergency Incident Grouping",
-            "specialty": "MiniLM Transformer Sentence Embeddings, Cosine Similarity Matrix & Levenshtein Fallback",
-            "bio": "Formulated the semantic similarity and text deduplication layer clustering repetitive citizen emergency reports within spatiotemporal windows and filtering noisy duplicate reports.",
+            "role": "Team Member (On Leave)",
+            "specialty": "",
+            "bio": "Team member on leave for the past two weeks; inactive during recent development sprints.",
             "avatar_initials": "PS",
             "github": "https://github.com/SabaSaiid/INDRA",
-            "badge": "NLP SPECIALIST",
+            "badge": "",
         },
         {
             "id": "ss-6",

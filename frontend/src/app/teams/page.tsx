@@ -629,9 +629,11 @@ function TeamsContent() {
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-blue-700 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-primary/20">
                           {member.avatar_initials}
                         </div>
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-blue-50 text-primary border border-blue-100">
-                          {member.badge}
-                        </span>
+                        {member.badge ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-blue-50 text-primary border border-blue-100">
+                            {member.badge}
+                          </span>
+                        ) : null}
                       </div>
 
                       <h3 className="text-base font-bold text-text-primary leading-tight">
@@ -663,9 +665,11 @@ function TeamsContent() {
                       )}
 
                       {/* Technical Specialty */}
-                      <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
-                        <strong className="text-slate-800">Specialty:</strong> {member.specialty}
-                      </div>
+                      {member.specialty ? (
+                        <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                          <strong className="text-slate-800">Specialty:</strong> {member.specialty}
+                        </div>
+                      ) : null}
 
                       {/* Bio */}
                       <p className="mt-3 text-xs text-text-secondary leading-relaxed">
@@ -674,7 +678,9 @@ function TeamsContent() {
                     </div>
 
                     <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 font-medium">Core Contributor</span>
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {member.role?.includes('On Leave') ? 'Inactive (On Leave)' : 'Core Contributor'}
+                      </span>
                       <a
                         href={member.github}
                         target="_blank"
