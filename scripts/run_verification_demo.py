@@ -560,6 +560,15 @@ def _place(case: Dict[str, Any]) -> str:
     return ", ".join(x for x in (p.get("district"), p.get("state")) if x) or "unnamed place"
 
 
+def _deciding_station(receipt: Dict[str, Any]) -> Optional[str]:
+    """The airport whose observation decided the weather factor, or None when the model did."""
+    factor = next((f for f in receipt.get("factors") or [] if f.get("key") == "weather_station"), {})
+    if factor.get("source") != "airport_metar":
+        return None
+    detail = ((receipt.get("evidence") or {}).get("weather_station") or {}).get("detail") or {}
+    return (detail.get("station") or {}).get("station")
+
+
 def _factor(f: Dict[str, Any]) -> str:
     if f["state"] == "offline":
         return "offline"
@@ -629,7 +638,19 @@ def summary_lines(a: Dict[str, Any], b: Dict[str, Any], c: Dict[str, Any]) -> Li
     fa = {f["key"]: f for f in a["scored"]["receipt"]["factors"]}
     a_why = (f"official {_factor(fa['official_warning'])}, weather {_factor(fa['weather_station'])}; "
              f"confidence {a['scored']['confidence']}")
-    readings = [o for o in b["case"].get("metar") or [] if o.get("temperature_c") is not None]
+    # The airport that decided the weather factor, inside the evidence window,
+    # not the hottest airport nearby (BUG-131: Bengaluru's case was decided by
+    # VOBL at 27.0 °C and the summary named VOBG at 31.0 °C).
+    receipt = b["scored"]["receipt"]
+    deciding = _deciding_station(receipt)
+    window = receipt.get("evidence_window") or {}
+    start, end = _dt(window.get("start")), _dt(window.get("end"))
+    readings = [
+        o for o in b["case"].get("metar") or []
+        if o.get("temperature_c") is not None and o.get("station_code") == deciding
+        and (start is None or _dt(o["recorded_at"]) >= start)
+        and (end is None or _dt(o["recorded_at"]) <= end)
+    ]
     if readings:
         top = max(readings, key=lambda o: o["temperature_c"])
         b_why = f"{top['station_code']} max {top['temperature_c']:.1f} °C"
