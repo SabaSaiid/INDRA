@@ -678,12 +678,39 @@ backend (`make e2e-backend`, port 8100), never the API on :8000.
 
 ---
 
+## 23. What changed in `frontend/` on 29 Sep: the build fix after PR #52
+
+**One line, in `src/components/RiskZonesSection.tsx`.** After PR #52 (`heatmap-28sep`) `npm run
+build` failed on `main`, which kept the new heatmap off the team server (a build that fails there
+deletes the running dashboard first):
+
+```
+RiskZonesSection.tsx:419  Property 'corroborating_reports_count' does not exist on type 'EventDetail'.
+```
+
+`GET /api/events/{id}` has never returned that field, so at runtime the expression was always
+`undefined` and fell through to the zone's own count. Line 419 now reads
+`selectedZone.reportsCount ?? 1` directly: the same number on screen, and the build passes. It was
+the only type error in `frontend/`. Aditya asked for this change on 29 Sep.
+
+**Found while fixing it, left for you to decide** (nothing below was changed):
+
+| What | Where | Effect today |
+|---|---|---|
+| **No endpoint sends `corroborating_reports_count`**, neither `GET /api/events` nor `GET /api/events/{id}`. `ApiEvent` declares it optional, so it type-checks | `RiskZonesSection.tsx` lines 266, 310, 410, 537, 561; `alerts/page.tsx:142` | Every zone shows 1 report, and the "independent source" share counts only `AUTO_PUBLISHED` events. If you want the real number, say so: the backend can add `report_count` to both endpoints (the GeoJSON export already carries it) |
+| **90 baseline zones** in `INITIAL_RISK_ZONES` (e.g. "Patna Urban & Ganga Basin", 42 reports) | `RiskZonesSection.tsx:56` | Shown until live events load, and kept on screen if the API is down. They are not from any data source |
+| **Floors on the four consensus percentages** (`Math.max(68, …)`, `Math.max(76, …)` and so on) | `RiskZonesSection.tsx` lines 268–285, 432, 438 | The panel never shows less than 68–76 %, whatever the events say |
+
+The last two are the kind of invented telemetry the list below asks to remove before the demo.
+
+---
+
 ## Things that are not coming, so please do not leave space for them
 
 | | |
 |---|---|
 | **Alerts from the core backend** — no SMS, email or broadcast | Left the core platform's scope 20 Sep. The warnings page shows *official* SACHET warnings (`GET /api/alerts/agency`). Alerting is the separate `alert_engine/` service (layer 8b, PR #38), maintained by its owners and not running on the team server |
-| **Risk zones** | Not built, not scheduled |
+| **Risk zones from the backend** | Not built, not scheduled: no endpoint scores or names a zone. The Risk Zones panel from PR #52 is drawn in the dashboard from `GET /api/events` and `GET /api/geo/heatmap`; its 90 baseline zones come from neither (section 23) |
 | **Image / vision analysis** | Out of scope. Since Phase 5 photos and videos are stored and checked for **reuse and metadata** (hashes, EXIF), never for what they show; `vision_analysis` stays offline. `media_url` is still a string nothing opens |
 | **Anomaly detection** | Out of scope. Permanently `offline` in the receipt |
 | **Event-type classification by a model** | Trained, measured below its gate, unwired, and frozen with the rest of layer 4. The 16 types are tagged by published rules instead (Phase 3, section 18) |
@@ -695,5 +722,5 @@ taking out of the backend.
 ---
 
 **Questions:** ask me. If something needs a new response shape or a new message type, say so and I
-will add it backend-side. I change `frontend/` only on a stated request (sections 0, 16, 19 and 20),
+will add it backend-side. I change `frontend/` only on a stated request (sections 0, 16, 19, 20 and 23),
 and every such change is written up here.

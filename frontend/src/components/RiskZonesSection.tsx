@@ -416,7 +416,7 @@ export default function RiskZonesSection() {
 
     // When an incident is selected:
     const receipt = selectedEventDetail?.verification_receipt;
-    const repCount = selectedEventDetail?.corroborating_reports_count ?? selectedZone.reportsCount ?? 1;
+    const repCount = selectedZone.reportsCount ?? 1;
 
     // Direct extraction from verification_receipt factors if available
     const factors = Array.isArray(receipt?.factors) ? receipt.factors : [];
