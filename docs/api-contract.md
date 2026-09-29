@@ -263,7 +263,12 @@ misleading-text flags (`[]` when clean). `hazard` is still the category the citi
 CSV export the two lists are JSON arrays.
 
 `docket` is filled for citizen reports only. `text` is at most 500 characters; `lat`/`lng` are
-rounded to 4 decimals. `401` without a token, `403` for a citizen token, `422` for an unknown
+rounded to 4 decimals.
+
+`media_count` (and `has_media`) counts a report's files: the legacy `media_url`, a post's
+attachments as its poller listed them, and **since 29 Sep (BUG-130) each photo or video a citizen
+uploaded that the media worker has finished** (`ready`, as `GET /api/reports/recent` counts them).
+One still processing, rejected or withdrawn is not counted. The export carries the same number. `401` without a token, `403` for a citizen token, `422` for an unknown
 value in any list parameter, `503` on a database error.
 
 ### `GET /api/reports/export?format=csv|geojson` — **requires an analyst token** (Phase 2 T10)

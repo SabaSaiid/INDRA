@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Scope** | The core platform: layers 1, 2, 3, 5, 6, 7 and 8a, plus the test suites and infrastructure. A layer 4 or layer 9 defect is recorded when it affects this code or its suite, and handed to that layer's owner |
-| **Entries** | BUG-001 … BUG-122 |
-| **Last reviewed** | 28 Sep 2026 |
+| **Entries** | BUG-001 … BUG-132 |
+| **Last reviewed** | 29 Sep 2026 |
 
 Every defect found since the 16 Sep 2026 sprint began: what was observed, what was done about it
 and, for anything not fixed, the honest sentence to say if asked. **Nothing is ever removed.** An
@@ -20,12 +20,16 @@ whether the audit trail can be edited, should find the answer here without havin
 > PR #39. For layer 4's current state see [ML architecture](ML_ARCHITECTURE.md) and
 > [ML validation](ML_VALIDATION_REPORT.md).
 
-## Current status — 28 Sep 2026
+## Current status — 29 Sep 2026
 
 ### Open
 
 | Bug | Sev | Layer | Summary |
 |---|:-:|---|---|
+| BUG-124 | S2 | 8a | `GET /api/reports/recent` is open and returns citizen text and exact coordinates. **Seen live on 29 Sep:** the Field Reports page shows a citizen's text and `25.5941, 85.1376` to a visitor who is not signed in. Gating it needs a dashboard change (handover §24) |
+| BUG-132 | S3 | 5 | The heatmap draws only GPS-placed reports, so with no citizen report in 7 days it is empty on the live site. Needs a decision |
+| BUG-128 | S3 | 6 | An event whose every report is withdrawn keeps its last score. Needs a decision |
+| BUG-123 | S3 | 7 | A withdrawn report's text stays in the lake's raw copy of the report stream |
 | BUG-099 | S3 | 7 | Test and demo rows remain in the committed `data/live/` snapshot. The exporter is fixed; deleting the rows is the remaining step |
 | BUG-059 | S3 | Tests | One test compares `CORS_ORIGINS` with the code default and fails on a server that adds its public origin |
 | BUG-066 | S3 | 6 | The merge catchment (`impact_radius_km + eps`) has no upper bound |
@@ -44,6 +48,9 @@ whether the audit trail can be edited, should find the answer here without havin
 
 ### Recently closed
 
+BUG-130 and BUG-131 (S3), found by the 29 Sep live verification of Phases 1–5: report search now
+counts uploaded photos, and the verification demo's closing line names the airport that decided
+case B. BUG-129 (S2, layer 9): `main` did not build after PR #52; fixed by PR #54 and deployed.
 BUG-120 (S1): the server's JWT signing key was the published default. Fixed in code, so production
 refuses it, and the key on the server was rotated on 27 Sep. BUG-121 and BUG-122 (S2): SACHET
 warnings and per-hazard weather now enter the score, merged in PR #47. **Every other entry is
@@ -2025,3 +2032,57 @@ in the queue with the confidence its reports once gave it. It takes every report
 withdrawing to happen. Options: leave it (a commander still sees it and can reject it), or mark it
 in the receipt and the ledger with "no reports remain" and hold it for review. Rejecting it
 automatically would be a machine making a commander's decision, which INDRA never does.
+
+
+# Live verification of Phases 1–5 — 29 Sep 2026 (branch `aditya_29sep_b`)
+
+Every feature of Phases 1–5 was checked on the running system: production read-only over HTTPS,
+and every write path on an isolated E2E copy of the team database on the server (its own topics,
+consumer group, Redis db and media bucket; `ENVIRONMENT=e2e` refuses to start otherwise). Suite on
+the server: 2,073 passed twice before the fixes, 2,075 after, the same 2 BUG-106 failures.
+
+### BUG-129 — `next build` fails on `main` after PR #52
+**S2** · Layer 9 · **`FIXED`** by PR #54 (`25806f3`), deployed 29 Sep · Found by: the Mac pre-build before a server deploy, 29 Sep
+
+`RiskZonesSection.tsx:419` read `corroborating_reports_count`, which `EventDetail` does not declare
+and no endpoint returns, so the type check stopped the build. Recorded here for the numbering; the
+detail and what it turned up are in the [frontend handover](frontend-handover.md) §23.
+
+### BUG-130 — Report search and export never counted an uploaded photo
+**S3** · Layers 7, 8a · **`FIXED`** (`fe8cce1`) · Found by: the live verification, 29 Sep
+
+Repro:    upload a photo to a citizen report (Phase 5), let the media worker finish it, then
+          `GET /api/reports/search?has_media=true`.
+Expected: the report, with `media_count: 1`.
+Actual:   nothing; the report showed `media_count: 0`. `MEDIA_COUNT_SQL` predates Phase 5 and
+          counted only the legacy `media_url` string and a post's attachments in `source_meta`.
+          The export and the `has_media` filter share it.
+Fix:      ready citizen uploads are added, counted as `GET /api/reports/recent` counts them; a
+          post's hashed attachments are not counted twice. `test_an_uploaded_photo_counts_as_media`
+          (fails before the fix, `0 == 2`). Checked again on the E2E copy: 4 matches, 1 each.
+
+### BUG-131 — The verification demo's closing line named the wrong airport
+**S3** · Layer 6 (the demo script) · **`FIXED`** (`e1283a2`) · Found by: the live verification, 29 Sep
+
+Repro:    `scripts/run_verification_demo.py` when more than one airport is near case B.
+Expected: the line names the reading that decided the contradiction.
+Actual:   "CONTRADICTED (VOBG max 31.0 °C)" while the case, correctly, was decided by VOBL,
+          Bengaluru's airport 5 km away, at 27.0 °C. The line took the hottest reading of every
+          nearby airport. The verdict and the receipt were right; only the summary was wrong, but it
+          is the line a presenter reads out.
+Fix:      the line reads the deciding station from the receipt and its readings inside the evidence
+          window. `test_the_summary_names_the_deciding_airport_not_the_hottest_nearby` (fails before
+          the fix). Live on the team database afterwards: "CONTRADICTED (VOBL max 27.0 °C)", exit 0.
+
+### BUG-132 — The heatmap is empty on the live site
+**S3** · Layer 5 · **`OPEN`** (needs a decision) · Found by: the live verification, 29 Sep
+
+Repro:    `GET /api/geo/heatmap?window=7d&resolution=6` on the team server.
+Expected: cells where reports are.
+Actual:   `cells: []` at every resolution and window. Only a report with a GPS fix gets an H3 cell;
+          the 3,900 collected posts and headlines are placed at a district or state centre, or
+          nowhere, and have none, and no citizen has reported in 7 days. On the E2E copy, with nine
+          GPS reports, the layer works and res 6 and 7 are exact sums of res 8.
+Fix:      options: leave it (the map fills as soon as citizens report, which is the demo's own
+          scene), or add district-placed posts as a separate, labelled count at res 6 only, so the
+          map never pretends a district centre is a street. Not changed without Aditya's decision.

@@ -201,6 +201,40 @@ async def test_an_item_carries_the_contract_fields(api, tokens, mixed):
     assert items[mixed["news"]]["publisher"] == "The Hindu"
 
 
+async def _media(db, report_id, *, origin="citizen", status="ready", kind="image"):
+    await db.execute(
+        text("INSERT INTO report_media (id, report_id, origin, kind, status, created_at) "
+             "VALUES (:id, CAST(:r AS uuid), :o, :k, :s, now())"),
+        {"id": uuid.uuid4(), "r": report_id, "o": origin, "k": kind, "s": status},
+    )
+
+
+async def test_an_uploaded_photo_counts_as_media(api, tokens, mixed, db):
+    """
+    BUG-130: a photo or video a citizen uploaded (Phase 5) is media to
+    `media_count`, `has_media` and the export. One still processing, or
+    rejected, is not yet, as in GET /api/reports/recent. A post's hashed
+    attachments are the files source_meta already lists, so not counted twice.
+    """
+    other = mixed["citizen_kerala_other"]
+    await _media(db, other)
+    await _media(db, other, kind="video")
+    await _media(db, other, status="processing")
+    await _media(db, other, status="rejected")
+    await _media(db, mixed["mastodon"], origin="social")
+    await db.commit()
+
+    items = {i["id"]: i for i in (await _search(api, tokens)).json()}
+    assert items[other]["media_count"] == 2
+    assert items[mixed["mastodon"]]["media_count"] == 2
+    assert other in _ids(await _search(api, tokens, "has_media=true"))
+    assert other not in _ids(await _search(api, tokens, "has_media=false"))
+
+    r = await api.get("/api/reports/export?format=csv", headers=tokens["analyst"])
+    rows = {row["id"]: row for row in csv.DictReader(io.StringIO(r.text))}
+    assert rows[other]["media_count"] == "2"
+
+
 @pytest.mark.parametrize(
     "query",
     ["source_type=TWEETS", "platform=twitter", "precision=city", "status=verified",

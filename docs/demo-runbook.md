@@ -344,6 +344,17 @@ B  fabricated heatwave, Ranchi, Jharkhand   → CONTRADICTED  (VERC max 24.0 °C
 C  recycled 2023 flood photo                → media flagged (first seen 25 Sep; taken 14 Aug 2023)
 ```
 
+Live again on the team database, 29 Sep, 18:30 IST (exit 0):
+
+```
+A  genuine urban flood, Saran, Bihar                → CORROBORATED  (official 0.85, weather 0.00; confidence 0.537)
+B  fabricated heatwave, Bengaluru Urban, Karnataka  → CONTRADICTED  (VOBL max 27.0 °C)
+C  recycled 2023 flood photo                        → media flagged (first seen 26 Sep; taken 14 Aug 2023)
+```
+
+Until that day B's line could name a hotter airport nearby instead of the one that decided the case
+(BUG-131, fixed): check that the station in B's line is the one in its contradiction line.
+
 Point at C's two reasons, then at "the report is kept and shown: flagged, never rejected". Its
 credibility falls 0.6 → 0.072, so it counts 0.12 of a witness. If asked "does it look at the
 picture?": no, it checks reuse and metadata only; `vision_analysis` is offline by design. For a
@@ -416,6 +427,17 @@ reports have since been deleted):
 | `/healthz` during | 503 `unhealthy`: `streaming_bus` down, `outbox_backlog` count 10 |
 | After `docker start indra-redpanda` | all 10 published in **1.0 s**, all 10 processed in **4.8 s** |
 | Result | **one `URBAN_FLOOD` event, 10 of 10 reports linked, 0 lost**; `/healthz` back to `healthy` |
+
+**Re-run 29 Sep on the team server**, on an E2E copy of the team database (3,922 reports), with the
+broker, Redis **and** the object store all pointed at dead ports, and the live stack untouched:
+
+| | |
+|---|---|
+| `/healthz` during | 503 `unhealthy`: `streaming_bus`, `redis` and `object_store` down, each with its reason |
+| Submits during the outage | 4 flood reports 202, `queued: false, will_retry: true`, in 0.4 s; tracked as `received` |
+| A photo upload | 503 `media_store_unavailable`; the report itself unaffected |
+| Rate limit with Redis down | still 10 per device: the 11th 429 (the per-process window) |
+| After the services came back | 14 waiting rows published within seconds; the 4 flood reports became **one event, 4 of 4 linked, 0 lost**; `healthy`, backlog 0 |
 
 **What to say:** Kafka is the one dependency that takes reports to the pipeline, and it is still
 critical: while it is down nothing new reaches the map. But nothing is dropped either. The report and

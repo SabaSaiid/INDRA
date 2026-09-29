@@ -79,6 +79,24 @@ def test_frozen_replay_prints_the_three_cases_side_by_side(recorded, monkeypatch
     assert "the report is kept and shown: flagged, never rejected" in out
 
 
+def test_the_summary_names_the_deciding_airport_not_the_hottest_nearby(recorded):
+    """
+    BUG-131, seen live on 29 Sep: Bengaluru's case B was decided by VOBL (5 km,
+    27.0 °C) and the closing line named VOBG (31.0 °C). Here a second airport,
+    hotter but farther away, sits in the recording beside VIDN.
+    """
+    case_b = json.loads(json.dumps(recorded["B"]))
+    hotter = [{**o, "station_code": "VIDX", "station_name": "Farther Arpt", "distance_km": 18.0,
+               "temperature_c": o["temperature_c"] + 11.0} for o in case_b["metar"]]
+    case_b["metar"] += hotter
+    a, b = demo.score_case(recorded["A"]), demo.score_case(case_b)
+    assert b["scored"]["verdict"].value == "CONTRADICTED"
+    assert "VIDN" in b["scored"]["receipt"]["contradictions"][0]["reason"]
+    c = demo.run_case_c(demo._dt(recorded["A"]["now"]))
+    line_b = demo.summary_lines(a, b, c)[1]
+    assert line_b.endswith("(VIDN max 20.0 °C)"), line_b
+
+
 def test_a_missing_recording_is_an_error_not_a_pretence(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["run_verification_demo.py", "--frozen", str(tmp_path / "none.json")])
     assert demo.main() == 1
