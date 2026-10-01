@@ -283,7 +283,154 @@ To process national-scale weather surges, INDRA v2.0 transitions to an **asynchr
 
 ---
 
-## 6. Comprehensive October 2026 Engineering Sprint Plan
+## 6. Phase-by-Phase Execution Order & Strict Prerequisite Dependency Graph
+
+To prevent circular dependencies, broken builds, or unmergeable database states, development MUST follow a strict **Directed Acyclic Graph (DAG)** of prerequisites.
+
+```
+                             STRICT PREREQUISITE DEPENDENCY GRAPH
+ ┌───────────────────────────────────────────────────────────────────────────────────────┐
+ │ PHASE 0: CONTRACTS, SCHEMAS & PRIVACY BASELINE                                        │
+ │ • Alembic 0024 (Dispatch & Dockets) • RBAC Enums • DPDP Sanitizer (BUG-124)           │
+ └───────────────────────────────────────────┬───────────────────────────────────────────┘
+                                             │ (Required by all downstream tiers)
+                                             ▼
+ ┌───────────────────────────────────────────────────────────────────────────────────────┐
+ │ PHASE 1: BIG DATA HIGHWAY & PERSISTENCE FABRIC                                        │
+ │ • ClickHouse OLAP Container • Kafka H3 Topics • Redis Pub/Sub Highway                 │
+ └───────────────────┬───────────────────────────────────────────────┬───────────────────┘
+                     │                                               │
+    ┌────────────────┴────────────────────────┐     ┌────────────────┴───────────────────┐
+    ▼                                         ▼     ▼                                    ▼
+ ┌──────────────────────┐ ┌──────────────────────┐┌──────────────────────┐ ┌─────────────────────┐
+ │ PHASE 2A: CITIZEN PWA│ │ PHASE 2B: NDRF PWA   ││ PHASE 2C: SAR RADAR  │ │ PHASE 2D: METRIC AI │
+ │ • (public) Route     │ │ • (field) Route      ││ • Standalone Worker  │ │ • SAM 2 + Depth v2  │
+ │ • WASM Face Blur     │ │ • IndexedDB Queue    ││ • Sentinel-1 Fetcher │ │ • IndicBERT Fine-tun│
+ │ (100% ISOLATED)      │ │ (100% ISOLATED)      ││ (100% ISOLATED)      │ │ (100% ISOLATED)     │
+ └──────────────────────┘ └──────────────────────┘└──────────────────────┘ └─────────────────────┘
+    │                                         │     │                                    │
+    └────────────────┬────────────────────────┴─────┴────────────────┬───────────────────┘
+                     │ (All standalone components ready)
+                     ▼
+ ┌───────────────────────────────────────────────────────────────────────────────────────┐
+ │ PHASE 3: CORE PIPELINE MULTIPLEXING & BIDIRECTIONAL GATEWAYS                          │
+ │ • Router Mounting (/api/dispatch, /api/field) • Redis Multi-Channel Multiplexing      │
+ │ • Verification Engine Handshake • Full 1,788 Pytest Regression Gate Passed            │
+ └───────────────────────────────────────────┬───────────────────────────────────────────┘
+                                             │
+                                             ▼
+ ┌───────────────────────────────────────────────────────────────────────────────────────┐
+ │ PHASE 4: MULTI-PERSONA CONSOLE ASSEMBLY & DASHBOARD POLISH                            │
+ │ • 4K SEOC Video Wall (Deck.gl) • Analyst Studio • C-DOT CAP Broadcast Dispatcher     │
+ │ • Clean Residual Mocks (RiskZonesSection.tsx)                                         │
+ └───────────────────────────────────────────┬───────────────────────────────────────────┘
+                                             │
+                                             ▼
+ ┌───────────────────────────────────────────────────────────────────────────────────────┐
+ │ PHASE 5: NATIONAL DISASTER STRESS DRILL & SIH FINALE VALIDATION                       │
+ │ • 50k req/s Burst Test • Simulated Tower Blackout Drill • Multi-Role Cat-4 Demo      │
+ └───────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Detailed Phase Breakdown
+
+#### Phase 0: Contracts, Schemas, RBAC & Privacy Baseline
+* **Prerequisites:** Existing `main` branch (`0023_report_withdrawal.py`).
+* **Deliverables:**
+  1. Additive Alembic migration `0024_enterprise_dispatch_and_dockets.py` creating new tables: `dispatch_assignments`, `field_observations`, and `citizen_dockets`.
+  2. Granular permission enums in `backend/app/core/security.py` (`FIELD_RESPONDER`, `COMMANDER`, `ANALYST`, `CITIZEN`).
+  3. DPDP Act 2023 privacy serializer in `backend/app/api/reports.py` (resolving BUG-124 by coarsening public coordinates to $1.1\text{ km}$).
+* **Anti-Pattern / Blocker Prevented:** Building frontend apps before defining database schemas causes schema drift and broken database migrations.
+
+#### Phase 1: Big Data Ingestion Highway & Persistence Fabric
+* **Prerequisites:** Phase 0 (schemas and models finalized).
+* **Deliverables:**
+  1. Deploy ClickHouse container in `docker-compose.yml` with schemas for `sensor_telemetry_olap` and `spatial_h3_aggregates`.
+  2. Configure Kafka / Redpanda topics partitioned by Uber H3 Resolution-7 spatial cells.
+  3. Deploy multi-channel Redis Pub/Sub broker for decoupled WebSocket fan-out.
+* **Anti-Pattern / Blocker Prevented:** Building telemetry dashboards or scaling WebSocket connections without ClickHouse and Redis leads to memory crashes and PostgreSQL connection pool starvation.
+
+#### Phase 2: Autonomous Independent Modules (Parallel Zero-Regression Track)
+* **Prerequisites:** Phase 0 contracts (can run concurrently with Phase 1).
+* **Deliverables:** Building the 6 completely isolated modules detailed in Section 7 below.
+* **Anti-Pattern / Blocker Prevented:** Touching shared files (`pipeline.py`, `events.py`) while multiple team members work simultaneously causes git merge conflicts and breaks existing test suites.
+
+#### Phase 3: Core Pipeline Multiplexing & Bidirectional Gateways
+* **Prerequisites:** Phase 1 (Redis Pub/Sub running) and Phase 2 (subsystems built).
+* **Deliverables:**
+  1. Mount new REST routers: `/api/dispatch` and `/api/field` in `backend/app/api/`.
+  2. Connect the unified `IndraSocketProvider` to Redis Pub/Sub channels (`indra:ws:control-room`, `indra:ws:field:{id}`, `indra:ws:public`).
+  3. Wire the Bhashini speech-to-text adapter and Metric Depth vision engine to the report ingestion pipeline.
+  4. Run full pytest suite (all 1,788 tests must pass with zero regression).
+* **Anti-Pattern / Blocker Prevented:** Wiring un-benchmarked AI models directly into the critical scoring path will trigger pipeline stalls and false event quarantines.
+
+#### Phase 4: Multi-Persona Console Assembly & Dashboard Polish
+* **Prerequisites:** Phase 3 (all backend APIs and WebSockets fully verified).
+* **Deliverables:**
+  1. Complete the SEOC 4K Command Center with Deck.gl 3D terrain and 1-click dispatch modal.
+  2. Assemble the Meteorological Analyst Studio with ClickHouse telemetry curves.
+  3. Purge all residual mock telemetry in `RiskZonesSection.tsx` (remove bundled stock images and `INITIAL_RISK_ZONES` mock array).
+  4. Wire C-DOT CAP v1.2 broadcast trigger to official XML generation endpoints.
+* **Anti-Pattern / Blocker Prevented:** Assembling the frontend before backend endpoints are stable forces developers to use temporary mock data, which then accidentally ships to production (repeating historical BUG-024 / BUG-045).
+
+#### Phase 5: National Disaster Stress Drill & SIH Grand Finale Validation
+* **Prerequisites:** Phase 4 (entire integrated platform running).
+* **Deliverables:**
+  1. Execute distributed load tests simulating 50,000 incoming reports/minute through Kafka and ClickHouse.
+  2. Cellular blackout simulation: cut internet to field devices, submit 1,000 reports, reconnect, verify zero data loss.
+  3. Executive video recording demonstrating live multi-role coordination during a simulated cyclone landfall.
+
+---
+
+## 7. Zero-Regression Independence Strategy (What Can Be Built Concurrently Without Touching Core Files)
+
+To enable Team Sixth Sense members to work concurrently without breaking existing code, we divide the project into **completely isolated, additive modules**. 
+
+### 7.1 Independence & Blast Radius Matrix
+
+| Subsystem Module | Isolation Level | New Files Created | Core Files Modified | Risk to 1,788 Test Suite | Can Work in Parallel? |
+|---|:---:|---|---|:---:|:---:|
+| **Module 1: Citizen Sovereign PWA** | 🟢 **100% Isolated** | `frontend/src/app/(public)/*`<br>`frontend/src/lib/wasm-blur/*` | **NONE (0 files)** | **ZERO RISK** | ✅ **YES (Frontend Dev A)** |
+| **Module 2: NDRF Tactical Offline Client** | 🟢 **100% Isolated** | `frontend/src/app/(field)/*`<br>`frontend/src/lib/offline-sync/*` | **NONE (0 files)** | **ZERO RISK** | ✅ **YES (Frontend Dev B)** |
+| **Module 3: Sentinel-1 SAR Radar Worker** | 🟢 **100% Isolated** | `backend/app/workers/sar_poller.py`<br>`scripts/ingest_sentinel1_sar.py` | **NONE (0 files)** | **ZERO RISK** | ✅ **YES (Remote Sensing Dev)** |
+| **Module 4: Metric Depth AI Microservice** | 🟢 **100% Isolated** | `backend/app/ml/vision_server.py`<br>`docker/vision.Dockerfile` | **NONE (0 files)** | **ZERO RISK** | ✅ **YES (AI/ML Dev A)** |
+| **Module 5: C-DOT CAP v1.2 XML Engine** | 🟢 **100% Isolated** | `alert_engine/cap_generator.py`<br>`backend/app/services/cap_xml.py` | **NONE (0 files)** | **ZERO RISK** | ✅ **YES (Backend Dev A)** |
+| **Module 6: Bhashini Speech-to-Text** | 🟢 **100% Isolated** | `backend/app/services/speech.py`<br>`backend/tests/test_speech.py` | **NONE (0 files)** | **ZERO RISK** | ✅ **YES (AI/ML Dev B)** |
+| **Module 7: Additive Database Migrations** | 🟡 **Additive (Safe)** | `backend/alembic/versions/0024_*.py`<br>`backend/app/models/dispatch.py` | `models/__init__.py`<br>`models/enums.py` | **LOW RISK (Additive)** | ✅ **YES (Lead Backend Dev)** |
+| **Module 8: DPDP Privacy Sanitizer** | 🔴 **Core Touchpoint** | `backend/tests/test_dpdp_privacy.py` | `backend/app/api/reports.py` | **MEDIUM RISK (Gate with Tests)** | ⚠️ **Serial (Must merge first)** |
+
+---
+
+### 7.2 Deep-Dive into the Standalone Modules
+
+#### 1. Citizen Sovereign Portal & Client-Side Privacy Shield (`frontend/src/app/(public)/*`)
+* **Why it's completely isolated:** Next.js 14 App Router supports isolated Route Groups. Creating `(public)/report/page.tsx` and `(public)/track/[docket]/page.tsx` does not alter any existing route (`/events`, `/reports`, `/teams`, `/admin`).
+* **Client-side WASM Face/License Plate Blurring:** Implemented entirely in `frontend/src/lib/wasm-blur/` using a client-side WebAssembly model (Ultraface / OpenCV WASM). It runs in the user's browser before any `POST` request is fired. It touches **zero backend files**.
+
+#### 2. NDRF Tactical Offline PWA & Mesh Adapter (`frontend/src/app/(field)/*`)
+* **Why it's completely isolated:** Lives in its own route group `(field)/tasks` and `(field)/ground-truth`.
+* **Offline IndexedDB Queue:** Uses Workbox and Dexie.js to manage local browser storage. It mocks standard submission responses when offline and flushes to the API when online. It requires **zero changes to existing backend routes**.
+
+#### 3. Earth Observation (EO) SAR Inundation Worker (`backend/app/workers/sar_poller.py`)
+* **Why it's completely isolated:** Designed as an autonomous background poller or standalone script (`scripts/ingest_sentinel1_sar.py`).
+* It downloads Sentinel-1 C-band SAR Level-1 GRD imagery from the Copernicus Open Access Hub or AWS Open Data registry, performs Otsu thresholding, extracts flood polygons as GeoJSON, and saves them into a new standalone table `sar_flood_extents`. It does not touch `pipeline.py` or existing DBSCAN clustering.
+
+#### 4. Metric Flood Depth AI Microservice (`backend/app/ml/vision_server.py`)
+* **Why it's completely isolated:** Rather than loading heavy PyTorch models directly inside the FastAPI main process (which historically caused 13-second startup freezes, BUG-032), the vision engine runs as an independent daemon or sidecar container.
+* It exposes a simple local endpoint `POST http://localhost:8002/infer-depth`. The main backend only calls this via an asynchronous HTTP client with a strict $500\text{ ms}$ timeout and fallback.
+
+#### 5. C-DOT CAP v1.2 XML Broadcast Generator (`alert_engine/cap_generator.py`)
+* **Why it's completely isolated:** Placed inside the existing standalone `alert_engine/` directory (Layer 8b). It takes a verified event JSON and serializes it into ITU-T X.1303 / OASIS CAP v1.2 XML. It is a pure mathematical/string function covered by its own unit tests.
+
+#### 6. Bhashini Vernacular Speech Adapter (`backend/app/services/speech.py`)
+* **Why it's completely isolated:** A clean adapter module taking audio byte buffers (`.wav`, `.m4a`) and sending them to the Bhashini ASR endpoint or local AI4Bharat IndicWav2Vec ONNX model, returning transcribed text. It can be developed, tested, and benchmarked with 100% unit-test isolation.
+
+#### 7. Additive Alembic Migration (`0024_enterprise_dispatch_and_dockets.py`)
+* **Why it's safe:** It uses standard SQL `CREATE TABLE` statements for new tables (`dispatch_assignments`, `field_observations`, `citizen_dockets`). It modifies **zero existing columns** in `verified_events` or `raw_reports`, guaranteeing that all 23 prior migrations and existing queries remain completely unaffected.
+
+---
+
+## 8. Updated Sprint Timeline & Resource Allocation (October 2026)
 
 ```
                            OCTOBER 2026 SPRINT ROADMAP
@@ -298,54 +445,29 @@ To process national-scale weather surges, INDRA v2.0 transitions to an **asynchr
 └─────────────────────────┴─────────────────────────┴─────────────────────────┴─────────────────────────┘
 ```
 
-### Week 1 (Oct 01 – Oct 07): Big Data Core, ClickHouse OLAP & DPDP Privacy Guard
-* **Backend Data Engineering:**
-  * Deploy ClickHouse container in `docker-compose.yml` with schemas for `sensor_telemetry_olap` and `spatial_h3_aggregates`.
-  * Create Alembic migration `0024_enterprise_dispatch_and_dockets.py` establishing `dispatch_assignments`, `field_observations`, and `citizen_dockets`.
-  * Configure Kafka topic partitioning based on H3 spatial indices.
-* **Security & Privacy (Resolving BUG-124):**
-  * Implement strict DPDP Act 2023 serialization middleware in `backend/app/api/reports.py`:
-    * Public visitors receive coarse $1.1\text{ km}$ coordinates and scrubbed text.
-    * Authenticated commanders access raw GPS and camera metadata under logged audit justification.
-* **Frontend Scaffolding:**
-  * Modularize `frontend/src/app` into dedicated route groups: `(control-room)`, `(field)`, `(analyst)`, `(public)`.
+### Team Parallel Work Breakdown
 
-### Week 2 (Oct 08 – Oct 14): NDRF Offline Tactical PWA & Citizen Vernacular Portal
-* **NDRF Tactical Client:**
-  * Implement service worker caching for offline OpenStreetMap vector tiles using Workbox.
-  * Build local IndexedDB / SQLite store-and-forward queue for offline ground-truth reporting.
-  * Design ultra-high-contrast tactile UI with 48px touch targets for gloved operation in heavy rain.
-* **Citizen Sovereign Portal:**
-  * Implement zero-login 3-step reporting flow with voice-recording interface wired to Bhashini speech models.
-  * Integrate client-side WebAssembly (WASM) neural face and license-plate redaction before upload.
-  * Implement anonymous UUID docket tracker (`/track/[docket]`).
+* **Track 1: Core Data & Infrastructure (Lead Backend):**
+  * *Week 1:* Migration 0024, ClickHouse container setup, DPDP privacy serializer (BUG-124).
+  * *Week 2:* Redis Pub/Sub multi-channel broker, Kafka H3 partitioner.
+  * *Week 3:* Core router mounting (`/api/dispatch`, `/api/field`), RFC 3161 audit anchoring.
+  * *Week 4:* 50k req/s load testing, fault-tolerance validation.
 
-### Week 3 (Oct 15 – Oct 21): Control Room 4K Console, C-DOT CAP Gateway & Redis Highway
-* **SEOC Command Center:**
-  * Build high-density 4K situational wall using Deck.gl with 3D terrain elevation (CartoDEM).
-  * Build OASIS CAP v1.2 emergency alert XML broadcast generator with interactive polygon geofencing.
-  * Implement 1-click NDRF/SDRF unit dispatch and mutual aid resource mobilization modal.
-* **Analyst Intelligence Studio:**
-  * Build multi-axis sensor correlation studio querying ClickHouse for sub-second telemetry curves.
-  * Build mathematical Verification Receipt visualizer with live sensitivity sliders.
-* **Infrastructure Scale-Out:**
-  * Migrate WebSocket broadcast system to multi-channel Redis Pub/Sub (`indra:ws:control-room`, `indra:ws:field:{id}`, `indra:ws:public`).
-  * Implement RFC 3161 external head-hash anchoring for the SHA-256 audit chain.
+* **Track 2: Tactical Field & Citizen PWAs (Frontend Devs):**
+  * *Week 1:* App Router scaffolding (`(public)`, `(field)`, `(control-room)`, `(analyst)`).
+  * *Week 2:* Citizen 3-step reporting portal + WASM face blur; NDRF offline vector tile caching.
+  * *Week 3:* Field ground-truth check-in UI + START triage modal; anonymous docket tracker.
+  * *Week 4:* Sunlight-contrast mode, offline sync drills.
 
-### Week 4 (Oct 22 – Oct 31): Advanced AI/ML Activation, Load Testing & Grand Finale Drill
-* **AI/ML Production Deployment:**
-  * Wire Sentinel-1 SAR cloud-penetrating flood inundation pipeline into the backend data lake.
-  * Deploy Depth Anything V2 + SAM 2 metric flood depth estimation container.
-  * Fine-tune IndicBERT-v2 with cost-sensitive asymmetric loss; verify zero false negatives on severe hazards.
-* **Industrial Load Testing & Resilience Drills:**
-  * Execute distributed load tests simulating 50,000 incoming reports/minute through Kafka and ClickHouse.
-  * Simulate total network severed drill: confirm NDRF field PWA queues 1,000 reports offline and auto-syncs with zero loss upon reconnection.
-* **SIH Grand Finale Evaluation Polish:**
-  * Record authoritative multi-role demonstration video showcasing live coordination across all four roles during a simulated Cat-4 Cyclone landfall.
+* **Track 3: Sovereign AI/ML & Remote Sensing (AI Engineers):**
+  * *Week 1:* Sentinel-1 SAR change-detection prototype, Bhashini ASR test suite.
+  * *Week 2:* Bhashini audio adapter (`speech.py`), IndicBERT cost-sensitive fine-tuning.
+  * *Week 3:* SAM 2 + Depth Anything v2 metric flood depth container (`vision_server.py`).
+  * *Week 4:* SAR polygon pipeline integration, anti-deepfake neural forensics.
 
 ---
 
-## 7. Concrete Verification Checklist & Acceptance Gates
+## 9. Concrete Verification Checklist & Acceptance Gates
 
 Before declaring INDRA Enterprise v2.0 production-ready for MoES/NDMA deployment, the platform must satisfy every objective acceptance gate:
 
@@ -356,7 +478,9 @@ Before declaring INDRA Enterprise v2.0 production-ready for MoES/NDMA deployment
 - [ ] **Sovereign Alert Compliance:** Broadcast generator produces valid OASIS CAP v1.2 XML bulletins successfully parsed by official C-DOT SACHET validator suites.
 - [ ] **DPDP Act Compliance:** Zero citizen telephone numbers, unblurred faces, or micro-GPS coordinates are exposed across any unauthenticated public API routes.
 - [ ] **Big Data Scale:** ClickHouse executes spatial aggregations over 100,000,000 historical sensor rows in $< 150\text{ ms}$.
+- [ ] **Zero Core Regression:** All 1,788 existing backend tests pass without a single modification to core verification or database schemas.
 
 ---
 
 *Authored by Team Sixth Sense • October 2026 Strategic Blueprint • Intelligent National Disaster & Weather Platform (INDRA)*
+
