@@ -1,6 +1,6 @@
 # 🇮🇳 INDRA — Industrial-Grade Multi-Persona Platform Architecture & October 2026 Strategic Plan
 
-**Document:** `PLAN for Oct.md`  
+**Document:** `Plan for Oct 26.md`  
 **Target Release:** INDRA Enterprise v2.0 / SIH Grand Finale  
 **Author / Team:** Saba Saeed & Team Sixth Sense  
 **System:** INDRA (*Intelligent National Disaster & Weather Platform*)  
