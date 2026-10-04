@@ -10,6 +10,22 @@
 ---
 
 <details open>
+<summary>✅ <b>Resolution Update — 04 October 2026 (Frontend-Backend Architecture & Hydration Sync)</b></summary>
+
+The system-level integration and runtime stability bugs identified during October multi-persona development were systematically resolved, verified by `verify-build.sh`, and merged on `Saba-4-Oct-2026`:
+
+| # | Architecture Touchpoint | Symptom & Root Cause | Operational Resolution |
+| :--- | :--- | :--- | :--- |
+| **5A** | **SSR Role Context Hydration** | Dynamic import with `{ ssr: false }` for `RoleProvider` in `layout.tsx` caused hydration mismatches on initial HTML mount | Statically imported `RoleProvider` from `@/lib/useRoleContext`, establishing universal client context across all routes without DOM mismatch |
+| **5B** | **Dev/Prod Build Cache Collision** | Running `npm run build` wiped `.next/` while `next dev` was active, causing `404 Not Found` for `layout.css` and JS chunks | Dynamically isolated development (`.next-dev/`) from production builds (`.next/`) via `PHASE_DEVELOPMENT_SERVER` in `next.config.mjs` |
+| **5C** | **Supervisor Zombie Healthcheck** | `start.sh` treated raw HTTP 200 HTML as active even when CSS was 404, preventing automatic recovery of corrupted dev processes | Enhanced supervisor with asset probing (`curl -w "%{http_code}" /_next/static/css/...`), auto-recycling broken instances within 1.0s |
+| **5D** | **Admin Omni-Console Endpoints** | Need for live AI model inspection, zero-shot NLP testing, and dynamic spatial reclustering | Deployed `GET /api/admin/ml-observatory`, `POST /api/admin/ml-test-nlp`, and `POST /api/admin/recluster` in `backend/app/api/admin.py` |
+
+</details>
+
+---
+
+<details open>
 <summary>✅ <b>Resolution Status — 24 September 2026</b></summary>
 
 Every item was checked against the code on `main` @ `c6b8354`, and the fixes were merged in **PR #31**. Both example cards (`WX-EV-B85B4E8E-E`, `WX-EV-43DDEC9C-B`) carry the `WX-EV-…` code that only the synthetic seeder (`scripts/seed_national_data.py --synthetic`) writes; the pipeline writes `INDRA-YYYYMMDD-NNN`. So the symptoms came from seeded rows, and two of the root causes were in the seeder. Bug numbers refer to [`docs/bug-register.md`](../../docs/bug-register.md).
