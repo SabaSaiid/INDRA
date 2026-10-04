@@ -4,6 +4,10 @@ import { LanguageProvider } from '@/lib/i18n';
 import dynamic from 'next/dynamic';
 
 const IdleLockOverlay = dynamic(() => import('@/components/IdleLockOverlay'), { ssr: false });
+const RoleProvider = dynamic(
+  () => import('@/lib/useRoleContext').then((m) => ({ default: m.RoleProvider })),
+  { ssr: false },
+);
 
 export const metadata: Metadata = {
   title: 'INDRA — National Weather Intelligence Platform',
@@ -51,8 +55,10 @@ export default function RootLayout({
       <body className="bg-paper text-ink antialiased">
         {/* LanguageProvider: zero-backend client-side i18n — wraps entire app */}
         <LanguageProvider>
-          <IdleLockOverlay />
-          {children}
+          <RoleProvider>
+            <IdleLockOverlay />
+            {children}
+          </RoleProvider>
         </LanguageProvider>
       </body>
     </html>

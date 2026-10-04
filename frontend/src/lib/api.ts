@@ -718,6 +718,8 @@ export interface FieldReport {
   event_code?: string | null;
   observed_at?: string | null;
   credibility_score?: number | null;
+  media_url?: string | null;
+  place_precision?: string | null;
 }
 
 /**
@@ -1148,3 +1150,139 @@ export interface VerificationBucket {
 export async function fetchVerificationBreakdown(): Promise<VerificationBucket[]> {
   return getJson<VerificationBucket[]>('/api/dashboard/verification-breakdown');
 }
+
+// ─── Admin Omni & AI Observatory API ──────────────────────────────────────────
+
+export interface MlComponentMetadata {
+  component: string;
+  version: string;
+  backend_integration_status: string;
+  artifact: string;
+  artifact_sha256?: string;
+  protected_receipt?: string;
+  protected_receipt_sha256?: string;
+  production_validation?: string;
+}
+
+export interface MlObservatoryData {
+  status: string;
+  release_state: string;
+  generated_on: string;
+  components: MlComponentMetadata[];
+  tests: Record<string, any>;
+  policy: Record<string, any>;
+  live_telemetry: {
+    total_reports: number;
+    fused_reports: number;
+    unfused_reports: number;
+    duplicate_reports: number;
+    verified_events: number;
+    flagged_reports: number;
+  };
+  consensus_weights: Array<{
+    factor: string;
+    weight: number;
+    metric: string;
+    status: string;
+  }>;
+  nlp_model_info: {
+    name: string;
+    taxonomy: string[];
+    features: string;
+    cost_sensitive_safety_margin: string;
+    supported_dialects: string;
+  };
+}
+
+export interface NlpTestResult {
+  status: string;
+  top_class: string;
+  confidence: number;
+  probabilities: Record<string, number>;
+  features_matched: number;
+  model_version: string;
+  latency_ms: number;
+  warnings?: string[];
+}
+
+export interface ReclusterResult {
+  success: boolean;
+  clusters_count: number;
+  reports_clustered: number;
+  clusters: Array<{ cluster_id: number; size: number; report_ids: string[] }>;
+}
+
+export interface SignedMediaResponse {
+  urls: Record<string, string>;
+  external: Record<string, boolean>;
+  size: string;
+  expires_in: number;
+  unavailable: Record<string, string>;
+}
+
+/**
+ * GET /api/admin/ml-observatory
+ * Fetch AI / ML model registry, release status, verification weights, and telemetry.
+ */
+export async function fetchMlObservatory(): Promise<MlObservatoryData> {
+  const res = await authedFetch('/api/admin/ml-observatory', { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`Failed to load ML observatory: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * POST /api/admin/ml-test-nlp
+ * Dry-run text classification through the IndicBERT / NLP classifier.
+ */
+export async function testNlpClassification(text: string): Promise<NlpTestResult> {
+  const res = await authedFetch('/api/admin/ml-test-nlp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * POST /api/admin/recluster
+ * Trigger on-demand spatial DBSCAN reclustering.
+ */
+export async function triggerRecluster(): Promise<ReclusterResult> {
+  const res = await authedFetch('/api/admin/recluster', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * POST /api/media/signed-urls
+ * Request signed URLs for inspection. If original=true, audits access in ledger.
+ */
+export async function requestSignedMediaUrls(
+  ids: string[],
+  size: 'thumb' | 'full' = 'full',
+  original: boolean = false
+): Promise<SignedMediaResponse> {
+  const res = await authedFetch('/api/media/signed-urls', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, size, original }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+

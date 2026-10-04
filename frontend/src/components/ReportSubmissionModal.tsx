@@ -19,6 +19,7 @@ import {
   type ReportSubmission,
 } from '@/lib/api';
 import { useSession, hasRole, COMMAND_ROLES } from '@/lib/auth';
+import { useRoleContext } from '@/lib/useRoleContext';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface Props {
@@ -40,8 +41,10 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
   // backend enforces it (POST /api/reports/official), this only hides an
   // option that would be refused.
   const session = useSession();
+  const { effectiveRole } = useRoleContext();
+  const currentRole = (effectiveRole ?? session?.role?.toUpperCase()) || null;
   const [asOfficial, setAsOfficial] = useState(false);
-  const canFileOfficial = hasRole(session, COMMAND_ROLES);
+  const canFileOfficial = currentRole === 'COMMANDER' || currentRole === 'ADMIN';
 
   const resetForm = useCallback(() => {
     setLat('');
