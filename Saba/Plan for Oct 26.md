@@ -309,7 +309,19 @@ To process national-scale weather surges, INDRA v2.0 transitions to an **asynchr
   * Citizen reports feature a self-service data withdrawal endpoint (`POST /api/reports/withdraw`) that purges raw media and cascades redactions through the lake.
 * **RFC 3161 Trusted Hardware Timestamping:**
   * The current SHA-256 audit chain (`audit_logs`) prevents row tampering but remains vulnerable to tail-truncation without an external root of trust.
-  * INDRA v2.0 periodically anchors the head hash of the ledger to a National Informatics Centre (NIC) Certifying Authority or public time-stamping authority every 60 minutes.
+### 5.4 High-Availability Frontend Build Architecture & Chunk Isolation
+* **The Operational Failure Mode:** In dual development/verification environments, running production verification builds (`next build`) while a local development server (`next dev`) is active wipes the `.next/` output directory. This deletes development chunk manifests and stylesheet assets, causing client browsers to receive `404 Not Found` on `layout.css` and JavaScript bundles, leaving the UI in an unstyled, frozen fallback state.
+* **The Sovereign Architectural Defense:**
+  1. **Phase-Aware Directory Isolation (`next.config.mjs`):**
+     * Leverages Next.js `PHASE_DEVELOPMENT_SERVER` detection to dynamically isolate build artifacts:
+       * `next dev` targets `.next-dev/` exclusively.
+       * `next build` targets `.next/` (or dedicated `.next-verify/` during CI).
+     * Eliminates cross-process directory contention so automated linting/build checks never corrupt live emergency operations.
+  2. **Automated Asset Health Probing (`start.sh`):**
+     * Enhances supervisor health checks: rather than evaluating simple `GET /` HTTP 200 responses (which may return unstyled HTML shells), the supervisor extracts embedded `/_next/static/css/` paths and validates that stylesheets return HTTP 200/304.
+     * Stale or chunk-corrupted processes are automatically recycled within 1.0 second.
+  3. **In-Memory Webpack Cache:**
+     * Disables disk packfiles (`config.cache = { type: 'memory' }`) to eliminate filesystem cache corruption across macOS/Linux paths with whitespace.
 
 ### 4.5 AI Model Observatory & Interactive Inference Harness
 * **The Operational Challenge:** In mission-critical environments, black-box AI models cannot be trusted without real-time observability into model versions, active checkpoints, memory footprint, and inference latency.
