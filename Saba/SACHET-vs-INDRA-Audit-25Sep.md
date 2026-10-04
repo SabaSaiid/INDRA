@@ -115,7 +115,11 @@ SACHET broadcasts through 4 distinct media:
 | **Auditability & Integrity** | ❌ Standard Database Tables | ✅ Append-only SHA-256 Hash Chain + DB Triggers| 🏆 **INDRA:** Cryptographically verifiable decision chain. |
 | **Incident Command & Dispatch** | ❌ None | ✅ Team creation, incident review, dispatch | 🏆 **INDRA:** Allocates response teams to verified emergencies. |
 | **National Telecom SMS Broadcast**| ✅ Full Scale (Direct TSPs `XX-NDMAEW`) | ❌ None (Intentionally avoided) | 🏆 **SACHET:** Direct cell-broadcast telecom integration. |
-| **Multilingual UI (12 Languages)**| ✅ 12 Regional Indian Languages | 🟡 English only (Regex extracts Hindi terms) | 🏆 **SACHET:** Reaches non-English speaking citizens. |
+| **Multilingual UI (12 Languages)**| ✅ 12 Regional Indian Languages | ✅ 12 Regional Indian Languages (`i18n`) | 🏆 **TIED:** Full Indic parity (`en`, `hi`, `bn`, `te`, `ta`, etc.). |
+| **Role Perspective Emulation** | ❌ Static Single Role | ✅ Admin Omni-Console & Role Simulator (`RoleProvider`) | 🏆 **INDRA:** Instant simulation of SEOC, NDRF, and Citizen views. |
+| **Media Forensics & EXIF Validation** | ❌ None | ✅ Multi-camera EXIF parser + GPS delta + ELA tamper score | 🏆 **INDRA:** Hardware sensor provenance prevents AI deepfakes. |
+| **AI Model Observability & Testing** | ❌ None (Black Box) | ✅ Live Model Registry & Interactive Zero-Shot NLP Harness | 🏆 **INDRA:** Inspects checkpoint RAM, latency, and test predictions. |
+| **Dynamic Spatial Reclustering** | ❌ Static administrative boundaries | ✅ On-Demand PostGIS `ST_ClusterDBSCAN` Reclustering | 🏆 **INDRA:** Dynamic cluster radius ($\varepsilon$) adjustment on live feed. |
 | **Accessibility & Screen Reader** | ✅ Dedicated WCAG Screen Reader + Audio TTS| 🟡 Basic web accessibility | 🏆 **SACHET:** Built-in accessibility for differently-abled. |
 | **Citizen "Do's & Don'ts" Guides**| ✅ 18 Hazard survival guides + Videos | ❌ None (Focuses on tactical response) | 🏆 **SACHET:** Comprehensive public preparedness education. |
 | **Native Mobile Applications** | ✅ Android & iOS apps on App Stores | 🟡 Responsive Next.js Web PWA | 🏆 **SACHET:** Native mobile ecosystem. |
