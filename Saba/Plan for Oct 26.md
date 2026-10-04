@@ -527,6 +527,42 @@ To enable Team Sixth Sense members to work concurrently without breaking existin
 
 ---
 
+## 8. State Emergency Operations Center (SEOC) Cold-Start & Disaster Recovery Runbook
+
+When deploying in high-stress disaster control rooms, operational personnel must follow standard operating procedures (SOP) to ensure instantaneous recovery during physical or cyber network disruptions:
+
+### 8.1 Protocol A: Cold-Start Multi-Service Rehydration (T < 60 seconds)
+1. **Container Infrastructure Initialization:**
+   ```bash
+   ./start.sh infra up
+   ```
+   * Brings up PostGIS 16, Redis 7, and Redpanda (Kafka) in daemon mode.
+   * Compose v2 `--wait` block verifies database health before application boot, preventing race conditions during database schema inspection.
+2. **Platform Supervisor Launch:**
+   ```bash
+   ./start.sh bg
+   ```
+   * Binds FastAPI backend (`http://localhost:8000`) and Next.js Tactical UI (`http://localhost:3000`).
+   * Automatically launches browser instance to active tactical console with zero user intervention.
+
+### 8.2 Protocol B: Zero-Downtime UI Chunk Recovery & Process Recycling
+* In the event that a developer or automated task runs a production build during live operations:
+  * The supervisor detects `UNRESPONSIVE/CHUNK-CORRUPTED` by probing `/_next/static/css/` HTTP status codes.
+  * Execute instant non-destructive restart:
+    ```bash
+    ./start.sh restart
+    ```
+  * Recycles port 3000 node process, flushes `.next-dev` cache, and mounts fresh stylesheets within 1.5 seconds.
+
+### 8.3 Protocol C: WAN Partition & Offline Resiliency Fallback
+* When district telecom towers lose power or fiber connectivity:
+  1. Handheld client devices automatically switch to local SQLite cache (`offline_db.sqlite`).
+  2. Field check-ins and victim rosters queue in IndexedDB with local cryptographic timestamps.
+  3. Ad-hoc Bluetooth Low Energy (BLE) / LoRaWAN broadcast bridges replicate high-priority distress beacons between vehicle gateways.
+  4. On WAN restoration, the background service worker flushes queued batches via `POST /api/field/batch-sync` with automatic deduplication.
+
+---
+
 ## 9. Concrete Verification Checklist & Acceptance Gates
 
 Before declaring INDRA Enterprise v2.0 production-ready for MoES/NDMA deployment, the platform must satisfy every objective acceptance gate:
