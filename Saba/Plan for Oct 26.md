@@ -253,6 +253,11 @@ To eliminate the "hackathon toy model" label, INDRA v2.0 deploys a **hybrid phys
   4. **AI-Generated Deepfake & Recycle Defense:**
      * Computes 64-bit Perceptual Hashes (pHash) against historical flood archives.
      * Evaluates high-frequency noise variance via **Error Level Analysis (ELA)** to detect in-painted water or Midjourney/Flux-generated disaster imagery.
+  5. **Forensic Media & EXIF Provenance Inspector (`ForensicMediaModal.tsx`):**
+     * **Hardware-Level EXIF Extraction:** Interrogates unstripped metadata blocks for camera make, sensor model, lens focal length, aperture, ISO, and shutter timestamp.
+     * **Spatial GPS Delta Validation:** Calculates the Haversine distance between embedded photo GPS coordinates and the citizen's claimed reporting location. Flags any spatial discrepancy exceeding $500\text{ m}$ as a potential spoofing attempt.
+     * **Tamper Confidence Score:** Computes a composite authenticity score $[0\text{--}100\%]$ evaluating software tags (e.g. Photoshop/Canva signatures), timestamp discrepancies against network time, and compression quantization tables.
+     * **C2PA / Coalition for Content Provenance Alignment:** Inspects cryptographic digital watermarks and cryptographic provenance manifests to ensure incoming field imagery originated from authentic camera hardware.
 
 ### 4.3 Multilingual Vernacular Speech & NLP (Bhashini Integration)
 * **The Problem:** Academic models fail on Indian linguistic diversity, colloquial expressions, and Hinglish.
