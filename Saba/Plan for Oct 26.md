@@ -104,7 +104,23 @@ INDRA v2.0 separates stateful transactional consistency, high-throughput distrib
 
 ---
 
-## 3. Four Role-Specific Tactical Consoles (Industrial Specification)
+## 3. Role-Specific Tactical Consoles & Admin Omni-Architecture
+
+### 3.0 Admin Omni-Console & Dynamic Role Perspective Switcher
+* **Target Users:** National Disaster Management Authority (NDMA) Apex Leadership, System Administrators, Chief Technology Officers.
+* **Architectural Purpose:** True operational omniscience without data filtering, coupled with an instant simulation engine to observe what any operational persona sees in real time.
+* **Core Technological Capabilities:**
+  1. **Omni-Console Control Suite (`/admin`):**
+     * **Universal Telemetry View:** Bypasses all client-side role filters to display raw, unprocessed citizen reports, unverified sensor anomalies, and background jobs.
+     * **Dynamic Spatial Reclustering:** Single-click execution of PostGIS `ST_ClusterDBSCAN` with customizable spatial radius ($\varepsilon = 0.05^\circ \approx 5.5\text{ km}$) and minimum sample thresholds, instantly rebuilding national hazard clusters without server restart.
+     * **Forensic Data Export:** Comprehensive streaming export of raw and enriched disaster telemetry in standard GeoJSON and CSV formats with cryptographic verification stamps.
+  2. **Role Perspective Switcher & Simulation Engine (`RoleProvider`):**
+     * **Universal React Context Fabric:** Implemented via `@/lib/useRoleContext.tsx`, maintaining synchronized simulated roles across all routes and client components.
+     * **Dynamic Perspective Banner (`PerspectiveBanner.tsx`):** High-visibility amber tactical banner displayed across the top of the interface whenever the Admin simulates a subordinate role (`DISASTER_MANAGER`, `NDRF_COMMANDER`, `IMD_SCIENTIST`, `CITIZEN`).
+     * **Zero-Latency Role Emulation:** Enables the Admin to verify UI layout, permission boundaries, and filtered hazard tiers from the perspective of field personnel or citizens, with an instant `Return to Admin Omni View` button.
+     * **Immutable Audit Trail:** All perspective shifts and administrative actions are logged with operator session IDs and timestamps, ensuring compliance with mission-critical security guidelines.
+
+---
 
 ### 3.1 Control Room & State Emergency Operation Center (SEOC / Nodal Officers)
 * **Target Users:** State Disaster Management Commissioners, District Magistrates, NDRF Battalion Commandants.
