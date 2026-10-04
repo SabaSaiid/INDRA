@@ -1,6 +1,6 @@
 # 🏆 INDRA SIH 2026 Evaluation Readiness Matrix & Demonstration Runbook
 
-**Document:** `Saba/SIH2026_Evaluation_Readiness_Matrix.md`  
+**Document:** `Saba/specs/SIH2026_Evaluation_Readiness_Matrix.md`  
 **Classification:** Jury Presentation Guide & Operational Runbook  
 **Event:** Smart India Hackathon (SIH) 2026 — Grand Finale  
 **Problem Statement ID:** `SIH26069` (Ministry of Earth Sciences / MoES)  

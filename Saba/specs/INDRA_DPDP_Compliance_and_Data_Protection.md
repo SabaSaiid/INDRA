@@ -1,6 +1,6 @@
 # 🛡️ INDRA DPDP Act 2023 Compliance & Data Protection Framework
 
-**Document:** `Saba/INDRA_DPDP_Compliance_and_Data_Protection.md`  
+**Document:** `Saba/specs/INDRA_DPDP_Compliance_and_Data_Protection.md`  
 **Classification:** Legal & Technical Compliance Architecture  
 **Statutory Framework:** Digital Personal Data Protection Act (DPDP Act), 2023 (Republic of India)  
 **System:** INDRA (*Intelligent National Disaster & Weather Platform*)  

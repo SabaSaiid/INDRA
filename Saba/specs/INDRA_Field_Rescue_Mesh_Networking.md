@@ -1,6 +1,6 @@
 # 📡 INDRA Tactical Field Rescue & Mesh Networking Specification
 
-**Document:** `Saba/INDRA_Field_Rescue_Mesh_Networking.md`  
+**Document:** `Saba/specs/INDRA_Field_Rescue_Mesh_Networking.md`  
 **Classification:** Mission-Critical Field Architecture  
 **Target Operators:** National Disaster Response Force (NDRF), State Disaster Response Force (SDRF), Quick Response Teams (QRT)  
 **System:** INDRA (*Intelligent National Disaster & Weather Platform*)  

@@ -1,6 +1,6 @@
 # 🛰️ INDRA Sensor Fusion & Doppler Radar Ingestion Specification
 
-**Document:** `Saba/INDRA_Sensor_Fusion_and_Radar_Spec.md`  
+**Document:** `Saba/specs/INDRA_Sensor_Fusion_and_Radar_Spec.md`  
 **Classification:** Technical Architecture Specification  
 **System:** INDRA (*Intelligent National Disaster & Weather Platform*)  
 **Author / Team:** Saba Saeed • Team Sixth Sense  
