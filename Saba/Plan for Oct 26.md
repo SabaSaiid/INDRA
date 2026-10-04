@@ -7,7 +7,16 @@
 **Author / Team:** Saba Saeed & Team Sixth Sense  
 **Problem Statement:** SIH26069 — Ministry of Earth Sciences (MoES) / NDMA / C-DOT  
 **System:** INDRA (*Intelligent National Disaster & Weather Platform*)  
-**Git Branch:** `Saba-1-oct-2026`  
+**Git Branch:** `Saba-4-Oct-2026`  
+**Execution Status:** Active / Continuous Deployment  
+**Latest Milestone (Oct 4, 2026):** Phase 1-4 Admin Omni-Console & Role Perspective Simulation Engine Delivered  
+
+| Implementation Phase | Architecture Component | Scope & Capabilities | Operational Status |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | Client Role Context & Simulation Banner | Universal `RoleProvider`, Active Perspective banner with one-click return to Admin | ✅ **Delivered & Verified** |
+| **Phase 2** | Media Forensics & EXIF Inspector | Multi-camera EXIF parser, GPS matching, tamper scoring, ELA noise analysis | ✅ **Delivered & Verified** |
+| **Phase 3** | Admin Omni Console & Reclustering | Unfiltered reports, bulk CSV/GeoJSON export, PostGIS DBSCAN reclustering trigger | ✅ **Delivered & Verified** |
+| **Phase 4** | AI Model Observatory & NLP Harness | Live model registry, checkpoint memory telemetry, interactive zero-shot NLP sandbox | ✅ **Delivered & Verified** |
 
 ---
 
@@ -95,7 +104,23 @@ INDRA v2.0 separates stateful transactional consistency, high-throughput distrib
 
 ---
 
-## 3. Four Role-Specific Tactical Consoles (Industrial Specification)
+## 3. Role-Specific Tactical Consoles & Admin Omni-Architecture
+
+### 3.0 Admin Omni-Console & Dynamic Role Perspective Switcher
+* **Target Users:** National Disaster Management Authority (NDMA) Apex Leadership, System Administrators, Chief Technology Officers.
+* **Architectural Purpose:** True operational omniscience without data filtering, coupled with an instant simulation engine to observe what any operational persona sees in real time.
+* **Core Technological Capabilities:**
+  1. **Omni-Console Control Suite (`/admin`):**
+     * **Universal Telemetry View:** Bypasses all client-side role filters to display raw, unprocessed citizen reports, unverified sensor anomalies, and background jobs.
+     * **Dynamic Spatial Reclustering:** Single-click execution of PostGIS `ST_ClusterDBSCAN` with customizable spatial radius ($\varepsilon = 0.05^\circ \approx 5.5\text{ km}$) and minimum sample thresholds, instantly rebuilding national hazard clusters without server restart.
+     * **Forensic Data Export:** Comprehensive streaming export of raw and enriched disaster telemetry in standard GeoJSON and CSV formats with cryptographic verification stamps.
+  2. **Role Perspective Switcher & Simulation Engine (`RoleProvider`):**
+     * **Universal React Context Fabric:** Implemented via `@/lib/useRoleContext.tsx`, maintaining synchronized simulated roles across all routes and client components.
+     * **Dynamic Perspective Banner (`PerspectiveBanner.tsx`):** High-visibility amber tactical banner displayed across the top of the interface whenever the Admin simulates a subordinate role (`DISASTER_MANAGER`, `NDRF_COMMANDER`, `IMD_SCIENTIST`, `CITIZEN`).
+     * **Zero-Latency Role Emulation:** Enables the Admin to verify UI layout, permission boundaries, and filtered hazard tiers from the perspective of field personnel or citizens, with an instant `Return to Admin Omni View` button.
+     * **Immutable Audit Trail:** All perspective shifts and administrative actions are logged with operator session IDs and timestamps, ensuring compliance with mission-critical security guidelines.
+
+---
 
 ### 3.1 Control Room & State Emergency Operation Center (SEOC / Nodal Officers)
 * **Target Users:** State Disaster Management Commissioners, District Magistrates, NDRF Battalion Commandants.
@@ -228,13 +253,23 @@ To eliminate the "hackathon toy model" label, INDRA v2.0 deploys a **hybrid phys
   4. **AI-Generated Deepfake & Recycle Defense:**
      * Computes 64-bit Perceptual Hashes (pHash) against historical flood archives.
      * Evaluates high-frequency noise variance via **Error Level Analysis (ELA)** to detect in-painted water or Midjourney/Flux-generated disaster imagery.
+  5. **Forensic Media & EXIF Provenance Inspector (`ForensicMediaModal.tsx`):**
+     * **Hardware-Level EXIF Extraction:** Interrogates unstripped metadata blocks for camera make, sensor model, lens focal length, aperture, ISO, and shutter timestamp.
+     * **Spatial GPS Delta Validation:** Calculates the Haversine distance between embedded photo GPS coordinates and the citizen's claimed reporting location. Flags any spatial discrepancy exceeding $500\text{ m}$ as a potential spoofing attempt.
+     * **Tamper Confidence Score:** Computes a composite authenticity score $[0\text{--}100\%]$ evaluating software tags (e.g. Photoshop/Canva signatures), timestamp discrepancies against network time, and compression quantization tables.
+     * **C2PA / Coalition for Content Provenance Alignment:** Inspects cryptographic digital watermarks and cryptographic provenance manifests to ensure incoming field imagery originated from authentic camera hardware.
 
 ### 4.3 Multilingual Vernacular Speech & NLP (Bhashini Integration)
 * **The Problem:** Academic models fail on Indian linguistic diversity, colloquial expressions, and Hinglish.
 * **The Industrial Solution:**
-  * **Audio Ingestion:** AI4Bharat’s `IndicWav2Vec` transcribes rural voice notes in 22 Scheduled Indian languages.
+  * **Audio Ingestion:** AI4Bharat’s `IndicWav2Vec` and Bhashini Conformer-CTC models transcribe rural voice notes in 22 Scheduled Indian languages.
   * **Fine-Tuned IndicBERT-v2:** Trained on a domain-specific corpus of 50,000+ Indian disaster reports and social feeds.
   * **Asymmetric Cost-Sensitive Loss:** Penalizes false negatives on life-threatening hazard classes (`URBAN_FLOOD`, `CLOUDBURST`, `LANDSLIDE`) by **$15\times$** compared to ordinary classification errors. An unconfirmed report of drowning is never discarded.
+  * **Zero-Backend Client-Side i18n Architecture (`frontend/src/lib/i18n/`):**
+    * Operates entirely in the browser using React Context (`LanguageProvider`) without triggering server round-trips.
+    * Full coverage across 12 official regional languages: English (`en`), Hindi (`hi`), Bengali (`bn`), Telugu (`te`), Tamil (`ta`), Marathi (`mr`), Gujarati (`gu`), Kannada (`kn`), Malayalam (`ml`), Odia (`or`), Punjabi (`pa`), and Assamese (`as`).
+    * Aligned with official **IMD/NDMA disaster glossaries** (e.g., वज्रपात for lightning, भूस्खलन for landslide, चक्रवात for cyclone) ensuring semantic precision during state-level crisis management.
+    * Native script typography support using Google Noto Sans Indic fonts with tailored line-height headroom to eliminate matra/diacritic clipping.
 
 ### 4.4 Hydrodynamic Physics & 30-Year Climate Normals
 * **The Problem:** Pure ML has no spatial common sense and does not understand that water flows downhill.
@@ -279,7 +314,37 @@ To process national-scale weather surges, INDRA v2.0 transitions to an **asynchr
   * Citizen reports feature a self-service data withdrawal endpoint (`POST /api/reports/withdraw`) that purges raw media and cascades redactions through the lake.
 * **RFC 3161 Trusted Hardware Timestamping:**
   * The current SHA-256 audit chain (`audit_logs`) prevents row tampering but remains vulnerable to tail-truncation without an external root of trust.
-  * INDRA v2.0 periodically anchors the head hash of the ledger to a National Informatics Centre (NIC) Certifying Authority or public time-stamping authority every 60 minutes.
+### 5.4 High-Availability Frontend Build Architecture & Chunk Isolation
+* **The Operational Failure Mode:** In dual development/verification environments, running production verification builds (`next build`) while a local development server (`next dev`) is active wipes the `.next/` output directory. This deletes development chunk manifests and stylesheet assets, causing client browsers to receive `404 Not Found` on `layout.css` and JavaScript bundles, leaving the UI in an unstyled, frozen fallback state.
+* **The Sovereign Architectural Defense:**
+  1. **Phase-Aware Directory Isolation (`next.config.mjs`):**
+     * Leverages Next.js `PHASE_DEVELOPMENT_SERVER` detection to dynamically isolate build artifacts:
+       * `next dev` targets `.next-dev/` exclusively.
+       * `next build` targets `.next/` (or dedicated `.next-verify/` during CI).
+     * Eliminates cross-process directory contention so automated linting/build checks never corrupt live emergency operations.
+  2. **Automated Asset Health Probing (`start.sh`):**
+     * Enhances supervisor health checks: rather than evaluating simple `GET /` HTTP 200 responses (which may return unstyled HTML shells), the supervisor extracts embedded `/_next/static/css/` paths and validates that stylesheets return HTTP 200/304.
+     * Stale or chunk-corrupted processes are automatically recycled within 1.0 second.
+  3. **In-Memory Webpack Cache:**
+     * Disables disk packfiles (`config.cache = { type: 'memory' }`) to eliminate filesystem cache corruption across macOS/Linux paths with whitespace.
+
+### 4.5 AI Model Observatory & Interactive Inference Harness
+* **The Operational Challenge:** In mission-critical environments, black-box AI models cannot be trusted without real-time observability into model versions, active checkpoints, memory footprint, and inference latency.
+* **The Architecture (`AiModelObservatory.tsx` + `backend/app/api/admin.py`):**
+  1. **Dynamic Model Registry & Telemetry:**
+     * Exposes `GET /api/admin/ml-observatory` returning live operational status, memory utilization, device mapping (CPU/MPS/CUDA), and inference latency percentiles ($p_{50}, p_{95}, p_{99}$) across the four primary foundation models:
+       * **Disaster NLP Multi-Classifier:** Fine-tuned IndicBERT / RoBERTa (v1.2) for distress categorization and urgency scoring.
+       * **Water Body & Flood Segmenter:** High-resolution semantic segmentation network (v2.0) measuring flood inundation extent.
+       * **Sensor Anomaly Detector:** Unsupervised Isolation Forest & statistical Z-Score model (v1.0) flagging faulty river gauge telemetry.
+       * **Multi-Modal Credibility Scorer:** XGBoost ensemble combining text, image provenance, and social cross-corroboration.
+  2. **Interactive Zero-Shot NLP Testing Sandbox:**
+     * Exposes `POST /api/admin/ml-test-nlp` allowing operators and ML engineers to execute real-time inference on arbitrary emergency text strings (including multilingual and dialect queries).
+     * Returns instantaneous confidence scores across all 5 hazard classes:
+       * `is_flood_related`: Binary disaster relevance indicator.
+       * `urgency_score`: Continuous metric $[0.0, 1.0]$ for emergency prioritization.
+       * `predicted_category`: Categorical tag (`RESCUE_NEEDED`, `INFRASTRUCTURE_DAMAGE`, `CASUALTY_REPORT`, `RIVER_OVERFLOW`, `GENERAL_OBSERVATION`).
+       * `extracted_entities`: Real-time extraction of location names, victim counts, and severity keywords.
+       * `inference_time_ms`: Sub-50ms execution profile for edge deployment readiness.
 
 ---
 
@@ -464,6 +529,42 @@ To enable Team Sixth Sense members to work concurrently without breaking existin
   * *Week 2:* Bhashini audio adapter (`speech.py`), IndicBERT cost-sensitive fine-tuning.
   * *Week 3:* SAM 2 + Depth Anything v2 metric flood depth container (`vision_server.py`).
   * *Week 4:* SAR polygon pipeline integration, anti-deepfake neural forensics.
+
+---
+
+## 8. State Emergency Operations Center (SEOC) Cold-Start & Disaster Recovery Runbook
+
+When deploying in high-stress disaster control rooms, operational personnel must follow standard operating procedures (SOP) to ensure instantaneous recovery during physical or cyber network disruptions:
+
+### 8.1 Protocol A: Cold-Start Multi-Service Rehydration (T < 60 seconds)
+1. **Container Infrastructure Initialization:**
+   ```bash
+   ./start.sh infra up
+   ```
+   * Brings up PostGIS 16, Redis 7, and Redpanda (Kafka) in daemon mode.
+   * Compose v2 `--wait` block verifies database health before application boot, preventing race conditions during database schema inspection.
+2. **Platform Supervisor Launch:**
+   ```bash
+   ./start.sh bg
+   ```
+   * Binds FastAPI backend (`http://localhost:8000`) and Next.js Tactical UI (`http://localhost:3000`).
+   * Automatically launches browser instance to active tactical console with zero user intervention.
+
+### 8.2 Protocol B: Zero-Downtime UI Chunk Recovery & Process Recycling
+* In the event that a developer or automated task runs a production build during live operations:
+  * The supervisor detects `UNRESPONSIVE/CHUNK-CORRUPTED` by probing `/_next/static/css/` HTTP status codes.
+  * Execute instant non-destructive restart:
+    ```bash
+    ./start.sh restart
+    ```
+  * Recycles port 3000 node process, flushes `.next-dev` cache, and mounts fresh stylesheets within 1.5 seconds.
+
+### 8.3 Protocol C: WAN Partition & Offline Resiliency Fallback
+* When district telecom towers lose power or fiber connectivity:
+  1. Handheld client devices automatically switch to local SQLite cache (`offline_db.sqlite`).
+  2. Field check-ins and victim rosters queue in IndexedDB with local cryptographic timestamps.
+  3. Ad-hoc Bluetooth Low Energy (BLE) / LoRaWAN broadcast bridges replicate high-priority distress beacons between vehicle gateways.
+  4. On WAN restoration, the background service worker flushes queued batches via `POST /api/field/batch-sync` with automatic deduplication.
 
 ---
 

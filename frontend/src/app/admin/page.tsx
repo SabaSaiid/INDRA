@@ -23,9 +23,12 @@ import {
   AlertTriangle,
   Terminal,
   RefreshCw,
+  Brain,
+  Cpu,
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import AiModelObservatory from '@/components/AiModelObservatory';
 import { useSidebar } from '@/lib/useSidebar';
 import { useSession } from '@/lib/auth';
 import { fadeIn, staggerContainer } from '@/lib/motion';
@@ -75,14 +78,13 @@ export default function AdminPage() {
     closeMobile,
   } = useSidebar();
 
+  const [activeTab, setActiveTab] = useState<'observatory' | 'infrastructure'>('observatory');
   const [health, setHealth] = useState<HealthReport | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [operators, setOperators] = useState<OperatorAccount[] | null>(null);
   const [ledger, setLedger] = useState<AuditLedger | null>(null);
   const [ledgerError, setLedgerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // The ledger needs an Analyst, Commander or Admin session, so it is read
-  // again whenever this tab signs in or out.
   const session = useSession();
   const sessionToken = session?.accessToken ?? null;
 
@@ -163,11 +165,41 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {healthError && (
-            <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-xs font-semibold text-rose-700">
-              {healthError}
-            </div>
-          )}
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-1">
+            <button
+              onClick={() => setActiveTab('observatory')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'observatory'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+              }`}
+            >
+              <Brain className="w-4 h-4" />
+              AI & ML Model Observatory
+            </button>
+            <button
+              onClick={() => setActiveTab('infrastructure')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'infrastructure'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+              }`}
+            >
+              <Server className="w-4 h-4" />
+              Infrastructure & Audit Ledger
+            </button>
+          </div>
+
+          {activeTab === 'observatory' ? (
+            <AiModelObservatory />
+          ) : (
+            <div className="space-y-6">
+              {healthError && (
+                <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-xs font-semibold text-rose-700">
+                  {healthError}
+                </div>
+              )}
 
           {/* Dependency checks, one card per /healthz check */}
           <motion.div
@@ -312,10 +344,12 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <Server className="w-3.5 h-3.5" />
-            One backend process, PostgreSQL, Redis and Redpanda on a single host.
-          </p>
+              <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5" />
+                One backend process, PostgreSQL, Redis and Redpanda on a single host.
+              </p>
+            </div>
+          )}
         </main>
       </div>
     </div>

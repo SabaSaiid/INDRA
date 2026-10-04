@@ -155,6 +155,14 @@ export default function EventsPage() {
   }, [range]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const q = sp.get('q') || sp.get('search');
+      if (q) setSearch(q);
+    }
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
     loadEvents();
   }, [loadEvents]);
@@ -353,7 +361,9 @@ export default function EventsPage() {
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-lg font-bold font-mono text-[#B5482E]">{Math.round(ev.confidence_score * 100)}%</div>
+                        <div className="text-lg font-bold font-mono text-[#B5482E]">
+                          {ev.confidence_score != null ? `${Math.round(ev.confidence_score * 100)}%` : '—'}
+                        </div>
                         <div className="text-[10px] text-slate-400">{t('receipt.confidence_label')}</div>
                       </div>
                     </div>

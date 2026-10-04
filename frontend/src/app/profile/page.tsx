@@ -898,13 +898,22 @@ export default function ProfilePage() {
                     <select
                       value={formData.team_code || ''}
                       onChange={(e) => {
-                        const selected = teams.find((t) => t.team_code === e.target.value);
-                        if (selected) {
+                        const val = e.target.value;
+                        if (!val) {
                           setFormData({
                             ...formData,
-                            team_code: selected.team_code,
-                            team_name: selected.name,
+                            team_code: '',
+                            team_name: '',
                           });
+                        } else {
+                          const selected = teams.find((t) => t.team_code === val);
+                          if (selected) {
+                            setFormData({
+                              ...formData,
+                              team_code: selected.team_code,
+                              team_name: selected.name,
+                            });
+                          }
                         }
                       }}
                       className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"

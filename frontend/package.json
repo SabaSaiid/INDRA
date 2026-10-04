@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "clean": "rm -rf .next node_modules/.cache tsconfig.tsbuildinfo",
+    "clean": "rm -rf .next .next-dev .next-verify .next-e2e node_modules/.cache tsconfig.tsbuildinfo",
     "postinstall": "npm run clean",
-    "predev": "lsof -ti :3000 | xargs kill -9 2>/dev/null || true; rm -rf .next node_modules/.cache",
+    "predev": "lsof -ti :3000 | xargs kill -9 2>/dev/null || true; rm -rf .next-dev node_modules/.cache",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
   Clock,
@@ -13,31 +13,33 @@ import {
   RefreshCw,
   Droplets,
   Layers,
+  Camera,
+  Download,
+  ShieldAlert,
+  SlidersHorizontal,
+  Sparkles,
+  CheckCircle2,
+  Eye,
+  Database,
 } from 'lucide-react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import ReportSubmissionModal from '@/components/ReportSubmissionModal';
+import ForensicMediaModal from '@/components/ForensicMediaModal';
 import { ErrorState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/lib/useSidebar';
 import { fadeIn, staggerContainer } from '@/lib/motion';
-import { fetchFieldReports, formatPlace, type FieldReport } from '@/lib/api';
+import { fetchFieldReports, formatPlace, triggerRecluster, downloadReportExport, type FieldReport } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { formatAgo, formatIst } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-
-/*
- * The repository of stored reports. It was built on GET /api/feed/recent,
- * which carries no place, no status and only a clock time, so every card said
- * "Citizen report" and a UTC time with no date, the location search could
- * never match, and nothing said whether a report had gone anywhere. It now
- * reads the reports themselves, fused and duplicate ones included, for 30 days.
- */
+import { useRoleContext } from '@/lib/useRoleContext';
 
 const WINDOW_HOURS = 720;
 
-type SourceFilter = 'all' | 'CITIZEN_APP' | 'OFFICIAL_DISPATCH';
-type StatusFilter = 'all' | 'pending' | 'in_event' | 'duplicate';
+type SourceFilter = 'all' | 'CITIZEN_APP' | 'OFFICIAL_DISPATCH' | 'SOCIAL_MEDIA' | 'NEWS_MEDIA';
+type StatusFilter = 'all' | 'pending' | 'in_event' | 'duplicate' | 'held' | 'stale';
 
 function statusOf(r: FieldReport): Exclude<StatusFilter, 'all'> {
   if (r.duplicate) return 'duplicate';
@@ -49,17 +51,20 @@ const STATUS_STYLE: Record<Exclude<StatusFilter, 'all'>, { label: string; cls: s
   pending: { label: 'Awaiting corroboration', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   in_event: { label: 'Part of an event', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   duplicate: { label: 'Duplicate, suppressed', cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+  held: { label: 'Held / Context-only', cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+  stale: { label: 'Stale (>48h)', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
 };
 
 const SOURCE_STYLE: Record<string, { label: string; cls: string }> = {
   CITIZEN_APP: { label: 'CITIZEN REPORT', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
   OFFICIAL_DISPATCH: { label: 'OFFICIAL DISPATCH', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  SOCIAL_MEDIA: { label: 'SOCIAL MEDIA', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  NEWS_MEDIA: { label: 'NEWS', cls: 'bg-slate-50 text-slate-700 border-slate-200' },
+  SOCIAL_MEDIA: { label: 'FEDIVERSE / SOCIAL', cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+  NEWS_MEDIA: { label: 'NEWS FEED', cls: 'bg-slate-50 text-slate-700 border-slate-200' },
 };
 
 export default function ReportsPage() {
   const { t } = useTranslation();
+  const { effectiveRole } = useRoleContext();
   const {
     collapsed: sidebarCollapsed,
     toggle: toggleSidebar,
@@ -67,6 +72,7 @@ export default function ReportsPage() {
     openMobile,
     closeMobile,
   } = useSidebar();
+
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -74,7 +80,15 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [selectedReportForForensics, setSelectedReportForForensics] = useState<FieldReport | null>(null);
+  const [isReclustering, setIsReclustering] = useState(false);
+  const [reclusterFeedback, setReclusterFeedback] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState<'csv' | 'geojson' | null>(null);
+  const [exportFeedback, setExportFeedback] = useState<string | null>(null);
   const { connected, subscribe } = useIndraWebSocket();
+
+  const isCitizen = effectiveRole === 'CITIZEN';
+  const isAdminOrAnalyst = effectiveRole === 'ADMIN' || effectiveRole === 'ANALYST';
 
   const loadReports = useCallback(async () => {
     try {
@@ -101,19 +115,58 @@ export default function ReportsPage() {
   }, [subscribe, loadReports]);
 
   const counts = useMemo(() => {
-    const c = { pending: 0, in_event: 0, duplicate: 0 };
-    reports.forEach((r) => { c[statusOf(r)] += 1; });
+    const c = { pending: 0, in_event: 0, duplicate: 0, held: 0, stale: 0 };
+    reports.forEach((r) => {
+      const s = statusOf(r);
+      c[s] = (c[s] || 0) + 1;
+    });
     return c;
   }, [reports]);
 
-  const filtered = reports.filter((r) => {
-    if (sourceFilter !== 'all' && r.source_type !== sourceFilter) return false;
-    if (statusFilter !== 'all' && statusOf(r) !== statusFilter) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return [r.text, r.district, r.state, r.source_type, r.event_code]
-      .some((v) => (v ?? '').toLowerCase().includes(q));
-  });
+  const filtered = useMemo(() => {
+    return reports.filter((r) => {
+      if (sourceFilter !== 'all' && r.source_type !== sourceFilter) return false;
+      if (statusFilter !== 'all' && statusOf(r) !== statusFilter) return false;
+      // In citizen perspective, suppress duplicates to protect signal clarity
+      if (isCitizen && r.duplicate) return false;
+
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return [r.text, r.district, r.state, r.source_type, r.event_code]
+        .some((v) => (v ?? '').toLowerCase().includes(q));
+    });
+  }, [reports, sourceFilter, statusFilter, isCitizen, search]);
+
+  const handleRecluster = async () => {
+    setIsReclustering(true);
+    setReclusterFeedback(null);
+    try {
+      const res = await triggerRecluster();
+      setReclusterFeedback(`DBSCAN Complete: ${res.clusters_count} clusters formed across ${res.reports_clustered} reports.`);
+      await loadReports();
+    } catch (err: any) {
+      setReclusterFeedback(`Recluster failed: ${err.message}`);
+    } finally {
+      setIsReclustering(false);
+      setTimeout(() => setReclusterFeedback(null), 5000);
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'geojson') => {
+    setIsExporting(format);
+    setExportFeedback(null);
+    try {
+      await downloadReportExport(format, {
+        q: search || undefined,
+      });
+      setExportFeedback(`Exported ${format.toUpperCase()} successfully.`);
+    } catch (err: any) {
+      setExportFeedback(`Export failed: ${err.message}`);
+    } finally {
+      setIsExporting(null);
+      setTimeout(() => setExportFeedback(null), 5000);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F3EA] text-[#1B2432]">
@@ -146,14 +199,25 @@ export default function ReportsPage() {
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   {reports.length} {t('kpis.citizen_reports')} · 30 DAYS
                 </span>
+                {effectiveRole === 'ADMIN' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-200 border border-purple-500/30">
+                    OMNI INGESTION ACTIVE
+                  </span>
+                )}
+                {isCitizen && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-500/30">
+                    CITIZEN PRIVACY MODE (DPDP FUZZED)
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-300">
-                Citizen reports and official dispatches as stored. Each is placed in its district and
-                checked for duplicates; two that corroborate each other nearby form an event.
+                {isCitizen
+                  ? 'Public citizen reports and official emergency advisories across verified incident zones.'
+                  : 'Full omni-stream: citizen uploads, official dispatches, Fediverse signals, news RSS, duplicates, and unclustered items.'}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setReportModalOpen(true)}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#B5482E] text-white text-xs font-semibold hover:bg-[#8C3420] transition-colors shadow-sm"
@@ -168,7 +232,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <Radio className={`w-3.5 h-3.5 ${connected ? 'animate-pulse' : ''}`} />
-                <span>{connected ? 'Updates live' : 'Updates paused'}</span>
+                <span>{connected ? 'Live' : 'Paused'}</span>
               </div>
               <button
                 onClick={() => {
@@ -176,7 +240,7 @@ export default function ReportsPage() {
                   loadReports();
                 }}
                 disabled={loading}
-                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
                 title="Refresh reports"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -184,7 +248,71 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Search and filters */}
+          {/* Admin Omni Command Bar (Visible to Admin & Analyst) */}
+          {isAdminOrAnalyst && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white border border-[#E8E2D4] p-3 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-purple-50 text-purple-700">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-[#1B2432] block">Omni Ingestion Highway</span>
+                  <span className="text-[10px] text-[#7A8599]">
+                    100% Raw Stream · Spatial DBSCAN Engine · Cryptographic Export
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {reclusterFeedback && (
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    {reclusterFeedback}
+                  </span>
+                )}
+                {exportFeedback && (
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
+                    exportFeedback.includes('failed')
+                      ? 'text-red-700 bg-red-50 border-red-200'
+                      : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                  }`}>
+                    {exportFeedback}
+                  </span>
+                )}
+                {effectiveRole === 'ADMIN' && (
+                  <button
+                    onClick={handleRecluster}
+                    disabled={isReclustering}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7C3AED] text-white text-xs font-semibold hover:bg-[#6D28D9] transition-all shadow-xs disabled:opacity-50"
+                  >
+                    {isReclustering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    {isReclustering ? 'Clustering…' : 'Recluster Queue'}
+                  </button>
+                )}
+                <button
+                  onClick={() => handleExport('csv')}
+                  disabled={isExporting !== null}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F3F4F6] text-[#1B2432] text-xs font-semibold hover:bg-[#E5E7EB] border border-[#E8E2D4] transition-colors disabled:opacity-50"
+                >
+                  {isExporting === 'csv' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  CSV Export
+                </button>
+                <button
+                  onClick={() => handleExport('geojson')}
+                  disabled={isExporting !== null}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F3F4F6] text-[#1B2432] text-xs font-semibold hover:bg-[#E5E7EB] border border-[#E8E2D4] transition-colors disabled:opacity-50"
+                >
+                  {isExporting === 'geojson' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  GeoJSON
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Search and Filters */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="relative w-full lg:max-w-md">
               <Search className="w-4 h-4 text-[#A0988A] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -192,40 +320,54 @@ export default function ReportsPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('nav.search_placeholder')}
+                placeholder="Search report text, district, docket, state, hazard..."
                 className="w-full pl-9 pr-3 py-2 bg-white border border-[#E8E2D4] rounded-xl text-xs text-[#1B2432] placeholder-[#A0988A] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 shadow-2xs transition-all"
               />
             </div>
+
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Source Filter */}
               <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-white border border-[#E8E2D4]" role="group" aria-label="Source">
                 {([
-                  ['all', t('common.view_all')],
-                  ['CITIZEN_APP', t('kpis.citizen_reports')],
-                  ['OFFICIAL_DISPATCH', t('nav.official_warnings')],
+                  ['all', 'All Sources'],
+                  ['CITIZEN_APP', 'Citizen App'],
+                  ['OFFICIAL_DISPATCH', 'Official'],
+                  ...(!isCitizen
+                    ? [
+                        ['SOCIAL_MEDIA', 'Fediverse'],
+                        ['NEWS_MEDIA', 'News RSS'],
+                      ]
+                    : []),
                 ] as Array<[SourceFilter, string]>).map(([key, label]) => (
                   <button
                     key={key}
                     onClick={() => setSourceFilter(key)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                      sourceFilter === key ? 'bg-[#1B2432] text-white' : 'text-[#7A8599] hover:text-[#1B2432]'
+                      sourceFilter === key ? 'bg-[#1B2432] text-white font-semibold' : 'text-[#7A8599] hover:text-[#1B2432]'
                     }`}
                   >
                     {label}
                   </button>
                 ))}
               </div>
+
+              {/* Status Filter */}
               <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-white border border-[#E8E2D4]" role="group" aria-label="Status">
                 {([
-                  ['all', `${t('common.view_all')} · ${reports.length}`],
-                  ['pending', `${t('kpis.awaiting_review')} · ${counts.pending}`],
-                  ['in_event', `${t('nav.incident_events')} · ${counts.in_event}`],
-                  ['duplicate', `${t('status.QUARANTINED')} · ${counts.duplicate}`],
+                  ['all', `All · ${reports.length}`],
+                  ['pending', `Pending · ${counts.pending}`],
+                  ['in_event', `In Event · ${counts.in_event}`],
+                  ...(!isCitizen
+                    ? [
+                        ['duplicate', `Duplicates · ${counts.duplicate}`],
+                      ]
+                    : []),
                 ] as Array<[StatusFilter, string]>).map(([key, label]) => (
                   <button
                     key={key}
                     onClick={() => setStatusFilter(key)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                      statusFilter === key ? 'bg-[#1B2432] text-white' : 'text-[#7A8599] hover:text-[#1B2432]'
+                      statusFilter === key ? 'bg-[#1B2432] text-white font-semibold' : 'text-[#7A8599] hover:text-[#1B2432]'
                     }`}
                   >
                     {label}
@@ -235,7 +377,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Reports grid */}
+          {/* Reports Grid */}
           {loading && reports.length === 0 ? (
             <div className="flex items-center justify-center py-24 bg-white rounded-2xl border border-[#E8E2D4]">
               <Loader2 className="w-6 h-6 animate-spin text-[#B5482E]" />
@@ -267,16 +409,9 @@ export default function ReportsPage() {
                 const src = SOURCE_STYLE[r.source_type] ?? { label: r.source_type, cls: SOURCE_STYLE.NEWS_MEDIA.cls };
                 const st = statusOf(r);
                 const status = STATUS_STYLE[st];
-                const srcLabel = r.source_type === 'CITIZEN_APP'
-                  ? t('kpis.citizen_reports')
-                  : r.source_type === 'OFFICIAL_DISPATCH'
-                  ? t('nav.official_warnings')
-                  : src.label;
-                const statusLabel = st === 'pending'
-                  ? t('kpis.awaiting_review')
-                  : st === 'in_event'
-                  ? t('nav.incident_events')
-                  : t('status.QUARANTINED');
+                const displayLat = isCitizen ? r.lat.toFixed(2) : r.lat.toFixed(4);
+                const displayLng = isCitizen ? r.lng.toFixed(2) : r.lng.toFixed(4);
+
                 return (
                   <motion.div
                     key={r.id}
@@ -284,10 +419,11 @@ export default function ReportsPage() {
                     className="bg-white rounded-2xl border border-[#E8E2D4] p-5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
                   >
                     <div>
+                      {/* Card Header */}
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${src.cls}`}>
-                            {srcLabel}
+                            {src.label}
                           </span>
                           <span className="text-xs text-[#4A5568] flex items-center gap-1 font-medium min-w-0">
                             <MapPin className="w-3 h-3 text-[#A0988A] flex-shrink-0" />
@@ -295,37 +431,67 @@ export default function ReportsPage() {
                           </span>
                         </div>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${status.cls}`}>
-                          {statusLabel}
+                          {status.label}
                         </span>
                       </div>
 
+                      {/* Text */}
                       <p className="text-xs text-[#4A5568] bg-[#F7F3EA] p-3 rounded-xl border border-[#E8E2D4] leading-relaxed mb-3">
                         &ldquo;{r.text || 'No message text'}&rdquo;
                       </p>
 
+                      {/* Depth & Event Details */}
                       <div className="flex items-center gap-3 flex-wrap text-[11px] text-[#7A8599] mb-3">
                         {r.depth_cm != null && (
                           <span className="flex items-center gap-1">
                             <Droplets className="w-3.5 h-3.5 text-blue-500" />
-                            Water depth read from the text: ~{r.depth_cm} cm
+                            Depth: ~{r.depth_cm} cm
                           </span>
                         )}
                         {r.fused && (
-                          <Link href="/events" className="flex items-center gap-1 text-emerald-700 hover:underline">
+                          <Link href="/events" className="flex items-center gap-1 text-emerald-700 hover:underline font-semibold">
                             <Layers className="w-3.5 h-3.5" />
-                            {r.event_code ? `Event ${r.event_code}` : 'Open its event'}
+                            {r.event_code ? `Event ${r.event_code}` : 'Open Event'}
                           </Link>
+                        )}
+                        {r.credibility_score != null && !isCitizen && (
+                          <span className="font-mono text-emerald-700">
+                            Trust: {Math.round(r.credibility_score * 100)}%
+                          </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-[#F0EBE0] text-xs text-[#7A8599]">
-                      <span className="text-[11px] font-mono">
-                        {r.lat.toFixed(4)}, {r.lng.toFixed(4)}
-                      </span>
-                      <div className="flex items-center gap-1 font-mono text-[11px] text-[#A0988A]" title={r.created_at ?? ''}>
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{formatIst(r.created_at)} IST · {formatAgo(r.created_at)}</span>
+                    {/* Card Footer */}
+                    <div className="pt-2 border-t border-[#F0EBE0] flex items-center justify-between gap-2 text-xs text-[#7A8599]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-mono">
+                          {displayLat}, {displayLng}
+                        </span>
+                        {isCitizen && (
+                          <span className="text-[9px] text-[#7A8599] bg-[#E8E2D4]/50 px-1 rounded">
+                            Fuzzed
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Forensic Inspector Trigger */}
+                        {!isCitizen && (
+                          <button
+                            onClick={() => setSelectedReportForForensics(r)}
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors"
+                            title="Inspect forensic metadata, EXIF, and media"
+                          >
+                            <Camera className="w-3 h-3" />
+                            Forensics
+                          </button>
+                        )}
+
+                        <div className="flex items-center gap-1 font-mono text-[11px] text-[#A0988A]" title={r.created_at ?? ''}>
+                          <Clock className="w-3 h-3" />
+                          <span>{formatAgo(r.created_at)}</span>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -340,6 +506,13 @@ export default function ReportsPage() {
           open={reportModalOpen}
           onClose={() => setReportModalOpen(false)}
           onSubmitted={() => loadReports()}
+        />
+
+        {/* Forensic Media & Metadata Inspector Modal */}
+        <ForensicMediaModal
+          report={selectedReportForForensics}
+          open={!!selectedReportForForensics}
+          onClose={() => setSelectedReportForForensics(null)}
         />
       </div>
     </div>

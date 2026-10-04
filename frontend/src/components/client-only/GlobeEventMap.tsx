@@ -1172,7 +1172,7 @@ export default function GlobeEventMap({
     });
 
     updateMarkerOcclusion(map, isGlobeRef.current);
-  }, [markersForDisplay, selectedMarker, handleSelectIncident, updateMarkerOcclusion, showEventsLayer, smartDeclutter]);
+  }, [markersForDisplay, selectedMarker, handleSelectIncident, updateMarkerOcclusion, showEventsLayer]);
 
   useEffect(() => {
     renderProminentPinsRef.current = renderProminentPins;

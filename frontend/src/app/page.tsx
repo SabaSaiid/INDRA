@@ -53,7 +53,7 @@ export default function Home() {
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>(undefined);
   const [verificationEventId, setVerificationEventId] = useState<string | null>(null);
   const { subscribe } = useIndraWebSocket();
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
 
   // KPI label map: id → translation key in kpis namespace
   const KPI_LABEL_MAP: Record<string, string> = {
@@ -106,13 +106,7 @@ export default function Home() {
 
         if (!cancelled) {
           if (kpiResult.status === 'fulfilled') {
-            // Override labels with the current language using the translation map
-            const localized = kpiResult.value.map((kpi) => ({
-              ...kpi,
-              label: KPI_LABEL_MAP[kpi.id] ?? kpi.label,
-              deltaLabel: KPI_DELTA_MAP[kpi.id] ?? kpi.deltaLabel,
-            }));
-            setLiveKpiData(localized);
+            setLiveKpiData(kpiResult.value);
             setKpiError(null);
           } else {
             setKpiError(kpiResult.reason);
@@ -139,7 +133,7 @@ export default function Home() {
       }
     })();
     return () => { cancelled = true; };
-  }, [refreshTick, language]); // re-fetch labels when language changes
+  }, [refreshTick]);
 
   // The backend has broadcast VERIFIED_EVENT since Day 1 and nothing in the
   // frontend ever listened for it. NEW_REPORT moves the report counters, and

@@ -265,11 +265,29 @@ start_frontend_bg() {
     local f_pids
     f_pids=$(get_pid_on_port "$FRONTEND_PORT")
     if [[ -n "$f_pids" ]]; then
-        if curl -s -m 2 "http://127.0.0.1:$FRONTEND_PORT" >/dev/null 2>&1; then
+        local is_healthy=false
+        local html_resp
+        html_resp=$(curl -s -m 2 "http://127.0.0.1:$FRONTEND_PORT" 2>/dev/null || true)
+        if [[ -n "$html_resp" ]]; then
+            # Verify that static CSS/chunk assets don't return 404 (chunk corruption / build wipe)
+            local sample_asset
+            sample_asset=$(echo "$html_resp" | grep -oE '/_next/static/(css|chunks)/[^"'\'' >]+' | head -n 1)
+            if [[ -n "$sample_asset" ]]; then
+                local asset_code
+                asset_code=$(curl -s -o /dev/null -w "%{http_code}" -m 2 "http://127.0.0.1:$FRONTEND_PORT$sample_asset" 2>/dev/null || echo "000")
+                if [[ "$asset_code" == "200" || "$asset_code" == "304" ]]; then
+                    is_healthy=true
+                fi
+            else
+                is_healthy=true
+            fi
+        fi
+
+        if [[ "$is_healthy" == true ]]; then
             echo "  Frontend Dashboard:    ${GREEN}● ACTIVE${RESET} (Port $FRONTEND_PORT already running PID: $f_pids)"
             return 0
         else
-            echo "  Frontend Dashboard:    ${YELLOW}⚠ UNRESPONSIVE/CORRUPTED${RESET} (Port $FRONTEND_PORT occupied by PID: $f_pids, recycling...)"
+            echo "  Frontend Dashboard:    ${YELLOW}⚠ UNRESPONSIVE/CHUNK-CORRUPTED${RESET} (Port $FRONTEND_PORT occupied by PID: $f_pids, auto-recovering...)"
             stop_frontend
             sleep 1
         fi
@@ -1187,9 +1205,9 @@ cmd_clean() {
     find "$ROOT_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find "$ROOT_DIR" -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
     find "$ROOT_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
-    rm -rf "$FRONTEND_DIR/.next"
+    rm -rf "$FRONTEND_DIR/.next" "$FRONTEND_DIR/.next-dev" "$FRONTEND_DIR/.next-verify" "$FRONTEND_DIR/.next-e2e" "$FRONTEND_DIR/node_modules/.cache"
     rm -rf "$RUN_DIR"/*.pid "$LOG_DIR"/*.log
-    echo "${GREEN}✓ Project cleaned (Python bytecode, test cache, and Next.js build cache purged).${RESET}"
+    echo "${GREEN}✓ Project cleaned (Python bytecode, test cache, and all Next.js build caches purged).${RESET}"
 }
 
 # --- Subcommand: seed ---

@@ -39,6 +39,7 @@ import {
   type AuditEntry,
 } from '@/lib/api';
 import { useSession, hasRole, roleLabel, COMMAND_ROLES, LEDGER_ROLES } from '@/lib/auth';
+import { useRoleContext } from '@/lib/useRoleContext';
 import { eventReviewState } from '@/lib/eventState';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -132,9 +133,11 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
     'Anomaly Detection Signal': t('receipt.factor_historical'),
   };
 
-  // The same role rules the backend enforces, read from the signed-in session.
-  const canReview = hasRole(session, COMMAND_ROLES);
-  const canReadProvenance = hasRole(session, LEDGER_ROLES);
+  const { effectiveRole } = useRoleContext();
+  const currentRole = (effectiveRole ?? session?.role?.toUpperCase()) || null;
+  // The perspective rules: Commander & Admin can review; Analyst, Commander & Admin can read provenance.
+  const canReview = currentRole === 'COMMANDER' || currentRole === 'ADMIN';
+  const canReadProvenance = currentRole === 'ANALYST' || currentRole === 'COMMANDER' || currentRole === 'ADMIN';
 
   const loadData = useCallback(async (eid: string) => {
     setLoading(true);
@@ -196,7 +199,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const provenanceGate = !session
     ? 'Sign in as an Analyst, Commander or Admin to see this.'
     : !canReadProvenance
-    ? `An Analyst, Commander or Admin account can see this; you are signed in as ${roleLabel(session.role)}.`
+    ? `An Analyst, Commander or Admin account can see this; current perspective is ${roleLabel(currentRole || session.role)}.`
     : 'Provenance could not be loaded from the backend.';
 
   return (
@@ -436,7 +439,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                         <div className="text-[10px] text-[#8C7A6B] pl-8 space-y-0.5">
                           {a.details.from_status && <div>Status: {a.details.from_status} → {a.details.to_status}</div>}
                           {a.details.from_severity && <div>Severity: {a.details.from_severity} → {a.details.to_severity}</div>}
-                          {a.details.confidence_score !== undefined && <div>Confidence: {(a.details.confidence_score * 100).toFixed(1)}%</div>}
+                          {typeof a.details.confidence_score === 'number' && !isNaN(a.details.confidence_score) && (
+                            <div>Confidence: {(a.details.confidence_score * 100).toFixed(1)}%</div>
+                          )}
                         </div>
                       )}
                       <div className="pl-8">
@@ -532,7 +537,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
               {!canReview && reviewStatus !== 'REJECTED' && (
                 <p className="text-[11px] text-[#8C7A6B] text-center">
                   {session
-                    ? `Reviewing needs a Commander or Admin account; you are signed in as ${roleLabel(session.role)}.`
+                    ? `Reviewing needs a Commander or Admin account; current perspective is ${roleLabel(currentRole || session.role)}.`
                     : 'Sign in as a Commander or Admin to approve, reject or override this event.'}
                 </p>
               )}

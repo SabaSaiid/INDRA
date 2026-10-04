@@ -58,6 +58,7 @@ venv.bak/
 # Node & Frontend
 node_modules/
 .next/
+.next-dev/
 .next-verify/
 .next-e2e/
 out/

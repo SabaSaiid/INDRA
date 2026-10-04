@@ -45,7 +45,8 @@ import {
 import { fadeIn, staggerContainer } from '@/lib/motion';
 import { useSidebar } from '@/lib/useSidebar';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { useSession, hasRole, COMMAND_ROLES } from '@/lib/auth';
+import { useSession, hasRole, COMMAND_ROLES, roleLabel } from '@/lib/auth';
+import { useRoleContext } from '@/lib/useRoleContext';
 import { ErrorState } from '@/components/ui/empty-state';
 
 /** "City, State", or 'Not on record' when the row names neither. */
@@ -87,9 +88,11 @@ function TeamsContent() {
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   // The backend lets only a Commander or Admin dispatch or recall a unit.
   const session = useSession();
-  const canDispatch = hasRole(session, COMMAND_ROLES);
+  const { effectiveRole } = useRoleContext();
+  const currentRole = (effectiveRole ?? session?.role?.toUpperCase()) || null;
+  const canDispatch = currentRole === 'COMMANDER' || currentRole === 'ADMIN';
   const dispatchGate = session
-    ? 'Dispatching and recalling units needs a Commander or Admin account.'
+    ? `Dispatching and recalling units needs a Commander or Admin account; current perspective is ${roleLabel(currentRole || session.role)}.`
     : 'Sign in as a Commander or Admin to dispatch or recall units.';
   // null while the roster is loading; [] when the unit has no personnel rows.
   const [roster, setRoster] = useState<TeamMember[] | null>(null);

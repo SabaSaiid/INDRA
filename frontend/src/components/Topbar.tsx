@@ -16,9 +16,11 @@ import {
   Lock,
   LogIn,
   LogOut,
+  Eye,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { fadeIn } from '@/lib/motion';
 import {
@@ -27,11 +29,13 @@ import {
 } from '@/lib/ui-config';
 import { useOperatorProfile } from '@/lib/useOperatorProfile';
 import { roleLabel, sessionExpiryLabel, signOut } from '@/lib/auth';
+import { useRoleContext, ROLE_PERSPECTIVES } from '@/lib/useRoleContext';
 import SettingsDrawer from './SettingsDrawer';
 import ReportSubmissionModal from './ReportSubmissionModal';
 import NotificationPopover from './NotificationPopover';
 import SignInDialog from './SignInDialog';
 import LanguagePicker from './LanguagePicker';
+import PerspectiveBanner from './PerspectiveBanner';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
 interface TopbarProps {
@@ -44,8 +48,20 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const { session, profile, updateDuty, isUpdatingStatus } = useOperatorProfile();
+  const { actualRole, effectiveRole, isImpersonating, setPerspective } = useRoleContext();
   const { t } = useTranslation();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const isAdmin = actualRole === 'ADMIN';
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/events?q=${encodeURIComponent(q)}`);
+    }
+  };
 
   // The profile exactly as the backend returned it. Until it arrives, the
   // account the session names stands in; signed out, nothing does.
@@ -126,12 +142,14 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
           </div>
 
           {/* Center: Adaptive Command Search */}
-          <div className="flex-1 flex justify-start md:justify-center min-w-0">
+          <form onSubmit={handleSearchSubmit} className="flex-1 flex justify-start md:justify-center min-w-0">
             <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md focus-within:max-w-lg transition-all duration-200">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('nav.search_placeholder')}
                   className="w-full h-8 pl-9 pr-14 rounded-lg bg-[#F0EBE0]/80 border border-[#E8E2D4] text-xs sm:text-sm text-ink placeholder:text-[#7A8599] focus:outline-none focus:bg-[#FDFAF5] focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-inner"
                   aria-label="Search"
@@ -141,7 +159,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 </kbd>
               </div>
             </div>
-          </div>
+          </form>
 
           {/* Right section: Action CTA + Utility Cluster + Profile Pill */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
@@ -350,6 +368,63 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       </div>
                     )}
 
+                    {/* ── Section 2.5: Admin Perspective Switcher ───────── */}
+                    {isAdmin && session && (
+                      <div className="p-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599]">
+                            <Eye className="w-3 h-3 inline mr-1" />
+                            View As Perspective
+                          </span>
+                          {isImpersonating && (
+                            <span className="text-[10px] text-[#7C3AED] font-semibold animate-pulse">
+                              Simulating
+                            </span>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          {ROLE_PERSPECTIVES.map((p) => {
+                            const isActive = effectiveRole === p.role;
+                            return (
+                              <button
+                                key={p.role}
+                                onClick={() => {
+                                  setPerspective(p.role);
+                                  setProfileOpen(false);
+                                }}
+                                className={cn(
+                                  'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all',
+                                  isActive
+                                    ? 'bg-[#26314A] text-[#F7F3EA] shadow-sm'
+                                    : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]',
+                                )}
+                              >
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-white/30"
+                                  style={{ background: p.color }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <span className={cn(
+                                    'text-[11px] font-semibold block truncate',
+                                    isActive ? 'text-[#F7F3EA]' : 'text-[#1B2432]',
+                                  )}>
+                                    {p.label}
+                                  </span>
+                                  <span className={cn(
+                                    'text-[9px] block truncate',
+                                    isActive ? 'text-slate-300' : 'text-[#7A8599]',
+                                  )}>
+                                    {p.description}
+                                  </span>
+                                </div>
+                                {isActive && <Check className="w-3.5 h-3.5 text-[#F7F3EA] flex-shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* ── Section 3: Sign in / Sign out ───────────────── */}
                     <div className="p-2" style={{ background: '#F7F3EA' }}>
                       {session ? (
@@ -439,6 +514,9 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
           </div>
         </div>
       </motion.header>
+
+      {/* Admin perspective simulation banner — always visible when impersonating */}
+      <PerspectiveBanner />
 
       {/* Settings Drawer */}
       <SettingsDrawer
