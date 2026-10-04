@@ -28,6 +28,10 @@ const severityConfig: Record<SeverityKey, { label: string; dotColor: string; pil
 
 function normaliseSeverity(raw: string | null): SeverityKey {
   const upper = (raw ?? '').toUpperCase();
+  if (upper === 'CRITICAL') return 'EXTREME';
+  if (upper === 'HIGH') return 'SEVERE';
+  if (upper === 'LOW') return 'MINOR';
+  if (upper === 'INFO') return 'ADVISORY';
   if (upper in severityConfig) return upper as SeverityKey;
   return 'UNKNOWN';
 }

@@ -30,7 +30,7 @@ import ForensicMediaModal from '@/components/ForensicMediaModal';
 import { ErrorState } from '@/components/ui/empty-state';
 import { useSidebar } from '@/lib/useSidebar';
 import { fadeIn, staggerContainer } from '@/lib/motion';
-import { fetchFieldReports, formatPlace, triggerRecluster, type FieldReport } from '@/lib/api';
+import { fetchFieldReports, formatPlace, triggerRecluster, downloadReportExport, type FieldReport } from '@/lib/api';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { formatAgo, formatIst } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
@@ -83,6 +83,8 @@ export default function ReportsPage() {
   const [selectedReportForForensics, setSelectedReportForForensics] = useState<FieldReport | null>(null);
   const [isReclustering, setIsReclustering] = useState(false);
   const [reclusterFeedback, setReclusterFeedback] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState<'csv' | 'geojson' | null>(null);
+  const [exportFeedback, setExportFeedback] = useState<string | null>(null);
   const { connected, subscribe } = useIndraWebSocket();
 
   const isCitizen = effectiveRole === 'CITIZEN';
@@ -150,9 +152,20 @@ export default function ReportsPage() {
     }
   };
 
-  const handleExport = (format: 'csv' | 'geojson') => {
-    const url = `/api/reports/export?format=${format}`;
-    window.open(url, '_blank');
+  const handleExport = async (format: 'csv' | 'geojson') => {
+    setIsExporting(format);
+    setExportFeedback(null);
+    try {
+      await downloadReportExport(format, {
+        q: search || undefined,
+      });
+      setExportFeedback(`Exported ${format.toUpperCase()} successfully.`);
+    } catch (err: any) {
+      setExportFeedback(`Export failed: ${err.message}`);
+    } finally {
+      setIsExporting(null);
+      setTimeout(() => setExportFeedback(null), 5000);
+    }
   };
 
   return (
@@ -260,6 +273,15 @@ export default function ReportsPage() {
                     {reclusterFeedback}
                   </span>
                 )}
+                {exportFeedback && (
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
+                    exportFeedback.includes('failed')
+                      ? 'text-red-700 bg-red-50 border-red-200'
+                      : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                  }`}>
+                    {exportFeedback}
+                  </span>
+                )}
                 {effectiveRole === 'ADMIN' && (
                   <button
                     onClick={handleRecluster}
@@ -272,15 +294,19 @@ export default function ReportsPage() {
                 )}
                 <button
                   onClick={() => handleExport('csv')}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F3F4F6] text-[#1B2432] text-xs font-semibold hover:bg-[#E5E7EB] border border-[#E8E2D4] transition-colors"
+                  disabled={isExporting !== null}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F3F4F6] text-[#1B2432] text-xs font-semibold hover:bg-[#E5E7EB] border border-[#E8E2D4] transition-colors disabled:opacity-50"
                 >
-                  <Download className="w-3.5 h-3.5" /> CSV Export
+                  {isExporting === 'csv' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  CSV Export
                 </button>
                 <button
                   onClick={() => handleExport('geojson')}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F3F4F6] text-[#1B2432] text-xs font-semibold hover:bg-[#E5E7EB] border border-[#E8E2D4] transition-colors"
+                  disabled={isExporting !== null}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F3F4F6] text-[#1B2432] text-xs font-semibold hover:bg-[#E5E7EB] border border-[#E8E2D4] transition-colors disabled:opacity-50"
                 >
-                  <Download className="w-3.5 h-3.5" /> GeoJSON
+                  {isExporting === 'geojson' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  GeoJSON
                 </button>
               </div>
             </motion.div>

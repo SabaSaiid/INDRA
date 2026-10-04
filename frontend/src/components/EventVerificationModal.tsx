@@ -439,7 +439,9 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                         <div className="text-[10px] text-[#8C7A6B] pl-8 space-y-0.5">
                           {a.details.from_status && <div>Status: {a.details.from_status} → {a.details.to_status}</div>}
                           {a.details.from_severity && <div>Severity: {a.details.from_severity} → {a.details.to_severity}</div>}
-                          {a.details.confidence_score !== undefined && <div>Confidence: {(a.details.confidence_score * 100).toFixed(1)}%</div>}
+                          {typeof a.details.confidence_score === 'number' && !isNaN(a.details.confidence_score) && (
+                            <div>Confidence: {(a.details.confidence_score * 100).toFixed(1)}%</div>
+                          )}
                         </div>
                       )}
                       <div className="pl-8">

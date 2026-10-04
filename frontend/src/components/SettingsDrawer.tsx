@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -465,11 +465,11 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     return () => clearInterval(interval);
   }, []);
 
-  const handleTabChange = (tab: TabKey) => {
+  const handleTabChange = useCallback((tab: TabKey) => {
     setDirection(ALL_TABS.indexOf(tab) >= ALL_TABS.indexOf(activeTab) ? 1 : -1);
     setActiveTab(tab);
     setSearchQuery('');
-  };
+  }, [activeTab]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -501,7 +501,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, searchQuery, onClose, activeTab]);
+  }, [isOpen, searchQuery, onClose, activeTab, handleTabChange]);
 
   const drawerRef = useRef<HTMLElement>(null);
 

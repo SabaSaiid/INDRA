@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { fadeIn } from '@/lib/motion';
 import {
@@ -49,8 +50,18 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
   const { session, profile, updateDuty, isUpdatingStatus } = useOperatorProfile();
   const { actualRole, effectiveRole, isImpersonating, setPerspective } = useRoleContext();
   const { t } = useTranslation();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
   const isAdmin = actualRole === 'ADMIN';
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/events?q=${encodeURIComponent(q)}`);
+    }
+  };
 
   // The profile exactly as the backend returned it. Until it arrives, the
   // account the session names stands in; signed out, nothing does.
@@ -131,12 +142,14 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
           </div>
 
           {/* Center: Adaptive Command Search */}
-          <div className="flex-1 flex justify-start md:justify-center min-w-0">
+          <form onSubmit={handleSearchSubmit} className="flex-1 flex justify-start md:justify-center min-w-0">
             <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md focus-within:max-w-lg transition-all duration-200">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('nav.search_placeholder')}
                   className="w-full h-8 pl-9 pr-14 rounded-lg bg-[#F0EBE0]/80 border border-[#E8E2D4] text-xs sm:text-sm text-ink placeholder:text-[#7A8599] focus:outline-none focus:bg-[#FDFAF5] focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-inner"
                   aria-label="Search"
@@ -146,7 +159,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 </kbd>
               </div>
             </div>
-          </div>
+          </form>
 
           {/* Right section: Action CTA + Utility Cluster + Profile Pill */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">

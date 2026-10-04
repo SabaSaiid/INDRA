@@ -278,9 +278,10 @@ export default function RiskZonesSection() {
 
         const verifiedCount = liveEvents.filter(
           (ev) =>
-            ev.verification === 'VERIFIED' ||
-            ev.review_status === 'PUBLISHED' ||
-            ev.review_status === 'AUTO_PUBLISHED'
+            ev.verification?.toLowerCase() === 'verified' ||
+            ev.review_status === 'HUMAN_APPROVED' ||
+            ev.review_status === 'AUTO_PUBLISHED' ||
+            ev.review_status === 'PUBLISHED'
         ).length;
         const sourceReliability = Math.min(97, Math.max(72, Math.round((verifiedCount / liveEvents.length) * 100)));
 
@@ -308,7 +309,11 @@ export default function RiskZonesSection() {
               score: Math.min(0.99, Math.max(0.4, ev.confidence_score || 0.85)),
               hazard: ev.eventType || 'Weather Event',
               reportsCount: ev.corroborating_reports_count || 1,
-              verified: ev.review_status === 'PUBLISHED' || ev.review_status === 'AUTO_PUBLISHED',
+              verified:
+                ev.verification?.toLowerCase() === 'verified' ||
+                ev.review_status === 'HUMAN_APPROVED' ||
+                ev.review_status === 'AUTO_PUBLISHED' ||
+                ev.review_status === 'PUBLISHED',
             };
           });
 
@@ -552,7 +557,11 @@ export default function RiskZonesSection() {
         timestamp: ev.timestamp
           ? new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' IST'
           : `${(i + 1) * 15} min ago`,
-        verified: ev.review_status === 'PUBLISHED' || ev.review_status === 'AUTO_PUBLISHED',
+        verified:
+          ev.verification?.toLowerCase() === 'verified' ||
+          ev.review_status === 'HUMAN_APPROVED' ||
+          ev.review_status === 'AUTO_PUBLISHED' ||
+          ev.review_status === 'PUBLISHED',
         score: Math.round((ev.confidence_score || 0.85) * 100),
         category: categories[i % categories.length],
         eventCode: ev.event_code,

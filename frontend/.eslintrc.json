@@ -1,6 +1,7 @@
 {
   "extends": "next/core-web-vitals",
   "rules": {
+    "@next/next/no-page-custom-font": "off",
     "no-restricted-imports": [
       "error",
       {

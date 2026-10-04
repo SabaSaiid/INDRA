@@ -1286,3 +1286,39 @@ export async function requestSignedMediaUrls(
   return res.json();
 }
 
+/**
+ * GET /api/reports/export
+ * Downloads the current selection as CSV or GeoJSON with bearer auth token.
+ */
+export async function downloadReportExport(
+  format: 'csv' | 'geojson',
+  params?: Record<string, string | number | undefined>
+): Promise<void> {
+  const q = new URLSearchParams({ format });
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') q.append(k, String(v));
+    });
+  }
+  const path = `/api/reports/export?${q.toString()}`;
+  const res = await authedFetch(path);
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('Export requires an authenticated account. Please log in.');
+    }
+    if (res.status === 403) {
+      throw new Error('Export requires Analyst or Admin privileges.');
+    }
+    const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    throw new Error(err.detail || `Export failed (HTTP ${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `indra_reports_${new Date().toISOString().slice(0, 10)}.${format === 'csv' ? 'csv' : 'geojson'}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}

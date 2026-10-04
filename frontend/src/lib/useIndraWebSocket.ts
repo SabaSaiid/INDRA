@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { API_BASE } from './api-base';
 
-export type WsMessageType = 'NEW_REPORT' | 'VERIFIED_EVENT' | 'EVENT_REVIEWED';
+export type WsMessageType = 'NEW_REPORT' | 'VERIFIED_EVENT' | 'EVENT_REVIEWED' | 'pong';
 
 export interface WsMessage {
   type: WsMessageType;
@@ -30,6 +30,27 @@ let isConnected = false;
 let users = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
+let pingTimer: ReturnType<typeof setInterval> | null = null;
+
+function startPing() {
+  if (pingTimer) clearInterval(pingTimer);
+  pingTimer = setInterval(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      try {
+        socket.send(JSON.stringify({ type: 'ping' }));
+      } catch {
+        // Ignored; onclose will handle dropped socket
+      }
+    }
+  }, 25000);
+}
+
+function stopPing() {
+  if (pingTimer) {
+    clearInterval(pingTimer);
+    pingTimer = null;
+  }
+}
 
 function setConnected(v: boolean) {
   isConnected = v;
@@ -43,11 +64,17 @@ function connect() {
   const wsUrl = API_BASE.replace(/^http/, 'ws');
   try {
     const ws = new WebSocket(`${wsUrl}/ws/events`);
-    ws.onopen = () => setConnected(true);
+    ws.onopen = () => {
+      setConnected(true);
+      startPing();
+    };
+    ws.onerror = () => {
+      // Handled by onclose without raising unhandled errors to console
+    };
     ws.onmessage = (event) => {
       try {
         const msg: WsMessage = JSON.parse(event.data);
-        if (msg.type) {
+        if (msg.type && msg.type !== 'pong') {
           listeners.forEach((listener) => {
             try { listener(msg); } catch { /* one listener's error is not the others' */ }
           });
@@ -57,6 +84,7 @@ function connect() {
       }
     };
     ws.onclose = () => {
+      stopPing();
       setConnected(false);
       socket = null;
       if (users > 0) reconnectTimer = setTimeout(connect, 3000);
@@ -80,6 +108,7 @@ function release() {
   idleTimer = setTimeout(() => {
     if (users > 0) return;
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    stopPing();
     if (socket) {
       socket.onclose = null;
       socket.close();
