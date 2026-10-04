@@ -1,13 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/lib/i18n';
+import { RoleProvider } from '@/lib/useRoleContext';
 import dynamic from 'next/dynamic';
 
 const IdleLockOverlay = dynamic(() => import('@/components/IdleLockOverlay'), { ssr: false });
-const RoleProvider = dynamic(
-  () => import('@/lib/useRoleContext').then((m) => ({ default: m.RoleProvider })),
-  { ssr: false },
-);
 
 export const metadata: Metadata = {
   title: 'INDRA — National Weather Intelligence Platform',
