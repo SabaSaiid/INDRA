@@ -262,9 +262,14 @@ To eliminate the "hackathon toy model" label, INDRA v2.0 deploys a **hybrid phys
 ### 4.3 Multilingual Vernacular Speech & NLP (Bhashini Integration)
 * **The Problem:** Academic models fail on Indian linguistic diversity, colloquial expressions, and Hinglish.
 * **The Industrial Solution:**
-  * **Audio Ingestion:** AI4Bharat’s `IndicWav2Vec` transcribes rural voice notes in 22 Scheduled Indian languages.
+  * **Audio Ingestion:** AI4Bharat’s `IndicWav2Vec` and Bhashini Conformer-CTC models transcribe rural voice notes in 22 Scheduled Indian languages.
   * **Fine-Tuned IndicBERT-v2:** Trained on a domain-specific corpus of 50,000+ Indian disaster reports and social feeds.
   * **Asymmetric Cost-Sensitive Loss:** Penalizes false negatives on life-threatening hazard classes (`URBAN_FLOOD`, `CLOUDBURST`, `LANDSLIDE`) by **$15\times$** compared to ordinary classification errors. An unconfirmed report of drowning is never discarded.
+  * **Zero-Backend Client-Side i18n Architecture (`frontend/src/lib/i18n/`):**
+    * Operates entirely in the browser using React Context (`LanguageProvider`) without triggering server round-trips.
+    * Full coverage across 12 official regional languages: English (`en`), Hindi (`hi`), Bengali (`bn`), Telugu (`te`), Tamil (`ta`), Marathi (`mr`), Gujarati (`gu`), Kannada (`kn`), Malayalam (`ml`), Odia (`or`), Punjabi (`pa`), and Assamese (`as`).
+    * Aligned with official **IMD/NDMA disaster glossaries** (e.g., वज्रपात for lightning, भूस्खलन for landslide, चक्रवात for cyclone) ensuring semantic precision during state-level crisis management.
+    * Native script typography support using Google Noto Sans Indic fonts with tailored line-height headroom to eliminate matra/diacritic clipping.
 
 ### 4.4 Hydrodynamic Physics & 30-Year Climate Normals
 * **The Problem:** Pure ML has no spatial common sense and does not understand that water flows downhill.
