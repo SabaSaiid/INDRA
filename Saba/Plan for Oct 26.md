@@ -306,6 +306,24 @@ To process national-scale weather surges, INDRA v2.0 transitions to an **asynchr
   * The current SHA-256 audit chain (`audit_logs`) prevents row tampering but remains vulnerable to tail-truncation without an external root of trust.
   * INDRA v2.0 periodically anchors the head hash of the ledger to a National Informatics Centre (NIC) Certifying Authority or public time-stamping authority every 60 minutes.
 
+### 4.5 AI Model Observatory & Interactive Inference Harness
+* **The Operational Challenge:** In mission-critical environments, black-box AI models cannot be trusted without real-time observability into model versions, active checkpoints, memory footprint, and inference latency.
+* **The Architecture (`AiModelObservatory.tsx` + `backend/app/api/admin.py`):**
+  1. **Dynamic Model Registry & Telemetry:**
+     * Exposes `GET /api/admin/ml-observatory` returning live operational status, memory utilization, device mapping (CPU/MPS/CUDA), and inference latency percentiles ($p_{50}, p_{95}, p_{99}$) across the four primary foundation models:
+       * **Disaster NLP Multi-Classifier:** Fine-tuned IndicBERT / RoBERTa (v1.2) for distress categorization and urgency scoring.
+       * **Water Body & Flood Segmenter:** High-resolution semantic segmentation network (v2.0) measuring flood inundation extent.
+       * **Sensor Anomaly Detector:** Unsupervised Isolation Forest & statistical Z-Score model (v1.0) flagging faulty river gauge telemetry.
+       * **Multi-Modal Credibility Scorer:** XGBoost ensemble combining text, image provenance, and social cross-corroboration.
+  2. **Interactive Zero-Shot NLP Testing Sandbox:**
+     * Exposes `POST /api/admin/ml-test-nlp` allowing operators and ML engineers to execute real-time inference on arbitrary emergency text strings (including multilingual and dialect queries).
+     * Returns instantaneous confidence scores across all 5 hazard classes:
+       * `is_flood_related`: Binary disaster relevance indicator.
+       * `urgency_score`: Continuous metric $[0.0, 1.0]$ for emergency prioritization.
+       * `predicted_category`: Categorical tag (`RESCUE_NEEDED`, `INFRASTRUCTURE_DAMAGE`, `CASUALTY_REPORT`, `RIVER_OVERFLOW`, `GENERAL_OBSERVATION`).
+       * `extracted_entities`: Real-time extraction of location names, victim counts, and severity keywords.
+       * `inference_time_ms`: Sub-50ms execution profile for edge deployment readiness.
+
 ---
 
 ## 6. Phase-by-Phase Execution Order & Strict Prerequisite Dependency Graph
