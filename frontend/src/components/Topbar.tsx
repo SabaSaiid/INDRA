@@ -148,6 +148,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
                 <input
                   type="text"
+                  dir="auto"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('nav.search_placeholder')}

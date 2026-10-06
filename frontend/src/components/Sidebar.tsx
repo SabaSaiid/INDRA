@@ -506,10 +506,10 @@ export default function Sidebar({
                 </div>
                 {!isCollapsedState && (
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-semibold text-white truncate">Not signed in</p>
+                    <p className="text-[12px] font-semibold text-white truncate">{t('common.session_inactive')}</p>
                     <p className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">
                       <LogIn className="w-3 h-3" />
-                      Sign in
+                      {t('common.duty_on')}
                     </p>
                   </div>
                 )}

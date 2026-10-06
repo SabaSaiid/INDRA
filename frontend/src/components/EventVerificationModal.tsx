@@ -231,7 +231,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   <Shield className="w-4 h-4 text-[#E8DCC8]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-[#3C2415] font-mono tracking-wide">{t('receipt.title').toUpperCase()}</h2>
+                  <h2 className="text-sm font-bold text-[#3C2415]">{t('receipt.title')}</h2>
                   <p className="text-[10px] text-[#8C7A6B]">{detail?.event_code || provenance?.event?.event_code || '—'}</p>
                 </div>
               </div>

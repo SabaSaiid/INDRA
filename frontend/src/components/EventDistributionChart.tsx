@@ -224,7 +224,7 @@ export default function EventDistributionChart({
         {/* Time range pills — events only; a warning is either in force or not */}
         {variant === 'embedded' && sourceToggle}
         {source === 'warnings' ? (
-          <span className="text-[9px] font-mono text-[#7A8599] uppercase tracking-wider">{t('chart.in_force_now')}</span>
+          <span className="text-[9px] text-[#7A8599] font-medium">{t('chart.in_force_now')}</span>
         ) : (
         <div className="flex items-center gap-0.5 text-[9px] font-mono">
           {(['24h', '7d', 'all'] as const).map((r) => (

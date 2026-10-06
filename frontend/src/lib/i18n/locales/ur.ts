@@ -16,7 +16,7 @@ export const ur: TranslationDict = {
     section_tactical: 'حکمت عملی',
     section_intelligence: 'انٹیلی جنس',
     section_command: 'کمانڈ',
-    search_placeholder: 'واقعات، انتباہات، ٹیمیں تلاش کریں…',
+    search_placeholder: 'واقعات، انتباہات، ٹیمیں تلاش کریں',
     report_incident: 'واقعہ رپورٹ کریں',
     notifications: 'اطلاعات',
     telemetry_live: 'لائیو ٹیلی میٹری',

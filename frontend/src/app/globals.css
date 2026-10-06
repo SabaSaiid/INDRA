@@ -111,6 +111,22 @@
     font-family: 'Noto Sans Arabic', 'Noto Nastaliq Urdu', 'Public Sans', system-ui, sans-serif;
   }
 
+  /* Arabic/Urdu cursive ligatures require normal letter-spacing to connect properly */
+  html:lang(ur) [class*="tracking-"],
+  html:lang(ur) .tracking-wider,
+  html:lang(ur) .tracking-wide,
+  html:lang(ur) .tracking-tight,
+  html:lang(ur) .tracking-widest {
+    letter-spacing: 0 !important;
+  }
+
+  /* Monospace fallback for Urdu characters to prevent broken glyph rendering */
+  html:lang(ur) .font-mono,
+  html:lang(ur) .font-instrument {
+    font-family: 'JetBrains Mono', 'Noto Sans Arabic', monospace;
+    letter-spacing: 0 !important;
+  }
+
   /* Ensure GIS maps and WebGL canvases retain strict LTR coordinate space */
   [dir="rtl"] .maplibregl-map,
   [dir="rtl"] .maplibregl-canvas-container,

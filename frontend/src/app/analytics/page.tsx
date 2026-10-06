@@ -287,7 +287,7 @@ export default function AnalyticsPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <BarChart3 className="w-5 h-5 text-cyan-400" />
-                <h1 className="text-xl font-bold font-mono">{t('nav.analytics')}</h1>
+                <h1 className="text-xl font-bold">{t('nav.analytics')}</h1>
               </div>
               <p className="text-xs text-slate-400">
                 Reports, events, official warnings and rainfall, counted from the live database.

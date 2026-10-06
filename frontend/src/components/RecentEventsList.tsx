@@ -234,7 +234,7 @@ export default function RecentEventsList({
             <div className="flex-shrink-0 flex items-center justify-center">
               <EmptyState
                 title={t('chart.no_events_range')}
-                hint="An event forms once two nearby reports corroborate each other."
+                hint={t('dashboard.no_events')}
                 compact
                 className="py-3"
               />
@@ -323,13 +323,15 @@ export default function RecentEventsList({
         )}
 
         {/* Status footer: the dot is the live socket's real state */}
-        <div className="mt-auto pt-1.5 pb-0.5 border-t border-[#F0EBE0] flex items-center justify-between text-[10px] text-[#7A8599] font-mono flex-shrink-0">
+        <div className="mt-auto pt-1.5 pb-0.5 border-t border-[#F0EBE0] flex items-center justify-between text-[10px] text-[#7A8599] flex-shrink-0">
           <span className="flex items-center gap-1.5">
             <span
               className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-[#B8873A]'}`}
               title={connected ? 'Live updates connected' : 'Live updates offline — reconnecting'}
             />
-            <span>{events.length} {t('chart.events')} · 7d</span>
+            <span className="font-mono tabular-nums font-semibold text-ink">{events.length}</span>
+            <span>{t('chart.events')}</span>
+            <span className="text-[#A0988A] font-mono text-[9px]"><bdi>· 7d</bdi></span>
           </span>
           <span className="text-[9px] uppercase tracking-wider text-[#A0988A] flex items-center gap-1">
             {events.length > 4 ? (
