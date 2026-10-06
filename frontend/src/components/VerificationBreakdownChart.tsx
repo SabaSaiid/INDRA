@@ -3,14 +3,20 @@
 /**
  * VerificationBreakdownChart
  *
- * Stacked bar chart showing how the AI confidence score is distributed
- * across all non-rejected verified events, broken down by whether the
- * event was AUTO_PUBLISHED or HUMAN_APPROVED.
+ * Stacked bar chart: AI confidence score distribution across verified events,
+ * broken down by AUTO_PUBLISHED vs HUMAN_APPROVED.
  *
  * Data source: GET /api/dashboard/verification-breakdown (verified_events)
+ *
+ * Fixes (Oct 2026):
+ *  - Y-axis clipping: width=44, margin.left=12 prevents 3-digit labels being cut off.
+ *  - refreshTick prop: re-fetches on global WebSocket events.
+ *  - Design: aligned to INDRA warm-paper tokens (bg-[#FDFAF5], Fraunces serif).
+ *  - i18n: hardcoded English replaced with t('analytics.*') keys.
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import {
   BarChart,
   Bar,
@@ -25,8 +31,8 @@ import { BrainCircuit } from 'lucide-react';
 import { fetchVerificationBreakdown, type VerificationBucket, ApiError } from '@/lib/api';
 import { ErrorState, EmptyState } from '@/components/ui/empty-state';
 
-const AUTO_COLOR   = '#6366F1'; // indigo-500
-const HUMAN_COLOR  = '#10B981'; // emerald-500
+const AUTO_COLOR  = '#6366F1'; // indigo-500
+const HUMAN_COLOR = '#10B981'; // emerald-500
 
 interface TooltipPayload {
   name: string;
@@ -68,7 +74,8 @@ function CustomTooltip({
   );
 }
 
-export default function VerificationBreakdownChart() {
+export default function VerificationBreakdownChart({ refreshTick = 0 }: { refreshTick?: number }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<VerificationBucket[] | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -78,20 +85,22 @@ export default function VerificationBreakdownChart() {
       .then((rows) => { if (!cancelled) { setData(rows); setError(null); } })
       .catch((err) => { if (!cancelled) setError(err); });
     return () => { cancelled = true; };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTick]);
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3">
+    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <h2
+          className="text-sm font-bold text-[#1B2432] flex items-center gap-2"
+          style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+        >
           <BrainCircuit className="w-4 h-4 text-indigo-500" />
-          AI Confidence Distribution
+          {t('analytics.verification_title')}
         </h2>
-        <span className="text-[10px] font-mono text-slate-400">verified_events · confidence_score</span>
+        <span className="text-[10px] font-mono text-[#7A8599]">verified_events · confidence_score</span>
       </div>
-      <p className="text-[11px] text-slate-500 -mt-1">
-        How the AI-assigned confidence score is distributed. High-confidence events are auto-published; lower scores go to human review.
-      </p>
+      <p className="text-[11px] text-[#7A8599] -mt-1">{t('analytics.verification_subtitle')}</p>
 
       {error && !data ? (
         <ErrorState
@@ -103,36 +112,37 @@ export default function VerificationBreakdownChart() {
         />
       ) : data && data.length === 0 ? (
         <EmptyState
-          title="No verified events yet"
-          hint="Events appear here once the pipeline processes its first report."
+          title={t('analytics.verification_no_data')}
+          hint={t('analytics.verification_no_data_hint')}
           compact
         />
       ) : !data ? (
-        <div className="h-52 animate-pulse bg-slate-50 rounded-xl" />
+        <div className="h-52 animate-pulse bg-[#F0EBE0] rounded-xl" />
       ) : (
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            {/* margin.left=12 + width=44 prevents 3-digit Y-axis labels from being clipped */}
+            <BarChart data={data} margin={{ top: 8, right: 12, left: 12, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E2D4" vertical={false} />
               <XAxis
                 dataKey="bucket"
-                tick={{ fontSize: 10, fill: '#64748B' }}
+                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: '#64748B' }}
+                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
-                width={30}
+                width={44}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F0EBE0' }} />
               <Legend
                 formatter={(value) =>
-                  value === 'auto_published' ? 'Auto-published' : 'Human approved'
+                  value === 'auto_published' ? t('analytics.auto_published') : t('analytics.human_approved')
                 }
-                wrapperStyle={{ fontSize: '10px', paddingTop: '6px' }}
+                wrapperStyle={{ fontSize: '10px', paddingTop: '6px', fontFamily: 'Public Sans, sans-serif' }}
               />
               <Bar
                 dataKey="auto_published"
@@ -156,14 +166,14 @@ export default function VerificationBreakdownChart() {
       )}
 
       {data && data.length > 0 && (
-        <div className="flex gap-4 text-[10px] text-slate-500 border-t border-slate-100 pt-2 mt-1">
+        <div className="flex flex-wrap gap-4 text-[10px] text-[#7A8599] border-t border-[#E8E2D4] pt-2 mt-1">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full" style={{ background: AUTO_COLOR }} />
-            Auto-published (score ≥ threshold, no human needed)
+            {t('analytics.auto_published')} (score ≥ threshold, no human needed)
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full" style={{ background: HUMAN_COLOR }} />
-            Human approved (escalated then confirmed)
+            {t('analytics.human_approved')} (escalated then confirmed)
           </span>
         </div>
       )}

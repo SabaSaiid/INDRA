@@ -175,90 +175,94 @@ export default function ReportsTrendChart({
       )}
 
       {/* Main Chart Area */}
-      <div className="h-[140px] min-h-[140px] w-full pt-1">
+      <div className="h-[140px] min-h-[140px] w-full pt-1 relative">
         {error ? (
           <div className="h-full flex items-center justify-center">
             <ErrorState label="the reports trend" error={error} compact />
           </div>
-        ) : loaded && (trendData.length === 0 || total === 0) ? (
-          <div className="h-full flex items-center justify-center">
-            <EmptyState
-              title={t('dashboard.no_reports')}
-              hint={t('dashboard.welcome_subtitle')}
-              compact
-            />
-          </div>
         ) : mounted && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={140}>
-            <AreaChart
-              data={trendData}
-              margin={{ top: 8, right: 12, left: 2, bottom: 2 }}
-            >
-              <defs>
-                <linearGradient id="reportGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2563EB" stopOpacity={0.22} />
-                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#F0EBE0"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="date"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
-                dy={6}
-                interval={xAxisInterval}
-                minTickGap={10}
-              />
-              {/* Counts: whole numbers only, formatted to avoid cutting off digits */}
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
-                dx={-2}
-                allowDecimals={false}
-                domain={[0, (max: number) => Math.max(1, Math.ceil(max * 1.05))]}
-                width={36}
-                tickFormatter={formatYTick}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="linear"
-                dataKey="reports"
-                stroke="#2563EB"
-                strokeWidth={2.2}
-                fill="url(#reportGradient)"
-                dot={(props: any) =>
-                  props?.payload?.reports > 0 ? (
-                    <circle
-                      key={`dot-${props.index}`}
-                      cx={props.cx}
-                      cy={props.cy}
-                      r={3.2}
-                      fill="#2563EB"
-                      stroke="#FFFFFF"
-                      strokeWidth={1.8}
-                    />
-                  ) : (
-                    <g key={`dot-${props.index}`} />
-                  )
-                }
-                activeDot={{
-                  r: 5,
-                  strokeWidth: 2,
-                  stroke: '#FFFFFF',
-                  fill: '#2563EB',
-                }}
-                animationBegin={100}
-                animationDuration={800}
-                animationEasing="ease-out"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={140}>
+              <AreaChart
+                data={trendData.length ? trendData : []}
+                margin={{ top: 8, right: 12, left: 2, bottom: 2 }}
+              >
+                <defs>
+                  <linearGradient id="reportGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#F0EBE0"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+                  dy={6}
+                  interval={xAxisInterval}
+                  minTickGap={10}
+                />
+                {/* Counts: whole numbers only, formatted to avoid cutting off digits */}
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+                  dx={-2}
+                  allowDecimals={false}
+                  domain={[0, (max: number) => Math.max(1, Math.ceil(max * 1.05))]}
+                  width={36}
+                  tickFormatter={formatYTick}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="linear"
+                  dataKey="reports"
+                  stroke="#2563EB"
+                  strokeWidth={2.2}
+                  fill="url(#reportGradient)"
+                  dot={(props: any) =>
+                    props?.payload?.reports > 0 ? (
+                      <circle
+                        key={`dot-${props.index}`}
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={3.2}
+                        fill="#2563EB"
+                        stroke="#FFFFFF"
+                        strokeWidth={1.8}
+                      />
+                    ) : (
+                      <g key={`dot-${props.index}`} />
+                    )
+                  }
+                  activeDot={{
+                    r: 5,
+                    strokeWidth: 2,
+                    stroke: '#FFFFFF',
+                    fill: '#2563EB',
+                  }}
+                  animationBegin={100}
+                  animationDuration={800}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+            {/* Zero-volume hint overlay — shown only when all days have 0 reports */}
+            {loaded && total === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-[#F7F3EA]/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-center">
+                  <p className="text-[10px] text-[#7A8599] font-medium">
+                    {t('analytics.trend_no_reports_hint')}
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
