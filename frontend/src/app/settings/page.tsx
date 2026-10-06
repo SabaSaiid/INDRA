@@ -694,7 +694,7 @@ export default function SettingsPage() {
                 <div>
                   <label className="text-xs font-semibold text-[#1E2A3B] flex items-center gap-1.5 mb-1.5">
                     <Globe className="w-3.5 h-3.5 text-[#B5482E]" />
-                    Interface Language / बहुभाषी प्रणाली (12 Languages)
+                    Interface Language / बहुभाषी प्रणाली (13 Languages)
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                     {(Object.entries(SUPPORTED_LANGUAGES) as [SupportedLanguage, typeof SUPPORTED_LANGUAGES[SupportedLanguage]][]).map(([code, meta]) => {

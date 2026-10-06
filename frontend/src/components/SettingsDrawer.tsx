@@ -114,7 +114,7 @@ interface SearchableSetting {
 
 const SEARCHABLE_CATALOG: SearchableSetting[] = [
   { id: 'station-profile', tab: 'general', label: 'Station Identification & Node', desc: 'INDRA National Node-01 HQ New Delhi operational status', category: 'General', keywords: ['general', 'station', 'node', 'indra', 'hq', 'profile', 'delhi', 'operational'] },
-  { id: 'general-lang', tab: 'general', label: 'Interface Language / भाषा', desc: 'Select from 11 Indian regional languages and English', category: 'General', keywords: ['language', 'hindi', 'bengali', 'tamil', 'marathi', 'telugu', 'gujarati', 'urdu', 'kannada', 'malayalam', 'i18n', 'translate'] },
+  { id: 'general-lang', tab: 'general', label: 'Interface Language / भाषा', desc: 'Select from 12 Indian regional languages and English', category: 'General', keywords: ['language', 'hindi', 'bengali', 'tamil', 'marathi', 'telugu', 'gujarati', 'urdu', 'kannada', 'malayalam', 'i18n', 'translate'] },
   { id: 'general-theme', tab: 'general', label: 'Interface Theme', desc: 'Dark Tactical Ops, Light Parchment, High Contrast', category: 'General', keywords: ['theme', 'dark', 'light', 'high contrast', 'contrast', 'color'] },
   { id: 'general-refresh', tab: 'general', label: 'Telemetry Polling Rate', desc: '5s, 15s, 30s or manual refresh rate', category: 'General', keywords: ['refresh', 'rate', 'poll', 'interval', 'speed', 'seconds'] },
   { id: 'general-timezone', tab: 'general', label: 'Station Timezone Mode', desc: 'Indian Standard Time (IST UTC+5:30) vs UTC Zulu', category: 'General', keywords: ['timezone', 'ist', 'utc', 'zulu', 'time', 'clock', 'new delhi'] },
@@ -857,7 +857,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                               onClick={() => handleTabChange('hud')}
                               className="text-[10px] font-mono text-[#F97316] hover:underline"
                             >
-                              All 11 languages →
+                              All 13 languages →
                             </button>
                           </div>
                           <div className="grid grid-cols-3 gap-2">
@@ -1264,7 +1264,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                     {activeTab === 'hud' && (
                       <TabContent tabKey="hud" direction={direction}>
                         <div>
-                          <SectionHeader icon={Globe} label="Full Language Matrix / भाषा" badge="11 Languages" />
+                          <SectionHeader icon={Globe} label="Full Language Matrix / भाषा" badge="13 Languages" />
                           <div className="grid grid-cols-3 gap-2">
                             {Object.entries(SUPPORTED_LANGUAGES).map(([code, meta]) => {
                               const isSel = currentLang === code;

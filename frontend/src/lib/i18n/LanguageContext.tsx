@@ -4,7 +4,7 @@
 // Wrap RootLayout's <body> with <LanguageProvider>.
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { SupportedLanguage } from './types';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './types';
 
 const LANG_STORAGE_KEY = 'indra_user_language';
 const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
@@ -59,10 +59,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Set document lang attribute
+  // Set document lang & dir attributes
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = language;
+      const dir = SUPPORTED_LANGUAGES[language]?.dir || 'ltr';
+      document.documentElement.setAttribute('dir', dir);
     }
   }, [language]);
 

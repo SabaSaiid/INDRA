@@ -5,7 +5,7 @@
 export type SupportedLanguage =
   | 'en' | 'hi' | 'bn' | 'te' | 'ta'
   | 'mr' | 'or' | 'gu' | 'kn' | 'ml'
-  | 'pa' | 'as';
+  | 'pa' | 'as' | 'ur';
 
 export interface LanguageMeta {
   code: SupportedLanguage;
@@ -28,6 +28,7 @@ export const SUPPORTED_LANGUAGES: Record<SupportedLanguage, LanguageMeta> = {
   ml: { code: 'ml', name: 'Malayalam',  nativeName: 'മലയാളം',        dir: 'ltr', fontFamily: '"Noto Sans Malayalam", sans-serif' },
   pa: { code: 'pa', name: 'Punjabi',    nativeName: 'ਪੰਜਾਬੀ',        dir: 'ltr', fontFamily: '"Noto Sans Gurmukhi", sans-serif' },
   as: { code: 'as', name: 'Assamese',   nativeName: 'অসমীয়া',        dir: 'ltr', fontFamily: '"Noto Sans Bengali", sans-serif' },
+  ur: { code: 'ur', name: 'Urdu',       nativeName: 'اردو',          dir: 'rtl', fontFamily: '"Noto Sans Arabic", "Noto Nastaliq Urdu", sans-serif' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

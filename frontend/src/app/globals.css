@@ -107,6 +107,17 @@
   html:lang(or) {
     font-family: 'Noto Sans Oriya', 'Public Sans', system-ui, sans-serif;
   }
+  html:lang(ur) {
+    font-family: 'Noto Sans Arabic', 'Noto Nastaliq Urdu', 'Public Sans', system-ui, sans-serif;
+  }
+
+  /* Ensure GIS maps and WebGL canvases retain strict LTR coordinate space */
+  [dir="rtl"] .maplibregl-map,
+  [dir="rtl"] .maplibregl-canvas-container,
+  [dir="rtl"] .maplibregl-ctrl,
+  [dir="rtl"] .leaflet-container {
+    direction: ltr !important;
+  }
 
   /* Prevent tight line-heights from slicing top matras / diacritics */
   html:not([lang="en"]) button,

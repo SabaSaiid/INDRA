@@ -15,9 +15,10 @@ import { kn } from './locales/kn';
 import { ml } from './locales/ml';
 import { pa } from './locales/pa';
 import { as } from './locales/as';
+import { ur } from './locales/ur';
 
 export const translations: Record<SupportedLanguage, TranslationDict> = {
-  en, hi, bn, te, ta, mr, or, gu, kn, ml, pa, as,
+  en, hi, bn, te, ta, mr, or, gu, kn, ml, pa, as, ur,
 };
 
 // Re-export everything so consumers only need to import from '@/lib/i18n'
