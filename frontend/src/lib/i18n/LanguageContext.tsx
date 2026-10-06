@@ -59,12 +59,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Set document lang & dir attributes
+  // Set document lang & preserve LTR layout to avoid dashboard mirroring
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = language;
-      const dir = SUPPORTED_LANGUAGES[language]?.dir || 'ltr';
-      document.documentElement.setAttribute('dir', dir);
+      document.documentElement.setAttribute('dir', 'ltr');
     }
   }, [language]);
 
