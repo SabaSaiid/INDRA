@@ -166,7 +166,7 @@ export default function RecentEventsList({
           title={
             <div className="flex items-center gap-2">
               <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
-                {source === 'warnings' ? t('nav.official_warnings') : t('dashboard.recent_events')}
+                {t('dashboard.recent_events')}
               </span>
               <div className="flex items-center gap-0.5 bg-[#E8E2D4] p-0.5 rounded-sm">
                 <button
@@ -185,9 +185,9 @@ export default function RecentEventsList({
                   className={`px-1.5 py-0.5 text-[9px] font-mono rounded-xs transition-colors ${
                     source === 'warnings' ? 'bg-white text-ink font-semibold shadow-2xs' : 'text-[#7A8599] hover:text-ink'
                   }`}
-                  title="Official IMD / NDMA warnings in force"
+                  title="Live official agency alerts in force"
                 >
-                  Warnings {alerts.length > 0 ? `(${alerts.length})` : ''}
+                  {t('kpis.active_alerts')} {alerts.length > 0 ? `(${alerts.length})` : ''}
                 </button>
               </div>
             </div>
@@ -240,7 +240,7 @@ export default function RecentEventsList({
                 onClick={() => { setSource('warnings'); setSourceChosen(true); }}
                 className="mt-1 text-[11px] font-medium text-blue-700 hover:text-blue-900 underline"
               >
-                View {alerts.length} live official warnings in force →
+                View {alerts.length} live active alerts in force →
               </button>
             )}
           </div>
@@ -340,19 +340,19 @@ export default function RecentEventsList({
           </div>
         ) : alertsError ? (
           <div className="flex-1 min-h-0 flex items-center justify-center">
-            <ErrorState label="official warnings" error={alertsError} compact />
+            <ErrorState label="active alerts" error={alertsError} compact />
           </div>
         ) : alerts.length === 0 ? (
           <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-3 text-center">
             <EmptyState
-              title={t('nav.official_warnings')}
-              hint="No official agency warnings currently in force"
+              title={t('kpis.active_alerts')}
+              hint="No active agency alerts currently in force"
               compact
               className="py-2"
             />
           </div>
         ) : (
-          /* Live Official Warnings rendered as first-class hazard cards */
+          /* Live Agency Alerts rendered as first-class hazard cards */
           <motion.div
             variants={staggerContainer}
             initial="hidden"
@@ -391,7 +391,7 @@ export default function RecentEventsList({
                 >
                   <div
                     role="img"
-                    aria-label={`${a.event || 'Warning'} icon`}
+                    aria-label={`${a.event || 'Alert'} icon`}
                     className={`relative w-12 h-9 rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center border border-[#E8E2D4] shadow-2xs transition-all ${
                       isSelected ? 'ring-1.5 ring-blue-500' : ''
                     }`}
@@ -418,7 +418,7 @@ export default function RecentEventsList({
 
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[9px] text-[#7A8599] truncate font-medium">
-                        {a.event ? t.hazard(a.event) : t('nav.official_warnings')}
+                        {a.event ? t.hazard(a.event) : t('kpis.active_alerts')}
                       </span>
                       <span className="text-[9px] text-[#7A8599] truncate font-medium">
                         · {a.sender || 'IMD / Agency'}
@@ -447,7 +447,7 @@ export default function RecentEventsList({
             {source === 'warnings' ? (
               <>
                 <span className="font-mono tabular-nums font-semibold text-ink">{alerts.length}</span>
-                <span>{t('nav.official_warnings')}</span>
+                <span>{t('kpis.active_alerts')}</span>
                 <span className="text-[#A0988A] font-mono text-[9px]"><bdi>· Live</bdi></span>
               </>
             ) : (
