@@ -120,6 +120,7 @@ ${BOLD}COMMANDS:${RESET}
   ${GREEN}e2e-reset${RESET}              Drop and recreate the indra_e2e database
   ${GREEN}logs${RESET} [-n <lines>]       Stream live backend server logs (tail -f)
   ${GREEN}seed${RESET} | ${GREEN}demo${RESET}           Seed realistic flood telemetry & analytics demo data
+  ${GREEN}purge${RESET}                  Purge synthetic demo data (keeps all real events & reports)
   ${GREEN}clean${RESET}                  Purge temporary cache files, .pyc, logs, and PID files
   ${GREEN}help${RESET}                   Display this help message
 
@@ -1223,10 +1224,23 @@ cmd_seed() {
     fi
 }
 
+# --- Subcommand: purge ---
+cmd_purge() {
+    print_banner
+    echo "${BOLD}🧹 Purging Synthetic Demo Data from Database...${RESET}"
+    detect_python
+    if [[ -f "$ROOT_DIR/scripts/purge_demo_data.py" ]]; then
+        PYTHONPATH="$BACKEND_DIR" "$PYTHON_CMD" "$ROOT_DIR/scripts/purge_demo_data.py" $DRY_RUN
+    else
+        echo "${RED}✘ Error: scripts/purge_demo_data.py not found.${RESET}"
+        exit 1
+    fi
+}
+
 # --- Argument Parsing ---
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|test|e2e-backend|e2e-reset|logs|clean|seed|demo|help)
+        start|frontend|backend|bg|daemon|stop|restart|status|setup|infra|doctor|test|e2e-backend|e2e-reset|logs|clean|seed|demo|purge|help)
             COMMAND="$1"
             shift
             if [[ "$COMMAND" == "infra" && $# -gt 0 && ! "$1" =~ ^- ]]; then
@@ -1272,6 +1286,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --with-infra)
             WITH_INFRA=true
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN="--dry-run"
             shift
             ;;
         -n-lines)
@@ -1340,6 +1358,9 @@ case "$COMMAND" in
         ;;
     seed|demo)
         cmd_seed
+        ;;
+    purge)
+        cmd_purge "$@"
         ;;
     help)
         show_help
