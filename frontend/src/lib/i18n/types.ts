@@ -5,7 +5,7 @@
 export type SupportedLanguage =
   | 'en' | 'hi' | 'bn' | 'te' | 'ta'
   | 'mr' | 'or' | 'gu' | 'kn' | 'ml'
-  | 'pa' | 'as';
+  | 'pa' | 'as' | 'ur';
 
 export interface LanguageMeta {
   code: SupportedLanguage;
@@ -28,6 +28,7 @@ export const SUPPORTED_LANGUAGES: Record<SupportedLanguage, LanguageMeta> = {
   ml: { code: 'ml', name: 'Malayalam',  nativeName: 'മലയാളം',        dir: 'ltr', fontFamily: '"Noto Sans Malayalam", sans-serif' },
   pa: { code: 'pa', name: 'Punjabi',    nativeName: 'ਪੰਜਾਬੀ',        dir: 'ltr', fontFamily: '"Noto Sans Gurmukhi", sans-serif' },
   as: { code: 'as', name: 'Assamese',   nativeName: 'অসমীয়া',        dir: 'ltr', fontFamily: '"Noto Sans Bengali", sans-serif' },
+  ur: { code: 'ur', name: 'Urdu',       nativeName: 'اردو',          dir: 'ltr', fontFamily: '"Noto Sans Arabic", "Noto Nastaliq Urdu", sans-serif' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -203,5 +204,38 @@ export interface TranslationDict {
     live_feed: string;
     no_events: string;
     no_reports: string;
+  };
+
+  analytics: {
+    page_title: string;
+    page_subtitle: string;
+    last_synced: string;
+    refresh: string;
+    export_data: string;
+    ingestion_trend_title: string;
+    ingestion_trend_subtitle: string;
+    trend_no_reports_hint: string;
+    event_dist_all_time_hint: string;
+    inundation_title: string;
+    inundation_subtitle: string;
+    inundation_no_data: string;
+    inundation_no_data_hint: string;
+    verification_title: string;
+    verification_subtitle: string;
+    verification_no_data: string;
+    verification_no_data_hint: string;
+    top_districts_title: string;
+    top_districts_subtitle: string;
+    top_districts_no_data: string;
+    top_districts_no_data_hint: string;
+    rainfall_title: string;
+    rainfall_subtitle: string;
+    rainfall_no_data: string;
+    rainfall_note: string;
+    warnings_subtitle: string;
+    warnings_note: string;
+    auto_published: string;
+    human_approved: string;
+    score_label: string;
   };
 }

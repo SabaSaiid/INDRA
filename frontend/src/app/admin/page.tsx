@@ -137,7 +137,7 @@ export default function AdminPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="w-5 h-5 text-emerald-400" />
-                <h1 className="text-xl font-bold font-mono">{t('nav.admin_panel')}</h1>
+                <h1 className="text-xl font-bold">{t('nav.admin_panel')}</h1>
               </div>
               <p className="text-xs text-slate-400">
                 Live dependency checks, operator accounts and the hash-chained audit ledger.
