@@ -31,12 +31,14 @@ import {
 import {
   fetchEventDetail,
   fetchEventProvenance,
+  fetchAgencyAlerts,
   formatPlace,
   reviewEvent,
   type EventDetail,
   type ProvenanceData,
   type ProvenanceReport,
   type AuditEntry,
+  type AgencyAlert,
 } from '@/lib/api';
 import { useSession, hasRole, roleLabel, COMMAND_ROLES, LEDGER_ROLES } from '@/lib/auth';
 import { useRoleContext } from '@/lib/useRoleContext';
@@ -139,10 +141,31 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
   const canReview = currentRole === 'COMMANDER' || currentRole === 'ADMIN';
   const canReadProvenance = currentRole === 'ANALYST' || currentRole === 'COMMANDER' || currentRole === 'ADMIN';
 
+  const [agencyAlertDetail, setAgencyAlertDetail] = useState<AgencyAlert | null>(null);
+
   const loadData = useCallback(async (eid: string) => {
     setLoading(true);
     setReviewResult(null);
     setReviewAction(null);
+    setAgencyAlertDetail(null);
+    setDetail(null);
+    setProvenance(null);
+
+    if (eid.startsWith('alert-')) {
+      const rawAlertId = eid.replace(/^alert-/, '');
+      try {
+        const alerts = await fetchAgencyAlerts(100, true);
+        const match = alerts.find((a) => a.id === rawAlertId || a.identifier === rawAlertId);
+        if (match) {
+          setAgencyAlertDetail(match);
+        }
+      } catch (err) {
+        console.warn(`[INDRA] fetch agency alert (${rawAlertId}) failed:`, err);
+      }
+      setLoading(false);
+      return;
+    }
+
     const [detailResult, provResult] = await Promise.allSettled([
       fetchEventDetail(eid),
       canReadProvenance ? fetchEventProvenance(eid) : Promise.resolve(null),
@@ -231,8 +254,12 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   <Shield className="w-4 h-4 text-[#E8DCC8]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-[#3C2415]">{t('receipt.title')}</h2>
-                  <p className="text-[10px] text-[#8C7A6B]">{detail?.event_code || provenance?.event?.event_code || '—'}</p>
+                  <h2 className="text-sm font-bold text-[#3C2415]">
+                    {agencyAlertDetail ? 'Official Warning' : t('receipt.title')}
+                  </h2>
+                  <p className="text-[10px] text-[#8C7A6B]">
+                    {agencyAlertDetail ? (agencyAlertDetail.identifier || agencyAlertDetail.sender) : (detail?.event_code || provenance?.event?.event_code || '—')}
+                  </p>
                 </div>
               </div>
               <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#E8E2D4] transition-colors">
@@ -245,6 +272,67 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-6 h-6 animate-spin text-[#B5482E]" />
               <span className="ml-2 text-sm text-[#8C7A6B]">{t('common.loading')}</span>
+            </div>
+          ) : agencyAlertDetail ? (
+            <div className="px-5 py-4 space-y-4">
+              <div className="bg-white rounded-xl border border-[#E8E2D4] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                      {agencyAlertDetail.severity || 'WARNING'}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      OFFICIAL ALERT IN FORCE
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[11px] font-mono font-bold text-[#B5482E] bg-[#F7F3EA] px-2 py-0.5 rounded border border-[#E8E2D4]">
+                      SACHET CAP
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-bold text-[#1B2432]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                    {agencyAlertDetail.event || 'Official Agency Warning'}
+                  </h3>
+                  <p className="text-xs text-[#7A8599] mt-0.5 font-medium flex items-center gap-1.5">
+                    <Radio className="w-3.5 h-3.5 text-blue-600" />
+                    Issuing Agency: <strong className="text-slate-900">{agencyAlertDetail.sender}</strong>
+                  </p>
+                </div>
+
+                <div className="bg-[#F7F3EA] rounded-xl p-3.5 text-xs space-y-2 border border-[#E8E2D4]">
+                  <p className="text-[#1B2432] font-medium leading-relaxed">{agencyAlertDetail.headline}</p>
+                  {agencyAlertDetail.area_desc && (
+                    <p className="text-[11px] text-[#7A8599] flex items-start gap-1 pt-1.5 border-t border-[#E8E2D4]">
+                      <MapPin className="w-3.5 h-3.5 text-[#B5482E] mt-0.5 flex-shrink-0" />
+                      <span><strong>Target Area:</strong> {agencyAlertDetail.area_desc}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs text-[#7A8599] pt-2 border-t border-[#E8E2D4]">
+                  <div>
+                    <span className="text-[10px] uppercase font-mono block text-[#A0988A]">Urgency / Certainty</span>
+                    <span className="font-semibold text-slate-900">{agencyAlertDetail.urgency || '—'} / {agencyAlertDetail.certainty || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-mono block text-[#A0988A]">Expires At (IST)</span>
+                    <span className="font-semibold text-slate-900">{agencyAlertDetail.expires_at ? new Date(agencyAlertDetail.expires_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Active in force'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 text-xs text-blue-950 flex items-start gap-3 shadow-xs">
+                <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-bold text-blue-950">Independent Sovereign Corroboration</h4>
+                  <p className="text-blue-800 text-[11px] leading-relaxed">
+                    This warning was officially transmitted by state and central disaster authorities via NDMA's National CAP Gateway. It serves as external ground-truth validation for INDRA's weather models and incident detection.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="px-5 py-4 space-y-4">
