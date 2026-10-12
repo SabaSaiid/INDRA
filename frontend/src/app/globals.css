@@ -21,12 +21,12 @@
 
     /* Sidebar Rail Specific */
     --rail-gradient:       linear-gradient(180deg, #182235 0%, #111827 100%);
-    --rail-border-color:   rgba(255, 255, 255, 0.09);
+    --rail-border-color:   rgba(255, 255, 255, 0.12);
     --rail-text:           #ffffff;
-    --rail-text-muted:     #cbd5e1;
-    --rail-hover-bg:       rgba(255, 255, 255, 0.06);
-    --rail-active-bg:      rgba(255, 255, 255, 0.10);
-    --rail-active-border:  rgba(255, 255, 255, 0.14);
+    --rail-text-muted:     #e2e8f0;
+    --rail-hover-bg:       rgba(255, 255, 255, 0.08);
+    --rail-active-bg:      rgba(255, 255, 255, 0.12);
+    --rail-active-border:  rgba(255, 255, 255, 0.18);
 
     /* Typography & Ink */
     --text:                 30  42  59; /* #1E2A3B ink */

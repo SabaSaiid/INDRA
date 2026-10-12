@@ -155,8 +155,8 @@ export default function Sidebar({
             'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 outline-none select-none',
             isCollapsedState ? 'justify-center px-2' : 'justify-between',
             isActive
-              ? 'text-[var(--rail-text)] bg-[var(--rail-active-bg)] border border-[var(--rail-active-border)]'
-              : 'text-[var(--rail-text-muted)] hover:text-[var(--rail-text)] hover:bg-[var(--rail-hover-bg)] border border-transparent'
+              ? 'text-white font-semibold bg-white/12 border border-white/20 shadow-xs'
+              : 'text-slate-200 font-medium hover:text-white hover:bg-white/[0.08] border border-transparent'
           )}
           aria-current={isActive ? 'page' : undefined}
         >
@@ -164,7 +164,7 @@ export default function Sidebar({
           {isActive && (
             <motion.div
               layoutId={isMobile ? 'mobile-sidebar-active-bar' : 'sidebar-active-bar'}
-              className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-brand shadow-[0_0_8px_rgba(var(--brand),0.55)]"
+              className="absolute left-0 top-1.5 bottom-1.5 w-[3.5px] rounded-r-full bg-gradient-to-b from-[#FF6B4A] to-[#B5482E] shadow-[0_0_10px_rgba(255,107,74,0.7)]"
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             />
           )}
@@ -176,8 +176,8 @@ export default function Sidebar({
                 className={cn(
                   'w-[18px] h-[18px] transition-all duration-200',
                   isActive
-                    ? 'text-[var(--rail-text)]'
-                    : 'text-[var(--rail-text-muted)] group-hover:text-[var(--rail-text)]'
+                    ? 'text-white'
+                    : 'text-slate-300 group-hover:text-white'
                 )}
               />
               {/* Collapsed micro-badge dot */}
@@ -199,7 +199,7 @@ export default function Sidebar({
                 title={navLabel}
                 className={cn(
                   'truncate block text-[13px] leading-normal py-0.5',
-                  isActive ? 'font-semibold text-[var(--rail-text)]' : 'font-medium text-[var(--rail-text-muted)] group-hover:text-[var(--rail-text)]'
+                  isActive ? 'font-semibold text-white' : 'font-medium text-slate-200 group-hover:text-white'
                 )}
               >
                 {navLabel}
@@ -213,13 +213,13 @@ export default function Sidebar({
               className={cn(
                 'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-normal border flex-shrink-0 ml-auto z-10',
                 item.badge.variant === 'live'
-                  && 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_6px_rgba(16,185,129,0.15)]',
+                  && 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_6px_rgba(16,185,129,0.2)]',
                 item.badge.variant === 'critical'
                   && 'bg-rose-500/20 text-rose-200 border-rose-500/40 animate-pulse',
                 item.badge.variant === 'warning'
-                  && 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                  && 'bg-amber-500/20 text-amber-300 border-amber-500/40',
                 item.badge.variant === 'neutral'
-                  && 'bg-slate-700/60 text-slate-300 border-slate-600/50'
+                  && 'bg-slate-700/80 text-slate-200 border-slate-600/70'
               )}
             >
               {badgeText}
@@ -287,9 +287,9 @@ export default function Sidebar({
           )}
         >
           <Link href="/" className="flex items-center gap-3 group min-w-0">
-            {/* Brand mark — glowing lightning */}
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-brand/20 border border-brand/45 shadow-[0_0_10px_rgba(var(--brand),0.28)] group-hover:shadow-[0_0_16px_rgba(var(--brand),0.45)] group-hover:border-brand/70 transition-all duration-200">
-              <CloudLightning className="w-4.5 h-4.5 text-brand" />
+            {/* Brand mark — radiant illuminated lightning */}
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#E05A3E] to-[#B5482E] border border-white/20 shadow-[0_0_14px_rgba(224,90,62,0.45)] group-hover:shadow-[0_0_20px_rgba(224,90,62,0.65)] group-hover:scale-105 transition-all duration-200">
+              <CloudLightning className="w-4.5 h-4.5 text-white drop-shadow-sm" />
             </div>
 
             <AnimatePresence mode="wait">
@@ -379,16 +379,16 @@ export default function Sidebar({
                 {!isCollapsedState ? (
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full px-1.5 pt-1.5 pb-0.5 flex items-center gap-1.5 text-[10.5px] font-bold tracking-wider uppercase text-[var(--rail-text-muted)] hover:text-[var(--rail-text)] transition-colors text-left group/sec"
+                    className="w-full px-1.5 pt-2 pb-0.5 flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-slate-300 hover:text-white transition-colors text-left group/sec"
                     title={isSectionCollapsed ? `Expand ${t(`nav.section_${section.id}`)}` : `Collapse ${t(`nav.section_${section.id}`)}`}
                   >
                     <ChevronDown
                       className={cn(
-                        'w-3 h-3 transition-transform duration-200 flex-shrink-0 text-[var(--rail-text-muted)] group-hover/sec:text-[var(--rail-text)]',
+                        'w-3.5 h-3.5 transition-transform duration-200 flex-shrink-0 text-slate-400 group-hover/sec:text-white',
                         isSectionCollapsed && '-rotate-90'
                       )}
                     />
-                    <span className="transition-colors">{t(`nav.section_${section.id}`)}</span>
+                    <span className="transition-colors text-slate-300 group-hover/sec:text-white">{t(`nav.section_${section.id}`)}</span>
                   </button>
                 ) : (
                   <div className="h-px mx-1.5 my-1.5 bg-white/[0.08]" />
@@ -423,12 +423,12 @@ export default function Sidebar({
           {/* Operator label */}
           {!isCollapsedState && (
             <div className="flex items-center justify-between px-1 mb-1.5">
-              <span className="text-[10px] font-semibold tracking-wider uppercase text-[var(--rail-text-muted)]">
+              <span className="text-[10px] font-bold tracking-wider uppercase text-slate-300">
                 {t('nav.operator')}
               </span>
               {callsign && (
                 <span
-                  className="text-[10px] font-mono font-bold text-brand bg-brand/12 border border-brand/25 px-1.5 rounded"
+                  className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/20 border border-amber-500/35 px-1.5 rounded"
                   suppressHydrationWarning
                 >
                   {callsign}
@@ -444,17 +444,17 @@ export default function Sidebar({
                 href="/profile"
                 onClick={isMobile ? onMobileClose : undefined}
                 className={cn(
-                  'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-[var(--rail-border-color)] bg-[var(--rail-hover-bg)] hover:bg-[var(--rail-active-bg)]',
+                  'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-white/12 bg-white/[0.06] hover:bg-white/[0.12]',
                   isCollapsedState && 'justify-center p-1.5'
                 )}
               >
                 {/* Avatar with duty dot */}
                 <div className="relative flex-shrink-0">
                   <div
-                    className="w-8 h-8 rounded-md text-[var(--rail-text)] font-bold text-xs flex items-center justify-center bg-brand/35 border border-brand/45"
+                    className="w-8 h-8 rounded-md text-white font-bold text-xs flex items-center justify-center bg-gradient-to-br from-[#E05A3E] to-[#B5482E] border border-white/20 shadow-sm"
                     suppressHydrationWarning
                   >
-                    {profile?.avatar_initials || <User className="w-4 h-4" />}
+                    {profile?.avatar_initials || <User className="w-4 h-4 text-white" />}
                   </div>
                   {activeStatusCfg && (
                     <span
@@ -469,16 +469,16 @@ export default function Sidebar({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1">
                       <p
-                        className="text-[12px] font-semibold text-[var(--rail-text)] truncate"
+                        className="text-[12px] font-semibold text-white truncate"
                         title={operatorName}
                         suppressHydrationWarning
                       >
                         {operatorName}
                       </p>
-                      <ChevronRight className="w-3 h-3 flex-shrink-0 text-[var(--rail-text-muted)] transition-colors" />
+                      <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 text-slate-300 group-hover:text-white transition-colors" />
                     </div>
                     {operatorUnit && (
-                      <div className="flex items-center gap-1 text-[10px] text-[var(--rail-text-muted)] truncate mt-0.5">
+                      <div className="flex items-center gap-1 text-[10.5px] text-slate-300 truncate mt-0.5">
                         <span className="truncate" suppressHydrationWarning>
                           {operatorUnit}
                         </span>
@@ -496,19 +496,19 @@ export default function Sidebar({
                 }}
                 aria-label="Not signed in. Sign in"
                 className={cn(
-                  'w-full flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-[var(--rail-border-color)] bg-[var(--rail-hover-bg)] hover:bg-[var(--rail-active-bg)] text-left',
+                  'w-full flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-white/12 bg-white/[0.06] hover:bg-white/[0.12] text-left',
                   isCollapsedState && 'justify-center p-1.5'
                 )}
               >
-                <div className="w-8 h-8 rounded-md text-[var(--rail-text-muted)] flex items-center justify-center bg-[var(--rail-hover-bg)] border border-[var(--rail-border-color)] flex-shrink-0">
-                  <User className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-md text-slate-200 flex items-center justify-center bg-white/10 border border-white/15 flex-shrink-0">
+                  <User className="w-4 h-4 text-slate-200" />
                 </div>
                 {!isCollapsedState && (
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-semibold text-[var(--rail-text)] truncate">{t('common.session_inactive')}</p>
-                    <p className="flex items-center gap-1 text-[10px] text-[var(--rail-text-muted)] font-medium mt-0.5">
-                      <LogIn className="w-3 h-3 text-[var(--rail-text-muted)]" />
-                      {t('common.duty_on')}
+                    <p className="text-[12px] font-semibold text-white truncate">{t('common.session_inactive')}</p>
+                    <p className="flex items-center gap-1.5 text-[10.5px] font-medium mt-0.5">
+                      <LogIn className="w-3 h-3 text-emerald-400" />
+                      <span className="text-emerald-400 font-semibold">{t('common.duty_on')}</span>
                     </p>
                   </div>
                 )}
@@ -559,19 +559,6 @@ export default function Sidebar({
               </div>
             )}
           </div>
-
-          {/* Settings link — compact */}
-          {!isCollapsedState && (
-            <Link
-              href="/settings"
-              onClick={isMobile ? onMobileClose : undefined}
-              className="mt-1.5 flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold text-[var(--rail-text-muted)] hover:text-[var(--rail-text)] hover:bg-[var(--rail-hover-bg)] transition-all duration-150"
-              title="Platform Settings (⌘,)"
-            >
-              <Settings className="w-3.5 h-3.5 hover:rotate-45 transition-transform duration-300" />
-              <span>{t('nav.platform_settings')}</span>
-            </Link>
-          )}
         </div>
       </div>
     );
