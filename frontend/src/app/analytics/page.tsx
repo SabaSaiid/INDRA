@@ -506,9 +506,9 @@ export default function AnalyticsPage() {
                   {t('analytics.page_title')}
                 </h1>
               </div>
-              <p className="text-xs text-slate-400">{t('analytics.page_subtitle')}</p>
+              <p className="text-xs text-slate-300">{t('analytics.page_subtitle')}</p>
               {lastSyncedText && (
-                <p className="text-[10px] text-slate-500 mt-1">{lastSyncedText}</p>
+                <p className="text-[10px] text-slate-300 mt-1">{lastSyncedText}</p>
               )}
             </div>
 

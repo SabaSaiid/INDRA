@@ -139,7 +139,7 @@ export default function AdminPage() {
                 <Shield className="w-5 h-5 text-emerald-400" />
                 <h1 className="text-xl font-bold">{t('nav.admin_panel')}</h1>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-300">
                 Live dependency checks, operator accounts and the hash-chained audit ledger.
               </p>
             </div>
@@ -228,7 +228,7 @@ export default function AdminPage() {
                   <div className={`text-lg font-bold font-mono ${up ? 'text-slate-900' : 'text-rose-600'}`}>
                     {up ? 'Up' : 'Down'}
                     {check.latency_ms != null && (
-                      <span className="text-xs font-medium text-slate-400"> · {check.latency_ms} ms</span>
+                      <span className="text-xs font-medium text-slate-500"> · {check.latency_ms} ms</span>
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -318,7 +318,7 @@ export default function AdminPage() {
             {ledgerError ? (
               <p className="text-xs text-slate-500">{ledgerError}</p>
             ) : !ledger ? (
-              <p className="text-xs text-slate-400">Loading the ledger…</p>
+              <p className="text-xs text-slate-500 font-medium">Loading the ledger…</p>
             ) : ledger.rows.length === 0 ? (
               <p className="text-xs text-slate-500">
                 The ledger is empty: no event has changed status and no operator has reviewed one yet.
@@ -327,24 +327,24 @@ export default function AdminPage() {
               <div className="space-y-2 font-mono text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200">
                 {ledger.rows.map((row) => (
                   <div key={row.seq} className="flex flex-wrap items-center gap-2">
-                    <span className="text-slate-400">[{when(row.logged_at)} IST]</span>
-                    <span className="text-slate-400">#{row.seq}</span>
+                    <span className="text-slate-500 font-medium">[{when(row.logged_at)} IST]</span>
+                    <span className="text-slate-500 font-medium">#{row.seq}</span>
                     <span className="text-blue-600 font-semibold">{row.action_taken}</span>
                     <span>{row.operator_id}</span>
                     {row.reason && <span className="text-slate-500">— {row.reason}</span>}
-                    <span className="text-slate-300">{row.sha256_hash.slice(0, 12)}…</span>
+                    <span className="text-slate-500 font-medium">{row.sha256_hash.slice(0, 12)}…</span>
                   </div>
                 ))}
               </div>
             )}
-            <p className="mt-3 text-[11px] text-slate-400 flex items-center gap-1.5">
+            <p className="mt-3 text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5" />
               Edits and insertions anywhere in the chain are detected. Deleting the newest rows is
               not, without an external anchor for the head hash (BUG-010).
             </p>
           </div>
 
-              <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
                 <Server className="w-3.5 h-3.5" />
                 One backend process, PostgreSQL, Redis and Redpanda on a single host.
               </p>

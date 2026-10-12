@@ -280,7 +280,7 @@ export default function ProfilePage() {
                   {profileError instanceof Error ? profileError.message : 'the backend did not answer'}
                 </p>
               ) : (
-                <p className="text-slate-400">Loading your profile…</p>
+                <p className="text-slate-500 font-medium">Loading your profile…</p>
               )}
             </div>
           ) : (
@@ -353,8 +353,8 @@ export default function ProfilePage() {
                           )}
                         </button>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-400">
-                          <Radio className="w-3.5 h-3.5 text-slate-300" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-500">
+                          <Radio className="w-3.5 h-3.5 text-slate-400" />
                           No callsign
                         </span>
                       )}
@@ -378,7 +378,7 @@ export default function ProfilePage() {
                 {/* Duty Status Selector Controls */}
                 <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 self-start xl:self-auto space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                       Operational Duty Status
                     </span>
                     {isUpdatingStatus && (
@@ -439,8 +439,8 @@ export default function ProfilePage() {
                           <Mail className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-slate-400 block text-[11px]">Email</span>
-                          <span className={`truncate block ${profile.email ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
+                          <span className="text-slate-500 font-medium block text-[11px]">Email</span>
+                          <span className={`truncate block ${profile.email ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
                             {profile.email || 'Not on record'}
                           </span>
                         </div>
@@ -467,8 +467,8 @@ export default function ProfilePage() {
                           <Phone className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-slate-400 block text-[11px]">Phone</span>
-                          <span className={`truncate block ${profile.phone ? 'font-semibold text-slate-800' : 'text-slate-400'}`}>
+                          <span className="text-slate-500 font-medium block text-[11px]">Phone</span>
+                          <span className={`truncate block ${profile.phone ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
                             {profile.phone || 'Not on record'}
                           </span>
                         </div>
@@ -495,8 +495,8 @@ export default function ProfilePage() {
                           <Radio className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-slate-400 block text-[11px]">Radio Callsign</span>
-                          <span className={`truncate block ${profile.callsign ? 'font-mono font-bold text-slate-800' : 'text-slate-400'}`}>
+                          <span className="text-slate-500 font-medium block text-[11px]">Radio Callsign</span>
+                          <span className={`truncate block ${profile.callsign ? 'font-mono font-bold text-slate-800' : 'text-slate-500'}`}>
                             {profile.callsign || 'No callsign'}
                           </span>
                         </div>
@@ -523,8 +523,8 @@ export default function ProfilePage() {
                           <Award className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-slate-400 block text-[11px]">Badge Number</span>
-                          <span className={`truncate block ${profile.badge_number ? 'font-mono font-bold text-slate-800' : 'text-slate-400'}`}>
+                          <span className="text-slate-500 font-medium block text-[11px]">Badge Number</span>
+                          <span className={`truncate block ${profile.badge_number ? 'font-mono font-bold text-slate-800' : 'text-slate-500'}`}>
                             {profile.badge_number || 'Not on record'}
                           </span>
                         </div>
@@ -547,12 +547,12 @@ export default function ProfilePage() {
 
                   {/* Bio / Command Assignment Statement */}
                   <div className="pt-2">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
                       Command Assignment &amp; Mission Scope
                     </span>
                     <p
                       className={`text-xs leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 ${
-                        profile.bio ? 'text-text-secondary' : 'text-slate-400'
+                        profile.bio ? 'text-text-secondary' : 'text-slate-500'
                       }`}
                     >
                       {profile.bio || 'No bio on record'}
@@ -606,7 +606,7 @@ export default function ProfilePage() {
 
                   <div className="space-y-3 text-xs">
                     {currentActivities.length === 0 && (
-                      <p className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-slate-400">
+                      <p className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-slate-500 font-medium">
                         No ledger entries by this operator yet.
                       </p>
                     )}
@@ -630,7 +630,7 @@ export default function ProfilePage() {
                             <span
                               className={`font-bold block text-[11px] ${
                                 isQuarantined
-                                  ? 'text-amber-600'
+                                    ? 'text-amber-600'
                                   : isVerified
                                   ? 'text-blue-600'
                                   : isDispatched
@@ -640,14 +640,14 @@ export default function ProfilePage() {
                             >
                               {act.status}
                             </span>
-                            <span className="text-[10px] text-slate-400">{act.time}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">{act.time}</span>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100">
+                  <div className="pt-2 text-[11px] text-slate-500 font-medium border-t border-slate-100">
                     <Link href="/admin" className="hover:text-slate-700 hover:underline">
                       The chain&apos;s verification status is on Admin Command →
                     </Link>
@@ -735,7 +735,7 @@ export default function ProfilePage() {
 
                   {/* RBAC Permissions Capability Matrix */}
                   <div className="pt-2 border-t border-slate-100">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2.5">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">
                       Authorized Capabilities
                     </span>
                     <div className="space-y-2">

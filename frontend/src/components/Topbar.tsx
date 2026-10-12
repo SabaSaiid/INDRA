@@ -404,7 +404,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                                   </span>
                                   <span className={cn(
                                     'text-[9px] block truncate',
-                                    isActive ? 'text-text-muted' : 'text-text-muted',
+                                    isActive ? 'text-surface-bg/80' : 'text-text-muted',
                                   )}>
                                     {p.description}
                                   </span>

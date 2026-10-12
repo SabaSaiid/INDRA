@@ -36,6 +36,7 @@ const config: Config = {
         brand: {
           DEFAULT: withOpacity('--brand'),
           contrast: withOpacity('--brand-contrast'),
+          foreground: withOpacity('--brand-contrast'),
           soft: withOpacity('--brand-soft'),
         },
         'focus-ring': withOpacity('--focus-ring'),

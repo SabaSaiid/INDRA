@@ -139,30 +139,30 @@ function LiveStatus({ status }: { status: DataSourceStatus }) {
   return (
     <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
       <div className="rounded-lg border border-slate-100 px-2.5 py-1.5">
-        <span className="block text-[10px] text-slate-400">Status</span>
+        <span className="block text-[10px] text-slate-500 font-medium">Status</span>
         <span className={`inline-block mt-0.5 font-mono font-bold px-1.5 py-0.5 rounded border ${pill.cls}`}>
           {pill.label}
         </span>
       </div>
       <div className="rounded-lg border border-slate-100 px-2.5 py-1.5">
-        <span className="block text-[10px] text-slate-400">
+        <span className="block text-[10px] text-slate-500 font-medium">
           {status.basis === 'push' ? 'Last received' : 'Newest row'}
         </span>
         <span className="font-medium text-slate-800">
           {status.last_success_at ? `${formatIst(status.last_success_at)} IST` : 'never'}
         </span>
         {status.last_success_at && (
-          <span className="block text-[10px] text-slate-400">{formatAgo(status.last_success_at)}</span>
+          <span className="block text-[10px] text-slate-500 font-medium">{formatAgo(status.last_success_at)}</span>
         )}
       </div>
       <div className="rounded-lg border border-slate-100 px-2.5 py-1.5">
-        <span className="block text-[10px] text-slate-400">Rows, last 24 h</span>
+        <span className="block text-[10px] text-slate-500 font-medium">Rows, last 24 h</span>
         <span className="font-mono font-semibold text-slate-800">{status.rows_24h.toLocaleString('en-IN')}</span>
       </div>
       <div className="rounded-lg border border-slate-100 px-2.5 py-1.5">
-        <span className="block text-[10px] text-slate-400">Rows stored · poll</span>
+        <span className="block text-[10px] text-slate-500 font-medium">Rows stored · poll</span>
         <span className="font-mono font-semibold text-slate-800">{status.rows_total.toLocaleString('en-IN')}</span>
-        <span className="block text-[10px] text-slate-400">{everyLabel(status.poll_interval_s)}</span>
+        <span className="block text-[10px] text-slate-500 font-medium">{everyLabel(status.poll_interval_s)}</span>
       </div>
     </div>
   );
@@ -296,7 +296,7 @@ export default function DatasetsPage() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-300">
               Everything INDRA reads, where it lands in PostgreSQL, and what is not connected.
               {checkedAt && ` Checked ${formatIst(checkedAt)} IST, every minute.`}
             </p>
@@ -310,7 +310,7 @@ export default function DatasetsPage() {
           </div>
 
           {!feeds && feedsError == null && (
-            <p className="text-xs text-slate-400">Loading feed status…</p>
+            <p className="text-xs text-slate-500 font-medium">Loading feed status…</p>
           )}
 
           {feeds && (
@@ -341,21 +341,21 @@ export default function DatasetsPage() {
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">From</span>
+                        <span className="text-slate-500 font-medium block text-[10px]">From</span>
                         <span className="font-medium text-slate-800">{copy?.origin ?? 'Not described in this dashboard'}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Cadence</span>
+                        <span className="text-slate-500 font-medium block text-[10px]">Cadence</span>
                         <span className="font-medium text-slate-800">{cadenceOf(feed)}</span>
                       </div>
                       {copy && (
                         <>
                           <div>
-                            <span className="text-slate-400 block text-[10px]">Path</span>
+                            <span className="text-slate-500 font-medium block text-[10px]">Path</span>
                             <span className="font-medium text-slate-800 font-mono text-[11px]">{copy.path}</span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[10px]">Stored in</span>
+                            <span className="text-slate-500 font-medium block text-[10px]">Stored in</span>
                             <span className="font-medium text-slate-800">{copy.stores}</span>
                           </div>
                         </>
@@ -403,19 +403,19 @@ export default function DatasetsPage() {
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">From</span>
+                        <span className="text-slate-500 font-medium block text-[10px]">From</span>
                         <span className="font-medium text-slate-800">{src.origin}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Cadence</span>
+                        <span className="text-slate-500 font-medium block text-[10px]">Cadence</span>
                         <span className="font-medium text-slate-800">{src.cadence}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Path</span>
+                        <span className="text-slate-500 font-medium block text-[10px]">Path</span>
                         <span className="font-medium text-slate-800 font-mono text-[11px]">{src.path}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Stored in</span>
+                        <span className="text-slate-500 font-medium block text-[10px]">Stored in</span>
                         <span className="font-medium text-slate-800">{src.stores}</span>
                       </div>
                     </div>
@@ -445,19 +445,19 @@ export default function DatasetsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
                     <div>
-                      <span className="text-slate-400 block text-[10px]">From</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">From</span>
                       <span className="font-medium text-slate-800">{ref.origin}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px]">Use</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">Use</span>
                       <span className="font-medium text-slate-800">{ref.use}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px]">Path</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">Path</span>
                       <span className="font-medium text-slate-800 font-mono text-[11px]">{ref.path}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px]">Holds</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">Holds</span>
                       <span className="font-medium text-slate-800">{ref.stores}</span>
                     </div>
                   </div>
@@ -475,7 +475,7 @@ export default function DatasetsPage() {
               {NOT_CONNECTED.map((row) => (
                 <li key={row.name} className="flex items-center justify-between gap-4">
                   <span>{row.name}</span>
-                  <span className="text-slate-400 text-right">{row.why}</span>
+                  <span className="text-slate-500 font-medium text-right">{row.why}</span>
                 </li>
               ))}
             </ul>

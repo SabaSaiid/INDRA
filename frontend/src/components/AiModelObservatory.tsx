@@ -167,32 +167,32 @@ export default function AiModelObservatory() {
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-semibold text-slate-500 uppercase block">Total Reports</span>
           <span className="text-lg font-bold font-mono text-slate-900">{observatory.live_telemetry.total_reports}</span>
-          <span className="text-[9px] text-slate-400 block mt-0.5">Ingested highway</span>
+          <span className="text-[9px] text-slate-500 font-medium block mt-0.5">Ingested highway</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-semibold text-slate-500 uppercase block">Fused into Events</span>
           <span className="text-lg font-bold font-mono text-emerald-600">{observatory.live_telemetry.fused_reports}</span>
-          <span className="text-[9px] text-slate-400 block mt-0.5">Corroborated</span>
+          <span className="text-[9px] text-slate-500 font-medium block mt-0.5">Corroborated</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-semibold text-slate-500 uppercase block">Unfused Queue</span>
           <span className="text-lg font-bold font-mono text-amber-600">{observatory.live_telemetry.unfused_reports}</span>
-          <span className="text-[9px] text-slate-400 block mt-0.5">Awaiting neighbours</span>
+          <span className="text-[9px] text-slate-500 font-medium block mt-0.5">Awaiting neighbours</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-semibold text-slate-500 uppercase block">Duplicates Suppressed</span>
           <span className="text-lg font-bold font-mono text-slate-600">{observatory.live_telemetry.duplicate_reports}</span>
-          <span className="text-[9px] text-slate-400 block mt-0.5">Zero double-count</span>
+          <span className="text-[9px] text-slate-500 font-medium block mt-0.5">Zero double-count</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-semibold text-slate-500 uppercase block">Verified Incidents</span>
           <span className="text-lg font-bold font-mono text-purple-600">{observatory.live_telemetry.verified_events}</span>
-          <span className="text-[9px] text-slate-400 block mt-0.5">100-pt receipts</span>
+          <span className="text-[9px] text-slate-500 font-medium block mt-0.5">100-pt receipts</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-semibold text-slate-500 uppercase block">Penalising Flags</span>
           <span className="text-lg font-bold font-mono text-rose-600">{observatory.live_telemetry.flagged_reports}</span>
-          <span className="text-[9px] text-slate-400 block mt-0.5">Credibility reduced</span>
+          <span className="text-[9px] text-slate-500 font-medium block mt-0.5">Credibility reduced</span>
         </div>
       </div>
 
@@ -241,7 +241,7 @@ export default function AiModelObservatory() {
           />
 
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-slate-500 font-medium font-mono">
               Character & Word TF-IDF · 5 Categories · Softmax Calibration
             </span>
             <button
@@ -401,7 +401,7 @@ export default function AiModelObservatory() {
                   style={{ width: `${(w.weight / 25) * 100}%` }}
                 />
               </div>
-              <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 pt-0.5">
+              <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 font-medium pt-0.5">
                 <span>Weight Share: {w.weight}%</span>
                 <span className="text-emerald-600 font-semibold">{w.status}</span>
               </div>

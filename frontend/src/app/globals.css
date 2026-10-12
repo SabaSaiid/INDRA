@@ -23,7 +23,7 @@
     --rail-gradient:       linear-gradient(180deg, #182235 0%, #111827 100%);
     --rail-border-color:   rgba(255, 255, 255, 0.09);
     --rail-text:           #ffffff;
-    --rail-text-muted:     #94a3b8;
+    --rail-text-muted:     #cbd5e1;
     --rail-hover-bg:       rgba(255, 255, 255, 0.06);
     --rail-active-bg:      rgba(255, 255, 255, 0.10);
     --rail-active-border:  rgba(255, 255, 255, 0.14);
@@ -31,8 +31,8 @@
     /* Typography & Ink */
     --text:                 30  42  59; /* #1E2A3B ink */
     --text-secondary:       74  85 104; /* #4A5568 ink-2 */
-    --text-muted:          122 133 153; /* #7A8599 ink-3 */
-    --text-subtle:         156 163 175; /* #9CA3AF */
+    --text-muted:           90 102 122; /* #5A667A improved contrast >= 5.2:1 */
+    --text-subtle:         105 118 138; /* #69768A improved contrast >= 4.0:1 */
 
     /* Brand & Accent */
     --brand:               181  72  46; /* #B5482E terracotta */
@@ -95,8 +95,8 @@
 
     --text:                 30  42  59; /* #1E2A3B */
     --text-secondary:       74  85 104; /* #4A5568 */
-    --text-muted:          122 133 153; /* #7A8599 */
-    --text-subtle:         156 163 175; /* #9CA3AF */
+    --text-muted:           90 102 122; /* #5A667A improved contrast >= 5.2:1 */
+    --text-subtle:         105 118 138; /* #69768A improved contrast >= 4.0:1 */
 
     --brand:               181  72  46; /* #B5482E */
     --brand-contrast:      255 255 255;

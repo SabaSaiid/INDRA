@@ -346,7 +346,7 @@ function TeamsContent() {
                 {/* Agency and Status Chips */}
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200/70 text-xs">
-                    <span className="text-slate-400 pl-2 pr-1 font-medium">Agency:</span>
+                    <span className="text-slate-500 pl-2 pr-1 font-semibold">Agency:</span>
                     {['ALL', 'NDRF', 'SDRF', 'IMD', 'CWC'].map((ag) => (
                       <button
                         key={ag}
@@ -363,7 +363,7 @@ function TeamsContent() {
                   </div>
 
                   <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200/70 text-xs">
-                    <span className="text-slate-400 pl-2 pr-1 font-medium">Status:</span>
+                    <span className="text-slate-500 pl-2 pr-1 font-semibold">Status:</span>
                     {['ALL', 'DEPLOYED', 'AVAILABLE', 'STANDBY'].map((st) => (
                       <button
                         key={st}
@@ -453,7 +453,7 @@ function TeamsContent() {
                         <h3 className="text-base font-bold text-text-primary leading-snug">
                           {team.name}
                         </h3>
-                        <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                        <p className="text-[11px] font-mono text-slate-500 font-medium mt-0.5">
                           {team.team_code}
                         </p>
 
@@ -469,7 +469,7 @@ function TeamsContent() {
                         {/* Metadata Rows */}
                         <div className="mt-4 space-y-2 text-xs text-text-secondary">
                           <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-slate-400">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
                               <MapPin className="w-3.5 h-3.5" /> Base Location:
                             </span>
                             <span className="font-medium text-slate-700">
@@ -478,7 +478,7 @@ function TeamsContent() {
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-slate-400">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
                               <Shield className="w-3.5 h-3.5" /> Team Lead:
                             </span>
                             <span className="font-medium text-slate-700 truncate max-w-[170px]">
@@ -488,7 +488,7 @@ function TeamsContent() {
 
                           {team.radio_callsign && (
                             <div className="flex items-center justify-between">
-                              <span className="flex items-center gap-1.5 text-slate-400">
+                              <span className="flex items-center gap-1.5 text-slate-500 font-medium">
                                 <Radio className="w-3.5 h-3.5" /> Callsign:
                               </span>
                               <span className="font-mono font-semibold text-primary">
@@ -498,7 +498,7 @@ function TeamsContent() {
                           )}
 
                           <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-slate-400">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
                               <Users className="w-3.5 h-3.5" /> Unit Personnel:
                             </span>
                             <span className="font-semibold text-slate-800">
@@ -548,7 +548,7 @@ function TeamsContent() {
               </div>
 
               {!teamsLoaded && (
-                <p className="text-center py-16 text-xs text-slate-400">Loading response units…</p>
+                <p className="text-center py-16 text-xs text-slate-500 font-medium">Loading response units…</p>
               )}
 
               {teamsLoaded && !teamsError && teams.length === 0 && (
@@ -600,7 +600,7 @@ function TeamsContent() {
                     </p>
                   )}
                   {(hackathonTeam?.theme || hackathonTeam?.institution) && (
-                    <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-400">
+                    <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-300">
                       {hackathonTeam.theme && (
                         <span><strong>Theme:</strong> {hackathonTeam.theme}</span>
                       )}
@@ -611,7 +611,7 @@ function TeamsContent() {
                     </div>
                   )}
                   {teamsLoaded && !hackathonTeam && (
-                    <p className="text-slate-400 text-xs">The team&apos;s details could not be loaded from the backend.</p>
+                    <p className="text-slate-300 text-xs">The team&apos;s details could not be loaded from the backend.</p>
                   )}
                 </div>
 
@@ -681,7 +681,7 @@ function TeamsContent() {
                     </div>
 
                     <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 font-medium">
+                      <span className="text-[11px] text-slate-500 font-medium">
                         {member.role?.includes('On Leave') ? 'Inactive (On Leave)' : 'Core Contributor'}
                       </span>
                       <a
@@ -720,7 +720,7 @@ function TeamsContent() {
                     <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
                       {selectedTeam.agency}
                     </span>
-                    <span className="font-mono text-xs text-slate-400">
+                    <span className="font-mono text-xs text-slate-500 font-medium">
                       {selectedTeam.team_code}
                     </span>
                   </div>
@@ -730,7 +730,7 @@ function TeamsContent() {
                 </div>
                 <button
                   onClick={() => setIsDetailOpen(false)}
-                  className="p-2 rounded-xl hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors"
+                  className="p-2 rounded-xl hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -741,13 +741,13 @@ function TeamsContent() {
                 {/* Status & Location Cards */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-slate-400 block mb-1">Deployment Status</span>
+                    <span className="text-slate-500 font-medium block mb-1">Deployment Status</span>
                     <span className="font-bold text-slate-800 text-sm">
                       {selectedTeam.status}
                     </span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-slate-400 block mb-1">Base Jurisdiction</span>
+                    <span className="text-slate-500 font-medium block mb-1">Base Jurisdiction</span>
                     <span className="font-bold text-slate-800 text-sm">
                       {basePlace(selectedTeam.city, selectedTeam.state)}
                     </span>
@@ -789,10 +789,10 @@ function TeamsContent() {
                   <div className="space-y-2">
                     {/* The roster is user_profiles rows linked to this team. */}
                     {roster === null && (
-                      <p className="text-xs text-slate-400">Loading roster…</p>
+                      <p className="text-xs text-slate-500 font-medium">Loading roster…</p>
                     )}
                     {roster !== null && roster.length === 0 && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 font-medium">
                         No personnel records are linked to this unit.
                       </p>
                     )}
@@ -812,7 +812,7 @@ function TeamsContent() {
                         </div>
 
                         <div className="text-right">
-                          <span className="font-mono text-[10px] text-slate-400 block">
+                          <span className="font-mono text-[10px] text-slate-500 font-medium block">
                             {member.badge_number}
                           </span>
                           <span className="font-semibold text-emerald-600 text-[11px]">
