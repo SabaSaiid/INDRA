@@ -243,93 +243,93 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-          className="relative w-full max-w-[560px] h-full bg-[#F7F3EA] border-l border-[#E8E2D4] shadow-2xl overflow-y-auto"
+          className="relative w-full max-w-[560px] h-full bg-surface-bg border-l border-border shadow-2xl overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-[#F7F3EA]/95 backdrop-blur-md border-b border-[#E8E2D4] px-5 py-3.5">
+          <div className="sticky top-0 z-10 bg-surface-bg/95 backdrop-blur-md border-b border-border px-5 py-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#3C2415] flex items-center justify-center">
-                  <Shield className="w-4 h-4 text-[#E8DCC8]" />
+                <div className="w-8 h-8 rounded-lg bg-brand text-brand-foreground flex items-center justify-center">
+                  <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-[#3C2415]">
+                  <h2 className="text-sm font-bold text-text">
                     {agencyAlertDetail ? 'Official Warning' : t('receipt.title')}
                   </h2>
-                  <p className="text-[10px] text-[#8C7A6B]">
+                  <p className="text-[10px] text-text-muted">
                     {agencyAlertDetail ? (agencyAlertDetail.identifier || agencyAlertDetail.sender) : (detail?.event_code || provenance?.event?.event_code || '—')}
                   </p>
                 </div>
               </div>
-              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#E8E2D4] transition-colors">
-                <X className="w-4 h-4 text-[#8C7A6B]" />
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-muted hover:text-text">
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-6 h-6 animate-spin text-[#B5482E]" />
-              <span className="ml-2 text-sm text-[#8C7A6B]">{t('common.loading')}</span>
+              <Loader2 className="w-6 h-6 animate-spin text-brand" />
+              <span className="ml-2 text-sm text-text-muted">{t('common.loading')}</span>
             </div>
           ) : agencyAlertDetail ? (
             <div className="px-5 py-4 space-y-4">
-              <div className="bg-white rounded-xl border border-[#E8E2D4] p-4 space-y-3">
+              <div className="bg-surface rounded-xl border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-severity-high/15 text-severity-high border border-severity-high/30">
                       {agencyAlertDetail.severity || 'WARNING'}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-status-verified/15 text-status-verified border border-status-verified/30">
                       OFFICIAL ALERT IN FORCE
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[11px] font-mono font-bold text-[#B5482E] bg-[#F7F3EA] px-2 py-0.5 rounded border border-[#E8E2D4]">
+                    <span className="text-[11px] font-mono font-bold text-brand bg-surface-raised px-2 py-0.5 rounded border border-border">
                       SACHET CAP
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-[#1B2432]" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+                  <h3 className="text-base font-bold text-text font-display">
                     {agencyAlertDetail.event || 'Official Agency Warning'}
                   </h3>
-                  <p className="text-xs text-[#7A8599] mt-0.5 font-medium flex items-center gap-1.5">
-                    <Radio className="w-3.5 h-3.5 text-blue-600" />
-                    Issuing Agency: <strong className="text-slate-900">{agencyAlertDetail.sender}</strong>
+                  <p className="text-xs text-text-muted mt-0.5 font-medium flex items-center gap-1.5">
+                    <Radio className="w-3.5 h-3.5 text-brand" />
+                    Issuing Agency: <strong className="text-text">{agencyAlertDetail.sender}</strong>
                   </p>
                 </div>
 
-                <div className="bg-[#F7F3EA] rounded-xl p-3.5 text-xs space-y-2 border border-[#E8E2D4]">
-                  <p className="text-[#1B2432] font-medium leading-relaxed">{agencyAlertDetail.headline}</p>
+                <div className="bg-surface-raised rounded-xl p-3.5 text-xs space-y-2 border border-border">
+                  <p className="text-text font-medium leading-relaxed">{agencyAlertDetail.headline}</p>
                   {agencyAlertDetail.area_desc && (
-                    <p className="text-[11px] text-[#7A8599] flex items-start gap-1 pt-1.5 border-t border-[#E8E2D4]">
-                      <MapPin className="w-3.5 h-3.5 text-[#B5482E] mt-0.5 flex-shrink-0" />
+                    <p className="text-[11px] text-text-muted flex items-start gap-1 pt-1.5 border-t border-border">
+                      <MapPin className="w-3.5 h-3.5 text-brand mt-0.5 flex-shrink-0" />
                       <span><strong>Target Area:</strong> {agencyAlertDetail.area_desc}</span>
                     </p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs text-[#7A8599] pt-2 border-t border-[#E8E2D4]">
+                <div className="grid grid-cols-2 gap-3 text-xs text-text-muted pt-2 border-t border-border">
                   <div>
-                    <span className="text-[10px] uppercase font-mono block text-[#A0988A]">Urgency / Certainty</span>
-                    <span className="font-semibold text-slate-900">{agencyAlertDetail.urgency || '—'} / {agencyAlertDetail.certainty || '—'}</span>
+                    <span className="text-[10px] uppercase font-mono block text-text-muted/80">Urgency / Certainty</span>
+                    <span className="font-semibold text-text">{agencyAlertDetail.urgency || '—'} / {agencyAlertDetail.certainty || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-mono block text-[#A0988A]">Expires At (IST)</span>
-                    <span className="font-semibold text-slate-900">{agencyAlertDetail.expires_at ? new Date(agencyAlertDetail.expires_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Active in force'}</span>
+                    <span className="text-[10px] uppercase font-mono block text-text-muted/80">Expires At (IST)</span>
+                    <span className="font-semibold text-text">{agencyAlertDetail.expires_at ? new Date(agencyAlertDetail.expires_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Active in force'}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 text-xs text-blue-950 flex items-start gap-3 shadow-xs">
-                <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-brand/10 border border-brand/20 rounded-xl p-4 text-xs text-text flex items-start gap-3 shadow-2xs">
+                <ShieldCheck className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <h4 className="font-bold text-blue-950">Independent Sovereign Corroboration</h4>
-                  <p className="text-blue-800 text-[11px] leading-relaxed">
-                    This warning was officially transmitted by state and central disaster authorities via NDMA's National CAP Gateway. It serves as external ground-truth validation for INDRA's weather models and incident detection.
+                  <h4 className="font-bold text-text">Independent Sovereign Corroboration</h4>
+                  <p className="text-text-muted text-[11px] leading-relaxed">
+                    This warning was officially transmitted by state and central disaster authorities via NDMA&apos;s National CAP Gateway. It serves as external ground-truth validation for INDRA&apos;s weather models and incident detection.
                   </p>
                 </div>
               </div>
@@ -337,7 +337,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
           ) : (
             <div className="px-5 py-4 space-y-4">
               {/* ── Event Header ───────────────────────────────────── */}
-              <div className="bg-white rounded-xl border border-[#E8E2D4] p-4 space-y-3">
+              <div className="bg-surface rounded-xl border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: sevStyle.bg, color: sevStyle.text, border: `1px solid ${sevStyle.border}` }}>
@@ -348,23 +348,23 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-black text-[#3C2415] font-mono">{confidencePct}%</div>
-                    <div className="text-[10px] text-[#8C7A6B]">{t('receipt.confidence_label')}</div>
+                    <div className="text-2xl font-black text-text font-mono">{confidencePct}%</div>
+                    <div className="text-[10px] text-text-muted">{t('receipt.confidence_label')}</div>
                     {coverage !== null && (
-                      <div data-testid="factor-coverage" className="text-[10px] font-semibold text-[#6B5E53]">
+                      <div data-testid="factor-coverage" className="text-[10px] font-semibold text-text-muted">
                         coverage {Math.round(coverage * 100)}% of the model
                       </div>
                     )}
                   </div>
                 </div>
                 {detail && (
-                  <div className="flex items-center gap-4 text-xs text-[#6B5E53]">
+                  <div className="flex items-center gap-4 text-xs text-text-muted">
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {formatPlace(detail.city, detail.state, detail.place_precision)}</span>
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {detail.verified_at ? new Date(detail.verified_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</span>
                   </div>
                 )}
                 {detail?.impact_radius_km && (
-                  <div className="text-[11px] text-[#8C7A6B]">
+                  <div className="text-[11px] text-text-muted">
                     {/* Issue 3 fix: clamp impact_radius_km to per-hazard ceiling */}
                     Impact radius: {clampImpactKm(detailEventId, eventType, detail.impact_radius_km)} &bull; Quadrant: {reviewState.quadrant || '—'}
                   </div>
@@ -376,7 +376,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${reviewResult.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}
+                  className={`rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${reviewResult.success ? 'bg-status-verified/15 text-status-verified border border-status-verified/30' : 'bg-severity-critical/15 text-severity-critical border border-severity-critical/30'}`}
                 >
                   {reviewResult.success ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                   {reviewResult.message}
@@ -384,12 +384,12 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
               )}
 
               {/* ── Tabs ───────────────────────────────────────────── */}
-              <div className="flex gap-1 bg-[#EDE8DD] rounded-lg p-0.5">
+              <div className="flex gap-1 bg-surface-raised rounded-lg p-0.5 border border-border">
                 {(['receipt', 'reports', 'audit'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold transition-all ${activeTab === tab ? 'bg-white text-[#3C2415] shadow-sm' : 'text-[#8C7A6B] hover:text-[#6B5E53]'}`}
+                    className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold transition-all ${activeTab === tab ? 'bg-surface text-text shadow-2xs' : 'text-text-muted hover:text-text'}`}
                   >
                     {tab === 'receipt' ? t('receipt.title') : tab === 'reports' ? `${t('nav.field_reports')}${provenance ? ` (${provenance.reports.length})` : ''}` : `Audit${provenance ? ` (${provenance.audit.length})` : ''}`}
                   </button>
@@ -406,43 +406,43 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                     const isOffline = f.state === 'offline' || f.evidence === 'Telemetry factor offline';
                     const pct = Math.round(f.score * 100);
                     return (
-                      <div key={i} className={`bg-white rounded-lg border border-[#E8E2D4] p-3 ${isOffline ? 'opacity-60' : ''}`}>
+                      <div key={i} className={`bg-surface rounded-lg border border-border p-3 ${isOffline ? 'opacity-60' : ''}`}>
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: cfg.bgColor, color: cfg.color }}>
                               {cfg.icon}
                             </div>
                             <div>
-                              <div className="text-xs font-semibold text-[#3C2415]">{FACTOR_LABEL_MAP[f.factor] || f.factor}</div>
-                              <div className="text-[10px] text-[#8C7A6B]">Weight: {f.weight_pct}%</div>
+                              <div className="text-xs font-semibold text-text">{FACTOR_LABEL_MAP[f.factor] || f.factor}</div>
+                              <div className="text-[10px] text-text-muted">Weight: {f.weight_pct}%</div>
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-sm font-bold font-mono" style={{ color: isOffline ? '#9CA3AF' : cfg.color }}>{isOffline ? '—' : `${pct}%`}</div>
-                            <div className="text-[10px] text-[#8C7A6B]">{f.weighted_points?.toFixed(3) ?? '—'} pts</div>
+                            <div className="text-[10px] text-text-muted">{f.weighted_points?.toFixed(3) ?? '—'} pts</div>
                           </div>
                         </div>
                         {/* Progress bar */}
-                        <div className="h-1.5 bg-[#F0EBE0] rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-surface-raised rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${pct}%`, background: isOffline ? '#D1D5DB' : cfg.color }}
                           />
                         </div>
-                        <div className="text-[10px] mt-1 text-[#8C7A6B] italic">{f.evidence}</div>
+                        <div className="text-[10px] mt-1 text-text-muted italic">{f.evidence}</div>
                       </div>
                     );
                   }) : (
-                    <div className="bg-white rounded-lg border border-[#E8E2D4] p-6 text-center text-sm text-[#8C7A6B]">
+                    <div className="bg-surface rounded-lg border border-border p-6 text-center text-sm text-text-muted">
                       <Eye className="w-5 h-5 mx-auto mb-2 opacity-40" />
                       No verification receipt data available.<br />
                       <span className="text-[10px]">Receipt data is generated when the backend pipeline processes reports into events.</span>
                     </div>
                   )}
                   {factors.length > 0 && coverage !== null && totalWeighted !== null && coverage > 0 && (
-                    <div data-testid="receipt-arithmetic" className="rounded-lg bg-[#EDE8DD] px-3 py-2 text-[11px] font-mono text-[#3C2415]">
+                    <div data-testid="receipt-arithmetic" className="rounded-lg bg-surface-raised border border-border px-3 py-2 text-[11px] font-mono text-text">
                       {totalWeighted.toFixed(4)} points ÷ {coverage.toFixed(2)} coverage = {(totalWeighted / coverage).toFixed(4)}
-                      <span className="block text-[10px] text-[#8C7A6B] font-sans">
+                      <span className="block text-[10px] text-text-muted font-sans">
                         Offline factors carry no weight; the score is the mean over the factors that reported.
                       </span>
                     </div>
@@ -456,25 +456,25 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   {provenance && provenance.reports.length > 0 ? (
                     <>
                       {(reportsExpanded ? provenance.reports : provenance.reports.slice(0, 5)).map((r: ProvenanceReport, i: number) => (
-                        <div key={r.id} className="bg-white rounded-lg border border-[#E8E2D4] p-3">
+                        <div key={r.id} className="bg-surface rounded-lg border border-border p-3">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-1.5 mb-1">
-                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F0EBE0] text-[#6B5E53]">{r.source_type}</span>
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-raised text-text-muted">{r.source_type}</span>
                                 {r.submitted_by && (
-                                  <span className="text-[10px] text-[#6B5E53]">filed by {r.submitted_by}</span>
+                                  <span className="text-[10px] text-text-muted">filed by {r.submitted_by}</span>
                                 )}
-                                <span className="text-[10px] text-[#8C7A6B]">#{i + 1}</span>
+                                <span className="text-[10px] text-text-muted">#{i + 1}</span>
                               </div>
-                              <p className="text-xs text-[#3C2415] leading-relaxed line-clamp-2">{r.raw_text}</p>
-                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-[#8C7A6B]">
+                              <p className="text-xs text-text leading-relaxed line-clamp-2">{r.raw_text}</p>
+                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-muted">
                                 <span><MapPin className="w-2.5 h-2.5 inline mr-0.5" />{r.latitude?.toFixed(3)}, {r.longitude?.toFixed(3)}</span>
                                 <span><Clock className="w-2.5 h-2.5 inline mr-0.5" />{r.created_at ? new Date(r.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                               </div>
                             </div>
                             <div className="text-right ml-3">
-                              <div className="text-xs font-bold font-mono text-[#B5482E]">{(r.credibility_score * 100).toFixed(0)}%</div>
-                              <div className="text-[9px] text-[#8C7A6B]">credibility</div>
+                              <div className="text-xs font-bold font-mono text-brand">{(r.credibility_score * 100).toFixed(0)}%</div>
+                              <div className="text-[9px] text-text-muted">credibility</div>
                             </div>
                           </div>
                         </div>
@@ -482,14 +482,14 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                       {provenance.reports.length > 5 && (
                         <button
                           onClick={() => setReportsExpanded(!reportsExpanded)}
-                          className="w-full py-2 text-xs font-semibold text-[#B5482E] hover:text-[#8C3420] flex items-center justify-center gap-1"
+                          className="w-full py-2 text-xs font-semibold text-brand hover:text-brand/80 flex items-center justify-center gap-1"
                         >
                           {reportsExpanded ? <><ChevronUp className="w-3.5 h-3.5" /> Show less</> : <><ChevronDown className="w-3.5 h-3.5" /> Show all {provenance.reports.length} reports</>}
                         </button>
                       )}
                     </>
                   ) : (
-                    <div className="bg-white rounded-lg border border-[#E8E2D4] p-6 text-center text-sm text-[#8C7A6B]">
+                    <div className="bg-surface rounded-lg border border-border p-6 text-center text-sm text-text-muted">
                       <FileText className="w-5 h-5 mx-auto mb-2 opacity-40" />
                       {provenance === null ? provenanceGate : 'No contributing reports found.'}
                     </div>
@@ -502,29 +502,29 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 <div className="space-y-3">
                   {/* Chain verification status */}
                   {provenance?.chain && (
-                    <div className={`rounded-lg px-4 py-2.5 flex items-center gap-2 text-xs font-semibold border ${provenance.chain.valid ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'}`}>
+                    <div className={`rounded-lg px-4 py-2.5 flex items-center gap-2 text-xs font-semibold border ${provenance.chain.valid ? 'bg-status-verified/15 text-status-verified border-status-verified/30' : 'bg-severity-critical/15 text-severity-critical border-severity-critical/30'}`}>
                       {provenance.chain.valid ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
                       {provenance.chain.valid ? `Hash chain verified — ${provenance.chain.checked} blocks checked` : `Chain integrity error: ${provenance.chain.error || 'tampered'}`}
                     </div>
                   )}
 
                   {provenance && provenance.audit.length > 0 ? provenance.audit.map((a: AuditEntry, i: number) => (
-                    <div key={a.seq} className="bg-white rounded-lg border border-[#E8E2D4] p-3 space-y-2">
+                    <div key={a.seq} className="bg-surface rounded-lg border border-border p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md bg-[#3C2415] flex items-center justify-center text-[#E8DCC8]">
+                          <div className="w-6 h-6 rounded-md bg-surface-raised flex items-center justify-center text-text-muted border border-border">
                             <Hash className="w-3 h-3" />
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-[#3C2415] uppercase">{a.action_taken.replace(/_/g, ' ')}</span>
-                            <div className="text-[10px] text-[#8C7A6B]">Block #{a.seq} • {a.operator_id}</div>
+                            <span className="text-xs font-bold text-text uppercase">{a.action_taken.replace(/_/g, ' ')}</span>
+                            <div className="text-[10px] text-text-muted">Block #{a.seq} • {a.operator_id}</div>
                           </div>
                         </div>
-                        <div className="text-[10px] text-[#8C7A6B]">{new Date(a.logged_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'medium' })}</div>
+                        <div className="text-[10px] text-text-muted">{new Date(a.logged_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'medium' })}</div>
                       </div>
-                      {a.reason && <div className="text-[11px] text-[#6B5E53] italic pl-8">&ldquo;{a.reason}&rdquo;</div>}
+                      {a.reason && <div className="text-[11px] text-text-muted italic pl-8">&ldquo;{a.reason}&rdquo;</div>}
                       {a.details && (
-                        <div className="text-[10px] text-[#8C7A6B] pl-8 space-y-0.5">
+                        <div className="text-[10px] text-text-muted pl-8 space-y-0.5">
                           {a.details.from_status && <div>Status: {a.details.from_status} → {a.details.to_status}</div>}
                           {a.details.from_severity && <div>Severity: {a.details.from_severity} → {a.details.to_severity}</div>}
                           {typeof a.details.confidence_score === 'number' && !isNaN(a.details.confidence_score) && (
@@ -533,18 +533,18 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                         </div>
                       )}
                       <div className="pl-8">
-                        <div className="text-[9px] font-mono text-[#B0A898] break-all">
+                        <div className="text-[9px] font-mono text-text-muted/80 break-all">
                           <Lock className="w-2.5 h-2.5 inline mr-1 opacity-50" />SHA-256: {a.sha256_hash}
                         </div>
                         {i > 0 && (
-                          <div className="text-[9px] font-mono text-[#B0A898] break-all mt-0.5 opacity-60">
+                          <div className="text-[9px] font-mono text-text-muted/60 break-all mt-0.5">
                             prev: {a.prev_hash}
                           </div>
                         )}
                       </div>
                     </div>
                   )) : (
-                    <div className="bg-white rounded-lg border border-[#E8E2D4] p-6 text-center text-sm text-[#8C7A6B]">
+                    <div className="bg-surface rounded-lg border border-border p-6 text-center text-sm text-text-muted">
                       <Lock className="w-5 h-5 mx-auto mb-2 opacity-40" />
                       {provenance === null ? provenanceGate : 'No audit entries for this event.'}
                     </div>
@@ -554,11 +554,11 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
 
               {/* ── Commander Review Action Bar ────────────────────── */}
               {canReview && reviewStatus !== 'REJECTED' && (
-                <div className="bg-white rounded-xl border border-[#E8E2D4] p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#3C2415] uppercase">
-                    <Radio className="w-3.5 h-3.5 text-[#B5482E]" />
+                <div className="bg-surface rounded-xl border border-border p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-text uppercase">
+                    <Radio className="w-3.5 h-3.5 text-brand" />
                     {t('receipt.commander_review')}
-                    {session && <span className="text-[9px] font-normal normal-case text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">Signed in as {session.username}</span>}
+                    {session && <span className="text-[9px] font-normal normal-case text-status-verified px-1.5 py-0.5 bg-status-verified/15 rounded-full border border-status-verified/30">Signed in as {session.username}</span>}
                   </div>
 
                   {!reviewAction ? (
@@ -566,20 +566,20 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                       {reviewStatus !== 'HUMAN_APPROVED' && (
                         <button
                           onClick={() => setReviewAction('approve')}
-                          className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
+                          className="flex-1 py-2 rounded-lg bg-status-verified text-white text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" /> {t('receipt.approve_btn')}
                         </button>
                       )}
                       <button
                         onClick={() => setReviewAction('reject')}
-                        className="flex-1 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2 rounded-lg bg-severity-critical text-white text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
                       >
                         <XCircle className="w-3.5 h-3.5" /> {t('receipt.reject_btn')}
                       </button>
                       <button
                         onClick={() => setReviewAction('override_severity')}
-                        className="flex-1 py-2 rounded-lg bg-[#3C2415] text-white text-xs font-semibold hover:bg-[#5C3B27] transition-colors flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2 rounded-lg bg-surface-raised text-text border border-border text-xs font-semibold hover:bg-surface-raised/80 transition-colors flex items-center justify-center gap-1.5"
                       >
                         <ArrowUpDown className="w-3.5 h-3.5" /> Override
                       </button>
@@ -587,14 +587,14 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                   ) : (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[#3C2415] capitalize">{reviewAction.replace(/_/g, ' ')}</span>
-                        <button onClick={() => { setReviewAction(null); setReviewReason(''); }} className="text-[10px] text-[#B5482E] hover:underline">{t('common.cancel')}</button>
+                        <span className="text-xs font-semibold text-text capitalize">{reviewAction.replace(/_/g, ' ')}</span>
+                        <button onClick={() => { setReviewAction(null); setReviewReason(''); }} className="text-[10px] text-brand hover:underline">{t('common.cancel')}</button>
                       </div>
                       {reviewAction === 'override_severity' && (
                         <select
                           value={overrideSeverity}
                           onChange={(e) => setOverrideSeverity(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg border border-[#E8E2D4] text-xs bg-[#F7F3EA] text-[#3C2415]"
+                          className="w-full px-3 py-1.5 rounded-lg border border-border text-xs bg-surface-raised text-text"
                         >
                           <option value="">Select new severity…</option>
                           <option value="ADVISORY">Advisory</option>
@@ -607,13 +607,13 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                         value={reviewReason}
                         onChange={(e) => setReviewReason(e.target.value)}
                         placeholder="Reason for decision (min 5 characters)…"
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E2D4] text-xs bg-[#F7F3EA] text-[#3C2415] placeholder:text-[#B0A898] resize-none h-16 focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
+                        className="w-full px-3 py-2 rounded-lg border border-border text-xs bg-surface-raised text-text placeholder:text-text-muted resize-none h-16 focus:outline-none focus:ring-2 focus:ring-brand/20"
                       />
                       <button
                         onClick={handleReview}
                         disabled={reviewLoading || reviewReason.length < 5 || (reviewAction === 'override_severity' && !overrideSeverity)}
                         className="w-full py-2 rounded-lg text-white text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                        style={{ background: reviewAction === 'reject' ? '#DC2626' : reviewAction === 'approve' ? '#059669' : '#3C2415' }}
+                        style={{ background: reviewAction === 'reject' ? 'var(--severity-critical)' : reviewAction === 'approve' ? 'var(--status-verified)' : 'var(--brand)' }}
                       >
                         {reviewLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Shield className="w-3.5 h-3.5" />}
                         {reviewLoading ? 'Submitting…' : `Confirm ${reviewAction.replace(/_/g, ' ')}`}
@@ -623,7 +623,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 </div>
               )}
               {!canReview && reviewStatus !== 'REJECTED' && (
-                <p className="text-[11px] text-[#8C7A6B] text-center">
+                <p className="text-[11px] text-text-muted text-center">
                   {session
                     ? `Reviewing needs a Commander or Admin account; current perspective is ${roleLabel(currentRole || session.role)}.`
                     : 'Sign in as a Commander or Admin to approve, reject or override this event.'}

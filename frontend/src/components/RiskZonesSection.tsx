@@ -1171,19 +1171,19 @@ export default function RiskZonesSection() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800 text-[10px]">
                     <div>
-                      <span className="text-slate-400 block">IMD Station (w=0.35)</span>
+                      <span className="text-slate-300 block">IMD Station (w=0.35)</span>
                       <span className="text-emerald-400 font-bold">{activeMetrics.weatherStation}%</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Density (w=0.25)</span>
+                      <span className="text-slate-300 block">Density (w=0.25)</span>
                       <span className="text-emerald-400 font-bold">{activeMetrics.independentSource}%</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Spatial (w=0.20)</span>
+                      <span className="text-slate-300 block">Spatial (w=0.20)</span>
                       <span className="text-emerald-400 font-bold">{activeMetrics.locationTime}%</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Reliability (w=0.20)</span>
+                      <span className="text-slate-300 block">Reliability (w=0.20)</span>
                       <span className="text-emerald-400 font-bold">{activeMetrics.sourceReliability}%</span>
                     </div>
                   </div>
@@ -1203,25 +1203,25 @@ export default function RiskZonesSection() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
                     <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block text-[10px]">Primary METAR Station</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">Primary METAR Station</span>
                       <span className="font-semibold text-slate-800 font-mono">
                         {nearestMetar ? `${nearestMetar.station.icao} — ${nearestMetar.station.name}` : 'VIDP — New Delhi Intl'}
                       </span>
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block text-[10px]">Distance to Event Centroid</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">Distance to Event Centroid</span>
                       <span className="font-semibold text-slate-800 font-mono">
                         {nearestMetar ? `${nearestMetar.distanceKm} km (Within 50km Corroboration Window)` : 'Central Network Sync'}
                       </span>
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block text-[10px]">Physical Contradiction Check</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">Physical Contradiction Check</span>
                       <span className="font-semibold text-emerald-700 font-mono">
                         {activeMetrics.contradictionStatus || '0 Contradictions (PASS)'}
                       </span>
                     </div>
                     <div className="p-2 rounded bg-white border border-slate-200">
-                      <span className="text-slate-400 block text-[10px]">Effective Reporters (n_eff)</span>
+                      <span className="text-slate-500 font-medium block text-[10px]">Effective Reporters (n_eff)</span>
                       <span className="font-semibold text-slate-800 font-mono">
                         {activeMetrics.reportsCount} Independent Witnesses
                       </span>
@@ -1342,15 +1342,15 @@ export default function RiskZonesSection() {
                 {/* 3-Point Forensic Verification Grid */}
                 <div className="grid grid-cols-3 gap-2 bg-[#FAF8F5] p-2.5 rounded-lg border border-[#E8E2D4] text-[11px]">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Consensus Score</span>
+                    <span className="text-slate-500 font-medium block text-[10px]">Consensus Score</span>
                     <span className="font-mono font-bold text-emerald-700">{selectedEvidence.score}% Corroborated</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">EXIF & Timestamp</span>
+                    <span className="text-slate-500 font-medium block text-[10px]">EXIF & Timestamp</span>
                     <span className="text-slate-700 font-semibold font-mono">Matched (0.2s)</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Physical Audit</span>
+                    <span className="text-slate-500 font-medium block text-[10px]">Physical Audit</span>
                     <span className="text-emerald-700 font-semibold font-mono">0 Contradictions</span>
                   </div>
                 </div>

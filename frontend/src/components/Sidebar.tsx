@@ -152,19 +152,17 @@ export default function Sidebar({
           onClick={isMobile ? onMobileClose : undefined}
           title={navLabel}
           className={cn(
-            'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 outline-none select-none',
+            'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium outline-none select-none rail-nav-item',
             isCollapsedState ? 'justify-center px-2' : 'justify-between',
-            isActive
-              ? 'text-white bg-white/[0.10] border border-white/[0.14]'
-              : 'text-slate-300 hover:text-white hover:bg-white/[0.06] border border-transparent'
+            isActive && 'active font-semibold'
           )}
           aria-current={isActive ? 'page' : undefined}
         >
-          {/* Terracotta active spine with glow */}
+          {/* Active spine with glow */}
           {isActive && (
             <motion.div
               layoutId={isMobile ? 'mobile-sidebar-active-bar' : 'sidebar-active-bar'}
-              className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[#E05D38] shadow-[0_0_8px_rgba(224,93,56,0.55)]"
+              className="absolute left-0 top-1.5 bottom-1.5 w-[3.5px] rounded-r-full rail-active-spine"
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             />
           )}
@@ -172,23 +170,16 @@ export default function Sidebar({
           {/* Icon + label */}
           <div className="flex items-center gap-3 min-w-0 z-10">
             <div className="relative flex-shrink-0">
-              <Icon
-                className={cn(
-                  'w-[18px] h-[18px] transition-all duration-200',
-                  isActive
-                    ? 'text-white'
-                    : 'text-slate-400 group-hover:text-slate-200'
-                )}
-              />
+              <Icon className="w-[18px] h-[18px] rail-nav-icon" />
               {/* Collapsed micro-badge dot */}
               {isCollapsedState && item.badge && (
                 <span
                   className={cn(
-                    'absolute -top-1 -right-1 w-2 h-2 rounded-full ring-[1.5px] ring-[#182235]',
-                    item.badge.variant === 'live' && 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]',
-                    item.badge.variant === 'critical' && 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]',
-                    item.badge.variant === 'warning' && 'bg-amber-400',
-                    item.badge.variant === 'neutral' && 'bg-slate-400'
+                    'absolute -top-1 -right-1 w-2 h-2 rounded-full ring-[1.5px] ring-surface-rail',
+                    item.badge.variant === 'live' && 'bg-status-verified shadow-[0_0_6px_rgba(var(--status-verified),0.7)]',
+                    item.badge.variant === 'critical' && 'bg-severity-critical shadow-[0_0_6px_rgba(var(--severity-critical),0.7)]',
+                    item.badge.variant === 'warning' && 'bg-severity-high',
+                    item.badge.variant === 'neutral' && 'bg-severity-low'
                   )}
                 />
               )}
@@ -197,10 +188,7 @@ export default function Sidebar({
             {!isCollapsedState && (
               <span
                 title={navLabel}
-                className={cn(
-                  'truncate block text-[13px] leading-normal py-0.5',
-                  isActive ? 'font-semibold text-white' : 'font-medium text-slate-300 group-hover:text-white'
-                )}
+                className="truncate block text-[13px] leading-normal py-0.5"
               >
                 {navLabel}
               </span>
@@ -212,15 +200,13 @@ export default function Sidebar({
             <span
               className={cn(
                 'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-normal border flex-shrink-0 ml-auto z-10',
-                item.badge.variant === 'live'
-                  && 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_6px_rgba(16,185,129,0.15)]',
-                item.badge.variant === 'critical'
-                  && 'bg-rose-500/20 text-rose-200 border-rose-500/40 animate-pulse',
-                item.badge.variant === 'warning'
-                  && 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-                item.badge.variant === 'neutral'
-                  && 'bg-slate-700/60 text-slate-300 border-slate-600/50'
+                item.badge.variant === 'critical' && 'animate-pulse'
               )}
+              style={{
+                backgroundColor: `var(--rail-badge-${item.badge.variant === 'critical' ? 'crit' : item.badge.variant === 'warning' ? 'warn' : item.badge.variant === 'live' ? 'live' : 'neutral'}-bg)`,
+                color: `var(--rail-badge-${item.badge.variant === 'critical' ? 'crit' : item.badge.variant === 'warning' ? 'warn' : item.badge.variant === 'live' ? 'live' : 'neutral'}-text)`,
+                borderColor: `var(--rail-badge-${item.badge.variant === 'critical' ? 'crit' : item.badge.variant === 'warning' ? 'warn' : item.badge.variant === 'live' ? 'live' : 'neutral'}-border)`,
+              }}
             >
               {badgeText}
             </span>
@@ -237,23 +223,22 @@ export default function Sidebar({
               'group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0'
             )}
           >
-            <div className="bg-slate-900/96 backdrop-blur-md text-white border border-slate-700/70 rounded-xl p-3 shadow-2xl min-w-[200px] max-w-[250px] relative">
-              <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-slate-900 border-l border-b border-slate-700/70 transform rotate-45" />
+            <div className="bg-surface-raised text-text border border-border rounded-xl p-3 shadow-2xl min-w-[200px] max-w-[250px] relative">
+              <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-surface-raised border-l border-b border-border transform rotate-45" />
 
               <div className="relative z-10 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-[12px] text-white">
+                  <span className="font-semibold text-[12px] text-text">
                     {navLabel}
                   </span>
                   {item.badge && (
                     <span
-                      className={cn(
-                        'text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-normal',
-                        item.badge.variant === 'live' && 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-                        item.badge.variant === 'critical' && 'bg-rose-500/25 text-rose-300 border-rose-500/40',
-                        item.badge.variant === 'warning' && 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-                        item.badge.variant === 'neutral' && 'bg-slate-700 text-slate-300 border-slate-600'
-                      )}
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-normal"
+                      style={{
+                        backgroundColor: `var(--rail-badge-${item.badge.variant === 'critical' ? 'crit' : item.badge.variant === 'warning' ? 'warn' : item.badge.variant === 'live' ? 'live' : 'neutral'}-bg)`,
+                        color: `var(--rail-badge-${item.badge.variant === 'critical' ? 'crit' : item.badge.variant === 'warning' ? 'warn' : item.badge.variant === 'live' ? 'live' : 'neutral'}-text)`,
+                        borderColor: `var(--rail-badge-${item.badge.variant === 'critical' ? 'crit' : item.badge.variant === 'warning' ? 'warn' : item.badge.variant === 'live' ? 'live' : 'neutral'}-border)`,
+                      }}
                     >
                       {badgeText}
                     </span>
@@ -261,7 +246,7 @@ export default function Sidebar({
                 </div>
 
                 {item.description && (
-                  <p className="text-[11px] leading-snug text-slate-400">
+                  <p className="text-[11px] leading-snug text-text-muted">
                     {item.description}
                   </p>
                 )}
@@ -282,14 +267,14 @@ export default function Sidebar({
         {/* Brand header — aligns with topbar h-14 */}
         <div
           className={cn(
-            'flex items-center h-14 border-b border-white/10 flex-shrink-0',
+            'flex items-center h-14 border-b border-[var(--rail-border-color)] flex-shrink-0',
             isCollapsedState ? 'justify-center px-2' : 'justify-between px-3.5'
           )}
         >
           <Link href="/" className="flex items-center gap-3 group min-w-0">
-            {/* Brand mark — glowing terracotta lightning */}
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#B5482E]/20 border border-[#B5482E]/45 shadow-[0_0_10px_rgba(181,72,46,0.28)] group-hover:shadow-[0_0_16px_rgba(181,72,46,0.45)] group-hover:border-[#B5482E]/70 transition-all duration-200">
-              <CloudLightning className="w-4.5 h-4.5 text-[#F97316]" />
+            {/* Brand mark — radiant illuminated lightning */}
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 rail-logo-badge group-hover:scale-105 transition-all duration-200">
+              <CloudLightning className="w-4.5 h-4.5 drop-shadow-sm" style={{ color: 'var(--rail-logo-icon)' }} />
             </div>
 
             <AnimatePresence mode="wait">
@@ -301,11 +286,10 @@ export default function Sidebar({
                   transition={{ duration: 0.18 }}
                   className="overflow-hidden whitespace-nowrap min-w-0"
                 >
-                  {/* Removed 25 Sep: a version chip; INDRA has no release numbering. */}
                   <div className="flex items-center gap-2">
                     <h1
-                      className="text-white font-bold text-[15px] tracking-wide"
-                      style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                      className="font-bold text-[15px] tracking-wide"
+                      style={{ color: 'var(--rail-text)', fontFamily: 'var(--font-display, Fraunces, Georgia, serif)' }}
                     >
                       INDRA
                     </h1>
@@ -316,11 +300,11 @@ export default function Sidebar({
                       className={cn(
                         'w-1.5 h-1.5 rounded-full inline-block',
                         connected
-                          ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)] animate-pulse'
-                          : 'bg-amber-400/80'
+                          ? 'bg-status-verified shadow-[0_0_6px_rgba(var(--status-verified),0.8)] animate-pulse'
+                          : 'bg-severity-high'
                       )}
                     />
-                    <p className={cn('text-[10px] font-medium', connected ? 'text-emerald-400/90' : 'text-amber-300/90')}>
+                    <p className={cn('text-[10px] font-semibold', connected ? 'text-status-verified' : 'text-severity-high')}>
                       {connected ? 'Live' : 'Offline — reconnecting'}
                     </p>
                   </div>
@@ -333,7 +317,7 @@ export default function Sidebar({
           {!isMobile && !isCollapsedState && (
             <button
               onClick={onToggle}
-              className="flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 text-slate-500 hover:text-slate-200 hover:bg-white/[0.08] border border-white/10 hover:border-white/25 flex-shrink-0"
+              className="flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 rail-collapse-btn flex-shrink-0"
               title="Collapse sidebar ( [ or ⌘B )"
               aria-label="Collapse sidebar"
             >
@@ -347,7 +331,7 @@ export default function Sidebar({
           <div className="pt-2 pb-1 px-2 flex justify-center flex-shrink-0">
             <button
               onClick={onToggle}
-              className="p-1.5 rounded-md transition-all duration-150 border border-white/12 text-slate-500 hover:text-slate-200 hover:bg-white/[0.08] hover:border-white/25"
+              className="p-1.5 rounded-md transition-all duration-150 rail-collapse-btn"
               title="Expand sidebar"
               aria-label="Expand sidebar"
             >
@@ -359,12 +343,12 @@ export default function Sidebar({
         {/* Navigation */}
         <div
           className={cn(
-            'min-h-0 flex-1 px-2.5 py-2.5 space-y-3',
+            'min-h-0 flex-1 px-2.5 py-1.5 space-y-2',
             isCollapsedState
               ? 'overflow-visible'
               : 'overflow-y-auto overflow-x-hidden'
           )}
-          style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.12) transparent' }}
+          style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--rail-scrollbar, rgba(255,255,255,0.25)) transparent' }}
         >
           {navSections.map((section) => {
             const sectionItems = navItems.filter(
@@ -380,19 +364,19 @@ export default function Sidebar({
                 {!isCollapsedState ? (
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full px-1.5 pt-2 pb-1 flex items-center gap-1.5 text-[10.5px] font-semibold tracking-wider uppercase text-slate-500 hover:text-slate-300 transition-colors text-left group/sec"
+                    className="w-full px-1.5 pt-2 pb-0.5 flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-left group/sec rail-section-toggle"
                     title={isSectionCollapsed ? `Expand ${t(`nav.section_${section.id}`)}` : `Collapse ${t(`nav.section_${section.id}`)}`}
                   >
                     <ChevronDown
                       className={cn(
-                        'w-3 h-3 transition-transform duration-200 flex-shrink-0',
+                        'w-3.5 h-3.5 transition-transform duration-200 flex-shrink-0 rail-section-chevron',
                         isSectionCollapsed && '-rotate-90'
                       )}
                     />
                     <span className="transition-colors">{t(`nav.section_${section.id}`)}</span>
                   </button>
                 ) : (
-                  <div className="h-px mx-1.5 my-2 bg-white/[0.08]" />
+                  <div className="h-px mx-1.5 my-1.5" style={{ backgroundColor: 'var(--rail-border-color)' }} />
                 )}
 
                 <AnimatePresence initial={false}>
@@ -416,20 +400,20 @@ export default function Sidebar({
         {/* Footer — operator identity */}
         <div
           className={cn(
-            'p-2.5 border-t border-white/[0.09] mt-auto flex-shrink-0',
+            'p-2.5 border-t border-[var(--rail-border-color)] mt-auto flex-shrink-0',
             isCollapsedState && 'px-2'
           )}
-          style={{ background: 'rgba(0,0,0,0.18)' }}
+          style={{ background: 'var(--rail-hover-bg)' }}
         >
           {/* Operator label */}
           {!isCollapsedState && (
             <div className="flex items-center justify-between px-1 mb-1.5">
-              <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500">
+              <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'var(--rail-section-header)' }}>
                 {t('nav.operator')}
               </span>
               {callsign && (
                 <span
-                  className="text-[10px] font-mono font-bold text-[#F97316] bg-[#B5482E]/12 border border-[#B5482E]/25 px-1.5 rounded"
+                  className="text-[10px] font-mono font-bold px-1.5 rounded rail-callsign-pill"
                   suppressHydrationWarning
                 >
                   {callsign}
@@ -445,21 +429,21 @@ export default function Sidebar({
                 href="/profile"
                 onClick={isMobile ? onMobileClose : undefined}
                 className={cn(
-                  'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.09] hover:border-white/[0.18]',
+                  'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none rail-operator-card',
                   isCollapsedState && 'justify-center p-1.5'
                 )}
               >
                 {/* Avatar with duty dot */}
                 <div className="relative flex-shrink-0">
                   <div
-                    className="w-8 h-8 rounded-md text-white font-bold text-xs flex items-center justify-center bg-[#B5482E]/35 border border-[#B5482E]/45"
+                    className="w-8 h-8 rounded-md font-bold text-xs flex items-center justify-center rail-operator-avatar shadow-sm"
                     suppressHydrationWarning
                   >
                     {profile?.avatar_initials || <User className="w-4 h-4" />}
                   </div>
                   {activeStatusCfg && (
                     <span
-                      className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ring-[1.5px] ring-[#182235]"
+                      className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ring-[1.5px] ring-surface-rail"
                       style={{ backgroundColor: activeStatusCfg.dot }}
                     />
                   )}
@@ -470,16 +454,17 @@ export default function Sidebar({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1">
                       <p
-                        className="text-[12px] font-semibold text-white truncate"
+                        className="text-[12px] font-semibold truncate"
+                        style={{ color: 'var(--rail-text)' }}
                         title={operatorName}
                         suppressHydrationWarning
                       >
                         {operatorName}
                       </p>
-                      <ChevronRight className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                      <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 transition-colors" style={{ color: 'var(--rail-section-header)' }} />
                     </div>
                     {operatorUnit && (
-                      <div className="flex items-center gap-1 text-[10px] text-slate-500 truncate mt-0.5">
+                      <div className="flex items-center gap-1 text-[10.5px] truncate mt-0.5" style={{ color: 'var(--rail-text-muted)' }}>
                         <span className="truncate" suppressHydrationWarning>
                           {operatorUnit}
                         </span>
@@ -497,19 +482,19 @@ export default function Sidebar({
                 }}
                 aria-label="Not signed in. Sign in"
                 className={cn(
-                  'w-full flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.09] hover:border-white/[0.18] text-left',
+                  'w-full flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 outline-none text-left rail-operator-card',
                   isCollapsedState && 'justify-center p-1.5'
                 )}
               >
-                <div className="w-8 h-8 rounded-md text-slate-300 flex items-center justify-center bg-white/[0.06] border border-white/[0.12] flex-shrink-0">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 rail-operator-icon-box">
                   <User className="w-4 h-4" />
                 </div>
                 {!isCollapsedState && (
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-semibold text-white truncate">{t('common.session_inactive')}</p>
-                    <p className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">
+                    <p className="text-[12px] font-semibold truncate" style={{ color: 'var(--rail-text)' }}>{t('common.session_inactive')}</p>
+                    <p className="flex items-center gap-1.5 text-[10.5px] font-medium mt-0.5" style={{ color: 'var(--rail-status-duty)' }}>
                       <LogIn className="w-3 h-3" />
-                      {t('common.duty_on')}
+                      <span className="font-semibold">{t('common.duty_on')}</span>
                     </p>
                   </div>
                 )}
@@ -525,16 +510,16 @@ export default function Sidebar({
                   'opacity-0 scale-95 -translate-x-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0'
                 )}
               >
-                <div className="bg-slate-900/96 backdrop-blur-md text-white border border-slate-700/70 rounded-xl p-3 shadow-2xl min-w-[200px] relative">
-                  <div className="absolute -left-1.5 bottom-3 w-3 h-3 bg-slate-900 border-l border-b border-slate-700/70 transform rotate-45" />
+                <div className="bg-surface-raised text-text border border-border rounded-xl p-3 shadow-2xl min-w-[200px] relative">
+                  <div className="absolute -left-1.5 bottom-3 w-3 h-3 bg-surface-raised border-l border-b border-border transform rotate-45" />
                   <div className="relative z-10 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-[12px] text-white" suppressHydrationWarning>
+                      <span className="font-semibold text-[12px] text-text" suppressHydrationWarning>
                         {session ? operatorName : 'Not signed in'}
                       </span>
                       {profile?.duty_status && (
                         <span
-                          className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25"
+                          className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-status-verified-soft text-status-verified border border-status-verified/25"
                           suppressHydrationWarning
                         >
                           {profile.duty_status.replace('_', ' ')}
@@ -542,16 +527,16 @@ export default function Sidebar({
                       )}
                     </div>
                     {callsign && (
-                      <p className="text-[10px] font-mono text-[#F97316] font-bold" suppressHydrationWarning>
+                      <p className="text-[10px] font-mono text-brand font-bold" suppressHydrationWarning>
                         {callsign}
                       </p>
                     )}
                     {operatorUnit && (
-                      <p className="text-[10px] text-slate-400" suppressHydrationWarning>
+                      <p className="text-[10px] text-text-muted" suppressHydrationWarning>
                         {operatorUnit}
                       </p>
                     )}
-                    <div className="pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                    <div className="pt-1.5 border-t border-border text-[10px] text-text-muted font-medium flex items-center gap-1">
                       <span>{session ? 'View operator profile' : 'Sign in'}</span>
                       <ChevronRight className="w-2.5 h-2.5" />
                     </div>
@@ -560,19 +545,6 @@ export default function Sidebar({
               </div>
             )}
           </div>
-
-          {/* Settings link — compact */}
-          {!isCollapsedState && (
-            <Link
-              href="/settings"
-              onClick={isMobile ? onMobileClose : undefined}
-              className="mt-1.5 flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-200 hover:bg-white/[0.06] transition-all duration-150"
-              title="Platform Settings (⌘,)"
-            >
-              <Settings className="w-3.5 h-3.5 hover:rotate-45 transition-transform duration-300" />
-              <span>{t('nav.platform_settings')}</span>
-            </Link>
-          )}
         </div>
       </div>
     );
@@ -588,12 +560,8 @@ export default function Sidebar({
         className={cn(
           'fixed left-0 top-0 h-screen z-40',
           'hidden md:flex flex-col',
-          'border-r'
+          'border-r rail-container'
         )}
-        style={{
-          background: 'linear-gradient(180deg, #182235 0%, #111827 100%)',
-          borderColor: 'rgba(255, 255, 255, 0.09)',
-        }}
       >
         {sidebarBody(false)}
       </motion.aside>
@@ -615,15 +583,11 @@ export default function Sidebar({
               animate={{ x: 0 }}
               exit={{ x: -285 }}
               transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-              className="fixed left-0 top-0 h-screen w-[285px] z-50 md:hidden border-r"
-              style={{
-                background: 'linear-gradient(180deg, #182235 0%, #111827 100%)',
-                borderColor: 'rgba(255, 255, 255, 0.09)',
-              }}
+              className="fixed left-0 top-0 h-screen w-[285px] z-50 md:hidden border-r rail-container"
             >
               <button
                 onClick={onMobileClose}
-                className="absolute right-3 top-4 w-7 h-7 rounded-lg border border-white/12 bg-white/[0.08] flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                className="absolute right-3 top-4 w-7 h-7 rounded-lg flex items-center justify-center rail-collapse-btn"
                 aria-label="Close menu"
               >
                 <X className="w-3.5 h-3.5" />

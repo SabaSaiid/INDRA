@@ -19,7 +19,7 @@ interface CardProps {
 export function Card({ children, className, hover = true, padding = true, density = 'normal' }: CardProps) {
   const paddingClass = padding ? (density === 'compact' ? 'p-3.5' : 'p-5') : '';
   const baseClass = cn(
-    'bg-[#FDFAF5] rounded-lg border border-[#E8E2D4] shadow-card',
+    'bg-surface rounded-lg border border-border shadow-card',
     paddingClass,
     className
   );

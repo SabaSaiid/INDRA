@@ -116,23 +116,23 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-md bg-[#F7F3EA] rounded-2xl border border-[#E8E2D4] shadow-2xl overflow-hidden"
+          className="relative w-full max-w-md bg-surface rounded-2xl border border-border shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-5 py-4 border-b border-[#E8E2D4]">
+          <div className="px-5 py-4 border-b border-border bg-surface-raised">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#B5482E] flex items-center justify-center">
-                  <AlertTriangle className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-brand text-brand-foreground flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-[#3C2415]">{t('nav.report_incident')}</h2>
-                  <p className="text-[10px] text-[#8C7A6B]">INDRA Crisis Intelligence Network</p>
+                  <h2 className="text-sm font-bold text-text">{t('nav.report_incident')}</h2>
+                  <p className="text-[10px] text-text-muted">INDRA Crisis Intelligence Network</p>
                 </div>
               </div>
-              <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-[#E8E2D4] transition-colors">
-                <X className="w-4 h-4 text-[#8C7A6B]" />
+              <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-surface transition-colors text-text-muted hover:text-text">
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -143,7 +143,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-lg px-4 py-3 text-sm flex items-start gap-2 ${result.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}
+                className={`rounded-lg px-4 py-3 text-sm flex items-start gap-2 ${result.success ? 'bg-status-verified/15 text-status-verified border border-status-verified/30' : 'bg-severity-critical/15 text-severity-critical border border-severity-critical/30'}`}
               >
                 {result.success ? <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" /> : <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
                 <span>{result.message}</span>
@@ -154,8 +154,8 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
               <>
                 {/* Location */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#3C2415] flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3" /> Location
+                  <label className="text-xs font-semibold text-text flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3 text-brand" /> Location
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -163,19 +163,19 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                       value={lat}
                       onChange={(e) => setLat(e.target.value)}
                       placeholder="Latitude"
-                      className="flex-1 px-3 py-2 rounded-lg border border-[#E8E2D4] text-xs bg-white text-[#3C2415] placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
+                      className="flex-1 px-3 py-2 rounded-lg border border-border text-xs bg-surface-raised text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand/20"
                     />
                     <input
                       type="text"
                       value={lng}
                       onChange={(e) => setLng(e.target.value)}
                       placeholder="Longitude"
-                      className="flex-1 px-3 py-2 rounded-lg border border-[#E8E2D4] text-xs bg-white text-[#3C2415] placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
+                      className="flex-1 px-3 py-2 rounded-lg border border-border text-xs bg-surface-raised text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand/20"
                     />
                     <button
                       onClick={detectLocation}
                       disabled={geoLoading}
-                      className="px-3 py-2 rounded-lg bg-[#3C2415] text-white text-xs hover:bg-[#5C3B27] transition-colors disabled:opacity-50 flex items-center gap-1"
+                      className="px-3 py-2 rounded-lg bg-brand text-brand-foreground text-xs hover:bg-brand/90 transition-colors disabled:opacity-50 flex items-center gap-1"
                     >
                       {geoLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3" />}
                     </button>
@@ -184,34 +184,34 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#3C2415] flex items-center gap-1.5">
-                    <FileText className="w-3 h-3" /> Description
+                  <label className="text-xs font-semibold text-text flex items-center gap-1.5">
+                    <FileText className="w-3 h-3 text-brand" /> Description
                   </label>
                   <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Describe the incident in detail (waterlogging, building collapse, heavy rain, etc.)… minimum 10 characters"
-                    className="w-full px-3 py-2 rounded-lg border border-[#E8E2D4] text-xs bg-white text-[#3C2415] placeholder:text-[#B0A898] resize-none h-24 focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs bg-surface-raised text-text placeholder:text-text-muted resize-none h-24 focus:outline-none focus:ring-2 focus:ring-brand/20"
                   />
-                  <div className="text-[10px] text-[#8C7A6B] text-right">{text.length} characters</div>
+                  <div className="text-[10px] text-text-muted text-right">{text.length} characters</div>
                 </div>
 
                 {/* Optional media URL */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#3C2415] flex items-center gap-1.5">
-                    <ImageIcon className="w-3 h-3" /> Photo / Video URL <span className="font-normal text-[#8C7A6B]">(optional)</span>
+                  <label className="text-xs font-semibold text-text flex items-center gap-1.5">
+                    <ImageIcon className="w-3 h-3 text-brand" /> Photo / Video URL <span className="font-normal text-text-muted">(optional)</span>
                   </label>
                   <input
                     type="text"
                     value={mediaUrl}
                     onChange={(e) => setMediaUrl(e.target.value)}
                     placeholder="https://…"
-                    className="w-full px-3 py-2 rounded-lg border border-[#E8E2D4] text-xs bg-white text-[#3C2415] placeholder:text-[#B0A898] focus:outline-none focus:ring-2 focus:ring-[#B5482E]/20"
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs bg-surface-raised text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand/20"
                   />
                 </div>
 
                 {canFileOfficial && (
-                  <label className="flex items-start gap-2 p-3 rounded-lg border border-[#E8E2D4] bg-white text-xs text-[#3C2415] cursor-pointer">
+                  <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-surface-raised text-xs text-text cursor-pointer">
                     <input
                       type="checkbox"
                       checked={asOfficial}
@@ -220,7 +220,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                     />
                     <span>
                       <span className="font-semibold">File as an official dispatch</span>
-                      <span className="block text-[10px] text-[#8C7A6B]">
+                      <span className="block text-[10px] text-text-muted">
                         For a report from a control room or field team. Stored as OFFICIAL_DISPATCH
                         with your name ({session?.username}); it lifts the event&apos;s source reliability to 1.00.
                       </span>
@@ -232,7 +232,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || text.length < 10 || !lat || !lng || isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))}
-                  className="w-full py-2.5 rounded-lg bg-[#B5482E] text-white text-xs font-semibold hover:bg-[#8C3420] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-lg bg-brand text-brand-foreground text-xs font-semibold hover:bg-brand/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   {submitting ? t('common.loading') : asOfficial && canFileOfficial ? 'File Official Dispatch' : t('nav.report_incident')}
@@ -243,7 +243,7 @@ export default function ReportSubmissionModal({ open, onClose, onSubmitted }: Pr
             {result?.success && (
               <button
                 onClick={handleClose}
-                className="w-full py-2.5 rounded-lg bg-[#3C2415] text-white text-xs font-semibold hover:bg-[#5C3B27] transition-colors"
+                className="w-full py-2.5 rounded-lg bg-brand text-brand-foreground text-xs font-semibold hover:bg-brand/90 transition-colors"
               >
                 {t('common.close')}
               </button>

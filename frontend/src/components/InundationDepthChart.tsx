@@ -29,19 +29,7 @@ import {
 import { Waves } from 'lucide-react';
 import { fetchInundationDepth, type InundationDepthBucket, ApiError } from '@/lib/api';
 import { ErrorState, EmptyState } from '@/components/ui/empty-state';
-
-/** Colour per severity bucket — deepest water = most dangerous. */
-const BUCKET_COLOURS: Record<string, string> = {
-  '< 15 cm':    '#60A5FA',  // blue-400  – ankle-deep, low risk
-  '15 – 30 cm': '#3B82F6',  // blue-500
-  '30 – 60 cm': '#F59E0B',  // amber-500 – knee-deep, moderate
-  '60 – 120 cm':'#EA580C',  // orange-600 – waist-deep, high risk
-  '> 120 cm':   '#DC2626',  // red-600   – chest-deep, critical
-};
-
-function bucketColor(bucket: string): string {
-  return BUCKET_COLOURS[bucket] ?? '#94A3B8';
-}
+import { useThemeTokens } from '@/lib/useThemeTokens';
 
 interface TooltipPayload {
   payload?: InundationDepthBucket;
@@ -51,17 +39,35 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   if (!active || !payload?.length || !payload[0].payload) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-slate-900 text-white text-xs rounded-xl px-3 py-2 shadow-xl border border-slate-700">
-      <div className="font-bold mb-0.5">{d.bucket}</div>
-      <div className="text-slate-300">{d.count.toLocaleString('en-IN')} report{d.count !== 1 ? 's' : ''}</div>
+    <div className="bg-surface-raised text-text text-xs rounded-xl px-3 py-2 shadow-xl border border-border">
+      <div className="font-bold mb-0.5 text-brand">{d.bucket}</div>
+      <div className="text-text-muted">{d.count.toLocaleString('en-IN')} report{d.count !== 1 ? 's' : ''}</div>
     </div>
   );
 }
 
 export default function InundationDepthChart({ refreshTick = 0 }: { refreshTick?: number }) {
   const { t } = useTranslation();
+  const tokens = useThemeTokens();
   const [data, setData] = useState<InundationDepthBucket[] | null>(null);
   const [error, setError] = useState<unknown>(null);
+
+  const getBucketColor = (bucket: string): string => {
+    switch (bucket) {
+      case '> 120 cm':
+        return tokens.severity.critical;
+      case '60 – 120 cm':
+        return tokens.severity.high;
+      case '30 – 60 cm':
+        return tokens.severity.moderate;
+      case '15 – 30 cm':
+        return tokens.hazard.flood || tokens.severity.advisory;
+      case '< 15 cm':
+        return tokens.severity.low;
+      default:
+        return tokens.severity.unrated;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -73,18 +79,15 @@ export default function InundationDepthChart({ refreshTick = 0 }: { refreshTick?
   }, [refreshTick]);
 
   return (
-    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col gap-3">
+    <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
-        <h2
-          className="text-sm font-bold text-[#1B2432] flex items-center gap-2"
-          style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-        >
-          <Waves className="w-4 h-4 text-blue-500" />
+        <h2 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+          <Waves className="w-4 h-4 text-brand" />
           {t('analytics.inundation_title')}
         </h2>
-        <span className="text-[10px] font-mono text-[#7A8599]">raw_reports · depth_cm</span>
+        <span className="text-[10px] font-mono text-text-muted">raw_reports · depth_cm</span>
       </div>
-      <p className="text-[11px] text-[#7A8599] -mt-1">{t('analytics.inundation_subtitle')}</p>
+      <p className="text-[11px] text-text-muted -mt-1">{t('analytics.inundation_subtitle')}</p>
 
       {error && !data ? (
         <ErrorState
@@ -101,30 +104,34 @@ export default function InundationDepthChart({ refreshTick = 0 }: { refreshTick?
           compact
         />
       ) : !data ? (
-        <div className="h-52 animate-pulse bg-[#F0EBE0] rounded-xl" />
+        <div className="h-52 animate-pulse bg-surface-raised rounded-xl" />
       ) : (
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
             {/* margin.left=12 + width=44 prevents 3-digit Y-axis labels from being clipped */}
-            <BarChart data={data} margin={{ top: 8, right: 12, left: 12, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8E2D4" vertical={false} />
+            <BarChart
+              key={`inundation-${tokens.themeId}`}
+              data={data}
+              margin={{ top: 8, right: 12, left: 12, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={tokens.border} vertical={false} />
               <XAxis
                 dataKey="bucket"
-                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
                 width={44}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F0EBE0' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: tokens.surfaceRaised, opacity: 0.5 }} />
               <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={52}>
                 {data.map((entry) => (
-                  <Cell key={entry.bucket} fill={bucketColor(entry.bucket)} />
+                  <Cell key={entry.bucket} fill={getBucketColor(entry.bucket)} />
                 ))}
               </Bar>
             </BarChart>

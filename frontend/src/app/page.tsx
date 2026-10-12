@@ -158,7 +158,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-surface-bg text-text">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}

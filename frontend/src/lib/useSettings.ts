@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+import { type ThemeId, normalizeThemeId, DEFAULT_THEME_ID } from './theme-registry';
+
 export const SETTINGS_STORAGE_KEY = 'indra_platform_settings';
 
 export type BasemapPreset = 'satellite' | 'dark' | 'topo' | 'street';
@@ -13,7 +15,7 @@ export type RainUnit = 'mm' | 'inches';
 export type PressureUnit = 'hpa' | 'mbar' | 'inhg';
 export type CoordFormat = 'dd' | 'dms';
 export type TimezoneMode = 'ist' | 'utc';
-export type ThemeMode = 'dark' | 'light' | 'high_contrast';
+export type ThemeMode = ThemeId;
 export type UiDensity = 'compact' | 'standard';
 export type SeverityThreshold = 'ALL' | 'MODERATE_PLUS' | 'HIGH_PLUS' | 'CRITICAL_ONLY';
 export type RefreshInterval = 5 | 15 | 30 | 60 | 0; // 0 = manual
@@ -271,9 +273,18 @@ export function formatCoordinates(lat: number, lng: number, format: CoordFormat 
   return `${latAbs.toFixed(4)}° ${latDir}, ${lngAbs.toFixed(4)}° ${lngDir}`;
 }
 
-/** A stored 'mgrs' (an option removed 25 Sep) or any unknown format reads as decimal degrees. */
-function withKnownCoordFormat(s: IndraSettings): IndraSettings {
-  return s.coordFormat === 'dd' || s.coordFormat === 'dms' ? s : { ...s, coordFormat: 'dd' };
+/** Apply theme attribute to document root */
+export function applyThemeToDom(theme: ThemeMode) {
+  if (typeof document === 'undefined') return;
+  const valid = normalizeThemeId(theme);
+  document.documentElement.setAttribute('data-theme', valid);
+}
+
+/** Normalizes coord formats and validates theme ID to prevent broken states */
+function withNormalizedSettings(s: IndraSettings): IndraSettings {
+  const coord = s.coordFormat === 'dd' || s.coordFormat === 'dms' ? s.coordFormat : 'dd';
+  const theme = normalizeThemeId(s.themeMode);
+  return { ...s, coordFormat: coord, themeMode: theme };
 }
 
 // ==============================================================================
@@ -285,24 +296,34 @@ export function useSettings() {
     try {
       const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (stored) {
-        return withKnownCoordFormat({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
+        const parsed = withNormalizedSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
+        applyThemeToDom(parsed.themeMode);
+        return parsed;
       }
     } catch {
       // Fallback
     }
+    applyThemeToDom(DEFAULT_SETTINGS.themeMode);
     return DEFAULT_SETTINGS;
   });
+
+  // Ensure DOM stays synchronized with current theme state
+  useEffect(() => {
+    applyThemeToDom(settings.themeMode);
+  }, [settings.themeMode]);
 
   // Sync to localStorage and broadcast event
   const updateSettings = useCallback(
     (newSettings: Partial<IndraSettings> | ((prev: IndraSettings) => Partial<IndraSettings>)) => {
       setSettingsState((prev) => {
         const patch = typeof newSettings === 'function' ? newSettings(prev) : newSettings;
-        const merged: IndraSettings = withKnownCoordFormat({
+        const merged: IndraSettings = withNormalizedSettings({
           ...prev,
           ...patch,
           lastSavedAt: new Date().toISOString(),
         });
+
+        applyThemeToDom(merged.themeMode);
 
         try {
           localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(merged));
@@ -318,6 +339,7 @@ export function useSettings() {
   );
 
   const resetSettings = useCallback(() => {
+    applyThemeToDom(DEFAULT_SETTINGS.themeMode);
     try {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_SETTINGS));
       window.dispatchEvent(new CustomEvent('indra-settings-change', { detail: DEFAULT_SETTINGS }));
@@ -332,14 +354,18 @@ export function useSettings() {
     const handleCustomChange = (e: Event) => {
       const detail = (e as CustomEvent<IndraSettings>).detail;
       if (detail) {
-        setSettingsState(detail);
+        const normalized = withNormalizedSettings(detail);
+        applyThemeToDom(normalized.themeMode);
+        setSettingsState(normalized);
       }
     };
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === SETTINGS_STORAGE_KEY && e.newValue) {
         try {
-          setSettingsState(withKnownCoordFormat({ ...DEFAULT_SETTINGS, ...JSON.parse(e.newValue) }));
+          const parsed = withNormalizedSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(e.newValue) });
+          applyThemeToDom(parsed.themeMode);
+          setSettingsState(parsed);
         } catch {
           // ignore
         }

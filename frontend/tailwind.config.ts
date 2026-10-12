@@ -1,5 +1,14 @@
 import type { Config } from 'tailwindcss';
 
+function withOpacity(variableName: string) {
+  return ({ opacityValue }: { opacityValue?: string }) => {
+    if (opacityValue !== undefined) {
+      return `rgba(var(${variableName}), ${opacityValue})`;
+    }
+    return `rgb(var(${variableName}))`;
+  };
+}
+
 const config: Config = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -10,12 +19,59 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Ground & Surface ──────────────────────────────
-        paper:  '#F7F3EA',
-        'paper-2': '#F0EBE0',
-        'paper-3': '#E8E2D4',
-        surface: '#F7F3EA',       // kept for compat
-        'card-bg': '#FDFAF5',
+        // ── Semantic Tokens ────────────────────────────────
+        'surface-bg': withOpacity('--surface-bg'),
+        surface: {
+          DEFAULT: withOpacity('--surface'),
+          raised: withOpacity('--surface-raised'),
+          rail: withOpacity('--surface-rail'),
+        },
+        border: withOpacity('--border'),
+        text: {
+          DEFAULT: withOpacity('--text'),
+          secondary: withOpacity('--text-secondary'),
+          muted: withOpacity('--text-muted'),
+          subtle: withOpacity('--text-subtle'),
+        },
+        brand: {
+          DEFAULT: withOpacity('--brand'),
+          contrast: withOpacity('--brand-contrast'),
+          foreground: withOpacity('--brand-contrast'),
+          soft: withOpacity('--brand-soft'),
+        },
+        'focus-ring': withOpacity('--focus-ring'),
+        scrim: withOpacity('--scrim'),
+        selection: withOpacity('--selection'),
+        severity: {
+          critical: withOpacity('--severity-critical'),
+          'critical-soft': withOpacity('--severity-critical-soft'),
+          high: withOpacity('--severity-high'),
+          'high-soft': withOpacity('--severity-high-soft'),
+          moderate: withOpacity('--severity-moderate'),
+          'moderate-soft': withOpacity('--severity-moderate-soft'),
+          low: withOpacity('--severity-low'),
+          'low-soft': withOpacity('--severity-low-soft'),
+        },
+        status: {
+          verified: withOpacity('--status-verified'),
+          'verified-soft': withOpacity('--status-verified-soft'),
+          pending: withOpacity('--status-pending'),
+          'pending-soft': withOpacity('--status-pending-soft'),
+          quarantined: withOpacity('--status-quarantined'),
+          'quarantined-soft': withOpacity('--status-quarantined-soft'),
+        },
+
+        // ── Backward-Compatibility Aliases ────────────────
+        paper: withOpacity('--surface-bg'),
+        'paper-2': withOpacity('--surface-raised'),
+        'paper-3': withOpacity('--border'),
+        'card-bg': withOpacity('--surface'),
+        ink: withOpacity('--text'),
+        'ink-2': withOpacity('--text-secondary'),
+        'ink-3': withOpacity('--text-muted'),
+        'text-primary': withOpacity('--text'),
+        'text-secondary': withOpacity('--text-secondary'),
+        'text-muted': withOpacity('--text-muted'),
 
         // ── Sidebar Rail ──────────────────────────────────
         slate: {
@@ -36,24 +92,15 @@ const config: Config = {
           '950': '#020617',
         },
 
-        // ── Ink ───────────────────────────────────────────
-        ink:   '#1E2A3B',
-        'ink-2': '#4A5568',
-        'ink-3': '#7A8599',
-        'text-primary':   '#1E2A3B',
-        'text-secondary': '#4A5568',
-        'text-muted':     '#7A8599',
-
-        // ── Accent ────────────────────────────────────────
         terracotta: {
-          DEFAULT: '#B5482E',
-          hover:   '#A03D25',
-          light:   'rgba(181,72,46,0.12)',
+          DEFAULT: withOpacity('--brand'),
+          hover: withOpacity('--brand'),
+          light: withOpacity('--brand-soft'),
         },
         primary: {
-          DEFAULT: '#B5482E',
-          hover:   '#A03D25',
-          light:   '#F5E8E7',
+          DEFAULT: withOpacity('--brand'),
+          hover: withOpacity('--brand'),
+          light: withOpacity('--brand-soft'),
           50:  '#FBF2EE',
           100: '#F5E8E7',
           500: '#C86040',
@@ -61,58 +108,57 @@ const config: Config = {
           700: '#A03D25',
         },
 
-        // ── Status — Low Pressure palette ─────────────────
         critical: {
-          DEFAULT: '#8C2F26',
-          light:   '#F5E8E7',
-          dark:    '#6D1F18',
+          DEFAULT: withOpacity('--severity-critical'),
+          light: withOpacity('--severity-critical-soft'),
+          dark: withOpacity('--severity-critical'),
         },
         high: {
-          DEFAULT: '#B8873A',
-          light:   '#FBF2E4',
-          dark:    '#9A6D28',
+          DEFAULT: withOpacity('--severity-high'),
+          light: withOpacity('--severity-high-soft'),
+          dark: withOpacity('--severity-high'),
         },
         moderate: {
-          DEFAULT: '#4A6670',
-          light:   '#E6EFF1',
-          dark:    '#374E57',
+          DEFAULT: withOpacity('--severity-moderate'),
+          light: withOpacity('--severity-moderate-soft'),
+          dark: withOpacity('--severity-moderate'),
         },
         low: {
-          DEFAULT: '#6B7280',
-          light:   '#F3F4F6',
-          dark:    '#4B5563',
+          DEFAULT: withOpacity('--severity-low'),
+          light: withOpacity('--severity-low-soft'),
+          dark: withOpacity('--severity-low'),
         },
         verified: {
-          DEFAULT: '#4C7A5B',
-          light:   '#E7F2EC',
-          dark:    '#3A5E46',
+          DEFAULT: withOpacity('--status-verified'),
+          light: withOpacity('--status-verified-soft'),
+          dark: withOpacity('--status-verified'),
         },
         review: {
-          DEFAULT: '#B8873A',
-          light:   '#FBF2E4',
+          DEFAULT: withOpacity('--status-pending'),
+          light: withOpacity('--status-pending-soft'),
         },
       },
 
       fontFamily: {
-        sans:       ['Public Sans', 'system-ui', 'sans-serif'],
-        display:    ['Fraunces', 'Georgia', 'serif'],
-        instrument: ['JetBrains Mono', 'Cascadia Code', 'monospace'],
-        mono:       ['JetBrains Mono', 'Cascadia Code', 'monospace'],
+        sans:       ['var(--font-body)', 'Public Sans', 'system-ui', 'sans-serif'],
+        display:    ['var(--font-display)', 'Fraunces', 'Georgia', 'serif'],
+        instrument: ['var(--font-data)', 'JetBrains Mono', 'Cascadia Code', 'monospace'],
+        mono:       ['var(--font-data)', 'JetBrains Mono', 'Cascadia Code', 'monospace'],
       },
 
       borderRadius: {
-        'sm':  '4px',
-        DEFAULT: '6px',
-        'md':  '8px',
-        'lg':  '8px',
+        'sm':  'var(--radius-sm, 4px)',
+        DEFAULT: 'var(--radius-md, 6px)',
+        'md':  'var(--radius-md, 6px)',
+        'lg':  'var(--radius-lg, 8px)',
         'xl':  '10px',
         '2xl': '12px',
         '3xl': '16px',
       },
 
       boxShadow: {
-        card:        '0 1px 3px rgba(30,42,59,0.06), 0 1px 2px rgba(30,42,59,0.04)',
-        'card-hover':'0 4px 12px rgba(30,42,59,0.10), 0 2px 4px rgba(30,42,59,0.06)',
+        card:        'var(--shadow-1, 0 1px 3px rgba(30,42,59,0.06), 0 1px 2px rgba(30,42,59,0.04))',
+        'card-hover':'var(--shadow-2, 0 4px 12px rgba(30,42,59,0.10), 0 2px 4px rgba(30,42,59,0.06))',
         'card-lg':   '0 8px 24px rgba(30,42,59,0.10), 0 4px 8px rgba(30,42,59,0.06)',
       },
 

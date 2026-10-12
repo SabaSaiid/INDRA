@@ -65,7 +65,7 @@ export default function LiveMapPage() {
   const show = (n: number | null) => (n === null ? '—' : String(n));
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface-bg text-text">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -96,7 +96,7 @@ export default function LiveMapPage() {
                   {t('nav.live_map')}
                 </span>
                 <span className="text-slate-600">•</span>
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-300 font-mono">
                   INDRA events · SACHET warnings · citizen reports
                 </span>
               </div>

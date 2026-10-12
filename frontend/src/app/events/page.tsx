@@ -200,7 +200,7 @@ export default function EventsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface-bg text-text">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
@@ -228,7 +228,7 @@ export default function EventsPage() {
                   {events.length} {t('chart.events').toUpperCase()} · {RANGES.find((r) => r.key === range)?.label}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-300">
                 {t('dashboard.welcome_subtitle')}
               </p>
             </div>
@@ -343,7 +343,7 @@ export default function EventsPage() {
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-[11px] text-slate-400">
+                          <span className="font-mono text-[11px] text-slate-500 font-medium">
                             {ev.event_code}
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sevBadge}`}>
@@ -364,17 +364,17 @@ export default function EventsPage() {
                         <div className="text-lg font-bold font-mono text-[#B5482E]">
                           {ev.confidence_score != null ? `${Math.round(ev.confidence_score * 100)}%` : '—'}
                         </div>
-                        <div className="text-[10px] text-slate-400">{t('receipt.confidence_label')}</div>
+                        <div className="text-[10px] text-slate-500 font-medium">{t('receipt.confidence_label')}</div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4 bg-slate-50 p-3 rounded-xl">
                       <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <MapPin className="w-3.5 h-3.5 text-slate-500" />
                         <span>{formatPlace(ev.city, ev.state, ev.place_precision)}</span>
                       </div>
                       <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <Clock className="w-3.5 h-3.5 text-slate-500" />
                         <span>{getRelativeTime(ev.timestamp || ev.verified_at)}</span>
                       </div>
                       <div className="flex items-center gap-1.5 col-span-2">

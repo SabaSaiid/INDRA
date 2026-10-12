@@ -65,6 +65,7 @@ import { fetchHealth, type HealthReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/lib/i18n/types';
+import { THEME_REGISTRY } from '@/lib/theme-registry';
 
 export default function SettingsPage() {
   const { t, language, setLanguage } = useTranslation();
@@ -132,7 +133,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F3EA] text-[#1E2A3B]">
+    <div className="min-h-screen bg-surface-bg text-text">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
@@ -730,29 +731,63 @@ export default function SettingsPage() {
 
                 {/* Theme Mode */}
                 <div>
-                  <label className="text-xs font-semibold text-[#1E2A3B] block mb-1.5">
+                  <label className="text-xs font-semibold text-text block mb-1.5">
                     Interface Theme Mode
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'dark', label: 'Dark Tactical', desc: 'Ops Room' },
-                      { id: 'light', label: 'Clean Light', desc: 'Standard Office' },
-                      { id: 'high_contrast', label: 'High Contrast', desc: 'Field Glare HUD' },
-                    ].map((th) => {
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5">
+                    {Object.values(THEME_REGISTRY).map((th) => {
                       const isSelected = settings.themeMode === th.id;
                       return (
                         <button
                           key={th.id}
+                          type="button"
                           onClick={() => updateSettings({ themeMode: th.id as ThemeMode })}
                           className={cn(
-                            'p-3 rounded-xl border text-center transition-all',
+                            'p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between group',
                             isSelected
-                              ? 'bg-[#182235] text-white border-[#182235] shadow-sm'
-                              : 'bg-[#F0EBE0]/60 border-[#E8E2D4] text-[#4A5568] hover:bg-[#F0EBE0]'
+                              ? 'bg-surface border-brand shadow-sm ring-1 ring-brand'
+                              : 'bg-surface-raised/70 border-border text-text-secondary hover:bg-surface hover:border-border'
                           )}
                         >
-                          <p className="text-xs font-bold">{th.label}</p>
-                          <p className="text-[9px] text-[#7A8599] mt-0.5">{th.desc}</p>
+                          <div>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <p className={cn('text-xs font-bold', isSelected ? 'text-text' : 'text-text-secondary')}>
+                                {th.label}
+                              </p>
+                              {isSelected && (
+                                <span className="w-4 h-4 rounded-full bg-brand flex items-center justify-center text-brand-contrast">
+                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-text-muted leading-tight line-clamp-2">
+                              {th.description}
+                            </p>
+                          </div>
+
+                          {/* 4-chip swatch bar: [Rail, Surface, Brand, Critical] */}
+                          <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-border/60" aria-hidden="true">
+                            <span
+                              className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-xs"
+                              style={{ backgroundColor: th.swatches.rail }}
+                              title={`Rail: ${th.swatches.rail}`}
+                            />
+                            <span
+                              className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-xs"
+                              style={{ backgroundColor: th.swatches.surface }}
+                              title={`Surface: ${th.swatches.surface}`}
+                            />
+                            <span
+                              className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-xs"
+                              style={{ backgroundColor: th.swatches.brand }}
+                              title={`Brand: ${th.swatches.brand}`}
+                            />
+                            <span
+                              className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-xs"
+                              style={{ backgroundColor: th.swatches.critical }}
+                              title={`Critical: ${th.swatches.critical}`}
+                            />
+                          </div>
                         </button>
                       );
                     })}

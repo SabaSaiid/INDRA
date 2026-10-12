@@ -188,5 +188,51 @@ export const hi: TranslationDict = {
     auto_published: 'Auto-published',
     human_approved: 'Human approved',
     score_label: 'Score',
+
+    // ── Tab labels
+    tab_overview:      'अवलोकन',
+    tab_sources:       'स्रोत बुद्धि',
+    tab_geo:           'भू जोखिम',
+    tab_ai_pipeline:   'AI पाइपलाइन',
+    tab_hazard_trends: 'आपदा रुझान',
+
+    // ── Tab 2: Source Intelligence
+    sources_health_title:    'डेटा स्रोत स्वास्थ्य',
+    sources_health_subtitle: 'फ़ीड, पोल स्थिति और पंक्ति गिनती।',
+    sources_chart_title:     'स्रोत अनुसार अंतर्ग्रहण (अंतिम 24 घंटे)',
+    sources_chart_subtitle:  'प्रति फ़ीड प्राप्त पंक्तियाँ',
+    sources_types_title:     'स्रोत प्रकार',
+    sources_types_subtitle:  'फ़ीड प्रकार अनुसार संख्या',
+
+    // ── Tab 3: Geo Risk
+    geo_state_leaderboard_title:    'राज्य जोखिम लीडरबोर्ड',
+    geo_state_leaderboard_subtitle: 'भारित जोखिम स्कोर द्वारा रैंक किए गए राज्य',
+    geo_heatmap_title:              'H3 गतिविधि हॉटस्पॉट',
+    geo_heatmap_subtitle:           'विंडो अनुसार शीर्ष H3 सेल',
+    geo_district_chart_title:       'जिला गंभीरता विश्लेषण (शीर्ष 10)',
+    geo_district_chart_subtitle:    'गंभीरता अनुसार स्टैक्ड — गंभीर / उच्च / मध्यम / निम्न',
+    geo_risk_score:                 'जोखिम स्कोर',
+    geo_view_map:                   'लाइव मानचित्र पर देखें',
+
+    // ── Tab 4: AI Pipeline
+    ai_pipeline_title:       'AI पाइपलाइन',
+    ai_throughput_title:     'पाइपलाइन थ्रूपुट मेट्रिक्स',
+    ai_fused_rate:           'फ्यूज़ड दर',
+    ai_duplicate_rate:       'डुप्लीकेट दर',
+    ai_verification_rate:    'सत्यापन दर',
+    ai_flagged:              'फ्लैग किए गए',
+    ai_unfused:              'अनलिंक्ड',
+    ai_weights_title:        'सहमति स्कोरिंग भार',
+    ai_weights_subtitle:     'AI विश्वास स्कोर गणना के लिए उपयोग किए गए कारक',
+    ai_auth_required:        'AI पाइपलाइन देखने के लिए विश्लेषक या कमांडर के रूप में साइन इन करें',
+
+    // ── Tab 5: Hazard Trends
+    hazard_trend_title:       'आपदा प्रकार रुझान',
+    hazard_trend_subtitle:    '3 समय विंडो में प्रति आपदा घटनाओं की संख्या',
+    hazard_matrix_title:      'आपदा × गंभीरता मैट्रिक्स',
+    hazard_matrix_subtitle:   'आपदा प्रकार और गंभीरता अनुसार घटना संख्या। गहरा लाल = अधिक घटनाएं।',
+    hazard_alignment_title:   'चेतावनी बनाम घटनाएं',
+    hazard_alignment_subtitle:'आधिकारिक चेतावनियाँ (नारंगी) बनाम सत्यापित घटनाएँ (नीली)',
+    hazard_rainfall_title:    'वर्षा संदर्भ',
   },
 };

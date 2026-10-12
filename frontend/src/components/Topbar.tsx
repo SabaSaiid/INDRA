@@ -125,8 +125,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
         variants={fadeIn}
         initial="hidden"
         animate="visible"
-        className="sticky top-0 z-40 border-b border-[#E8E2D4]"
-        style={{ background: 'rgba(247, 243, 234, 0.96)', backdropFilter: 'blur(16px)' }}
+        className="sticky top-0 z-40 border-b border-border bg-surface/96 backdrop-blur-md"
       >
         <div className="flex items-center justify-between h-14 px-3 sm:px-4 lg:px-6 gap-2 sm:gap-4">
 
@@ -134,7 +133,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
           <div className="flex items-center md:hidden">
             <button
               onClick={onMobileMenuOpen}
-              className="p-1.5 rounded-lg hover:bg-[#F0EBE0] text-ink-2 hover:text-ink transition-colors border border-transparent hover:border-[#E8E2D4]"
+              className="p-1.5 rounded-lg hover:bg-surface-raised text-text-secondary hover:text-text transition-colors border border-transparent hover:border-border"
               aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
@@ -145,17 +144,17 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
           <form onSubmit={handleSearchSubmit} className="flex-1 flex justify-start md:justify-center min-w-0">
             <div className="w-full max-w-xs sm:max-w-sm lg:max-w-md focus-within:max-w-lg transition-all duration-200">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8599] pointer-events-none" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
                 <input
                   type="text"
                   dir="auto"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('nav.search_placeholder')}
-                  className="w-full h-8 pl-9 pr-14 rounded-lg bg-[#F0EBE0]/80 border border-[#E8E2D4] text-xs sm:text-sm text-ink placeholder:text-[#7A8599] focus:outline-none focus:bg-[#FDFAF5] focus:ring-2 focus:ring-[#B5482E]/20 focus:border-[#B5482E]/40 transition-all shadow-inner"
+                  className="w-full h-8 pl-9 pr-14 rounded-lg bg-surface-raised/80 border border-border text-xs sm:text-sm text-text placeholder:text-text-muted focus:outline-none focus:bg-surface focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all shadow-inner"
                   aria-label="Search"
                 />
-                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#7A8599] bg-[#E8E2D4]/70 border border-[#D8D0C4] px-1.5 py-0.5 rounded hidden sm:inline-block select-none pointer-events-none">
+                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-text-muted bg-surface-bg border border-border px-1.5 py-0.5 rounded hidden sm:inline-block select-none pointer-events-none">
                   /
                 </kbd>
               </div>
@@ -168,8 +167,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             {/* Report Incident — primary emergency CTA */}
             <button
               onClick={() => setReportModalOpen(true)}
-              className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md hover:brightness-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#B5482E]/30"
-              style={{ background: 'linear-gradient(135deg, #C05030 0%, #B5482E 100%)' }}
+              className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg text-brand-contrast text-xs font-semibold bg-brand transition-all shadow-sm hover:shadow-md hover:brightness-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand/30"
               aria-label="Report an incident"
               id="report-incident-btn"
             >
@@ -179,30 +177,30 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
             </button>
 
             {/* Divider */}
-            <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
+            <div className="hidden sm:block h-4 w-px bg-border" aria-hidden="true" />
 
             {/* Language Picker */}
             <LanguagePicker />
 
             {/* Divider */}
-            <div className="hidden sm:block h-4 w-px bg-[#E8E2D4]" aria-hidden="true" />
+            <div className="hidden sm:block h-4 w-px bg-border" aria-hidden="true" />
 
             {/* Utility cluster: Notifications & Platform Settings */}
-            <div className="flex items-center gap-0.5 bg-[#F0EBE0]/60 p-0.5 rounded-lg border border-[#E8E2D4]">
+            <div className="flex items-center gap-0.5 bg-surface-raised/60 p-0.5 rounded-lg border border-border">
               <NotificationPopover />
               <button
                 onClick={() => setSettingsOpen((prev) => !prev)}
                 className={cn(
-                  "w-8 h-8 rounded-md flex items-center justify-center transition-all focus:outline-none focus:ring-1 focus:ring-[#B5482E]/30 relative",
+                  "w-8 h-8 rounded-md flex items-center justify-center transition-all focus:outline-none focus:ring-1 focus:ring-brand/30 relative",
                   settingsOpen
-                    ? "bg-[#B5482E]/15 text-[#B5482E] ring-1 ring-[#B5482E]/30 shadow-sm"
-                    : "text-[#7A8599] hover:text-ink hover:bg-[#FDFAF5]"
+                    ? "bg-brand/15 text-brand ring-1 ring-brand/30 shadow-sm"
+                    : "text-text-muted hover:text-text hover:bg-surface"
                 )}
                 aria-label="Platform Settings"
                 aria-expanded={settingsOpen}
                 title="System Settings & HUD Preferences (⌘,)"
               >
-                <Settings className={cn("w-4 h-4 transition-transform duration-300", settingsOpen ? "rotate-90 text-[#B5482E]" : "hover:rotate-45")} />
+                <Settings className={cn("w-4 h-4 transition-transform duration-300", settingsOpen ? "rotate-90 text-brand" : "hover:rotate-45")} />
               </button>
             </div>
 
@@ -213,8 +211,8 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 className={cn(
                   'relative flex items-center justify-center w-8 h-8 rounded-full transition-all outline-none select-none flex-shrink-0',
                   profileOpen
-                    ? 'ring-2 ring-[#B5482E] shadow-sm'
-                    : 'ring-1 ring-[#D8D0C4] hover:ring-2 hover:ring-[#B5482E]/40 hover:scale-105 active:scale-95'
+                    ? 'ring-2 ring-brand shadow-sm'
+                    : 'ring-1 ring-border hover:ring-2 hover:ring-brand/40 hover:scale-105 active:scale-95'
                 )}
                 aria-expanded={profileOpen}
                 aria-haspopup="true"
@@ -223,8 +221,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
               >
                 {/* Avatar circle */}
                 <div
-                  className="w-full h-full rounded-full flex items-center justify-center text-[#F7F3EA] text-xs font-bold shadow-inner"
-                  style={{ background: session ? '#26314A' : '#7A8599' }}
+                  className="w-full h-full rounded-full flex items-center justify-center text-surface-bg text-xs font-bold shadow-inner bg-surface-rail"
                   suppressHydrationWarning
                 >
                   {profile?.avatar_initials || <User className="w-4 h-4" />}
@@ -233,7 +230,7 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                 {/* Duty status indicator dot, only for a status the profile carries */}
                 {activeStatusCfg && (
                   <span
-                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-[#F7F3EA]"
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-surface"
                     style={{ backgroundColor: activeStatusCfg.dot }}
                     title={`Status: ${activeStatusCfg.label}`}
                   />
@@ -248,31 +245,29 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="absolute right-0 mt-2 w-80 sm:w-[350px] rounded-xl border border-[#E8E2D4] overflow-hidden z-50 divide-y divide-[#E8E2D4] shadow-[0_12px_36px_rgba(30,42,59,0.18)] max-h-[calc(100vh-70px)] overflow-y-auto"
-                    style={{ background: '#FDFAF5' }}
+                    className="absolute right-0 mt-2 w-80 sm:w-[350px] rounded-xl border border-border overflow-hidden z-50 divide-y divide-border shadow-[0_12px_36px_rgba(0,0,0,0.18)] max-h-[calc(100vh-70px)] overflow-y-auto bg-surface"
                   >
                     {/* ── Section 1: Identity & Session ──────────────── */}
-                    <div className="p-3.5" style={{ background: '#F7F3EA' }}>
+                    <div className="p-3.5 bg-surface-bg">
                       <div className="flex items-start gap-3">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm"
-                          style={{ background: session ? '#26314A' : '#7A8599', color: '#F7F3EA' }}
+                          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm bg-surface-rail text-surface-bg"
                         >
                           {profile?.avatar_initials || <User className="w-5 h-5" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
-                            <h4 className="text-sm font-semibold text-ink leading-snug truncate" suppressHydrationWarning>
+                            <h4 className="text-sm font-semibold text-text leading-snug truncate" suppressHydrationWarning>
                               {displayName}
                             </h4>
                             {roleTitle && (
-                              <span className="text-[10px] font-semibold text-[#B5482E] bg-[#B5482E]/10 border border-[#B5482E]/20 px-1.5 py-0.2 rounded flex-shrink-0">
+                              <span className="text-[10px] font-semibold text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.2 rounded flex-shrink-0">
                                 {roleTitle}
                               </span>
                             )}
                           </div>
                           {email && (
-                            <p className="text-xs text-[#7A8599] truncate mt-0.5" suppressHydrationWarning>
+                            <p className="text-xs text-text-muted truncate mt-0.5" suppressHydrationWarning>
                               {email}
                             </p>
                           )}
@@ -280,19 +275,19 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                             (operatorIdDisplay || agencyDisplay) && (
                               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                                 {operatorIdDisplay && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8E2D4] text-[#4A5568]">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-surface-raised text-text-secondary border border-border">
                                     {operatorIdDisplay}
                                   </span>
                                 )}
                                 {agencyDisplay && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#ECEEF3] text-[#26314A]">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-raised text-text-secondary border border-border">
                                     {agencyDisplay}
                                   </span>
                                 )}
                               </div>
                             )
                           ) : (
-                            <p className="text-[11px] text-[#7A8599] mt-1 leading-snug">
+                            <p className="text-[11px] text-text-muted mt-1 leading-snug">
                               Dashboards are open to read. Reviewing events, dispatching teams and
                               reading the audit ledger need an operator account.
                             </p>
@@ -302,12 +297,12 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
 
                       {/* Callsign, only when the profile has one */}
                       {callsign && (
-                        <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#FDFAF5] border border-[#E8E2D4] text-[#4A5568]">
-                          <span className="flex items-center gap-1.5 font-medium text-[#7A8599]">
+                        <div className="mt-2.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-surface border border-border text-text-secondary">
+                          <span className="flex items-center gap-1.5 font-medium text-text-muted">
                             <Radio className="w-3.5 h-3.5" />
                             {t('common.radio_designation')}
                           </span>
-                          <span className="font-semibold text-ink tracking-wider font-mono">
+                          <span className="font-semibold text-text tracking-wider font-mono">
                             {callsign}
                           </span>
                         </div>
@@ -315,13 +310,9 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
 
                       {/* Session: who, what role, and until when */}
                       <div
-                        className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium"
-                        style={session
-                          ? { background: 'rgba(52,211,153,0.08)', borderColor: 'rgba(52,211,153,0.25)', color: '#2D6A4F' }
-                          : { background: 'rgba(122,133,153,0.08)', borderColor: 'rgba(122,133,153,0.2)', color: '#4A5568' }
-                        }
+                        className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium bg-surface-raised border-border text-text-secondary"
                       >
-                        <Lock className="w-3 h-3 flex-shrink-0" style={{ color: session ? '#10B981' : '#7A8599' }} />
+                        <Lock className="w-3 h-3 flex-shrink-0 text-text-muted" />
                         <span className="flex-1 font-medium truncate" data-testid="session-status">
                           {session
                             ? `Signed in as ${session.username} · ${session.role || '—'} · until ${sessionExpiryLabel(session)}`
@@ -334,11 +325,11 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     {profile && (
                       <div className="p-3">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599]">
+                          <span className="text-[10px] font-semibold tracking-wider uppercase text-text-muted">
                             Operational Duty Status
                           </span>
                           {isUpdatingStatus && (
-                            <span className="text-[10px] text-[#B5482E] animate-pulse font-medium">Syncing…</span>
+                            <span className="text-[10px] text-brand animate-pulse font-medium">Syncing…</span>
                           )}
                         </div>
                         <div className="grid grid-cols-2 gap-1.5">
@@ -353,15 +344,15 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                                 className={cn(
                                   'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                                   isSelected
-                                    ? 'bg-[#26314A] text-[#F7F3EA] shadow-sm font-semibold'
-                                    : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]'
+                                    ? 'bg-surface-rail text-surface-bg shadow-sm font-semibold'
+                                    : 'bg-surface-raised text-text-secondary hover:bg-surface-bg border border-border/50'
                                 )}
                               >
                                 <span className="flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#F7F3EA' : cfg.dot }} />
+                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? 'currentColor' : cfg.dot }} />
                                   {dutyLabel}
                                 </span>
-                                {isSelected && <Check className="w-3.5 h-3.5 text-[#F7F3EA]" />}
+                                {isSelected && <Check className="w-3.5 h-3.5 text-current" />}
                               </button>
                             );
                           })}
@@ -373,12 +364,12 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     {isAdmin && session && (
                       <div className="p-3">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-semibold tracking-wider uppercase text-[#7A8599]">
+                          <span className="text-[10px] font-semibold tracking-wider uppercase text-text-muted">
                             <Eye className="w-3 h-3 inline mr-1" />
                             View As Perspective
                           </span>
                           {isImpersonating && (
-                            <span className="text-[10px] text-[#7C3AED] font-semibold animate-pulse">
+                            <span className="text-[10px] text-brand font-semibold animate-pulse">
                               Simulating
                             </span>
                           )}
@@ -396,8 +387,8 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                                 className={cn(
                                   'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all',
                                   isActive
-                                    ? 'bg-[#26314A] text-[#F7F3EA] shadow-sm'
-                                    : 'bg-[#F3F4F6] text-[#4A5568] hover:bg-[#E8E2D4]',
+                                    ? 'bg-surface-rail text-surface-bg shadow-sm'
+                                    : 'bg-surface-raised text-text-secondary hover:bg-surface-bg border border-border/50',
                                 )}
                               >
                                 <span
@@ -407,18 +398,18 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                                 <div className="flex-1 min-w-0">
                                   <span className={cn(
                                     'text-[11px] font-semibold block truncate',
-                                    isActive ? 'text-[#F7F3EA]' : 'text-[#1B2432]',
+                                    isActive ? 'text-surface-bg' : 'text-text',
                                   )}>
                                     {p.label}
                                   </span>
                                   <span className={cn(
                                     'text-[9px] block truncate',
-                                    isActive ? 'text-slate-300' : 'text-[#7A8599]',
+                                    isActive ? 'text-surface-bg/80' : 'text-text-muted',
                                   )}>
                                     {p.description}
                                   </span>
                                 </div>
-                                {isActive && <Check className="w-3.5 h-3.5 text-[#F7F3EA] flex-shrink-0" />}
+                                {isActive && <Check className="w-3.5 h-3.5 text-current flex-shrink-0" />}
                               </button>
                             );
                           })}
@@ -427,19 +418,19 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     )}
 
                     {/* ── Section 3: Sign in / Sign out ───────────────── */}
-                    <div className="p-2" style={{ background: '#F7F3EA' }}>
+                    <div className="p-2 bg-surface-bg">
                       {session ? (
                         <button
                           onClick={() => { setProfileOpen(false); signOut(); }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:bg-surface-raised hover:text-text transition-colors text-left"
                         >
-                          <LogOut className="w-3.5 h-3.5 text-[#7A8599]" />
+                          <LogOut className="w-3.5 h-3.5 text-text-muted" />
                           Sign out
                         </button>
                       ) : (
                         <button
                           onClick={() => { setProfileOpen(false); setSignInOpen(true); }}
-                          className="w-full flex items-center justify-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold text-white bg-[#26314A] hover:bg-[#1B2436] transition-colors"
+                          className="w-full flex items-center justify-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold text-brand-contrast bg-brand hover:brightness-110 transition-colors"
                         >
                           <LogIn className="w-3.5 h-3.5" />
                           Sign in
@@ -452,51 +443,51 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                       <Link
                         href="/profile"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:bg-surface-raised hover:text-text transition-colors"
                       >
                         <span className="flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-[#7A8599]" />
+                          <User className="w-3.5 h-3.5 text-text-muted" />
                           My Profile &amp; Dispatch Settings
                         </span>
-                        <ChevronDown className="w-3 h-3 -rotate-90 text-[#B0A898]" />
+                        <ChevronDown className="w-3 h-3 -rotate-90 text-text-muted" />
                       </Link>
 
                       <Link
                         href="/teams"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:bg-surface-raised hover:text-text transition-colors"
                       >
                         <span className="flex items-center gap-2">
-                          <Users className="w-3.5 h-3.5 text-[#7A8599]" />
+                          <Users className="w-3.5 h-3.5 text-text-muted" />
                           {t('nav.response_teams')}
                         </span>
-                        <ChevronDown className="w-3 h-3 -rotate-90 text-[#B0A898]" />
+                        <ChevronDown className="w-3 h-3 -rotate-90 text-text-muted" />
                       </Link>
 
                       <Link
                         href="/teams?tab=hackathon"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors"
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:bg-surface-raised hover:text-text transition-colors"
                       >
                         <span className="flex items-center gap-2">
-                          <Award className="w-3.5 h-3.5 text-[#B8873A]" />
+                          <Award className="w-3.5 h-3.5 text-brand" />
                           Team Sixth Sense (SIH Roster)
                         </span>
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-[#FBF2E4] text-[#8A611E] font-semibold border border-[#D4B87A]">
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-brand/10 text-brand font-semibold border border-brand/20">
                           SIH 2026
                         </span>
                       </Link>
 
                       <button
                         onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}
-                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#4A5568] hover:bg-[#F0EBE0] hover:text-ink transition-colors text-left"
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:bg-surface-raised hover:text-text transition-colors text-left"
                       >
                         <span className="flex items-center gap-2">
-                          <Settings className="w-3.5 h-3.5 text-[#7A8599]" />
+                          <Settings className="w-3.5 h-3.5 text-text-muted" />
                           {t('nav.platform_settings')}
                         </span>
                         <span
-                          className="text-[9px] text-[#7A8599] bg-[#E8E2D4] px-1 py-0.2 rounded border border-[#D8D0C4] font-mono"
+                          className="text-[9px] text-text-muted bg-surface-bg px-1 py-0.2 rounded border border-border font-mono"
                         >
                           ⌘,
                         </span>
@@ -504,9 +495,9 @@ export default function Topbar({ onMobileMenuOpen }: TopbarProps) {
                     </div>
 
                     {/* Footer */}
-                    <div className="px-3.5 py-2 flex items-center justify-between text-[10px] text-[#7A8599]" style={{ background: '#F7F3EA' }}>
+                    <div className="px-3.5 py-2 flex items-center justify-between text-[10px] text-text-muted bg-surface-bg">
                       <span>Problem Statement: SIH26069</span>
-                      <span className="font-semibold text-[#4A5568]">Team Sixth Sense</span>
+                      <span className="font-semibold text-text-secondary">Team Sixth Sense</span>
                     </div>
                   </motion.div>
                 )}

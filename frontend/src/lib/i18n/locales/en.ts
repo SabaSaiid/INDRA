@@ -190,6 +190,52 @@ export const en: TranslationDict = {
     auto_published: 'Auto-published',
     human_approved: 'Human approved',
     score_label: 'Score',
+
+    // ── Tab labels
+    tab_overview:      'Overview',
+    tab_sources:       'Source Intelligence',
+    tab_geo:           'Geo Risk',
+    tab_ai_pipeline:   'AI Pipeline',
+    tab_hazard_trends: 'Hazard Trends',
+
+    // ── Tab 2: Source Intelligence
+    sources_health_title:    'Data Source Health',
+    sources_health_subtitle: 'Ingestion feeds, poll status and row counts.',
+    sources_chart_title:     'Ingestion by Source (last 24 h)',
+    sources_chart_subtitle:  'Rows received per feed',
+    sources_types_title:     'Source Types',
+    sources_types_subtitle:  'Count by feed kind',
+
+    // ── Tab 3: Geo Risk
+    geo_state_leaderboard_title:    'State Risk Leaderboard',
+    geo_state_leaderboard_subtitle: 'States ranked by weighted risk score (critical × 3, high × 2, moderate × 1)',
+    geo_heatmap_title:              'H3 Activity Hotspots',
+    geo_heatmap_subtitle:           'Top report-dense H3 cells by window',
+    geo_district_chart_title:       'District Severity Breakdown (top 10)',
+    geo_district_chart_subtitle:    'Stacked by severity — critical / high / moderate / low',
+    geo_risk_score:                 'Risk Score',
+    geo_view_map:                   'View on Live Map',
+
+    // ── Tab 4: AI Pipeline
+    ai_pipeline_title:       'AI Pipeline',
+    ai_throughput_title:     'Pipeline Throughput Metrics',
+    ai_fused_rate:           'Fused Rate',
+    ai_duplicate_rate:       'Duplicate Rate',
+    ai_verification_rate:    'Verification Rate',
+    ai_flagged:              'Flagged',
+    ai_unfused:              'Unfused',
+    ai_weights_title:        'Consensus Scoring Weights',
+    ai_weights_subtitle:     'Deterministic factors used to compute the AI confidence score',
+    ai_auth_required:        'Sign in as an Analyst or Commander to view the AI pipeline',
+
+    // ── Tab 5: Hazard Trends
+    hazard_trend_title:       'Hazard Type Trends',
+    hazard_trend_subtitle:    'Event counts per hazard across 3 time windows — each bar is a real snapshot, not interpolated',
+    hazard_matrix_title:      'Hazard × Severity Matrix',
+    hazard_matrix_subtitle:   'Event count per hazard type and severity. Deeper red = more events.',
+    hazard_alignment_title:   'Warnings vs Events Alignment',
+    hazard_alignment_subtitle:'Official agency warnings (orange) vs. verified ground-truth events (blue) per hazard',
+    hazard_rainfall_title:    'Rainfall Context',
   },
 };
 
