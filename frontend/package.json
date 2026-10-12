@@ -11,6 +11,7 @@
     "start": "next start",
     "doctor": "bash scripts/doctor.sh",
     "lint": "next lint",
+    "theme:check": "node scripts/check-theme-tokens.mjs",
     "verify-build": "bash scripts/verify-build.sh",
     "e2e": "playwright test",
     "e2e:report": "playwright show-report e2e/report"

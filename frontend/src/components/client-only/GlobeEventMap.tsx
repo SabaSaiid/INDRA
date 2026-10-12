@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { useSettings } from '@/lib/useSettings';
+import { THEME_REGISTRY, normalizeThemeId } from '@/lib/theme-registry';
 import {
   Globe,
   Map as MapIcon,
@@ -1337,11 +1338,26 @@ export default function GlobeEventMap({
     if (!map) return;
 
     map.setStyle(BASEMAP_STYLES[newBasemap]);
+    if (mapContainerRef.current) {
+      mapContainerRef.current.setAttribute('data-basemap', newBasemap);
+    }
     map.once('style.load', () => {
       map.setProjection({ type: isGlobeRef.current ? 'globe' : 'mercator' });
       renderProminentPinsRef.current();
     });
   };
+
+  // Synchronize basemap with theme default unless user explicitly chose a basemap in settings
+  const prevThemeRef = useRef(settings.themeMode);
+  useEffect(() => {
+    if (prevThemeRef.current !== settings.themeMode) {
+      prevThemeRef.current = settings.themeMode;
+      const themeDef = THEME_REGISTRY[normalizeThemeId(settings.themeMode)];
+      if (themeDef && !settings.defaultBasemap) {
+        handleBasemapChange(themeDef.defaultBasemap as BasemapMode);
+      }
+    }
+  }, [settings.themeMode, settings.defaultBasemap]);
 
   // Toggle Globe vs Flat Mercator
   const toggleProjection = () => {
@@ -1722,7 +1738,7 @@ export default function GlobeEventMap({
               : 'h-[500px] lg:h-[560px]'
           )}
         >
-          <div ref={mapContainerRef} className="w-full h-full" />
+          <div ref={mapContainerRef} className="w-full h-full" data-basemap={basemap} />
 
           {/* Tactical Incident Inspector Drawer (Slides in upon selection) */}
           <AnimatePresence>

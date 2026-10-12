@@ -48,8 +48,14 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Gurmukhi:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600;700&family=Noto+Sans+Oriya:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        {/* Synchronous theme initialization: blocks FOUC on first paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('indra_platform_settings');var m=s?JSON.parse(s).themeMode:'dark';var v=['dark','light','high_contrast','monsoon','night_watch'];var t=v.indexOf(m)!==-1?m:'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
+          }}
+        />
       </head>
-      <body className="bg-paper text-ink antialiased">
+      <body className="bg-surface-bg text-text antialiased">
         {/* LanguageProvider: zero-backend client-side i18n — wraps entire app */}
         <LanguageProvider>
           <RoleProvider>

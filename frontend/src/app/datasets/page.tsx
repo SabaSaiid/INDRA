@@ -270,7 +270,7 @@ export default function DatasetsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface-bg text-text">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}

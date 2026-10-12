@@ -17,6 +17,7 @@ import {
 import { Layers, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useThemeTokens } from '@/lib/useThemeTokens';
 
 export type DistributionTab = 'hazard' | 'severity';
 export type TimeRangeFilter = '24h' | '7d' | 'all';
@@ -37,6 +38,7 @@ export default function EventDistributionChart({
   className,
 }: EventDistributionChartProps) {
   const { t } = useTranslation();
+  const tokens = useThemeTokens();
   const cardTitle = title ?? t('dashboard.event_distribution');
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<DistributionTab>(initialTab);
@@ -140,8 +142,19 @@ export default function EventDistributionChart({
     return shown[hoveredIndex] || null;
   }, [hoveredIndex, shown]);
 
+  const resolveItemColor = (item: DistributionItem) => {
+    const key = item.name.toLowerCase();
+    if (activeTab === 'severity') {
+      return tokens.severity[key as keyof typeof tokens.severity] || item.color;
+    }
+    if (activeTab === 'hazard') {
+      return tokens.hazard[key] || item.color;
+    }
+    return item.color;
+  };
+
   const sourceToggle = (
-    <div className="inline-flex items-center rounded-md border border-[#E0D7C6] bg-[#EFE9DC] p-0.5 text-[9px] font-mono">
+    <div className="inline-flex items-center rounded-md border border-border bg-surface-raised p-0.5 text-[9px] font-mono">
       {(['events', 'warnings'] as const).map((src) => {
         const n = src === 'events' ? eventsTotal : alerts?.length ?? 0;
         return (
@@ -152,7 +165,7 @@ export default function EventDistributionChart({
             title={src === 'events' ? 'Events INDRA formed from reports' : 'Official warnings in force (IMD, CWC, SDMA via SACHET)'}
             className={cn(
               'px-1.5 py-0.5 rounded transition-colors cursor-pointer',
-              source === src ? 'bg-white text-[#1B2432] font-bold shadow-2xs' : 'text-[#7A8599] hover:text-[#1B2432]'
+              source === src ? 'bg-surface text-text font-bold shadow-2xs' : 'text-text-muted hover:text-text'
             )}
           >
             {src === 'events' ? t('chart.events') : t('chart.warnings')} {n}
@@ -171,28 +184,28 @@ export default function EventDistributionChart({
   const content = (
     <div className={cn('flex flex-col h-full min-h-0', className)}>
       {/* Subheader: Segmented Tab Switcher + Time Range Pills */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-1 border-b border-[#F0EBE0]">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-1 border-b border-border">
         {/* Dimension Tabs (Hazard vs Severity) */}
-        <div className="inline-flex p-0.5 rounded-lg bg-[#EFE9DC] border border-[#E0D7C6]">
+        <div className="inline-flex p-0.5 rounded-lg bg-surface-raised border border-border">
           <button
             type="button"
             onClick={() => handleTabChange('hazard')}
             className={cn(
               'relative flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer',
               activeTab === 'hazard'
-                ? 'text-[#1B2432] font-semibold'
-                : 'text-[#7A8599] hover:text-[#1B2432]'
+                ? 'text-text font-semibold'
+                : 'text-text-muted hover:text-text'
             )}
           >
             {activeTab === 'hazard' && (
               <motion.div
                 layoutId="activeDistTabIndicator"
-                className="absolute inset-0 bg-white rounded-md shadow-2xs"
+                className="absolute inset-0 bg-surface rounded-md shadow-2xs"
                 transition={{ type: 'spring', bounce: 0.15, duration: 0.35 }}
               />
             )}
             <span className="relative z-10 flex items-center gap-1">
-              <Layers className="w-3 h-3 text-[#4A6670]" />
+              <Layers className="w-3 h-3 text-text-muted" />
               <span>{t('chart.by_hazard')}</span>
             </span>
           </button>
@@ -203,19 +216,19 @@ export default function EventDistributionChart({
             className={cn(
               'relative flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer',
               activeTab === 'severity'
-                ? 'text-[#1B2432] font-semibold'
-                : 'text-[#7A8599] hover:text-[#1B2432]'
+                ? 'text-text font-semibold'
+                : 'text-text-muted hover:text-text'
             )}
           >
             {activeTab === 'severity' && (
               <motion.div
                 layoutId="activeDistTabIndicator"
-                className="absolute inset-0 bg-white rounded-md shadow-2xs"
+                className="absolute inset-0 bg-surface rounded-md shadow-2xs"
                 transition={{ type: 'spring', bounce: 0.15, duration: 0.35 }}
               />
             )}
             <span className="relative z-10 flex items-center gap-1">
-              <ShieldAlert className="w-3 h-3 text-[#B8873A]" />
+              <ShieldAlert className="w-3 h-3 text-brand" />
               <span>{t('chart.by_severity')}</span>
             </span>
           </button>
@@ -224,7 +237,7 @@ export default function EventDistributionChart({
         {/* Time range pills — events only; a warning is either in force or not */}
         {variant === 'embedded' && sourceToggle}
         {source === 'warnings' ? (
-          <span className="text-[9px] text-[#7A8599] font-medium">{t('chart.in_force_now')}</span>
+          <span className="text-[9px] text-text-muted font-medium">{t('chart.in_force_now')}</span>
         ) : (
         <div className="flex items-center gap-0.5 text-[9px] font-mono">
           {(['24h', '7d', 'all'] as const).map((r) => (
@@ -238,8 +251,8 @@ export default function EventDistributionChart({
               className={cn(
                 'px-1.5 py-0.5 rounded transition-all cursor-pointer font-medium',
                 timeRange === r
-                  ? 'bg-[#1B2432] text-white font-bold shadow-2xs'
-                  : 'text-[#7A8599] hover:text-[#1B2432] hover:bg-[#EFE9DC]'
+                  ? 'bg-brand text-brand-foreground font-bold shadow-2xs'
+                  : 'text-text-muted hover:text-text hover:bg-surface-raised'
               )}
             >
               {r === 'all' ? 'ALL' : r.toUpperCase()}
@@ -274,7 +287,7 @@ export default function EventDistributionChart({
             <button
               type="button"
               onClick={() => chooseSource('warnings')}
-              className="text-[10px] font-medium text-[#4A6670] underline underline-offset-2 hover:text-[#1B2432]"
+              className="text-[10px] font-medium text-brand underline underline-offset-2 hover:text-brand/80"
             >
               Show the {alerts!.length} official warnings in force
             </button>
@@ -288,7 +301,7 @@ export default function EventDistributionChart({
           {mounted && total > 0 ? (
             <ResponsiveContainer width="100%" height="100%" minWidth={110} minHeight={110}>
               <PieChart
-                key={`${source}-${activeTab}-${timeRange}`}
+                key={`${source}-${activeTab}-${timeRange}-${tokens.themeId}`}
                 margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
               >
                 <Pie
@@ -305,7 +318,7 @@ export default function EventDistributionChart({
                   isAnimationActive={true}
                   animationDuration={600}
                   animationEasing="ease-out"
-                  stroke="#F7F3EA"
+                  stroke={tokens.surface}
                   strokeWidth={2}
                   onMouseEnter={(_, index) => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
@@ -313,7 +326,7 @@ export default function EventDistributionChart({
                   {shown.map((entry, index) => (
                     <Cell
                       key={`cell-${entry.name}-${index}`}
-                      fill={entry.color}
+                      fill={resolveItemColor(entry)}
                       opacity={
                         hoveredIndex === null || hoveredIndex === index ? 1 : 0.35
                       }
@@ -324,36 +337,36 @@ export default function EventDistributionChart({
               </PieChart>
             </ResponsiveContainer>
           ) : total === 0 ? (
-            <div className="w-[104px] h-[104px] rounded-full border border-dashed border-[#D5CDBC] flex flex-col items-center justify-center text-center p-2 bg-[#F7F3EA]/50">
-              <span className="text-base font-bold text-[#A0988A] font-mono">0</span>
-              <span className="text-[8px] text-[#B0A898] uppercase tracking-wider">{t('chart.no_events_range')}</span>
+            <div className="w-[104px] h-[104px] rounded-full border border-dashed border-border flex flex-col items-center justify-center text-center p-2 bg-surface-raised/40">
+              <span className="text-base font-bold text-text-muted font-mono">0</span>
+              <span className="text-[8px] text-text-muted uppercase tracking-wider">{t('chart.no_events_range')}</span>
             </div>
           ) : null}
 
-          {/* Dedicated Center Hole Readout (Eliminates floating tooltip collisions) */}
+          {/* Dedicated Center Hole Readout */}
           {total > 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-1">
               {activeItem ? (
                 <div className="flex flex-col items-center justify-center">
                   <span
                     className="text-lg font-bold tabular-nums font-mono leading-none"
-                    style={{ color: activeItem.color }}
+                    style={{ color: resolveItemColor(activeItem) }}
                   >
                     {activeItem.value}
                   </span>
-                  <span className="text-[10px] font-semibold text-[#1B2432] truncate max-w-[68px] mt-0.5 leading-tight">
+                  <span className="text-[10px] font-semibold text-text truncate max-w-[68px] mt-0.5 leading-tight">
                     {getItemLabel(activeItem.name)}
                   </span>
-                  <span className="text-[9px] text-[#7A8599] font-mono leading-none mt-0.5">
+                  <span className="text-[9px] text-text-muted font-mono leading-none mt-0.5">
                     {total > 0 ? Math.round((Number(activeItem.value) / total) * 100) : 0}%
                   </span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center">
-                  <span className="text-xl font-bold text-[#1B2432] tabular-nums font-mono leading-none">
+                  <span className="text-xl font-bold text-text tabular-nums font-mono leading-none">
                     {total}
                   </span>
-                  <span className="text-[9px] text-[#7A8599] font-medium uppercase tracking-wider mt-0.5 leading-none">
+                  <span className="text-[9px] text-text-muted font-medium uppercase tracking-wider mt-0.5 leading-none">
                     {source === 'warnings' ? t('chart.warnings') : t('chart.events')}
                   </span>
                 </div>
@@ -365,13 +378,14 @@ export default function EventDistributionChart({
         {/* Legend */}
         <div className="flex-1 min-w-0 space-y-0.5 max-h-[126px] overflow-y-auto custom-scrollbar pr-0.5">
           {total === 0 ? (
-            <div className="text-[10px] text-[#A0988A] text-center italic py-6">
+            <div className="text-[10px] text-text-muted text-center italic py-6">
               {t('chart.no_events_range')}
             </div>
           ) : (
             shown.map((item, index) => {
               const isHovered = hoveredIndex === index;
               const pct = total > 0 ? Math.round((Number(item.value) / total) * 100) : 0;
+              const color = resolveItemColor(item);
               return (
                 <div
                   key={item.name}
@@ -380,8 +394,8 @@ export default function EventDistributionChart({
                   className={cn(
                     'flex items-center justify-between py-0.5 px-1.5 rounded text-[10px] cursor-pointer transition-colors',
                     isHovered
-                      ? 'bg-[#EFE9DC] font-medium shadow-2xs'
-                      : 'hover:bg-[#F7F3EA]'
+                      ? 'bg-surface-raised font-medium shadow-2xs'
+                      : 'hover:bg-surface-raised/50'
                   )}
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -390,14 +404,14 @@ export default function EventDistributionChart({
                         'w-2 h-2 rounded-full flex-shrink-0 transition-transform duration-150',
                         isHovered && 'scale-125'
                       )}
-                      style={{ backgroundColor: item.color }}
+                      style={{ backgroundColor: color }}
                     />
-                    <span className="truncate text-[#1B2432] text-[10px]">{getItemLabel(item.name)}</span>
+                    <span className="truncate text-text text-[10px]">{getItemLabel(item.name)}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
-                    <span className="text-[9px] font-mono text-[#7A8599]">{pct}%</span>
-                    <span className="font-semibold text-[#1B2432] tabular-nums font-mono min-w-[16px] text-right">
+                    <span className="text-[9px] font-mono text-text-muted">{pct}%</span>
+                    <span className="font-semibold text-text tabular-nums font-mono min-w-[16px] text-right">
                       {item.value}
                     </span>
                   </div>
@@ -428,7 +442,7 @@ export default function EventDistributionChart({
           density="compact"
           className="p-0 pb-1.5 mb-0 flex items-center justify-between"
           title={
-            <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+            <span className="font-display">
               {cardTitle}
             </span>
           }

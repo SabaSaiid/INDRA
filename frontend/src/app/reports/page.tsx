@@ -169,7 +169,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F3EA] text-[#1B2432]">
+    <div className="min-h-screen bg-surface-bg text-text">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}

@@ -53,6 +53,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/lib/i18n/types';
+import { THEME_REGISTRY } from '@/lib/theme-registry';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -878,15 +879,11 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                           </div>
                         </div>
 
-                        {/* Color Theme (Unified cards) */}
+                        {/* Color Theme (5 Themes with Swatch Previews) */}
                         <div>
                           <SectionHeader icon={Sliders} label="Interface Theme" />
-                          <div className="grid grid-cols-3 gap-2">
-                            {[
-                              { id: 'dark', label: 'Dark Ops', desc: 'Tactical night mode' },
-                              { id: 'light', label: 'Light', desc: 'Day parchment' },
-                              { id: 'high_contrast', label: 'Contrast', desc: 'Sunlight glare' },
-                            ].map((m) => {
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {Object.values(THEME_REGISTRY).map((m) => {
                               const isSel = settings.themeMode === m.id;
                               return (
                                 <SelectCard
@@ -894,8 +891,32 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ themeMode: m.id as ThemeMode })}
                                 >
-                                  <p className="text-xs font-semibold">{m.label}</p>
-                                  <p className="text-[9px] text-slate-400 mt-0.5">{m.desc}</p>
+                                  <div>
+                                    <p className="text-xs font-semibold">{m.label}</p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{m.description}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-white/[0.08]" aria-hidden="true">
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.rail }}
+                                      title={`Rail: ${m.swatches.rail}`}
+                                    />
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.surface }}
+                                      title={`Surface: ${m.swatches.surface}`}
+                                    />
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.brand }}
+                                      title={`Brand: ${m.swatches.brand}`}
+                                    />
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.critical }}
+                                      title={`Critical: ${m.swatches.critical}`}
+                                    />
+                                  </div>
                                 </SelectCard>
                               );
                             })}
@@ -1287,12 +1308,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
                         <div>
                           <SectionHeader icon={Sliders} label="Interface Theme" />
-                          <div className="grid grid-cols-3 gap-2">
-                            {[
-                              { id: 'dark', label: 'Dark Ops', desc: 'Command center' },
-                              { id: 'light', label: 'Light', desc: 'Day parchment' },
-                              { id: 'high_contrast', label: 'Contrast', desc: 'Sunlight glare' },
-                            ].map((m) => {
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {Object.values(THEME_REGISTRY).map((m) => {
                               const isSel = settings.themeMode === m.id;
                               return (
                                 <SelectCard
@@ -1300,8 +1317,32 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                                   isSelected={isSel}
                                   onClick={() => updateSettings({ themeMode: m.id as ThemeMode })}
                                 >
-                                  <p className="text-xs font-semibold">{m.label}</p>
-                                  <p className="text-[9px] text-slate-400 mt-0.5">{m.desc}</p>
+                                  <div>
+                                    <p className="text-xs font-semibold">{m.label}</p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{m.description}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-white/[0.08]" aria-hidden="true">
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.rail }}
+                                      title={`Rail: ${m.swatches.rail}`}
+                                    />
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.surface }}
+                                      title={`Surface: ${m.swatches.surface}`}
+                                    />
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.brand }}
+                                      title={`Brand: ${m.swatches.brand}`}
+                                    />
+                                    <span
+                                      className="w-3 h-3 rounded-full border border-white/20 shadow-xs"
+                                      style={{ backgroundColor: m.swatches.critical }}
+                                      title={`Critical: ${m.swatches.critical}`}
+                                    />
+                                  </div>
                                 </SelectCard>
                               );
                             })}

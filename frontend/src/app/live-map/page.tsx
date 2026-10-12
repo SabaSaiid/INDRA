@@ -65,7 +65,7 @@ export default function LiveMapPage() {
   const show = (n: number | null) => (n === null ? '—' : String(n));
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface-bg text-text">
       {/* Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}

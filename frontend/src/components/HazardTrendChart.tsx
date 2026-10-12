@@ -22,23 +22,20 @@ import { TrendingUp } from 'lucide-react';
 import { fetchEventDistribution, ApiError } from '@/lib/api';
 import { ErrorState, EmptyState } from '@/components/ui/empty-state';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-
-const BAR_24H  = '#2563EB';
-const BAR_7D   = '#8B5CF6';
-const BAR_30D  = '#F59E0B';
+import { useThemeTokens } from '@/lib/useThemeTokens';
 
 function HazardTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-slate-900 text-white text-xs rounded-xl px-3 py-2 shadow-xl border border-slate-700 min-w-[170px]">
-      <div className="font-bold mb-1.5 text-cyan-300">{label}</div>
+    <div className="bg-surface-raised text-text text-xs rounded-xl px-3 py-2 shadow-xl border border-border min-w-[170px]">
+      <div className="font-bold mb-1.5 text-brand">{label}</div>
       {payload.map((p: any) => (
         <div key={p.name} className="flex justify-between gap-4 items-center">
-          <span className="flex items-center gap-1.5 text-slate-300">
+          <span className="flex items-center gap-1.5 text-text-muted">
             <span className="inline-block w-2 h-2 rounded-full" style={{ background: p.color }} />
             {p.name}
           </span>
-          <span className="font-mono tabular-nums">{p.value ?? 0}</span>
+          <span className="font-mono tabular-nums text-text">{p.value ?? 0}</span>
         </div>
       ))}
     </div>
@@ -47,10 +44,16 @@ function HazardTooltip({ active, payload, label }: any) {
 
 export default function HazardTrendChart({ refreshTick }: { refreshTick: number }) {
   const { t } = useTranslation();
+  const tokens = useThemeTokens();
   const [data24, setData24] = useState<any[] | null>(null);
   const [data7,  setData7]  = useState<any[] | null>(null);
   const [data30, setData30] = useState<any[] | null>(null);
   const [error,  setError]  = useState<unknown>(null);
+
+  const isDark = tokens.themeId === 'night_watch' || tokens.themeId === 'high_contrast';
+  const bar24 = isDark ? '#60A5FA' : '#2563EB';
+  const bar7 = isDark ? '#A78BFA' : '#7C3AED';
+  const bar30 = isDark ? '#38BDF8' : '#0284C7';
 
   useEffect(() => {
     let cancelled = false;
@@ -99,8 +102,8 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   // ── Loading
   if (!chartData && !error) {
     return (
-      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
-        <div className="h-64 animate-pulse bg-[#F0EBE0] rounded-xl" />
+      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
+        <div className="h-64 animate-pulse bg-surface-raised rounded-xl" />
       </div>
     );
   }
@@ -108,7 +111,7 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   // ── Error
   if (error && !chartData) {
     return (
-      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
         <ErrorState label="hazard trend data" error={error} compact />
       </div>
     );
@@ -117,7 +120,7 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   // ── Empty
   if (chartData && chartData.length === 0) {
     return (
-      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
         <EmptyState
           title="No event distribution data yet"
           hint="Events will appear here once the pipeline processes its first reports."
@@ -128,21 +131,18 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   }
 
   return (
-    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col gap-3">
+    <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3
-            className="text-sm font-bold text-[#1B2432] flex items-center gap-2"
-            style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-          >
-            <TrendingUp className="w-4 h-4 text-blue-500" />
+          <h3 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+            <TrendingUp className="w-4 h-4 text-brand" />
             {t('analytics.hazard_trend_title') || 'Hazard Type Trends'}
           </h3>
-          <p className="text-[11px] text-[#7A8599] mt-0.5">
+          <p className="text-[11px] text-text-muted mt-0.5">
             {t('analytics.hazard_trend_subtitle') || 'Event counts per hazard across 3 time windows — each bar is a real snapshot, not interpolated'}
           </p>
         </div>
-        <span className="text-[10px] font-mono text-[#7A8599] shrink-0">
+        <span className="text-[10px] font-mono text-text-muted shrink-0">
           3 × GET /api/events/distribution
         </span>
       </div>
@@ -150,13 +150,14 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            key={`hazard-trend-${tokens.themeId}`}
             data={chartData ?? []}
             margin={{ top: 8, right: 12, left: 0, bottom: 60 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#E8E2D4" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={tokens.border} vertical={false} />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 9, fill: '#7A8599', fontFamily: 'Public Sans, sans-serif' }}
+              tick={{ fontSize: 9, fill: tokens.textMuted }}
               axisLine={false}
               tickLine={false}
               angle={-35}
@@ -164,24 +165,24 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
               interval={0}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+              tick={{ fontSize: 10, fill: tokens.textMuted }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
               width={36}
             />
-            <Tooltip content={<HazardTooltip />} cursor={{ fill: '#F0EBE0' }} />
+            <Tooltip content={<HazardTooltip />} cursor={{ fill: tokens.surfaceRaised, opacity: 0.5 }} />
             <Legend
               formatter={(value) => (
-                <span style={{ fontSize: 10, color: '#4A5568', fontFamily: 'Public Sans, sans-serif' }}>
+                <span style={{ fontSize: 10, color: tokens.textSecondary }}>
                   {value}
                 </span>
               )}
               wrapperStyle={{ paddingTop: '4px' }}
             />
-            <Bar dataKey="Last 24 h"   fill={BAR_24H} maxBarSize={18} radius={[2, 2, 0, 0]} name="Last 24 h" />
-            <Bar dataKey="Last 7 days" fill={BAR_7D}  maxBarSize={18} radius={[2, 2, 0, 0]} name="Last 7 days" />
-            <Bar dataKey="Last 30 days" fill={BAR_30D} maxBarSize={18} radius={[2, 2, 0, 0]} name="Last 30 days" />
+            <Bar dataKey="Last 24 h"   fill={bar24} maxBarSize={18} radius={[2, 2, 0, 0]} name="Last 24 h" />
+            <Bar dataKey="Last 7 days" fill={bar7}  maxBarSize={18} radius={[2, 2, 0, 0]} name="Last 7 days" />
+            <Bar dataKey="Last 30 days" fill={bar30} maxBarSize={18} radius={[2, 2, 0, 0]} name="Last 30 days" />
           </BarChart>
         </ResponsiveContainer>
       </div>

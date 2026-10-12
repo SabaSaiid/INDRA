@@ -20,6 +20,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { useThemeTokens } from '@/lib/useThemeTokens';
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -31,14 +32,14 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     const val = payload[0].value ?? 0;
     return (
-      <div className="bg-[#1B2432]/95 backdrop-blur-md text-white rounded-lg shadow-xl border border-[#2D3C52] px-3 py-2 text-xs">
-        <p className="text-[10px] text-slate-300 font-medium mb-1">{label}</p>
+      <div className="bg-surface-raised/95 backdrop-blur-md text-text rounded-lg shadow-xl border border-border px-3 py-2 text-xs">
+        <p className="text-[10px] text-text-muted font-medium mb-1">{label}</p>
         <div className="flex items-center gap-1.5 font-mono">
-          <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-          <span className="text-sm font-bold text-white tabular-nums">
+          <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+          <span className="text-sm font-bold text-text tabular-nums">
             {val.toLocaleString()}
           </span>
-          <span className="text-[10px] text-slate-300 font-sans">reports</span>
+          <span className="text-[10px] text-text-muted font-sans">reports</span>
         </div>
       </div>
     );
@@ -58,6 +59,7 @@ export default function ReportsTrendChart({
   className,
 }: ReportsTrendChartProps = {}) {
   const { t } = useTranslation();
+  const tokens = useThemeTokens();
   const chartTitle = title ?? t('nav.field_reports');
   const [mounted, setMounted] = useState(false);
   const [dateRange, setDateRange] = useState<'7d' | '14d' | '30d'>('7d');
@@ -139,7 +141,7 @@ export default function ReportsTrendChart({
   }, [trendData.length]);
 
   const rangeButtons = (
-    <div className="flex items-center gap-0.5 bg-[#F0EBE0] p-0.5 rounded-lg border border-[#E8E2D4]" role="group" aria-label="Date range">
+    <div className="flex items-center gap-0.5 bg-surface-raised p-0.5 rounded-lg border border-border" role="group" aria-label="Date range">
       {(['7d', '14d', '30d'] as const).map((r) => (
         <button
           key={r}
@@ -147,8 +149,8 @@ export default function ReportsTrendChart({
           onClick={() => setDateRange(r)}
           className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all ${
             dateRange === r
-              ? 'bg-white text-[#1B2432] shadow-2xs'
-              : 'text-[#7A8599] hover:text-[#1B2432]'
+              ? 'bg-surface text-text shadow-2xs'
+              : 'text-text-muted hover:text-text'
           }`}
         >
           {r}
@@ -189,20 +191,20 @@ export default function ReportsTrendChart({
               >
                 <defs>
                   <linearGradient id="reportGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
+                    <stop offset="5%" stopColor={tokens.brand} stopOpacity={0.22} />
+                    <stop offset="95%" stopColor={tokens.brand} stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#F0EBE0"
+                  stroke={tokens.border}
                   vertical={false}
                 />
                 <XAxis
                   dataKey="date"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+                  tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
                   dy={6}
                   interval={xAxisInterval}
                   minTickGap={10}
@@ -211,7 +213,7 @@ export default function ReportsTrendChart({
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+                  tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
                   dx={-2}
                   allowDecimals={false}
                   domain={[0, (max: number) => Math.max(1, Math.ceil(max * 1.05))]}
@@ -222,7 +224,7 @@ export default function ReportsTrendChart({
                 <Area
                   type="linear"
                   dataKey="reports"
-                  stroke="#2563EB"
+                  stroke={tokens.brand}
                   strokeWidth={2.2}
                   fill="url(#reportGradient)"
                   dot={(props: any) =>
@@ -232,8 +234,8 @@ export default function ReportsTrendChart({
                         cx={props.cx}
                         cy={props.cy}
                         r={3.2}
-                        fill="#2563EB"
-                        stroke="#FFFFFF"
+                        fill={tokens.brand}
+                        stroke={tokens.surface}
                         strokeWidth={1.8}
                       />
                     ) : (
@@ -243,8 +245,8 @@ export default function ReportsTrendChart({
                   activeDot={{
                     r: 5,
                     strokeWidth: 2,
-                    stroke: '#FFFFFF',
-                    fill: '#2563EB',
+                    stroke: tokens.surface,
+                    fill: tokens.brand,
                   }}
                   animationBegin={100}
                   animationDuration={800}
@@ -255,8 +257,8 @@ export default function ReportsTrendChart({
             {/* Zero-volume hint overlay — shown only when all days have 0 reports */}
             {loaded && total === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-[#F7F3EA]/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-center">
-                  <p className="text-[10px] text-[#7A8599] font-medium">
+                <div className="bg-surface/80 border border-border backdrop-blur-sm rounded-lg px-3 py-1.5 text-center">
+                  <p className="text-[10px] text-text-muted font-medium">
                     {t('analytics.trend_no_reports_hint')}
                   </p>
                 </div>
@@ -268,13 +270,13 @@ export default function ReportsTrendChart({
 
       {/* Footer metadata & quick navigation */}
       {variant === 'card' && loaded && !error && total > 0 && (
-        <div className="flex items-center justify-between pt-1.5 px-0.5 text-[10px] text-[#7A8599] border-t border-[#F0EBE0] mt-auto">
+        <div className="flex items-center justify-between pt-1.5 px-0.5 text-[10px] text-text-muted border-t border-border mt-auto">
           <span className="truncate">
-            Peak: <strong className="font-mono text-[#1B2432]">{peakCount.toLocaleString()}</strong> ({peakDate})
+            Peak: <strong className="font-mono text-text">{peakCount.toLocaleString()}</strong> ({peakDate})
           </span>
           <Link
             href="/reports"
-            className="flex items-center gap-1 text-[#2563EB] hover:text-[#1D4ED8] font-medium transition-colors ml-2 flex-shrink-0"
+            className="flex items-center gap-1 text-brand hover:underline font-medium transition-colors ml-2 flex-shrink-0"
           >
             <span>View all</span>
             <ArrowRight className="w-3 h-3" />
@@ -302,23 +304,23 @@ export default function ReportsTrendChart({
           className="p-0 pb-1 mb-1 flex items-center justify-between"
           title={
             <div className="flex items-center gap-2">
-              <span style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+              <span className="font-display">
                 {chartTitle}
               </span>
               {loaded && !error && total > 0 && (
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 font-semibold tracking-tight">
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-brand/10 text-brand border border-brand/20 font-semibold tracking-tight">
                   {total.toLocaleString()}
                 </span>
               )}
             </div>
           }
           subtitle={
-            <span className="text-[11px] text-[#7A8599] flex items-center gap-1.5 font-normal">
+            <span className="text-[11px] text-text-muted flex items-center gap-1.5 font-normal">
               <span>{days}d trend</span>
               {avgPerDay > 0 && (
                 <>
                   <span>·</span>
-                  <span className="font-mono text-[#4A5568]">~{avgPerDay.toLocaleString()}/day</span>
+                  <span className="font-mono text-text-secondary">~{avgPerDay.toLocaleString()}/day</span>
                 </>
               )}
             </span>

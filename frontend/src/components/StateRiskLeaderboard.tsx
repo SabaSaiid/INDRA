@@ -13,12 +13,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, Cell,
+  Legend, ResponsiveContainer,
 } from 'recharts';
 import { MapPin } from 'lucide-react';
 import { fetchTopDistricts, type TopDistrictRow, ApiError } from '@/lib/api';
 import { ErrorState, EmptyState } from '@/components/ui/empty-state';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useThemeTokens } from '@/lib/useThemeTokens';
 
 // ─── Risk score ───────────────────────────────────────────────────────────────
 
@@ -28,39 +29,26 @@ function riskScore(row: TopDistrictRow): number {
   return Math.round(((row.critical * 3 + row.high * 2 + row.moderate) / (row.total * 3)) * 100);
 }
 
-function riskColor(score: number): string {
-  if (score >= 70) return '#DC2626';
-  if (score >= 40) return '#F97316';
-  if (score >= 15) return '#EAB308';
-  return '#10B981';
-}
-
-// ─── Severity bar colors ──────────────────────────────────────────────────────
-
-const SEV_COLORS = {
-  critical: '#DC2626',
-  high:     '#F97316',
-  moderate: '#EAB308',
-  low:      '#94A3B8',
-};
-
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
 function DistrictTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const total = payload.reduce((s: number, p: any) => s + (p.value ?? 0), 0);
   return (
-    <div className="bg-slate-900 text-white text-xs rounded-xl px-3 py-2 shadow-xl border border-slate-700 min-w-[160px]">
-      <div className="font-bold mb-1.5 text-cyan-300 truncate">{label}</div>
+    <div className="bg-surface-raised text-text text-xs rounded-xl px-3 py-2 shadow-xl border border-border min-w-[160px]">
+      <div className="font-bold mb-1.5 text-brand truncate">{label}</div>
       {payload.map((p: any) => (
         <div key={p.name} className="flex justify-between gap-4 items-center">
-          <span className="flex items-center gap-1.5 text-slate-300 capitalize">{p.name}</span>
-          <span className="font-mono tabular-nums">{p.value ?? 0}</span>
+          <span className="flex items-center gap-1.5 text-text-muted capitalize">
+            <span className="inline-block w-2 h-2 rounded-full" style={{ background: p.color }} />
+            {p.name}
+          </span>
+          <span className="font-mono tabular-nums text-text">{p.value ?? 0}</span>
         </div>
       ))}
-      <div className="border-t border-slate-700 mt-1.5 pt-1.5 flex justify-between">
-        <span className="text-slate-400">Total</span>
-        <span className="font-mono tabular-nums">{total}</span>
+      <div className="border-t border-border mt-1.5 pt-1.5 flex justify-between">
+        <span className="text-text-muted">Total</span>
+        <span className="font-mono tabular-nums text-text">{total}</span>
       </div>
     </div>
   );
@@ -70,8 +58,16 @@ function DistrictTooltip({ active, payload, label }: any) {
 
 export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: number }) {
   const { t } = useTranslation();
+  const tokens = useThemeTokens();
   const [districts, setDistricts] = useState<TopDistrictRow[] | null>(null);
   const [error, setError] = useState<unknown>(null);
+
+  const getRiskColor = (score: number): string => {
+    if (score >= 70) return tokens.severity.critical;
+    if (score >= 40) return tokens.severity.high;
+    if (score >= 15) return tokens.severity.moderate;
+    return tokens.severity.low;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -118,8 +114,8 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
   if (!districts && !error) {
     return (
       <div className="space-y-6">
-        <div className="h-48 animate-pulse bg-[#F0EBE0] rounded-xl" />
-        <div className="h-64 animate-pulse bg-[#F0EBE0] rounded-xl" />
+        <div className="h-48 animate-pulse bg-surface-raised rounded-xl" />
+        <div className="h-64 animate-pulse bg-surface-raised rounded-xl" />
       </div>
     );
   }
@@ -154,27 +150,24 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
     <div className="space-y-6">
 
       {/* ── State Leaderboard Table ──────────────────────────────────────── */}
-      <div className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-[#E8E2D4]">
-          <h3
-            className="text-sm font-bold text-[#1B2432] flex items-center gap-2"
-            style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-          >
-            <MapPin className="w-4 h-4 text-rose-500" />
+      <div className="bg-surface rounded-xl border border-border shadow-2xs overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h3 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+            <MapPin className="w-4 h-4 text-brand" />
             {t('analytics.geo_state_leaderboard_title')}
           </h3>
-          <p className="text-[11px] text-[#7A8599] mt-0.5">
+          <p className="text-[11px] text-text-muted mt-0.5">
             {t('analytics.geo_state_leaderboard_subtitle')}
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-[#F7F3EA] text-[#7A8599]">
+              <tr className="bg-surface-raised text-text-muted">
                 <th className="text-left px-4 py-2.5 font-semibold">State</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-[#DC2626]">Critical</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-[#F97316]">High</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-[#EAB308]">Moderate</th>
+                <th className="text-right px-3 py-2.5 font-semibold text-severity-critical">Critical</th>
+                <th className="text-right px-3 py-2.5 font-semibold text-severity-high">High</th>
+                <th className="text-right px-3 py-2.5 font-semibold text-severity-moderate">Moderate</th>
                 <th className="text-right px-3 py-2.5 font-semibold">Total</th>
                 <th className="px-4 py-2.5 font-semibold w-36">{t('analytics.geo_risk_score') || 'Risk Score'}</th>
               </tr>
@@ -182,36 +175,36 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
             <tbody>
               {stateRows.map((row, i) => {
                 const score = row.score;
-                const color = riskColor(score);
+                const color = getRiskColor(score);
                 const pct = Math.max(4, (row.total / maxTotal) * 100);
                 return (
                   <tr
                     key={row.state}
-                    className="border-t border-[#E8E2D4] hover:bg-[#F7F3EA] transition-colors"
+                    className="border-t border-border hover:bg-surface-raised/50 transition-colors"
                   >
                     <td className="px-4 py-2.5">
-                      <span className="font-medium text-[#1B2432]">{row.state}</span>
+                      <span className="font-medium text-text">{row.state}</span>
                       {i === 0 && (
-                        <span className="ml-2 text-[9px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+                        <span className="ml-2 text-[9px] font-bold bg-severity-critical/15 text-severity-critical px-1.5 py-0.5 rounded-full">
                           HIGHEST
                         </span>
                       )}
                     </td>
-                    <td className="text-right px-3 py-2.5 font-mono font-semibold text-[#DC2626]">
+                    <td className="text-right px-3 py-2.5 font-mono font-semibold text-severity-critical">
                       {row.critical || '—'}
                     </td>
-                    <td className="text-right px-3 py-2.5 font-mono text-[#F97316]">
+                    <td className="text-right px-3 py-2.5 font-mono text-severity-high">
                       {row.high || '—'}
                     </td>
-                    <td className="text-right px-3 py-2.5 font-mono text-[#EAB308]">
+                    <td className="text-right px-3 py-2.5 font-mono text-severity-moderate">
                       {row.moderate || '—'}
                     </td>
-                    <td className="text-right px-3 py-2.5 font-mono font-bold text-[#1B2432]">
+                    <td className="text-right px-3 py-2.5 font-mono font-bold text-text">
                       {row.total}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 rounded-full bg-[#E8E2D4] overflow-hidden">
+                        <div className="flex-1 h-2 rounded-full bg-surface-raised overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${pct}%`, backgroundColor: color }}
@@ -234,27 +227,25 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
       </div>
 
       {/* ── District Stacked Bar Chart ───────────────────────────────────── */}
-      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
-        <h3
-          className="text-sm font-bold text-[#1B2432] mb-0.5"
-          style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-        >
+      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
+        <h3 className="text-sm font-bold text-text mb-0.5 font-display">
           {t('analytics.geo_district_chart_title')}
         </h3>
-        <p className="text-[11px] text-[#7A8599] mb-3">
+        <p className="text-[11px] text-text-muted mb-3">
           {t('analytics.geo_district_chart_subtitle')}
         </p>
         <div className="h-60">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
+              key={`state-risk-${tokens.themeId}`}
               data={districtBarData}
               layout="vertical"
               margin={{ top: 0, right: 12, left: 4, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8E2D4" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={tokens.border} horizontal={false} />
               <XAxis
                 type="number"
-                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
@@ -263,23 +254,23 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
                 type="category"
                 dataKey="name"
                 width={100}
-                tick={{ fontSize: 10, fill: '#4A5568', fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: tokens.textSecondary, fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip content={<DistrictTooltip />} cursor={{ fill: '#F0EBE0' }} />
+              <Tooltip content={<DistrictTooltip />} cursor={{ fill: tokens.surfaceRaised, opacity: 0.5 }} />
               <Legend
                 formatter={(value) => (
-                  <span style={{ fontSize: 10, color: '#4A5568', textTransform: 'capitalize' }}>
+                  <span style={{ fontSize: 10, color: tokens.textSecondary, textTransform: 'capitalize' }}>
                     {value}
                   </span>
                 )}
                 wrapperStyle={{ paddingTop: '6px' }}
               />
-              <Bar dataKey="critical" stackId="a" fill={SEV_COLORS.critical} maxBarSize={16} name="critical" />
-              <Bar dataKey="high"     stackId="a" fill={SEV_COLORS.high}     maxBarSize={16} name="high" />
-              <Bar dataKey="moderate" stackId="a" fill={SEV_COLORS.moderate} maxBarSize={16} name="moderate" />
-              <Bar dataKey="low"      stackId="a" fill={SEV_COLORS.low}      maxBarSize={16} radius={[0, 4, 4, 0]} name="low" />
+              <Bar dataKey="critical" stackId="a" fill={tokens.severity.critical} maxBarSize={16} name="critical" />
+              <Bar dataKey="high"     stackId="a" fill={tokens.severity.high}     maxBarSize={16} name="high" />
+              <Bar dataKey="moderate" stackId="a" fill={tokens.severity.moderate} maxBarSize={16} name="moderate" />
+              <Bar dataKey="low"      stackId="a" fill={tokens.severity.low}      maxBarSize={16} radius={[0, 4, 4, 0]} name="low" />
             </BarChart>
           </ResponsiveContainer>
         </div>

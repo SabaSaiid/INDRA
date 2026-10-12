@@ -3,48 +3,344 @@
 @tailwind utilities;
 
 @layer base {
+  /* ==========================================================================
+     INDRA Theme Engine Tokens (Space-separated RGB for opacity support)
+     ========================================================================== */
+
+  /* Default & Dark Ops (Signature Hybrid: Navy rail + Warm parchment ground + Terracotta) */
+  :root,
+  :root[data-theme='dark'] {
+    color-scheme: light;
+
+    /* Surfaces */
+    --surface-bg:          247 243 234; /* #F7F3EA paper */
+    --surface:             253 250 245; /* #FDFAF5 card-bg */
+    --surface-raised:      255 255 255; /* #FFFFFF */
+    --surface-rail:         24  34  53; /* #182235 navy rail */
+    --border:              232 226 212; /* #E8E2D4 paper-3 */
+
+    /* Sidebar Rail Specific */
+    --rail-gradient:       linear-gradient(180deg, #182235 0%, #111827 100%);
+    --rail-border-color:   rgba(255, 255, 255, 0.09);
+    --rail-text:           #ffffff;
+    --rail-text-muted:     #94a3b8;
+    --rail-hover-bg:       rgba(255, 255, 255, 0.06);
+    --rail-active-bg:      rgba(255, 255, 255, 0.10);
+    --rail-active-border:  rgba(255, 255, 255, 0.14);
+
+    /* Typography & Ink */
+    --text:                 30  42  59; /* #1E2A3B ink */
+    --text-secondary:       74  85 104; /* #4A5568 ink-2 */
+    --text-muted:          122 133 153; /* #7A8599 ink-3 */
+    --text-subtle:         156 163 175; /* #9CA3AF */
+
+    /* Brand & Accent */
+    --brand:               181  72  46; /* #B5482E terracotta */
+    --brand-contrast:      255 255 255; /* #FFFFFF */
+    --brand-soft:          245 232 231; /* #F5E8E7 */
+    --focus-ring:          181  72  46;
+    --scrim:                 0   0   0;
+    --selection:           245 232 231;
+
+    /* Severity Hierarchy */
+    --severity-critical:       140  47  38; /* #8C2F26 */
+    --severity-critical-soft:  245 232 231; /* #F5E8E7 */
+    --severity-high:           184 135  58; /* #B8873A */
+    --severity-high-soft:      251 242 228; /* #FBF2E4 */
+    --severity-moderate:        74 102 112; /* #4A6670 */
+    --severity-moderate-soft:  230 239 241; /* #E6EFF1 */
+    --severity-low:            107 114 128; /* #6B7280 */
+    --severity-low-soft:       243 244 246; /* #F3F4F6 */
+
+    /* Status */
+    --status-verified:          76 122  91; /* #4C7A5B */
+    --status-verified-soft:    231 242 236; /* #E7F2EC */
+    --status-pending:          184 135  58; /* #B8873A */
+    --status-pending-soft:     251 242 228; /* #FBF2E4 */
+    --status-quarantined:      107 114 128; /* #6B7280 */
+    --status-quarantined-soft: 243 244 246; /* #F3F4F6 */
+
+    /* Structural & Geometry */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --border-width: 1px;
+    --shadow-1: 0 1px 3px rgba(30,42,59,0.06), 0 1px 2px rgba(30,42,59,0.04);
+    --shadow-2: 0 4px 14px rgba(30,42,59,0.10), 0 2px 4px rgba(30,42,59,0.06);
+
+    /* Type Roles */
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'Public Sans', system-ui, sans-serif;
+    --font-data:    'JetBrains Mono', monospace;
+  }
+
+  /* Theme: Light (Clean Day Parchment) */
+  :root[data-theme='light'] {
+    color-scheme: light;
+
+    --surface-bg:          247 243 234; /* #F7F3EA */
+    --surface:             253 250 245; /* #FDFAF5 */
+    --surface-raised:      255 255 255; /* #FFFFFF */
+    --surface-rail:        240 235 224; /* #F0EBE0 soft warm rail */
+    --border:              232 226 212; /* #E8E2D4 */
+
+    /* Sidebar Rail Specific */
+    --rail-gradient:       linear-gradient(180deg, #F0EBE0 0%, #E8E2D4 100%);
+    --rail-border-color:   rgba(30, 42, 59, 0.12);
+    --rail-text:           #1E2A3B;
+    --rail-text-muted:     #7A8599;
+    --rail-hover-bg:       rgba(30, 42, 59, 0.06);
+    --rail-active-bg:      rgba(181, 72, 46, 0.12);
+    --rail-active-border:  rgba(181, 72, 46, 0.25);
+
+    --text:                 30  42  59; /* #1E2A3B */
+    --text-secondary:       74  85 104; /* #4A5568 */
+    --text-muted:          122 133 153; /* #7A8599 */
+    --text-subtle:         156 163 175; /* #9CA3AF */
+
+    --brand:               181  72  46; /* #B5482E */
+    --brand-contrast:      255 255 255;
+    --brand-soft:          245 232 231;
+    --focus-ring:          181  72  46;
+    --scrim:                 0   0   0;
+    --selection:           245 232 231;
+
+    --severity-critical:       140  47  38;
+    --severity-critical-soft:  245 232 231;
+    --severity-high:           184 135  58;
+    --severity-high-soft:      251 242 228;
+    --severity-moderate:        74 102 112;
+    --severity-moderate-soft:  230 239 241;
+    --severity-low:            107 114 128;
+    --severity-low-soft:       243 244 246;
+
+    --status-verified:          76 122  91;
+    --status-verified-soft:    231 242 236;
+    --status-pending:          184 135  58;
+    --status-pending-soft:     251 242 228;
+    --status-quarantined:      107 114 128;
+    --status-quarantined-soft: 243 244 246;
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --border-width: 1px;
+    --shadow-1: 0 1px 3px rgba(30,42,59,0.05);
+    --shadow-2: 0 4px 14px rgba(30,42,59,0.08);
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'Public Sans', system-ui, sans-serif;
+    --font-data:    'JetBrains Mono', monospace;
+  }
+
+  /* Theme: Contrast (Sunlight Glare HUD) */
+  :root[data-theme='high_contrast'] {
+    color-scheme: dark;
+
+    --surface-bg:            0   0   0; /* #000000 */
+    --surface:              10  10  10; /* #0A0A0A */
+    --surface-raised:       22  22  22; /* #161616 */
+    --surface-rail:          0   0   0; /* #000000 */
+    --border:              255 255 255; /* #FFFFFF full edge clarity */
+
+    /* Sidebar Rail Specific */
+    --rail-gradient:       #000000;
+    --rail-border-color:   #ffffff;
+    --rail-text:           #ffffff;
+    --rail-text-muted:     #d4d4d4;
+    --rail-hover-bg:       rgba(255, 255, 255, 0.15);
+    --rail-active-bg:      rgba(250, 204, 21, 0.25);
+    --rail-active-border:  #facc15;
+
+    --text:                255 255 255; /* #FFFFFF */
+    --text-secondary:      240 240 240;
+    --text-muted:          210 210 210;
+    --text-subtle:         180 180 180;
+
+    --brand:               250 204  21; /* #FACC15 */
+    --brand-contrast:        0   0   0;
+    --brand-soft:           55  50   0;
+    --focus-ring:          250 204  21;
+    --scrim:                 0   0   0;
+    --selection:           250 204  21;
+
+    --severity-critical:       255  50  50; /* #FF3232 */
+    --severity-critical-soft:   70   0   0;
+    --severity-high:           255 180   0; /* #FFB400 */
+    --severity-high-soft:       70  45   0;
+    --severity-moderate:        60 180 255; /* #3CB4FF */
+    --severity-moderate-soft:    0  40  70;
+    --severity-low:            190 190 190;
+    --severity-low-soft:        40  40  40;
+
+    --status-verified:          34 197  94; /* #22C55E */
+    --status-verified-soft:      0  60  20;
+    --status-pending:          255 180   0;
+    --status-pending-soft:      70  45   0;
+    --status-quarantined:      190 190 190;
+    --status-quarantined-soft:  40  40  40;
+
+    --radius-sm: 2px;
+    --radius-md: 3px;
+    --radius-lg: 4px;
+    --border-width: 2px;
+    --shadow-1: none;
+    --shadow-2: none;
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'Public Sans', system-ui, sans-serif;
+    --font-data:    'JetBrains Mono', monospace;
+  }
+
+  /* Theme A: Monsoon (Cool, Light, Daytime) */
+  :root[data-theme='monsoon'] {
+    color-scheme: light;
+
+    --surface-bg:          232 238 240; /* #E8EEF0 */
+    --surface:             247 250 251; /* #F7FAFB */
+    --surface-raised:      255 255 255; /* #FFFFFF */
+    --surface-rail:        221 231 234; /* #DDE7EA */
+    --border:              201 214 218; /* #C9D6DA */
+
+    /* Sidebar Rail Specific */
+    --rail-gradient:       linear-gradient(180deg, #DDE7EA 0%, #D4E0E4 100%);
+    --rail-border-color:   #C9D6DA;
+    --rail-text:           #0F2328;
+    --rail-text-muted:     #51666C;
+    --rail-hover-bg:       rgba(15, 35, 40, 0.06);
+    --rail-active-bg:      rgba(11, 92, 107, 0.12);
+    --rail-active-border:  rgba(11, 92, 107, 0.25);
+
+    --text:                 15  35  40; /* #0F2328 */
+    --text-secondary:       46  67  73; /* #2E4349 */
+    --text-muted:           81 102 108; /* #51666C */
+    --text-subtle:          95 116 122; /* #5F747A */
+
+    --brand:                11  92 107; /* #0B5C6B */
+    --brand-contrast:      255 255 255;
+    --brand-soft:          224 240 244;
+    --focus-ring:           11  92 107;
+    --scrim:                 0   0   0;
+    --selection:           204 230 236;
+
+    --severity-critical:       180  35  24; /* #B42318 */
+    --severity-critical-soft:  254 235 235;
+    --severity-high:           140  83   4; /* #8C5304 */
+    --severity-high-soft:      254 243 227;
+    --severity-moderate:        63  91 120; /* #3F5B78 */
+    --severity-moderate-soft:  232 239 246;
+    --severity-low:             91 103 112; /* #5B6770 */
+    --severity-low-soft:       238 241 243;
+
+    --status-verified:          40 107  53; /* #286B35 */
+    --status-verified-soft:    231 244 234;
+    --status-pending:          140  83   4;
+    --status-pending-soft:     254 243 227;
+    --status-quarantined:       91 103 112;
+    --status-quarantined-soft: 238 241 243;
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --border-width: 1px;
+    --shadow-1: 0 1px 3px rgba(15,35,40,0.05);
+    --shadow-2: 0 4px 14px rgba(15,35,40,0.08);
+
+    --font-display: 'Public Sans', system-ui, sans-serif;
+    --font-body:    'Public Sans', system-ui, sans-serif;
+    --font-data:    'JetBrains Mono', monospace;
+  }
+
+  /* Theme B: Night Watch (Low-Light, Dim Control Room) */
+  :root[data-theme='night_watch'] {
+    color-scheme: dark;
+
+    --surface-bg:           12  13  15; /* #0C0D0F */
+    --surface:              20  21  24; /* #141518 */
+    --surface-raised:       27  28  32; /* #1B1C20 */
+    --surface-rail:         16  17  19; /* #101113 */
+    --border:               43  44  49; /* #2B2C31 */
+
+    /* Sidebar Rail Specific */
+    --rail-gradient:       linear-gradient(180deg, #101113 0%, #0C0D0F 100%);
+    --rail-border-color:   #2B2C31;
+    --rail-text:           #E6E0D4;
+    --rail-text-muted:     #9B968B;
+    --rail-hover-bg:       rgba(230, 224, 212, 0.05);
+    --rail-active-bg:      rgba(230, 224, 212, 0.10);
+    --rail-active-border:  rgba(230, 224, 212, 0.20);
+
+    --text:                230 224 212; /* #E6E0D4 */
+    --text-secondary:      196 190 178; /* #C4BEB2 */
+    --text-muted:          155 150 139; /* #9B968B */
+    --text-subtle:         138 133 123; /* #8A857B */
+
+    --brand:               230 224 212; /* #E6E0D4 */
+    --brand-contrast:       12  13  15;
+    --brand-soft:           38  39  44;
+    --focus-ring:          230 224 212;
+    --scrim:                 0   0   0;
+    --selection:            48  50  58;
+
+    --severity-critical:       255 107  94; /* #FF6B5E */
+    --severity-critical-soft:   46  20  18;
+    --severity-high:           245 168  59; /* #F5A83B */
+    --severity-high-soft:       44  29  10;
+    --severity-moderate:       157 178 200; /* #9DB2C8 */
+    --severity-moderate-soft:   22  29  36;
+    --severity-low:            139 145 153; /* #8B9199 */
+    --severity-low-soft:        24  26  29;
+
+    --status-verified:          95 194 122; /* #5FC27A */
+    --status-verified-soft:     16  36  22;
+    --status-pending:          245 168  59;
+    --status-pending-soft:      44  29  10;
+    --status-quarantined:      139 145 153;
+    --status-quarantined-soft:  24  26  29;
+
+    --radius-sm: 3px;
+    --radius-md: 5px;
+    --radius-lg: 6px;
+    --border-width: 1px;
+    --shadow-1: 0 1px 3px rgba(0,0,0,0.5);
+    --shadow-2: 0 4px 14px rgba(0,0,0,0.65);
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'Public Sans', system-ui, sans-serif;
+    --font-data:    'JetBrains Mono', monospace;
+  }
+
+  /* ── Legacy Variable Bridge for Backward Compatibility ─────── */
   :root {
-    /* ── Ground & Surface ─────────────────────────────── */
-    --paper:        #F7F3EA;   /* warm paper ground          */
-    --paper-2:      #F0EBE0;   /* slightly deeper warm tint  */
-    --paper-3:      #E8E2D4;   /* card border / dividers     */
+    --paper:        rgb(var(--surface-bg));
+    --paper-2:      rgb(var(--surface-raised));
+    --paper-3:      rgb(var(--border));
+    --slate:        rgb(var(--surface-rail));
+    --slate-2:      #26314A;
+    --slate-3:      #2E3D56;
+    --ink:          rgb(var(--text));
+    --ink-2:        rgb(var(--text-secondary));
+    --ink-3:        rgb(var(--text-muted));
+    --terracotta:   rgb(var(--brand));
+    --terracotta-light: rgba(var(--brand), 0.12);
 
-    /* ── Sidebar Rail ────────────────────────────────── */
-    --slate:        #26314A;   /* storm-slate rail bg        */
-    --slate-2:      #2E3D56;   /* rail border / hover        */
-    --slate-3:      #374D6A;   /* active item lift           */
-    --slate-text:   rgba(255,255,255,0.72);
-    --slate-text-2: rgba(255,255,255,0.48);
-    --slate-text-3: rgba(255,255,255,0.30);
+    --s-critical:       rgb(var(--severity-critical));
+    --s-critical-bg:    rgb(var(--severity-critical-soft));
+    --s-high:           rgb(var(--severity-high));
+    --s-high-bg:        rgb(var(--severity-high-soft));
+    --s-moderate:       rgb(var(--severity-moderate));
+    --s-moderate-bg:    rgb(var(--severity-moderate-soft));
+    --s-low:            rgb(var(--severity-low));
+    --s-low-bg:         rgb(var(--severity-low-soft));
+    --s-verified:       rgb(var(--status-verified));
+    --s-verified-bg:    rgb(var(--status-verified-soft));
+    --s-review:         rgb(var(--status-pending));
+    --s-review-bg:      rgb(var(--status-pending-soft));
 
-    /* ── Ink (typography) ────────────────────────────── */
-    --ink:   #1E2A3B;   /* primary body text  */
-    --ink-2: #4A5568;   /* secondary text     */
-    --ink-3: #7A8599;   /* muted / meta text  */
-
-    /* ── Accent — used sparingly ─────────────────────── */
-    --terracotta:       #B5482E;
-    --terracotta-light: rgba(181, 72, 46, 0.12);
-
-    /* ── Semantic Status (muted, not neon) ───────────── */
-    --s-critical:       #8C2F26;
-    --s-critical-bg:    #F5E8E7;
-    --s-high:           #B8873A;
-    --s-high-bg:        #FBF2E4;
-    --s-moderate:       #4A6670;
-    --s-moderate-bg:    #E6EFF1;
-    --s-low:            #6B7280;
-    --s-low-bg:         #F3F4F6;
-    --s-verified:       #4C7A5B;
-    --s-verified-bg:    #E7F2EC;
-    --s-review:         #B8873A;
-    --s-review-bg:      #FBF2E4;
-
-    /* ── Legacy vars (mapped to new tokens for compat) ── */
-    --background:     var(--paper);
-    --card:           #FDFAF5;
-    --primary:        var(--terracotta);
-    --primary-hover:  #A03D25;
+    --background:     rgb(var(--surface-bg));
+    --card:           rgb(var(--surface));
+    --primary:        rgb(var(--brand));
+    --primary-hover:  rgb(var(--brand));
     --critical:       var(--s-critical);
     --high:           var(--s-high);
     --moderate:       var(--s-moderate);
@@ -53,10 +349,9 @@
     --text-primary:   var(--ink);
     --text-secondary: var(--ink-2);
     --text-muted:     var(--ink-3);
-    --border:         var(--paper-3);
-    --radius:         0.5rem;
+    --border:         rgb(var(--border));
+    --radius:         var(--radius-md);
 
-    /* ── Sidebar legacy for Sidebar.tsx refs ───────────  */
     --sidebar-bg:       var(--slate);
     --sidebar-bg-light: var(--slate-2);
   }
@@ -146,14 +441,14 @@
 @layer components {
   /* ── Type utilities ──────────────────────────────────── */
 
-  /* Fraunces for headlines and place names */
+  /* Fraunces for headlines and place names (or Public Sans in Monsoon) */
   .font-display {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: var(--font-display), 'Fraunces', Georgia, serif;
   }
 
   /* JetBrains Mono for instrument readings — numbers, times, IDs */
   .font-instrument {
-    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+    font-family: var(--font-data), 'JetBrains Mono', 'Cascadia Code', monospace;
   }
 
   /* Tabular numbers for KPI displays */
@@ -165,8 +460,8 @@
   .skeleton {
     position: relative;
     overflow: hidden;
-    background-color: var(--paper-2);
-    border-radius: var(--radius);
+    background-color: rgba(var(--border), 0.45);
+    border-radius: var(--radius-md);
   }
 
   .skeleton::after {
@@ -177,7 +472,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.5),
+      rgba(var(--surface-raised), 0.35),
       transparent
     );
     animation: shimmer 2s infinite;
@@ -190,29 +485,29 @@
     animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
   }
 
-  .pulse-ring-critical { background-color: rgba(140, 47, 38, 0.25); }
-  .pulse-ring-high     { background-color: rgba(184, 135, 58, 0.25); }
+  .pulse-ring-critical { background-color: rgba(var(--severity-critical), 0.25); }
+  .pulse-ring-high     { background-color: rgba(var(--severity-high), 0.25); }
 
   /* ── Scrollbar styling ───────────────────────────────── */
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: var(--paper-3);
+    background-color: rgba(var(--border), 0.85);
     border-radius: 20px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: var(--ink-3);
+    background-color: rgba(var(--text-muted), 0.85);
   }
 
-  /* SettingsDrawer orange accent scrollbar */
+  /* SettingsDrawer accent scrollbar */
   .drawer-scroll::-webkit-scrollbar { width: 3px; }
   .drawer-scroll::-webkit-scrollbar-track { background: transparent; }
   .drawer-scroll::-webkit-scrollbar-thumb {
-    background: rgba(181, 72, 46, 0.35);
+    background: rgba(var(--brand), 0.35);
     border-radius: 999px;
   }
   .drawer-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(249, 115, 22, 0.6);
+    background: rgba(var(--brand), 0.6);
   }
 
   /* ── Map containers ──────────────────────────────────── */
@@ -247,10 +542,10 @@
   .instrument-strip {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    background-color: #FDFAF5;
-    border: 1px solid var(--paper-3);
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(30, 42, 59, 0.06);
+    background-color: rgb(var(--surface));
+    border: 1px solid rgb(var(--border));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-1);
     overflow: hidden;
     /* COMPACT: reduced from mb-6 (1.5rem) to mb-2.5 */
     margin-bottom: 0.625rem;
@@ -291,7 +586,7 @@
     top: 15%;
     bottom: 15%;
     width: 1px;
-    background-color: var(--paper-3);
+    background-color: rgb(var(--border));
   }
 
   /* ── Compact Card Density ────────────────────────────── */
@@ -424,37 +719,38 @@
 .maplibregl-popup { z-index: 1000; }
 
 .maplibregl-popup-content {
-  border-radius: 8px !important;
-  box-shadow: 0 8px 20px rgba(30, 42, 59, 0.14) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-2) !important;
   padding: 12px 16px !important;
-  background: rgba(247, 243, 234, 0.98) !important;
+  background: rgba(var(--surface), 0.98) !important;
   backdrop-filter: blur(12px) !important;
-  border: 1px solid var(--paper-3) !important;
-  font-family: 'Public Sans', sans-serif !important;
+  border: 1px solid rgb(var(--border)) !important;
+  color: rgb(var(--text)) !important;
+  font-family: var(--font-body) !important;
 }
 
 .maplibregl-popup-close-button {
   font-size: 16px !important;
-  color: var(--ink-3) !important;
+  color: rgb(var(--text-muted)) !important;
   padding: 4px 8px !important;
-  border-radius: 4px !important;
+  border-radius: var(--radius-sm) !important;
   outline: none !important;
 }
 .maplibregl-popup-close-button:hover {
-  background-color: var(--paper-2) !important;
-  color: var(--ink) !important;
+  background-color: rgba(var(--border), 0.5) !important;
+  color: rgb(var(--text)) !important;
 }
 
 .maplibregl-popup-tip {
-  border-top-color: rgba(247, 243, 234, 0.98) !important;
+  border-top-color: rgba(var(--surface), 0.98) !important;
 }
 
 .maplibregl-ctrl-group {
-  border-radius: 6px !important;
+  border-radius: var(--radius-md) !important;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(30, 42, 59, 0.10) !important;
-  border: 1px solid var(--paper-3) !important;
-  background: rgba(247, 243, 234, 0.95) !important;
+  box-shadow: var(--shadow-1) !important;
+  border: 1px solid rgb(var(--border)) !important;
+  background: rgba(var(--surface), 0.95) !important;
   backdrop-filter: blur(8px) !important;
 }
 
@@ -621,4 +917,10 @@
   opacity: 1 !important; visibility: visible !important; height: auto !important;
   margin-top: 3px !important; padding: 1px 6px !important;
   border: 1px solid rgba(181, 72, 46, 0.5) !important;
+}
+
+/* ── Night Watch Satellite Attenuation (reduces cockpit glare) ───── */
+[data-theme='night_watch'] .maplibregl-map[data-basemap='satellite'] .maplibregl-canvas,
+[data-theme='night_watch'] .leaflet-container[data-basemap='satellite'] {
+  filter: brightness(0.6) contrast(1.1);
 }

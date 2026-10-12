@@ -33,12 +33,12 @@ export function EmptyState({ title, hint, icon, className, compact = false }: Em
         className
       )}
     >
-      {icon && <div className="mb-2 text-[#B8AE99]">{icon}</div>}
-      <p className={cn('font-medium text-[#6B6355]', compact ? 'text-xs' : 'text-sm')}>
+      {icon && <div className="mb-2 text-text-muted">{icon}</div>}
+      <p className={cn('font-medium text-text', compact ? 'text-xs' : 'text-sm')}>
         {title}
       </p>
       {hint && (
-        <p className={cn('mt-1 max-w-[30ch] text-[#9A917F]', compact ? 'text-[10px]' : 'text-xs')}>
+        <p className={cn('mt-1 max-w-[30ch] text-text-muted', compact ? 'text-[10px]' : 'text-xs')}>
           {hint}
         </p>
       )}
@@ -71,7 +71,7 @@ export function ErrorState({ label, error, onRetry, className, compact = false }
     >
       <div
         className={cn(
-          'mb-2 flex items-center justify-center rounded-full bg-[#FEE2E2]',
+          'mb-2 flex items-center justify-center rounded-full bg-severity-critical-soft text-severity-critical',
           compact ? 'h-7 w-7' : 'h-9 w-9'
         )}
       >
@@ -80,20 +80,20 @@ export function ErrorState({ label, error, onRetry, className, compact = false }
           height={compact ? 14 : 18}
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#DC2626"
+          stroke="currentColor"
           strokeWidth="2.2"
           strokeLinecap="round"
         >
           <path d="M12 8v5" />
-          <circle cx="12" cy="16.5" r="0.6" fill="#DC2626" stroke="none" />
+          <circle cx="12" cy="16.5" r="0.6" fill="currentColor" stroke="none" />
           <path d="M10.3 3.9 2.6 17.2A1.9 1.9 0 0 0 4.3 20h15.4a1.9 1.9 0 0 0 1.7-2.8L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z" />
         </svg>
       </div>
-      <p className={cn('font-medium text-[#B91C1C]', compact ? 'text-xs' : 'text-sm')}>
+      <p className={cn('font-medium text-severity-critical', compact ? 'text-xs' : 'text-sm')}>
         Could not load {label}
       </p>
       {detail && (
-        <p className={cn('mt-1 max-w-[34ch] text-[#9A917F]', compact ? 'text-[10px]' : 'text-xs')}>
+        <p className={cn('mt-1 max-w-[34ch] text-text-muted', compact ? 'text-[10px]' : 'text-xs')}>
           {detail}
         </p>
       )}
@@ -102,8 +102,8 @@ export function ErrorState({ label, error, onRetry, className, compact = false }
           type="button"
           onClick={onRetry}
           className={cn(
-            'mt-2.5 rounded-md border border-[#E8E2D4] bg-white px-3 py-1 font-medium',
-            'text-[#6B6355] transition-colors hover:bg-[#F7F3EA]',
+            'mt-2.5 rounded-md border border-border bg-surface px-3 py-1 font-medium',
+            'text-text-secondary transition-colors hover:bg-surface-raised',
             compact ? 'text-[10px]' : 'text-xs'
           )}
         >

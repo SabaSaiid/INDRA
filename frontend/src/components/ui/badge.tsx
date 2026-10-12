@@ -14,15 +14,15 @@ interface BadgeProps {
   animated?: boolean;
 }
 
-// Low Pressure palette — muted, not neon
+// Semantic theme token bindings
 const variantStyles: Record<BadgeVariant, string> = {
-  critical:       'bg-[#F5E8E7] text-[#8C2F26] border-[#D4A9A6]',
-  high:           'bg-[#FBF2E4] text-[#8A611E] border-[#D4B87A]',
-  moderate:       'bg-[#E6EFF1] text-[#4A6670] border-[#A4BDC5]',
-  low:            'bg-[#F3F4F6] text-[#4B5563] border-[#D1D5DB]',
-  verified:       'bg-[#E7F2EC] text-[#3A5E46] border-[#9EC4AE]',
-  'under-review': 'bg-[#FBF2E4] text-[#8A611E] border-[#D4B87A]',
-  default:        'bg-[#F3F4F6] text-[#4B5563] border-[#D1D5DB]',
+  critical:       'bg-severity-critical-soft text-severity-critical border-severity-critical/30',
+  high:           'bg-severity-high-soft text-severity-high border-severity-high/30',
+  moderate:       'bg-severity-moderate-soft text-severity-moderate border-severity-moderate/30',
+  low:            'bg-severity-low-soft text-severity-low border-severity-low/30',
+  verified:       'bg-status-verified-soft text-status-verified border-status-verified/30',
+  'under-review': 'bg-status-pending-soft text-status-pending border-status-pending/30',
+  default:        'bg-surface-raised text-text-secondary border-border',
 };
 
 export function Badge({ variant = 'default', children, className, animated = true }: BadgeProps) {

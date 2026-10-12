@@ -16,32 +16,39 @@ import { Grid3X3 } from 'lucide-react';
 import { fetchEvents, type ApiEvent, ApiError } from '@/lib/api';
 import { ErrorState, EmptyState } from '@/components/ui/empty-state';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useThemeTokens } from '@/lib/useThemeTokens';
 
 const SEVERITIES = ['CRITICAL', 'HIGH', 'MODERATE', 'LOW'] as const;
 type Severity = typeof SEVERITIES[number];
 
-const SEV_COLORS: Record<Severity, { text: string; base: string }> = {
-  CRITICAL: { text: '#DC2626', base: '#DC2626' },
-  HIGH:     { text: '#F97316', base: '#F97316' },
-  MODERATE: { text: '#EAB308', base: '#EAB308' },
-  LOW:      { text: '#94A3B8', base: '#94A3B8' },
-};
-
-function cellBg(count: number, max: number): string {
-  if (count === 0) return 'transparent';
-  // Opacity from 0.08 (1 event) to 0.7 (max)
-  const opacity = 0.08 + (count / Math.max(1, max)) * 0.62;
-  return `rgba(220, 38, 38, ${opacity.toFixed(2)})`;
-}
-function cellText(count: number, max: number): string {
-  const opacity = count / Math.max(1, max);
-  return opacity > 0.5 ? '#fff' : '#1B2432';
+function withOpacity(color: string, opacity: number): string {
+  if (color.startsWith('rgb(')) {
+    return color.replace('rgb(', 'rgba(').replace(')', `, ${opacity.toFixed(2)})`);
+  }
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    const r = parseInt(hex.slice(0, 2), 16) || 0;
+    const g = parseInt(hex.slice(2, 4), 16) || 0;
+    const b = parseInt(hex.slice(4, 6), 16) || 0;
+    return `rgba(${r}, ${g}, ${b}, ${opacity.toFixed(2)})`;
+  }
+  return color;
 }
 
 export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: number }) {
   const { t } = useTranslation();
+  const tokens = useThemeTokens();
   const [events, setEvents] = useState<ApiEvent[] | null>(null);
   const [error, setError] = useState<unknown>(null);
+
+  const getSevColor = (s: Severity): string => {
+    switch (s) {
+      case 'CRITICAL': return tokens.severity.critical;
+      case 'HIGH': return tokens.severity.high;
+      case 'MODERATE': return tokens.severity.moderate;
+      case 'LOW': return tokens.severity.low;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -75,8 +82,8 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   // ── Loading
   if (!events && !error) {
     return (
-      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
-        <div className="h-64 animate-pulse bg-[#F0EBE0] rounded-xl" />
+      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
+        <div className="h-64 animate-pulse bg-surface-raised rounded-xl" />
       </div>
     );
   }
@@ -84,7 +91,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   // ── Error
   if (error && !events) {
     return (
-      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
         <ErrorState label="event matrix data" error={error} compact />
       </div>
     );
@@ -93,7 +100,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   // ── Empty
   if (events && events.length === 0) {
     return (
-      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
         <EmptyState
           title="No events to compute matrix"
           hint="Events will appear here once the pipeline verifies its first reports."
@@ -104,17 +111,14 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   }
 
   return (
-    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col gap-3">
+    <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs flex flex-col gap-3">
       <div>
-        <h3
-          className="text-sm font-bold text-[#1B2432] flex items-center gap-2"
-          style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-        >
-          <Grid3X3 className="w-4 h-4 text-rose-500" />
+        <h3 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+          <Grid3X3 className="w-4 h-4 text-brand" />
           {t('analytics.hazard_matrix_title') || 'Hazard × Severity Matrix'}
         </h3>
-        <p className="text-[11px] text-[#7A8599] mt-0.5">
-          {t('analytics.hazard_matrix_subtitle') || 'Event count per hazard type and severity. Deeper red = more events.'}
+        <p className="text-[11px] text-text-muted mt-0.5">
+          {t('analytics.hazard_matrix_subtitle') || 'Event count per hazard type and severity. Intensity scales with frequency.'}
         </p>
       </div>
 
@@ -122,19 +126,19 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
         <table className="w-full text-xs border-separate border-spacing-1">
           <thead>
             <tr>
-              <th className="text-left py-1.5 pr-3 text-[#7A8599] font-semibold text-[11px] min-w-[130px]">
+              <th className="text-left py-1.5 pr-3 text-text-muted font-semibold text-[11px] min-w-[130px]">
                 Hazard
               </th>
               {SEVERITIES.map((s) => (
                 <th
                   key={s}
                   className="text-center py-1.5 px-2 font-semibold text-[11px] min-w-[64px]"
-                  style={{ color: SEV_COLORS[s].text }}
+                  style={{ color: getSevColor(s) }}
                 >
                   {t.severity(s)}
                 </th>
               ))}
-              <th className="text-right py-1.5 pl-3 text-[#7A8599] font-semibold text-[11px]">Total</th>
+              <th className="text-right py-1.5 pl-3 text-text-muted font-semibold text-[11px]">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -143,25 +147,27 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
               const rowTotal = Array.from(inner.values()).reduce((s, v) => s + v, 0);
               return (
                 <tr key={haz}>
-                  <td className="py-1 pr-3 font-medium text-[#1B2432] truncate max-w-[130px]" title={t.hazard(haz)}>
+                  <td className="py-1 pr-3 font-medium text-text truncate max-w-[130px]" title={t.hazard(haz)}>
                     {t.hazard(haz)}
                   </td>
                   {SEVERITIES.map((s) => {
                     const count = inner.get(s) ?? 0;
-                    const bg = cellBg(count, maxCell);
-                    const fg = cellText(count, maxCell);
+                    const sevCol = getSevColor(s);
+                    const opacity = count > 0 ? 0.12 + (count / Math.max(1, maxCell)) * 0.65 : 0;
+                    const bg = count > 0 ? withOpacity(sevCol, opacity) : 'transparent';
+                    const fg = opacity > 0.5 ? '#FFFFFF' : tokens.text;
                     return (
                       <td
                         key={s}
                         className="text-center py-1 px-2 rounded-lg font-mono font-semibold tabular-nums transition-all"
-                        style={{ backgroundColor: bg, color: count > 0 ? fg : '#D1D5DB' }}
+                        style={{ backgroundColor: bg, color: count > 0 ? fg : tokens.textMuted }}
                         title={`${t.hazard(haz)}, ${t.severity(s)}: ${count}`}
                       >
                         {count > 0 ? count : '—'}
                       </td>
                     );
                   })}
-                  <td className="text-right py-1 pl-3 font-mono font-bold text-[#1B2432] tabular-nums">
+                  <td className="text-right py-1 pl-3 font-mono font-bold text-text tabular-nums">
                     {rowTotal}
                   </td>
                 </tr>
@@ -172,9 +178,14 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 text-[10px] text-[#7A8599] border-t border-[#E8E2D4] pt-2">
+      <div className="flex items-center gap-3 text-[10px] text-text-muted border-t border-border pt-2">
         <div className="flex items-center gap-1">
-          <div className="w-12 h-3 rounded" style={{ background: 'linear-gradient(to right, rgba(220,38,38,0.08), rgba(220,38,38,0.7))' }} />
+          <div
+            className="w-12 h-3 rounded"
+            style={{
+              background: `linear-gradient(to right, ${withOpacity(tokens.severity.critical, 0.12)}, ${withOpacity(tokens.severity.critical, 0.77)})`,
+            }}
+          />
         </div>
         <span>Low → High event count</span>
         <span className="ml-auto">

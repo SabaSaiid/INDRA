@@ -474,7 +474,7 @@ export default function AnalyticsPage() {
     : '';
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7F3EA' }}>
+    <div className="min-h-screen bg-surface-bg text-text">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
