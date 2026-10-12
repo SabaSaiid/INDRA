@@ -23,10 +23,42 @@
     --rail-gradient:       linear-gradient(180deg, #182235 0%, #111827 100%);
     --rail-border-color:   rgba(255, 255, 255, 0.12);
     --rail-text:           #ffffff;
-    --rail-text-muted:     #e2e8f0;
+    --rail-text-muted:     #cbd5e1;
+    --rail-section-header: #94a3b8;
     --rail-hover-bg:       rgba(255, 255, 255, 0.08);
     --rail-active-bg:      rgba(255, 255, 255, 0.12);
-    --rail-active-border:  rgba(255, 255, 255, 0.18);
+    --rail-active-border:  rgba(255, 255, 255, 0.20);
+    --rail-active-text:    #ffffff;
+    --rail-spine-bg:       linear-gradient(180deg, #FF6B4A 0%, #B5482E 100%);
+    --rail-spine-shadow:   0 0 10px rgba(255, 107, 74, 0.70);
+    --rail-logo-bg:        linear-gradient(135deg, #E05A3E 0%, #B5482E 100%);
+    --rail-logo-border:    rgba(255, 255, 255, 0.20);
+    --rail-logo-icon:      #ffffff;
+    --rail-logo-shadow:    0 0 14px rgba(224, 90, 62, 0.45);
+    --rail-callsign-bg:    rgba(245, 158, 11, 0.20);
+    --rail-callsign-text:  #fcd34d;
+    --rail-callsign-border: rgba(245, 158, 11, 0.35);
+    --rail-card-bg:        rgba(255, 255, 255, 0.06);
+    --rail-card-hover-bg:  rgba(255, 255, 255, 0.12);
+    --rail-card-border:    rgba(255, 255, 255, 0.12);
+    --rail-card-icon-bg:   rgba(255, 255, 255, 0.10);
+    --rail-avatar-bg:      linear-gradient(135deg, #E05A3E 0%, #B5482E 100%);
+    --rail-avatar-border:  rgba(255, 255, 255, 0.20);
+    --rail-avatar-icon:    #ffffff;
+    --rail-status-duty:    #34d399;
+    --rail-scrollbar:      rgba(255, 255, 255, 0.25);
+    --rail-badge-live-bg:      rgba(16, 185, 129, 0.20);
+    --rail-badge-live-text:    #34d399;
+    --rail-badge-live-border:  rgba(16, 185, 129, 0.40);
+    --rail-badge-crit-bg:      rgba(239, 68, 68, 0.20);
+    --rail-badge-crit-text:    #f87171;
+    --rail-badge-crit-border:  rgba(239, 68, 68, 0.40);
+    --rail-badge-warn-bg:      rgba(245, 158, 11, 0.20);
+    --rail-badge-warn-text:    #fbbf24;
+    --rail-badge-warn-border:  rgba(245, 158, 11, 0.40);
+    --rail-badge-neutral-bg:   rgba(255, 255, 255, 0.12);
+    --rail-badge-neutral-text: #e2e8f0;
+    --rail-badge-neutral-border: rgba(255, 255, 255, 0.20);
 
     /* Typography & Ink */
     --text:                 30  42  59; /* #1E2A3B ink */
@@ -86,12 +118,44 @@
 
     /* Sidebar Rail Specific */
     --rail-gradient:       linear-gradient(180deg, #F0EBE0 0%, #E8E2D4 100%);
-    --rail-border-color:   rgba(30, 42, 59, 0.12);
+    --rail-border-color:   rgba(30, 42, 59, 0.15);
     --rail-text:           #1E2A3B;
-    --rail-text-muted:     #7A8599;
+    --rail-text-muted:     #3B4858;
+    --rail-section-header: #576579;
     --rail-hover-bg:       rgba(30, 42, 59, 0.06);
     --rail-active-bg:      rgba(181, 72, 46, 0.12);
-    --rail-active-border:  rgba(181, 72, 46, 0.25);
+    --rail-active-border:  rgba(181, 72, 46, 0.30);
+    --rail-active-text:    #B5482E;
+    --rail-spine-bg:       linear-gradient(180deg, #E05A3E 0%, #B5482E 100%);
+    --rail-spine-shadow:   0 0 10px rgba(181, 72, 46, 0.45);
+    --rail-logo-bg:        linear-gradient(135deg, #B5482E 0%, #8C2F26 100%);
+    --rail-logo-border:    rgba(181, 72, 46, 0.40);
+    --rail-logo-icon:      #ffffff;
+    --rail-logo-shadow:    0 0 14px rgba(181, 72, 46, 0.35);
+    --rail-callsign-bg:    rgba(181, 72, 46, 0.12);
+    --rail-callsign-text:  #8C2F26;
+    --rail-callsign-border: rgba(181, 72, 46, 0.30);
+    --rail-card-bg:        rgba(30, 42, 59, 0.05);
+    --rail-card-hover-bg:  rgba(30, 42, 59, 0.10);
+    --rail-card-border:    rgba(30, 42, 59, 0.12);
+    --rail-card-icon-bg:   rgba(30, 42, 59, 0.08);
+    --rail-avatar-bg:      linear-gradient(135deg, #B5482E 0%, #8C2F26 100%);
+    --rail-avatar-border:  rgba(181, 72, 46, 0.40);
+    --rail-avatar-icon:    #ffffff;
+    --rail-status-duty:    #2E6B3E;
+    --rail-scrollbar:      rgba(30, 42, 59, 0.25);
+    --rail-badge-live-bg:      rgba(76, 122, 91, 0.15);
+    --rail-badge-live-text:    #245e39;
+    --rail-badge-live-border:  rgba(76, 122, 91, 0.35);
+    --rail-badge-crit-bg:      rgba(140, 47, 38, 0.15);
+    --rail-badge-crit-text:    #8C2F26;
+    --rail-badge-crit-border:  rgba(140, 47, 38, 0.35);
+    --rail-badge-warn-bg:      rgba(184, 135, 58, 0.15);
+    --rail-badge-warn-text:    #854d0e;
+    --rail-badge-warn-border:  rgba(184, 135, 58, 0.35);
+    --rail-badge-neutral-bg:   rgba(30, 42, 59, 0.08);
+    --rail-badge-neutral-text: #3B4858;
+    --rail-badge-neutral-border: rgba(30, 42, 59, 0.20);
 
     --text:                 30  42  59; /* #1E2A3B */
     --text-secondary:       74  85 104; /* #4A5568 */
@@ -147,10 +211,42 @@
     --rail-gradient:       #000000;
     --rail-border-color:   #ffffff;
     --rail-text:           #ffffff;
-    --rail-text-muted:     #d4d4d4;
-    --rail-hover-bg:       rgba(255, 255, 255, 0.15);
-    --rail-active-bg:      rgba(250, 204, 21, 0.25);
+    --rail-text-muted:     #f1f5f9;
+    --rail-section-header: #facc15;
+    --rail-hover-bg:       rgba(255, 255, 255, 0.20);
+    --rail-active-bg:      rgba(250, 204, 21, 0.30);
     --rail-active-border:  #facc15;
+    --rail-active-text:    #facc15;
+    --rail-spine-bg:       #facc15;
+    --rail-spine-shadow:   0 0 12px #facc15;
+    --rail-logo-bg:        #facc15;
+    --rail-logo-border:    #ffffff;
+    --rail-logo-icon:      #000000;
+    --rail-logo-shadow:    none;
+    --rail-callsign-bg:    #facc15;
+    --rail-callsign-text:  #000000;
+    --rail-callsign-border: #ffffff;
+    --rail-card-bg:        #161616;
+    --rail-card-hover-bg:  #262626;
+    --rail-card-border:    #ffffff;
+    --rail-card-icon-bg:   #000000;
+    --rail-avatar-bg:      #facc15;
+    --rail-avatar-border:  #ffffff;
+    --rail-avatar-icon:    #000000;
+    --rail-status-duty:    #22c55e;
+    --rail-scrollbar:      #ffffff;
+    --rail-badge-live-bg:      #000000;
+    --rail-badge-live-text:    #22c55e;
+    --rail-badge-live-border:  #22c55e;
+    --rail-badge-crit-bg:      #000000;
+    --rail-badge-crit-text:    #ff3232;
+    --rail-badge-crit-border:  #ff3232;
+    --rail-badge-warn-bg:      #000000;
+    --rail-badge-warn-text:    #facc15;
+    --rail-badge-warn-border:  #facc15;
+    --rail-badge-neutral-bg:   #000000;
+    --rail-badge-neutral-text: #ffffff;
+    --rail-badge-neutral-border: #ffffff;
 
     --text:                255 255 255; /* #FFFFFF */
     --text-secondary:      240 240 240;
@@ -204,12 +300,44 @@
 
     /* Sidebar Rail Specific */
     --rail-gradient:       linear-gradient(180deg, #DDE7EA 0%, #D4E0E4 100%);
-    --rail-border-color:   #C9D6DA;
+    --rail-border-color:   rgba(15, 35, 40, 0.16);
     --rail-text:           #0F2328;
-    --rail-text-muted:     #51666C;
-    --rail-hover-bg:       rgba(15, 35, 40, 0.06);
-    --rail-active-bg:      rgba(11, 92, 107, 0.12);
-    --rail-active-border:  rgba(11, 92, 107, 0.25);
+    --rail-text-muted:     #2E4349;
+    --rail-section-header: #425B62;
+    --rail-hover-bg:       rgba(15, 35, 40, 0.07);
+    --rail-active-bg:      rgba(11, 92, 107, 0.14);
+    --rail-active-border:  rgba(11, 92, 107, 0.35);
+    --rail-active-text:    #0B5C6B;
+    --rail-spine-bg:       linear-gradient(180deg, #0EA5E9 0%, #0B5C6B 100%);
+    --rail-spine-shadow:   0 0 10px rgba(11, 92, 107, 0.45);
+    --rail-logo-bg:        linear-gradient(135deg, #0B5C6B 0%, #07404A 100%);
+    --rail-logo-border:    rgba(11, 92, 107, 0.40);
+    --rail-logo-icon:      #ffffff;
+    --rail-logo-shadow:    0 0 14px rgba(11, 92, 107, 0.35);
+    --rail-callsign-bg:    rgba(11, 92, 107, 0.15);
+    --rail-callsign-text:  #07404A;
+    --rail-callsign-border: rgba(11, 92, 107, 0.35);
+    --rail-card-bg:        rgba(15, 35, 40, 0.05);
+    --rail-card-hover-bg:  rgba(15, 35, 40, 0.10);
+    --rail-card-border:    rgba(15, 35, 40, 0.14);
+    --rail-card-icon-bg:   rgba(15, 35, 40, 0.08);
+    --rail-avatar-bg:      linear-gradient(135deg, #0B5C6B 0%, #07404A 100%);
+    --rail-avatar-border:  rgba(11, 92, 107, 0.40);
+    --rail-avatar-icon:    #ffffff;
+    --rail-status-duty:    #1E6B37;
+    --rail-scrollbar:      rgba(15, 35, 40, 0.25);
+    --rail-badge-live-bg:      rgba(40, 107, 53, 0.15);
+    --rail-badge-live-text:    #1b5929;
+    --rail-badge-live-border:  rgba(40, 107, 53, 0.35);
+    --rail-badge-crit-bg:      rgba(180, 35, 24, 0.15);
+    --rail-badge-crit-text:    #991b1b;
+    --rail-badge-crit-border:  rgba(180, 35, 24, 0.35);
+    --rail-badge-warn-bg:      rgba(140, 83, 4, 0.15);
+    --rail-badge-warn-text:    #854d0e;
+    --rail-badge-warn-border:  rgba(140, 83, 4, 0.35);
+    --rail-badge-neutral-bg:   rgba(15, 35, 40, 0.08);
+    --rail-badge-neutral-text: #2E4349;
+    --rail-badge-neutral-border: rgba(15, 35, 40, 0.20);
 
     --text:                 15  35  40; /* #0F2328 */
     --text-secondary:       46  67  73; /* #2E4349 */
@@ -265,10 +393,42 @@
     --rail-gradient:       linear-gradient(180deg, #101113 0%, #0C0D0F 100%);
     --rail-border-color:   #2B2C31;
     --rail-text:           #E6E0D4;
-    --rail-text-muted:     #9B968B;
-    --rail-hover-bg:       rgba(230, 224, 212, 0.05);
-    --rail-active-bg:      rgba(230, 224, 212, 0.10);
-    --rail-active-border:  rgba(230, 224, 212, 0.20);
+    --rail-text-muted:     #C4BEB2;
+    --rail-section-header: #9B968B;
+    --rail-hover-bg:       rgba(230, 224, 212, 0.07);
+    --rail-active-bg:      rgba(230, 224, 212, 0.12);
+    --rail-active-border:  rgba(230, 224, 212, 0.30);
+    --rail-active-text:    #ffffff;
+    --rail-spine-bg:       linear-gradient(180deg, #FFFFFF 0%, #E6E0D4 100%);
+    --rail-spine-shadow:   0 0 10px rgba(230, 224, 212, 0.50);
+    --rail-logo-bg:        linear-gradient(135deg, #E6E0D4 0%, #C4BEB2 100%);
+    --rail-logo-border:    rgba(230, 224, 212, 0.40);
+    --rail-logo-icon:      #101113;
+    --rail-logo-shadow:    0 0 12px rgba(230, 224, 212, 0.20);
+    --rail-callsign-bg:    rgba(230, 224, 212, 0.15);
+    --rail-callsign-text:  #E6E0D4;
+    --rail-callsign-border: rgba(230, 224, 212, 0.30);
+    --rail-card-bg:        rgba(230, 224, 212, 0.05);
+    --rail-card-hover-bg:  rgba(230, 224, 212, 0.10);
+    --rail-card-border:    rgba(230, 224, 212, 0.15);
+    --rail-card-icon-bg:   rgba(230, 224, 212, 0.08);
+    --rail-avatar-bg:      linear-gradient(135deg, #E6E0D4 0%, #C4BEB2 100%);
+    --rail-avatar-border:  rgba(230, 224, 212, 0.40);
+    --rail-avatar-icon:    #101113;
+    --rail-status-duty:    #5FC27A;
+    --rail-scrollbar:      rgba(230, 224, 212, 0.25);
+    --rail-badge-live-bg:      rgba(95, 194, 122, 0.20);
+    --rail-badge-live-text:    #5FC27A;
+    --rail-badge-live-border:  rgba(95, 194, 122, 0.40);
+    --rail-badge-crit-bg:      rgba(255, 107, 94, 0.20);
+    --rail-badge-crit-text:    #FF6B5E;
+    --rail-badge-crit-border:  rgba(255, 107, 94, 0.40);
+    --rail-badge-warn-bg:      rgba(245, 168, 59, 0.20);
+    --rail-badge-warn-text:    #F5A83B;
+    --rail-badge-warn-border:  rgba(245, 168, 59, 0.40);
+    --rail-badge-neutral-bg:   rgba(230, 224, 212, 0.12);
+    --rail-badge-neutral-text: #E6E0D4;
+    --rail-badge-neutral-border: rgba(230, 224, 212, 0.25);
 
     --text:                230 224 212; /* #E6E0D4 */
     --text-secondary:      196 190 178; /* #C4BEB2 */
@@ -439,6 +599,103 @@
 }
 
 @layer components {
+  /* ── Sidebar Rail Components (Theme-Independent Tokens) ───────── */
+  .rail-container {
+    background: var(--rail-gradient);
+    border-color: var(--rail-border-color);
+  }
+
+  .rail-logo-badge {
+    background: var(--rail-logo-bg);
+    border: 1px solid var(--rail-logo-border);
+    box-shadow: var(--rail-logo-shadow);
+    color: var(--rail-logo-icon);
+  }
+
+  .rail-nav-item {
+    color: var(--rail-text-muted);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+  .rail-nav-item:hover {
+    color: var(--rail-text);
+    background-color: var(--rail-hover-bg);
+  }
+  .rail-nav-item.active {
+    color: var(--rail-active-text);
+    background-color: var(--rail-active-bg);
+    border-color: var(--rail-active-border);
+  }
+
+  .rail-nav-icon {
+    color: var(--rail-text-muted);
+    transition: color 0.2s ease;
+  }
+  .rail-nav-item:hover .rail-nav-icon {
+    color: var(--rail-text);
+  }
+  .rail-nav-item.active .rail-nav-icon {
+    color: var(--rail-active-text);
+  }
+
+  .rail-active-spine {
+    background: var(--rail-spine-bg);
+    box-shadow: var(--rail-spine-shadow);
+  }
+
+  .rail-section-toggle {
+    color: var(--rail-section-header);
+    transition: color 0.15s ease;
+  }
+  .rail-section-toggle:hover {
+    color: var(--rail-text);
+  }
+  .rail-section-chevron {
+    color: var(--rail-section-header);
+    transition: color 0.15s ease;
+  }
+  .rail-section-toggle:hover .rail-section-chevron {
+    color: var(--rail-text);
+  }
+
+  .rail-operator-card {
+    background-color: var(--rail-card-bg);
+    border: 1px solid var(--rail-card-border);
+    transition: all 0.2s ease;
+  }
+  .rail-operator-card:hover {
+    background-color: var(--rail-card-hover-bg);
+  }
+
+  .rail-operator-avatar {
+    background: var(--rail-avatar-bg);
+    border: 1px solid var(--rail-avatar-border);
+    color: var(--rail-avatar-icon);
+  }
+
+  .rail-operator-icon-box {
+    background-color: var(--rail-card-icon-bg);
+    border: 1px solid var(--rail-card-border);
+    color: var(--rail-text-muted);
+  }
+
+  .rail-callsign-pill {
+    color: var(--rail-callsign-text);
+    background-color: var(--rail-callsign-bg);
+    border: 1px solid var(--rail-callsign-border);
+  }
+
+  .rail-collapse-btn {
+    color: var(--rail-text-muted);
+    border: 1px solid var(--rail-border-color);
+    background-color: transparent;
+    transition: all 0.15s ease;
+  }
+  .rail-collapse-btn:hover {
+    color: var(--rail-text);
+    background-color: var(--rail-hover-bg);
+  }
+
   /* ── Type utilities ──────────────────────────────────── */
 
   /* Fraunces for headlines and place names (or Public Sans in Monsoon) */
