@@ -1,22 +1,21 @@
 'use client';
 
 /**
- * Analytics page — fully audited & overhauled (Oct 2026).
+ * Analytics page — Tab-based overhaul (Oct 2026).
  *
- * Fixes applied:
- *  - Design system: all cards now use INDRA warm-paper tokens (bg-[#FDFAF5],
- *    border-[#E8E2D4]), Fraunces serif headings and terracotta accents.
- *  - KPI cards: linked to their respective detail pages, animated count-up,
- *    semantic colour accents, clean flat-delta formatting (0% not +0%).
- *  - Trend chart title: renamed from "Reports (24h)" to "Report Ingestion Trend"
- *    to match the actual multi-day range selector below it.
- *  - Global refreshTick: InundationDepthChart, VerificationBreakdownChart and
- *    TopDistrictsTable now re-fetch on every WebSocket event / 2-min timer,
- *    not just once on mount.
- *  - Header: added manual refresh button with "last synced X ago" timestamp and
- *    CSV/GeoJSON export links.
- *  - i18n: all hardcoded strings replaced with t('analytics.*') keys.
- *  - Rainfall / Warnings panels: responsive grid, full sender names via tooltip.
+ * 5 tabs:
+ *  1. Overview         — existing charts (trend, distribution, inundation, verification, districts, rainfall, warnings)
+ *  2. Source Intelligence — data feed health, ingestion contribution, kind breakdown
+ *  3. Geo Risk         — state leaderboard, H3 heatmap summary, district stacked bar
+ *  4. AI Pipeline      — ML Observatory (auth-gated), throughput metrics, verification weights
+ *  5. Hazard Trends    — hazard grouped bars (24h/7d/30d), severity matrix, warnings-events alignment
+ *
+ * Architecture:
+ *  - KPI cards + header stay above the tab bar (always visible)
+ *  - Only the active tab is mounted; inactive tabs are unmounted (no parallel fetches)
+ *  - refreshTick is propagated to every active tab panel
+ *  - WebSocket events bump refreshTick → all charts re-fetch
+ *  - Periodic heartbeat every 2 min
  */
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
@@ -24,7 +23,7 @@ import Link from 'next/link';
 import {
   BarChart3, TrendingUp, Activity, Layers, Database,
   ShieldAlert, CloudRain, Radio, RefreshCw, Download,
-  ArrowRight, MapPin,
+  ArrowRight, MapPin, LayoutDashboard, Brain, Zap, Lock,
 } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import Sidebar from '@/components/Sidebar';
@@ -35,21 +34,45 @@ import EventDistributionChart from '@/components/EventDistributionChart';
 import InundationDepthChart from '@/components/InundationDepthChart';
 import TopDistrictsTable from '@/components/TopDistrictsTable';
 import VerificationBreakdownChart from '@/components/VerificationBreakdownChart';
+import AiModelObservatory from '@/components/AiModelObservatory';
+import DataSourceHealthGrid from '@/components/DataSourceHealthGrid';
+import StateRiskLeaderboard from '@/components/StateRiskLeaderboard';
+import GeoHeatmapSummaryCard from '@/components/GeoHeatmapSummaryCard';
+import PipelineThroughputPanel from '@/components/PipelineThroughputPanel';
+import HazardTrendChart from '@/components/HazardTrendChart';
+import HazardSeverityMatrix from '@/components/HazardSeverityMatrix';
+import WarningsEventsAlignment from '@/components/WarningsEventsAlignment';
+import RainfallContextMiniPanel from '@/components/RainfallContextMiniPanel';
 import {
   ApiError,
   fetchSummaryCounts,
   fetchStations,
   fetchAgencyAlerts,
+  fetchMlObservatory,
   type DashboardSummary,
   type RainfallStation,
   type AgencyAlert,
+  type MlObservatoryData,
 } from '@/lib/api';
 import { ErrorState, EmptyState } from '@/components/ui/empty-state';
 import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { formatAgo, formatIst } from '@/lib/utils';
 import { useSettings, formatRainfall } from '@/lib/useSettings';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { getSession } from '@/lib/auth';
 import { API_BASE } from '@/lib/api-base';
+
+// ─── Tab definition ───────────────────────────────────────────────────────────
+
+type TabId = 'overview' | 'sources' | 'geo' | 'ai-pipeline' | 'hazard-trends';
+
+const TABS: Array<{ id: TabId; labelKey: string; icon: React.ElementType }> = [
+  { id: 'overview',       labelKey: 'analytics.tab_overview',      icon: LayoutDashboard },
+  { id: 'sources',        labelKey: 'analytics.tab_sources',       icon: Radio },
+  { id: 'geo',            labelKey: 'analytics.tab_geo',           icon: MapPin },
+  { id: 'ai-pipeline',   labelKey: 'analytics.tab_ai_pipeline',   icon: Brain },
+  { id: 'hazard-trends', labelKey: 'analytics.tab_hazard_trends', icon: TrendingUp },
+];
 
 // ─── KPI Figure card ──────────────────────────────────────────────────────────
 
@@ -303,6 +326,81 @@ function WarningsPanel({ refreshTick }: { refreshTick: number }) {
   );
 }
 
+// ─── AI Pipeline Tab — auth-gated container ───────────────────────────────────
+
+function AiPipelineTab({ refreshTick }: { refreshTick: number }) {
+  const [observatory, setObservatory] = useState<MlObservatoryData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const session = getSession();
+
+  useEffect(() => {
+    if (!session) { setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
+    fetchMlObservatory()
+      .then((d) => { if (!cancelled) { setObservatory(d); setError(null); setLoading(false); } })
+      .catch((err) => { if (!cancelled) { setError(err?.message ?? 'Failed to load'); setLoading(false); } });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTick, session?.accessToken]);
+
+  // Not signed in
+  if (!session) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+          <Lock className="w-7 h-7 text-slate-400" />
+        </div>
+        <div>
+          <p className="font-semibold text-[#1B2432] text-sm">Authentication Required</p>
+          <p className="text-xs text-[#7A8599] mt-1 max-w-[30ch]">
+            Sign in as an Analyst or Commander to view the AI pipeline metrics.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-12 animate-pulse bg-[#F0EBE0] rounded-xl" />
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-28 animate-pulse bg-[#F0EBE0] rounded-xl" />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse bg-[#F0EBE0] rounded-xl" />
+      </div>
+    );
+  }
+
+  // Error
+  if (error && !observatory) {
+    return <ErrorState label="AI observatory" error={error} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ML Observatory (the existing component) */}
+      <AiModelObservatory />
+
+      {/* Throughput metrics + weights (only when data loaded) */}
+      {observatory && (
+        <PipelineThroughputPanel
+          telemetry={observatory.live_telemetry}
+          weights={observatory.consensus_weights}
+        />
+      )}
+
+      {/* Verification confidence chart */}
+      <VerificationBreakdownChart refreshTick={refreshTick} />
+    </div>
+  );
+}
+
 // ─── Analytics page ───────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
@@ -315,6 +413,7 @@ export default function AnalyticsPage() {
     closeMobile,
   } = useSidebar();
 
+  const [activeTab, setActiveTab]       = useState<TabId>('overview');
   const [summary, setSummary]           = useState<DashboardSummary | null>(null);
   const [failed, setFailed]             = useState(false);
   const [refreshTick, setRefreshTick]   = useState(0);
@@ -390,7 +489,7 @@ export default function AnalyticsPage() {
       >
         <Topbar onMobileMenuOpen={openMobile} />
 
-        <main className="p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
+        <main className="p-4 lg:p-6 max-w-[1600px] mx-auto space-y-5">
 
           {/* ── Header ───────────────────────────────────────────────── */}
           <div
@@ -432,7 +531,7 @@ export default function AnalyticsPage() {
                 <span>{t('analytics.refresh')}</span>
               </button>
 
-              {/* Export dropdown-style button */}
+              {/* Export */}
               <a
                 href={`${API_BASE}/api/events/export?format=csv`}
                 target="_blank"
@@ -453,7 +552,7 @@ export default function AnalyticsPage() {
             </div>
           )}
 
-          {/* ── KPI Figures ──────────────────────────────────────────── */}
+          {/* ── KPI Figures (always visible) ──────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Figure
               label={t('kpis.total_reports')}
@@ -489,50 +588,116 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          {/* ── Charts Row ───────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Report Ingestion Trend — renamed from "Reports (24h)" */}
-            <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
-              <h2
-                className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
-                style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-              >
-                <TrendingUp className="w-4 h-4 text-blue-500" />
-                {t('analytics.ingestion_trend_title')}
-              </h2>
-              <p className="text-[11px] text-[#7A8599] mb-2">{t('analytics.ingestion_trend_subtitle')}</p>
-              <ReportsTrendChart variant="embedded" />
+          {/* ── Tab Bar ──────────────────────────────────────────────── */}
+          <div className="bg-[#F7F3EA] border border-[#E8E2D4] rounded-xl overflow-hidden">
+            {/* Tab buttons */}
+            <div className="flex overflow-x-auto border-b border-[#E8E2D4] bg-[#F0EBE0]/50">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold whitespace-nowrap transition-all shrink-0 border-b-2 ${
+                      isActive
+                        ? 'border-[#B5482E] bg-[#FDFAF5] text-[#1B2432]'
+                        : 'border-transparent text-[#7A8599] hover:text-[#1B2432] hover:bg-[#F7F3EA]'
+                    }`}
+                    aria-selected={isActive}
+                    role="tab"
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#B5482E]' : ''}`} />
+                    {t(tab.labelKey)}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Event Distribution */}
-            <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
-              <h2
-                className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
-                style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-              >
-                <Layers className="w-4 h-4 text-indigo-500" />
-                {t('dashboard.event_distribution')}
-              </h2>
-              <p className="text-[11px] text-[#7A8599] mb-2">
-                {summary && `${summary.verified_events.toLocaleString('en-IN')} events total`}
-              </p>
-              <EventDistributionChart variant="embedded" />
+            {/* Tab content area */}
+            <div className="p-5 space-y-6">
+
+              {/* ── Tab 1: Overview ─────────────────────────────────── */}
+              {activeTab === 'overview' && (
+                <>
+                  {/* Charts Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
+                      <h2
+                        className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
+                        style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                      >
+                        <TrendingUp className="w-4 h-4 text-blue-500" />
+                        {t('analytics.ingestion_trend_title')}
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599] mb-2">{t('analytics.ingestion_trend_subtitle')}</p>
+                      <ReportsTrendChart variant="embedded" />
+                    </div>
+
+                    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
+                      <h2
+                        className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
+                        style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                      >
+                        <Layers className="w-4 h-4 text-indigo-500" />
+                        {t('dashboard.event_distribution')}
+                      </h2>
+                      <p className="text-[11px] text-[#7A8599] mb-2">
+                        {summary && `${summary.verified_events.toLocaleString('en-IN')} events total`}
+                      </p>
+                      <EventDistributionChart variant="embedded" />
+                    </div>
+                  </div>
+
+                  {/* Second row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <InundationDepthChart refreshTick={refreshTick} />
+                    <VerificationBreakdownChart refreshTick={refreshTick} />
+                  </div>
+
+                  {/* Top Districts */}
+                  <TopDistrictsTable refreshTick={refreshTick} />
+
+                  {/* Live Feeds */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <RainfallPanel refreshTick={refreshTick} />
+                    <WarningsPanel refreshTick={refreshTick} />
+                  </div>
+                </>
+              )}
+
+              {/* ── Tab 2: Source Intelligence ───────────────────────── */}
+              {activeTab === 'sources' && (
+                <DataSourceHealthGrid refreshTick={refreshTick} />
+              )}
+
+              {/* ── Tab 3: Geo Risk ──────────────────────────────────── */}
+              {activeTab === 'geo' && (
+                <>
+                  <StateRiskLeaderboard refreshTick={refreshTick} />
+                  <GeoHeatmapSummaryCard refreshTick={refreshTick} />
+                </>
+              )}
+
+              {/* ── Tab 4: AI Pipeline ──────────────────────────────── */}
+              {activeTab === 'ai-pipeline' && (
+                <AiPipelineTab refreshTick={refreshTick} />
+              )}
+
+              {/* ── Tab 5: Hazard Trends ─────────────────────────────── */}
+              {activeTab === 'hazard-trends' && (
+                <>
+                  <HazardTrendChart refreshTick={refreshTick} />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <HazardSeverityMatrix refreshTick={refreshTick} />
+                    <WarningsEventsAlignment refreshTick={refreshTick} />
+                  </div>
+                  <RainfallContextMiniPanel refreshTick={refreshTick} />
+                </>
+              )}
+
             </div>
-          </div>
-
-          {/* ── Second Analytics Row — refreshTick propagated ────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <InundationDepthChart refreshTick={refreshTick} />
-            <VerificationBreakdownChart refreshTick={refreshTick} />
-          </div>
-
-          {/* ── Top Districts ─────────────────────────────────────────── */}
-          <TopDistrictsTable refreshTick={refreshTick} />
-
-          {/* ── Live Feeds ────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RainfallPanel refreshTick={refreshTick} />
-            <WarningsPanel refreshTick={refreshTick} />
           </div>
 
         </main>

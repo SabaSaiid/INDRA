@@ -329,7 +329,7 @@ export default function EventVerificationModal({ eventId, onClose, onEventUpdate
                 <div className="space-y-1">
                   <h4 className="font-bold text-blue-950">Independent Sovereign Corroboration</h4>
                   <p className="text-blue-800 text-[11px] leading-relaxed">
-                    This warning was officially transmitted by state and central disaster authorities via NDMA's National CAP Gateway. It serves as external ground-truth validation for INDRA's weather models and incident detection.
+                    This warning was officially transmitted by state and central disaster authorities via NDMA&apos;s National CAP Gateway. It serves as external ground-truth validation for INDRA&apos;s weather models and incident detection.
                   </p>
                 </div>
               </div>
