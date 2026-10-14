@@ -60,7 +60,7 @@ import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { formatAgo, formatIst } from '@/lib/utils';
 import { useSettings, formatRainfall } from '@/lib/useSettings';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { getSession } from '@/lib/auth';
+import { getSession, useSession } from '@/lib/auth';
 import { API_BASE } from '@/lib/api-base';
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
@@ -330,12 +330,18 @@ function WarningsPanel({ refreshTick }: { refreshTick: number }) {
 // ─── AI Pipeline Tab — auth-gated container ───────────────────────────────────
 
 function AiPipelineTab({ refreshTick }: { refreshTick: number }) {
+  const session = useSession();
+  const [mounted, setMounted] = useState(false);
   const [observatory, setObservatory] = useState<MlObservatoryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const session = getSession();
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!session) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
@@ -344,7 +350,16 @@ function AiPipelineTab({ refreshTick }: { refreshTick: number }) {
       .catch((err) => { if (!cancelled) { setError(err?.message ?? 'Failed to load'); setLoading(false); } });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTick, session?.accessToken]);
+  }, [refreshTick, session?.accessToken, mounted]);
+
+  // Before mount: render skeleton to match server-rendered HTML
+  if (!mounted) {
+    return (
+      <div className="bg-[#FDFAF5] border border-[#E8E2D4] rounded-2xl p-8 sm:p-12 shadow-xs text-center max-w-xl mx-auto flex flex-col items-center gap-4 my-6">
+        <div className="h-40 animate-pulse bg-[#F0EBE0] rounded-xl w-full" />
+      </div>
+    );
+  }
 
   // Not signed in
   if (!session) {
@@ -432,6 +447,12 @@ export default function AnalyticsPage() {
   const [lastSynced, setLastSynced]     = useState<Date | null>(null);
   const [refreshing, setRefreshing]     = useState(false);
   const { subscribe }                   = useIndraWebSocket();
+  const session                         = useSession();
+  const [mounted, setMounted]           = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const doRefresh = useCallback(() => setRefreshTick((n) => n + 1), []);
 
@@ -670,8 +691,7 @@ export default function AnalyticsPage() {
                           );
                         }
                         if (tab.id === 'ai-pipeline') {
-                          const session = getSession();
-                          if (!session) {
+                          if (!mounted || !session) {
                             return (
                               <span className="flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-800 font-bold">
                                 <Lock className="w-2.5 h-2.5" />
