@@ -509,7 +509,6 @@
     --text-primary:   var(--ink);
     --text-secondary: var(--ink-2);
     --text-muted:     var(--ink-3);
-    --border:         rgb(var(--border));
     --radius:         var(--radius-md);
 
     --sidebar-bg:       var(--slate);

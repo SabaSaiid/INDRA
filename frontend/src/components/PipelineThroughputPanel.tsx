@@ -38,16 +38,16 @@ interface MetricTileProps {
 
 function MetricTile({ label, value, sub, icon: Icon, accentColor }: MetricTileProps) {
   return (
-    <div className="bg-surface rounded-xl border border-border p-4 flex flex-col gap-1 shadow-2xs relative overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+    <div className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] p-4 flex flex-col gap-1 shadow-sm relative overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style={{ backgroundColor: accentColor }} />
-      <div className="flex items-center justify-between text-[11px] text-text-muted">
+      <div className="flex items-center justify-between text-[11px] text-[#7A8599]">
         <span className="font-medium">{label}</span>
         <Icon className="w-4 h-4" style={{ color: accentColor }} />
       </div>
-      <div className="text-2xl font-bold tabular-nums font-mono text-text">
+      <div className="text-2xl font-bold tabular-nums font-mono text-[#1B2432]">
         {value}
       </div>
-      <div className="text-[10px] text-text-muted">{sub}</div>
+      <div className="text-[10px] text-[#7A8599]">{sub}</div>
     </div>
   );
 }
@@ -131,7 +131,7 @@ export default function PipelineThroughputPanel({ telemetry, weights }: Props) {
 
       {/* ── Metric tiles ──────────────────────────────────────────────────── */}
       <div>
-        <h3 className="text-sm font-bold text-text mb-3 font-display">
+        <h3 className="text-sm font-bold text-[#1B2432] mb-3 font-display">
           {t('analytics.ai_throughput_title') || 'Pipeline Throughput Metrics'}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -143,20 +143,20 @@ export default function PipelineThroughputPanel({ telemetry, weights }: Props) {
 
       {/* ── Verification Weights Table ─────────────────────────────────────── */}
       {weights && weights.length > 0 && (
-        <div className="bg-surface rounded-xl border border-border shadow-2xs overflow-hidden">
-          <div className="p-5 border-b border-border">
-            <h3 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+        <div className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-[#E8E2D4]">
+            <h3 className="text-sm font-bold text-[#1B2432] flex items-center gap-2 font-display">
               <ShieldCheck className="w-4 h-4 text-brand" />
               {t('analytics.ai_weights_title') || 'Consensus Scoring Weights'}
             </h3>
-            <p className="text-[11px] text-text-muted mt-0.5">
+            <p className="text-[11px] text-[#7A8599] mt-0.5">
               {t('analytics.ai_weights_subtitle') || 'Deterministic factors used to compute the AI confidence score'}
             </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-surface-raised text-text-muted">
+                <tr className="bg-[#F0EBE0]/60 text-[#7A8599] border-b border-[#E8E2D4]">
                   <th className="text-left px-4 py-2.5 font-semibold">Factor</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Weight</th>
                   <th className="text-left px-4 py-2.5 font-semibold">Metric</th>
@@ -165,14 +165,14 @@ export default function PipelineThroughputPanel({ telemetry, weights }: Props) {
               </thead>
               <tbody>
                 {weights.map((w) => (
-                  <tr key={w.factor} className="border-t border-border hover:bg-surface-raised/50 transition-colors">
-                    <td className="px-4 py-2.5 font-medium text-text">{w.factor}</td>
+                  <tr key={w.factor} className="border-t border-[#E8E2D4] hover:bg-[#F0EBE0]/50 transition-colors">
+                    <td className="px-4 py-2.5 font-medium text-[#1B2432]">{w.factor}</td>
                     <td className="px-4 py-2.5 text-right">
                       <span className="font-mono font-bold text-brand">
                         {(w.weight * 100).toFixed(0)}%
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-text-muted">{w.metric}</td>
+                    <td className="px-4 py-2.5 text-[#7A8599]">{w.metric}</td>
                     <td className="px-4 py-2.5 text-center">
                       <span
                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
@@ -180,7 +180,7 @@ export default function PipelineThroughputPanel({ telemetry, weights }: Props) {
                             ? 'bg-status-verified/15 text-status-verified'
                             : w.status === 'experimental'
                             ? 'bg-severity-high/15 text-severity-high'
-                            : 'bg-surface-raised text-text-muted'
+                            : 'bg-[#F0EBE0] text-[#7A8599]'
                         }`}
                       >
                         {w.status}

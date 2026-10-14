@@ -20,6 +20,7 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3, TrendingUp, Activity, Layers, Database,
   ShieldAlert, CloudRain, Radio, RefreshCw, Download,
@@ -59,7 +60,7 @@ import { useIndraWebSocket } from '@/lib/useIndraWebSocket';
 import { formatAgo, formatIst } from '@/lib/utils';
 import { useSettings, formatRainfall } from '@/lib/useSettings';
 import { useTranslation } from '@/lib/i18n/useTranslation';
-import { getSession } from '@/lib/auth';
+import { getSession, useSession } from '@/lib/auth';
 import { API_BASE } from '@/lib/api-base';
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
@@ -329,12 +330,18 @@ function WarningsPanel({ refreshTick }: { refreshTick: number }) {
 // ─── AI Pipeline Tab — auth-gated container ───────────────────────────────────
 
 function AiPipelineTab({ refreshTick }: { refreshTick: number }) {
+  const session = useSession();
+  const [mounted, setMounted] = useState(false);
   const [observatory, setObservatory] = useState<MlObservatoryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const session = getSession();
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!session) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
@@ -343,20 +350,40 @@ function AiPipelineTab({ refreshTick }: { refreshTick: number }) {
       .catch((err) => { if (!cancelled) { setError(err?.message ?? 'Failed to load'); setLoading(false); } });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTick, session?.accessToken]);
+  }, [refreshTick, session?.accessToken, mounted]);
+
+  // Before mount: render skeleton to match server-rendered HTML
+  if (!mounted) {
+    return (
+      <div className="bg-[#FDFAF5] border border-[#E8E2D4] rounded-2xl p-8 sm:p-12 shadow-xs text-center max-w-xl mx-auto flex flex-col items-center gap-4 my-6">
+        <div className="h-40 animate-pulse bg-[#F0EBE0] rounded-xl w-full" />
+      </div>
+    );
+  }
 
   // Not signed in
   if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
-          <Lock className="w-7 h-7 text-slate-400" />
+      <div className="bg-[#FDFAF5] border border-[#E8E2D4] rounded-2xl p-8 sm:p-12 shadow-xs text-center max-w-xl mx-auto flex flex-col items-center gap-4 my-6">
+        <div className="w-14 h-14 rounded-2xl bg-[#F0EBE0] border border-[#E8E2D4] flex items-center justify-center text-[#B5482E] shadow-2xs">
+          <Lock className="w-7 h-7 text-[#B5482E]" />
         </div>
-        <div>
-          <p className="font-semibold text-[#1B2432] text-sm">Authentication Required</p>
-          <p className="text-xs text-[#7A8599] mt-1 max-w-[30ch]">
-            Sign in as an Analyst or Commander to view the AI pipeline metrics.
+        <div className="space-y-1.5">
+          <h3 className="font-bold text-[#1B2432] text-base" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>
+            Tactical AI Pipeline Security Gate
+          </h3>
+          <p className="text-xs text-[#7A8599] max-w-md leading-relaxed">
+            IndicBERT NLP classifications, SAM-2 spatial confidence, and DBSCAN consensus weights require Analyst or Commander clearance to inspect.
           </p>
+        </div>
+        <div className="pt-2 flex items-center gap-3">
+          <Link
+            href="/operator-profile"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#B5482E] hover:bg-[#9E3E26] text-white text-xs font-semibold shadow-xs transition-all hover:-translate-y-0.5"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>Sign in as Analyst</span>
+          </Link>
         </div>
       </div>
     );
@@ -420,6 +447,12 @@ export default function AnalyticsPage() {
   const [lastSynced, setLastSynced]     = useState<Date | null>(null);
   const [refreshing, setRefreshing]     = useState(false);
   const { subscribe }                   = useIndraWebSocket();
+  const session                         = useSession();
+  const [mounted, setMounted]           = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const doRefresh = useCallback(() => setRefreshTick((n) => n + 1), []);
 
@@ -588,116 +621,203 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          {/* ── Tab Bar ──────────────────────────────────────────────── */}
-          <div className="bg-[#F7F3EA] border border-[#E8E2D4] rounded-xl overflow-hidden">
-            {/* Tab buttons */}
-            <div className="flex overflow-x-auto border-b border-[#E8E2D4] bg-[#F0EBE0]/50">
+          {/* ── Segmented Floating Tab Controller ────────────────────────── */}
+          <div className="space-y-6">
+            <div className="bg-[#F0EBE0]/80 border border-[#E8E2D4] p-1.5 rounded-2xl shadow-xs backdrop-blur-md flex items-center gap-1 overflow-x-auto scrollbar-none">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    id={`analytics-tab-${tab.id}`}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold whitespace-nowrap transition-all shrink-0 border-b-2 ${
+                    className={`relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none ${
                       isActive
-                        ? 'border-[#B5482E] bg-[#FDFAF5] text-[#1B2432]'
-                        : 'border-transparent text-[#7A8599] hover:text-[#1B2432] hover:bg-[#F7F3EA]'
+                        ? 'text-[#1B2432]'
+                        : 'text-[#69768A] hover:text-[#1B2432] hover:bg-black/[0.03]'
                     }`}
                     aria-selected={isActive}
                     role="tab"
                   >
-                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#B5482E]' : ''}`} />
-                    {t(tab.labelKey)}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeAnalyticsTabIndicator"
+                        className="absolute inset-0 bg-[#FDFAF5] rounded-xl shadow-xs border border-[#E8E2D4]"
+                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#B5482E]' : 'text-[#7A8599]'}`} />
+                      <span>{t(tab.labelKey)}</span>
+                      {(() => {
+                        if (tab.id === 'overview') {
+                          const count = summary?.total_reports;
+                          if (!count) return null;
+                          const formatted = count >= 1000 ? `${(count / 1000).toFixed(1)}k` : `${count}`;
+                          return (
+                            <span
+                              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors ${
+                                isActive
+                                  ? 'bg-[#B5482E]/10 text-[#B5482E]'
+                                  : 'bg-[#E8E2D4]/70 text-[#7A8599]'
+                              }`}
+                            >
+                              {formatted}
+                            </span>
+                          );
+                        }
+                        if (tab.id === 'sources') {
+                          return (
+                            <span className="flex items-center gap-1.5 text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 font-semibold">
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                              </span>
+                              Live
+                            </span>
+                          );
+                        }
+                        if (tab.id === 'geo') {
+                          return (
+                            <span
+                              className={`text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-md transition-colors ${
+                                isActive ? 'bg-blue-500/10 text-blue-700 font-semibold' : 'bg-[#E8E2D4]/70 text-[#7A8599]'
+                              }`}
+                            >
+                              Pan-India
+                            </span>
+                          );
+                        }
+                        if (tab.id === 'ai-pipeline') {
+                          if (!mounted || !session) {
+                            return (
+                              <span className="flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-800 font-bold">
+                                <Lock className="w-2.5 h-2.5" />
+                                Auth
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-700 font-bold">
+                              v1.0
+                            </span>
+                          );
+                        }
+                        if (tab.id === 'hazard-trends') {
+                          const alerts = summary?.active_alerts ?? 0;
+                          return (
+                            <span
+                              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors ${
+                                alerts > 0
+                                  ? 'bg-rose-500/15 text-rose-700'
+                                  : 'bg-[#E8E2D4]/70 text-[#7A8599]'
+                              }`}
+                            >
+                              {alerts > 0 ? `${alerts} alert${alerts > 1 ? 's' : ''}` : 'Active'}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Tab content area */}
-            <div className="p-5 space-y-6">
+            {/* Tab content area with AnimatePresence */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="space-y-6"
+              >
+                {/* ── Tab 1: Overview ─────────────────────────────────── */}
+                {activeTab === 'overview' && (
+                  <>
+                    {/* Charts Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
+                        <h2
+                          className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
+                          style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                        >
+                          <TrendingUp className="w-4 h-4 text-blue-500" />
+                          {t('analytics.ingestion_trend_title')}
+                        </h2>
+                        <p className="text-[11px] text-[#7A8599] mb-2">{t('analytics.ingestion_trend_subtitle')}</p>
+                        <ReportsTrendChart variant="embedded" />
+                      </div>
 
-              {/* ── Tab 1: Overview ─────────────────────────────────── */}
-              {activeTab === 'overview' && (
-                <>
-                  {/* Charts Row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
-                      <h2
-                        className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
-                        style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-                      >
-                        <TrendingUp className="w-4 h-4 text-blue-500" />
-                        {t('analytics.ingestion_trend_title')}
-                      </h2>
-                      <p className="text-[11px] text-[#7A8599] mb-2">{t('analytics.ingestion_trend_subtitle')}</p>
-                      <ReportsTrendChart variant="embedded" />
+                      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
+                        <h2
+                          className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
+                          style={{ fontFamily: 'Fraunces, Georgia, serif' }}
+                        >
+                          <Layers className="w-4 h-4 text-indigo-500" />
+                          {t('dashboard.event_distribution')}
+                        </h2>
+                        <p className="text-[11px] text-[#7A8599] mb-2">
+                          {summary && `${summary.verified_events.toLocaleString('en-IN')} events total`}
+                        </p>
+                        <EventDistributionChart variant="embedded" />
+                      </div>
                     </div>
 
-                    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col">
-                      <h2
-                        className="text-sm font-bold text-[#1B2432] mb-0.5 flex items-center gap-2"
-                        style={{ fontFamily: 'Fraunces, Georgia, serif' }}
-                      >
-                        <Layers className="w-4 h-4 text-indigo-500" />
-                        {t('dashboard.event_distribution')}
-                      </h2>
-                      <p className="text-[11px] text-[#7A8599] mb-2">
-                        {summary && `${summary.verified_events.toLocaleString('en-IN')} events total`}
-                      </p>
-                      <EventDistributionChart variant="embedded" />
+                    {/* Second row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <InundationDepthChart refreshTick={refreshTick} />
+                      <VerificationBreakdownChart refreshTick={refreshTick} />
                     </div>
+
+                    {/* Top Districts */}
+                    <TopDistrictsTable refreshTick={refreshTick} />
+
+                    {/* Live Feeds */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <RainfallPanel refreshTick={refreshTick} />
+                      <WarningsPanel refreshTick={refreshTick} />
+                    </div>
+                  </>
+                )}
+
+                {/* ── Tab 2: Source Intelligence ───────────────────────── */}
+                {activeTab === 'sources' && (
+                  <DataSourceHealthGrid refreshTick={refreshTick} />
+                )}
+
+                {/* ── Tab 3: Geo Risk ──────────────────────────────────── */}
+                {activeTab === 'geo' && (
+                  <div className="space-y-6">
+                    <StateRiskLeaderboard refreshTick={refreshTick} />
+                    <GeoHeatmapSummaryCard refreshTick={refreshTick} />
                   </div>
+                )}
 
-                  {/* Second row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <InundationDepthChart refreshTick={refreshTick} />
-                    <VerificationBreakdownChart refreshTick={refreshTick} />
+                {/* ── Tab 4: AI Pipeline ──────────────────────────────── */}
+                {activeTab === 'ai-pipeline' && (
+                  <AiPipelineTab refreshTick={refreshTick} />
+                )}
+
+                {/* ── Tab 5: Hazard Trends ─────────────────────────────── */}
+                {activeTab === 'hazard-trends' && (
+                  <div className="space-y-6">
+                    <HazardTrendChart refreshTick={refreshTick} />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <HazardSeverityMatrix refreshTick={refreshTick} />
+                      <WarningsEventsAlignment refreshTick={refreshTick} />
+                    </div>
+                    <RainfallContextMiniPanel refreshTick={refreshTick} />
                   </div>
+                )}
 
-                  {/* Top Districts */}
-                  <TopDistrictsTable refreshTick={refreshTick} />
-
-                  {/* Live Feeds */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <RainfallPanel refreshTick={refreshTick} />
-                    <WarningsPanel refreshTick={refreshTick} />
-                  </div>
-                </>
-              )}
-
-              {/* ── Tab 2: Source Intelligence ───────────────────────── */}
-              {activeTab === 'sources' && (
-                <DataSourceHealthGrid refreshTick={refreshTick} />
-              )}
-
-              {/* ── Tab 3: Geo Risk ──────────────────────────────────── */}
-              {activeTab === 'geo' && (
-                <>
-                  <StateRiskLeaderboard refreshTick={refreshTick} />
-                  <GeoHeatmapSummaryCard refreshTick={refreshTick} />
-                </>
-              )}
-
-              {/* ── Tab 4: AI Pipeline ──────────────────────────────── */}
-              {activeTab === 'ai-pipeline' && (
-                <AiPipelineTab refreshTick={refreshTick} />
-              )}
-
-              {/* ── Tab 5: Hazard Trends ─────────────────────────────── */}
-              {activeTab === 'hazard-trends' && (
-                <>
-                  <HazardTrendChart refreshTick={refreshTick} />
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <HazardSeverityMatrix refreshTick={refreshTick} />
-                    <WarningsEventsAlignment refreshTick={refreshTick} />
-                  </div>
-                  <RainfallContextMiniPanel refreshTick={refreshTick} />
-                </>
-              )}
-
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
         </main>
