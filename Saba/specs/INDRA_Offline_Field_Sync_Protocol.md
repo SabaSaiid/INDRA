@@ -59,6 +59,8 @@ export interface OfflineIncidentPayload {
   }>;
   status: 'PENDING_UPLOAD' | 'IN_TRANSIT' | 'MERGED' | 'CONFLICT';
   vectorClock: Record<string, number>;
+  responderPublicKey: string;   // Ed25519 public key hex
+  cryptographicSignature: string; // Ed25519 signature of canonical JSON
 }
 ```
 
@@ -88,3 +90,13 @@ self.addEventListener('sync', (event) => {
 
 - **Compression:** Batched mutation packets are compressed using `gzip` or `zstd` before transit, decreasing cellular payload size by up to 78%.
 - **Adaptive Backoff:** If the gateway returns `503 Service Unavailable` or `429 Too Many Requests`, retry delays follow truncated exponential backoff ($t_n = \min(300, 2^n \times 2)$ seconds) with 20% random jitter.
+
+---
+
+## 5. Cryptographic Message Integrity & Offline Signatures
+
+To ensure field reports cannot be spoofed, tampered with, or injected by unverified third parties while offline:
+1. **Device Keypair Generation:** During operator registration, an Ed25519 cryptographic keypair is generated using the Web Cryptography API (`crypto.subtle`) and stored in non-exportable hardware-backed IndexedDB keystores.
+2. **Offline Mutation Signing:** Prior to queuing into `reports_outbox`, the payload is canonicalized (RFC 8785) and signed:
+   $$\sigma = \text{Sign}_{\text{Ed25519}}(\text{PrivateKey}_{\text{responder}}, \mathcal{H}(\text{CanonicalPayload}))$$
+3. **Gateway Verification:** The INDRA ingestion cluster verifies $\sigma$ against the responder's registered public key before committing transactions to PostgreSQL, guaranteeing end-to-end non-repudiation.
