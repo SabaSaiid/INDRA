@@ -86,3 +86,16 @@ Receiving EOC endpoints must compute and match the signature within a 300-second
   "recommendedAction": "Evacuate low-lying riverbank habitations within 90 minutes"
 }
 ```
+
+---
+
+## 4. Circuit Breakers, Health Check Heartbeats & Gateway Isolation
+
+### 4.1 Ingestion Circuit Breaker Policies
+To shield the core pipeline from external agency downstream outages:
+- **Failure Threshold:** 50% failed HTTP calls within a rolling 60-second window (or consecutive timeouts $\ge 5$).
+- **State Transition:** Enters `OPEN` state; incoming messages bypass synchronous processing and queue directly into RabbitMQ dead-letter persistent queues.
+- **Half-Open Probe:** After 30 seconds of quiet time, 3 trial probes are transmitted. Upon 100% success, the circuit breaker resets to `CLOSED`.
+
+### 4.2 Automated Health Heartbeats
+Agency partner gateways must respond to bi-directional ping checks on `/api/v1/healthz/partner-heartbeat` every 15 seconds. If missed across 3 consecutive intervals, partner status on the EOC status board switches from `ONLINE` to `DEGRADED_POLLING`.
