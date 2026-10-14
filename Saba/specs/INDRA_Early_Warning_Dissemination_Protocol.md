@@ -61,3 +61,20 @@ Alert messages are formatted dynamically into the destination district's primary
 - **Hindi (Devanagari):** Standard North and Central Indian state EOCs.
 - **Bengali, Marathi, Tamil, Telugu, Gujarati, Odia:** Targeted state emergency operational channels.
 - **Hinglish Phonetic:** Optimized for SMS gateways and cellular fallback where Unicode support is limited.
+
+---
+
+## 5. Low-Bandwidth Cellular Broadcast Fallback & SMS Routing
+
+### 5.1 Cellular Fallback Architecture
+When IP connectivity to mobile nodes is disrupted:
+1. **Cell Broadcast Service (CBS):** Broadcasts geographically bounded P0 alerts via Telecom Service Providers (TSPs) directly to BTS towers covering target H3 index cells.
+2. **SMPP 3.4 SMS Gateway Pool:** Secondary fallback utilizing prioritized round-robin across national telecom aggregators (BSNL, Airtel, Jio).
+3. **SMS Payload Compaction:** Restricts messages to 160 GSM 7-bit characters with condensed coordinates and emergency shelter shortcodes:
+   ```
+   [INDRA-ALERT:CRITICAL] FLASH FLOOD in Khairatabad. Evacuate to Govt High School Shelter (Code: SHELT-402). Do NOT enter underpasses. Call 112.
+   ```
+
+### 5.2 Circuit Breakers & Delivery Acknowledgment
+- **Gateway Circuit Breaker:** If a telecom provider fails $> 5\%$ of dispatch attempts over a 60-second window, traffic automatically trips to the secondary SMPP route.
+- **Field Rescuer Delivery Receipts (DLR):** Responders acknowledge P0 alerts via USSD/SMS bounce-back tokens (`ACK <alertId>`), tracked in the EOC operational dashboard to ensure battalion commander readiness.
