@@ -154,7 +154,7 @@ export default function EventDistributionChart({
   };
 
   const sourceToggle = (
-    <div className="inline-flex items-center rounded-md border border-border bg-surface-raised p-0.5 text-[9px] font-mono">
+    <div className="inline-flex items-center rounded-md border border-[#E8E2D4] bg-[#F0EBE0] p-0.5 text-[9px] font-mono">
       {(['events', 'warnings'] as const).map((src) => {
         const n = src === 'events' ? eventsTotal : alerts?.length ?? 0;
         return (
@@ -165,7 +165,7 @@ export default function EventDistributionChart({
             title={src === 'events' ? 'Events INDRA formed from reports' : 'Official warnings in force (IMD, CWC, SDMA via SACHET)'}
             className={cn(
               'px-1.5 py-0.5 rounded transition-colors cursor-pointer',
-              source === src ? 'bg-surface text-text font-bold shadow-2xs' : 'text-text-muted hover:text-text'
+              source === src ? 'bg-white text-[#1B2432] font-bold shadow-xs' : 'text-[#7A8599] hover:text-[#1B2432]'
             )}
           >
             {src === 'events' ? t('chart.events') : t('chart.warnings')} {n}
@@ -184,28 +184,28 @@ export default function EventDistributionChart({
   const content = (
     <div className={cn('flex flex-col h-full min-h-0', className)}>
       {/* Subheader: Segmented Tab Switcher + Time Range Pills */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-1 border-b border-border">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-1 border-b border-[#E8E2D4]">
         {/* Dimension Tabs (Hazard vs Severity) */}
-        <div className="inline-flex p-0.5 rounded-lg bg-surface-raised border border-border">
+        <div className="inline-flex p-0.5 rounded-lg bg-[#F0EBE0] border border-[#E8E2D4]">
           <button
             type="button"
             onClick={() => handleTabChange('hazard')}
             className={cn(
               'relative flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer',
               activeTab === 'hazard'
-                ? 'text-text font-semibold'
-                : 'text-text-muted hover:text-text'
+                ? 'text-[#1B2432] font-semibold'
+                : 'text-[#7A8599] hover:text-[#1B2432]'
             )}
           >
             {activeTab === 'hazard' && (
               <motion.div
                 layoutId="activeDistTabIndicator"
-                className="absolute inset-0 bg-surface rounded-md shadow-2xs"
+                className="absolute inset-0 bg-white rounded-md shadow-xs"
                 transition={{ type: 'spring', bounce: 0.15, duration: 0.35 }}
               />
             )}
             <span className="relative z-10 flex items-center gap-1">
-              <Layers className="w-3 h-3 text-text-muted" />
+              <Layers className="w-3 h-3 text-[#7A8599]" />
               <span>{t('chart.by_hazard')}</span>
             </span>
           </button>
@@ -216,14 +216,14 @@ export default function EventDistributionChart({
             className={cn(
               'relative flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors cursor-pointer',
               activeTab === 'severity'
-                ? 'text-text font-semibold'
-                : 'text-text-muted hover:text-text'
+                ? 'text-[#1B2432] font-semibold'
+                : 'text-[#7A8599] hover:text-[#1B2432]'
             )}
           >
             {activeTab === 'severity' && (
               <motion.div
                 layoutId="activeDistTabIndicator"
-                className="absolute inset-0 bg-surface rounded-md shadow-2xs"
+                className="absolute inset-0 bg-white rounded-md shadow-xs"
                 transition={{ type: 'spring', bounce: 0.15, duration: 0.35 }}
               />
             )}

@@ -52,7 +52,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
 
   useEffect(() => {
     let cancelled = false;
-    fetchEvents({ limit: 500 })
+    fetchEvents({ limit: 200 })
       .then((rows) => { if (!cancelled) { setEvents(rows); setError(null); } })
       .catch((err) => { if (!cancelled) setError(err); });
     return () => { cancelled = true; };
@@ -82,8 +82,8 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   // ── Loading
   if (!events && !error) {
     return (
-      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
-        <div className="h-64 animate-pulse bg-surface-raised rounded-xl" />
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+        <div className="h-64 animate-pulse bg-[#F0EBE0] rounded-xl" />
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   // ── Error
   if (error && !events) {
     return (
-      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
         <ErrorState label="event matrix data" error={error} compact />
       </div>
     );
@@ -100,7 +100,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   // ── Empty
   if (events && events.length === 0) {
     return (
-      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
         <EmptyState
           title="No events to compute matrix"
           hint="Events will appear here once the pipeline verifies its first reports."
@@ -111,13 +111,13 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
   }
 
   return (
-    <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs flex flex-col gap-3">
+    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col gap-3">
       <div>
-        <h3 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+        <h3 className="text-sm font-bold text-[#1B2432] flex items-center gap-2 font-display">
           <Grid3X3 className="w-4 h-4 text-brand" />
           {t('analytics.hazard_matrix_title') || 'Hazard × Severity Matrix'}
         </h3>
-        <p className="text-[11px] text-text-muted mt-0.5">
+        <p className="text-[11px] text-[#7A8599] mt-0.5">
           {t('analytics.hazard_matrix_subtitle') || 'Event count per hazard type and severity. Intensity scales with frequency.'}
         </p>
       </div>
@@ -126,7 +126,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
         <table className="w-full text-xs border-separate border-spacing-1">
           <thead>
             <tr>
-              <th className="text-left py-1.5 pr-3 text-text-muted font-semibold text-[11px] min-w-[130px]">
+              <th className="text-left py-1.5 pr-3 text-[#7A8599] font-semibold text-[11px] min-w-[130px]">
                 Hazard
               </th>
               {SEVERITIES.map((s) => (
@@ -138,7 +138,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
                   {t.severity(s)}
                 </th>
               ))}
-              <th className="text-right py-1.5 pl-3 text-text-muted font-semibold text-[11px]">Total</th>
+              <th className="text-right py-1.5 pl-3 text-[#7A8599] font-semibold text-[11px]">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -147,7 +147,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
               const rowTotal = Array.from(inner.values()).reduce((s, v) => s + v, 0);
               return (
                 <tr key={haz}>
-                  <td className="py-1 pr-3 font-medium text-text truncate max-w-[130px]" title={t.hazard(haz)}>
+                  <td className="py-1 pr-3 font-medium text-[#1B2432] truncate max-w-[130px]" title={t.hazard(haz)}>
                     {t.hazard(haz)}
                   </td>
                   {SEVERITIES.map((s) => {
@@ -155,19 +155,19 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
                     const sevCol = getSevColor(s);
                     const opacity = count > 0 ? 0.12 + (count / Math.max(1, maxCell)) * 0.65 : 0;
                     const bg = count > 0 ? withOpacity(sevCol, opacity) : 'transparent';
-                    const fg = opacity > 0.5 ? '#FFFFFF' : tokens.text;
+                    const fg = opacity > 0.5 ? '#FFFFFF' : '#1B2432';
                     return (
                       <td
                         key={s}
                         className="text-center py-1 px-2 rounded-lg font-mono font-semibold tabular-nums transition-all"
-                        style={{ backgroundColor: bg, color: count > 0 ? fg : tokens.textMuted }}
+                        style={{ backgroundColor: bg, color: count > 0 ? fg : '#7A8599' }}
                         title={`${t.hazard(haz)}, ${t.severity(s)}: ${count}`}
                       >
                         {count > 0 ? count : '—'}
                       </td>
                     );
                   })}
-                  <td className="text-right py-1 pl-3 font-mono font-bold text-text tabular-nums">
+                  <td className="text-right py-1 pl-3 font-mono font-bold text-[#1B2432] tabular-nums">
                     {rowTotal}
                   </td>
                 </tr>
@@ -178,7 +178,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 text-[10px] text-text-muted border-t border-border pt-2">
+      <div className="flex items-center gap-3 text-[10px] text-[#7A8599] border-t border-[#E8E2D4] pt-2">
         <div className="flex items-center gap-1">
           <div
             className="w-12 h-3 rounded"
@@ -189,7 +189,7 @@ export default function HazardSeverityMatrix({ refreshTick }: { refreshTick: num
         </div>
         <span>Low → High event count</span>
         <span className="ml-auto">
-          Showing top {events?.length ?? 0} events (limit 500)
+          Showing top {events?.length ?? 0} events (limit 200)
         </span>
       </div>
     </div>

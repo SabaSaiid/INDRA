@@ -50,23 +50,23 @@ function CustomTooltip({
   if (!active || !payload?.length) return null;
   const total = payload.reduce((s, p) => s + (p.value ?? 0), 0);
   return (
-    <div className="bg-surface-raised text-text text-xs rounded-xl px-3 py-2 shadow-xl border border-border min-w-[160px]">
+    <div className="bg-[#FDFAF5] text-[#1B2432] text-xs rounded-xl px-3 py-2 shadow-lg border border-[#E8E2D4] min-w-[160px]">
       <div className="font-bold mb-1.5 text-brand">Score {label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex justify-between gap-4 items-center">
-          <span className="flex items-center gap-1.5 text-text-muted">
+          <span className="flex items-center gap-1.5 text-[#7A8599]">
             <span
               className="inline-block w-2 h-2 rounded-full"
               style={{ background: p.color }}
             />
             {p.name === 'auto_published' ? 'Auto-published' : 'Human approved'}
           </span>
-          <span className="font-mono tabular-nums text-text">{(p.value ?? 0).toLocaleString('en-IN')}</span>
+          <span className="font-mono tabular-nums text-[#1B2432]">{(p.value ?? 0).toLocaleString('en-IN')}</span>
         </div>
       ))}
-      <div className="border-t border-border mt-1.5 pt-1.5 flex justify-between">
-        <span className="text-text-muted">Total</span>
-        <span className="font-mono tabular-nums text-text">{total.toLocaleString('en-IN')}</span>
+      <div className="border-t border-[#E8E2D4] mt-1.5 pt-1.5 flex justify-between">
+        <span className="text-[#7A8599]">Total</span>
+        <span className="font-mono tabular-nums text-[#1B2432]">{total.toLocaleString('en-IN')}</span>
       </div>
     </div>
   );
@@ -92,15 +92,15 @@ export default function VerificationBreakdownChart({ refreshTick = 0 }: { refres
   }, [refreshTick]);
 
   return (
-    <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs flex flex-col gap-3">
+    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+        <h2 className="text-sm font-bold text-[#1B2432] flex items-center gap-2 font-display">
           <BrainCircuit className="w-4 h-4 text-brand" />
           {t('analytics.verification_title')}
         </h2>
-        <span className="text-[10px] font-mono text-text-muted">verified_events · confidence_score</span>
+        <span className="text-[10px] font-mono text-[#7A8599]">verified_events · confidence_score</span>
       </div>
-      <p className="text-[11px] text-text-muted -mt-1">{t('analytics.verification_subtitle')}</p>
+      <p className="text-[11px] text-[#7A8599] -mt-1">{t('analytics.verification_subtitle')}</p>
 
       {error && !data ? (
         <ErrorState
@@ -117,7 +117,7 @@ export default function VerificationBreakdownChart({ refreshTick = 0 }: { refres
           compact
         />
       ) : !data ? (
-        <div className="h-52 animate-pulse bg-surface-raised rounded-xl" />
+        <div className="h-52 animate-pulse bg-[#F0EBE0] rounded-xl" />
       ) : (
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
@@ -127,24 +127,24 @@ export default function VerificationBreakdownChart({ refreshTick = 0 }: { refres
               data={data}
               margin={{ top: 8, right: 12, left: 12, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke={tokens.border} vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E2D4" vertical={false} />
               <XAxis
                 dataKey="bucket"
-                tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
                 width={44}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: tokens.surfaceRaised, opacity: 0.5 }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F0EBE0', opacity: 0.6 }} />
               <Legend
                 formatter={(value) => (
-                  <span style={{ color: tokens.textSecondary, fontSize: '10px' }}>
+                  <span style={{ color: '#4A5568', fontSize: '10px' }}>
                     {value === 'auto_published' ? t('analytics.auto_published') : t('analytics.human_approved')}
                   </span>
                 )}
@@ -172,7 +172,7 @@ export default function VerificationBreakdownChart({ refreshTick = 0 }: { refres
       )}
 
       {data && data.length > 0 && (
-        <div className="flex flex-wrap gap-4 text-[10px] text-text-muted border-t border-border pt-2 mt-1">
+        <div className="flex flex-wrap gap-4 text-[10px] text-[#7A8599] border-t border-[#E8E2D4] pt-2 mt-1">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2 h-2 rounded-full" style={{ background: autoColor }} />
             {t('analytics.auto_published')} (score ≥ threshold, no human needed)

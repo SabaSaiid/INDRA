@@ -114,8 +114,8 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
   if (!districts && !error) {
     return (
       <div className="space-y-6">
-        <div className="h-48 animate-pulse bg-surface-raised rounded-xl" />
-        <div className="h-64 animate-pulse bg-surface-raised rounded-xl" />
+        <div className="h-48 animate-pulse bg-[#F0EBE0] rounded-xl border border-[#E8E2D4]" />
+        <div className="h-64 animate-pulse bg-[#F0EBE0] rounded-xl border border-[#E8E2D4]" />
       </div>
     );
   }
@@ -123,24 +123,28 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
   // ── Error
   if (error && !districts) {
     return (
-      <ErrorState
-        label="district risk data"
-        error={
-          error instanceof ApiError && error.status === 404
-            ? 'GET /api/dashboard/top-districts is not available on this backend version.'
-            : error
-        }
-      />
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+        <ErrorState
+          label="district risk data"
+          error={
+            error instanceof ApiError && error.status === 404
+              ? 'GET /api/dashboard/top-districts is not available on this backend version.'
+              : error
+          }
+        />
+      </div>
     );
   }
 
   // ── Empty
   if (districts && districts.length === 0) {
     return (
-      <EmptyState
-        title="No verified events with a known location yet"
-        hint="Events gain a district after geocoding completes."
-      />
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+        <EmptyState
+          title="No verified events with a known location yet"
+          hint="Events gain a district after geocoding completes."
+        />
+      </div>
     );
   }
 
@@ -150,20 +154,20 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
     <div className="space-y-6">
 
       {/* ── State Leaderboard Table ──────────────────────────────────────── */}
-      <div className="bg-surface rounded-xl border border-border shadow-2xs overflow-hidden">
-        <div className="p-5 border-b border-border">
-          <h3 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+      <div className="bg-[#FDFAF5] rounded-xl border border-[#E8E2D4] shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-[#E8E2D4]">
+          <h3 className="text-sm font-bold text-[#1B2432] flex items-center gap-2 font-display">
             <MapPin className="w-4 h-4 text-brand" />
             {t('analytics.geo_state_leaderboard_title')}
           </h3>
-          <p className="text-[11px] text-text-muted mt-0.5">
+          <p className="text-[11px] text-[#7A8599] mt-0.5">
             {t('analytics.geo_state_leaderboard_subtitle')}
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-surface-raised text-text-muted">
+              <tr className="bg-[#F0EBE0]/60 text-[#7A8599] border-b border-[#E8E2D4]">
                 <th className="text-left px-4 py-2.5 font-semibold">State</th>
                 <th className="text-right px-3 py-2.5 font-semibold text-severity-critical">Critical</th>
                 <th className="text-right px-3 py-2.5 font-semibold text-severity-high">High</th>
@@ -180,10 +184,10 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
                 return (
                   <tr
                     key={row.state}
-                    className="border-t border-border hover:bg-surface-raised/50 transition-colors"
+                    className="border-t border-[#E8E2D4] hover:bg-[#F0EBE0]/50 transition-colors"
                   >
                     <td className="px-4 py-2.5">
-                      <span className="font-medium text-text">{row.state}</span>
+                      <span className="font-medium text-[#1B2432]">{row.state}</span>
                       {i === 0 && (
                         <span className="ml-2 text-[9px] font-bold bg-severity-critical/15 text-severity-critical px-1.5 py-0.5 rounded-full">
                           HIGHEST
@@ -199,12 +203,12 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
                     <td className="text-right px-3 py-2.5 font-mono text-severity-moderate">
                       {row.moderate || '—'}
                     </td>
-                    <td className="text-right px-3 py-2.5 font-mono font-bold text-text">
+                    <td className="text-right px-3 py-2.5 font-mono font-bold text-[#1B2432]">
                       {row.total}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 rounded-full bg-surface-raised overflow-hidden">
+                        <div className="flex-1 h-2 rounded-full bg-[#E8E2D4] overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${pct}%`, backgroundColor: color }}
@@ -227,11 +231,11 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
       </div>
 
       {/* ── District Stacked Bar Chart ───────────────────────────────────── */}
-      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
-        <h3 className="text-sm font-bold text-text mb-0.5 font-display">
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+        <h3 className="text-sm font-bold text-[#1B2432] mb-0.5 font-display">
           {t('analytics.geo_district_chart_title')}
         </h3>
-        <p className="text-[11px] text-text-muted mb-3">
+        <p className="text-[11px] text-[#7A8599] mb-3">
           {t('analytics.geo_district_chart_subtitle')}
         </p>
         <div className="h-60">
@@ -242,10 +246,10 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
               layout="vertical"
               margin={{ top: 0, right: 12, left: 4, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke={tokens.border} horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E2D4" horizontal={false} />
               <XAxis
                 type="number"
-                tick={{ fontSize: 10, fill: tokens.textMuted, fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: '#7A8599', fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
@@ -254,14 +258,14 @@ export default function StateRiskLeaderboard({ refreshTick }: { refreshTick: num
                 type="category"
                 dataKey="name"
                 width={100}
-                tick={{ fontSize: 10, fill: tokens.textSecondary, fontFamily: 'JetBrains Mono, monospace' }}
+                tick={{ fontSize: 10, fill: '#4A5568', fontFamily: 'JetBrains Mono, monospace' }}
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip content={<DistrictTooltip />} cursor={{ fill: tokens.surfaceRaised, opacity: 0.5 }} />
+              <Tooltip content={<DistrictTooltip />} cursor={{ fill: '#F0EBE0', opacity: 0.6 }} />
               <Legend
                 formatter={(value) => (
-                  <span style={{ fontSize: 10, color: tokens.textSecondary, textTransform: 'capitalize' }}>
+                  <span style={{ fontSize: 10, color: '#4A5568', textTransform: 'capitalize' }}>
                     {value}
                   </span>
                 )}

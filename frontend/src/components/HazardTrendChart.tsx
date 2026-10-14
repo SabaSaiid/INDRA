@@ -102,8 +102,8 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   // ── Loading
   if (!chartData && !error) {
     return (
-      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
-        <div className="h-64 animate-pulse bg-surface-raised rounded-xl" />
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
+        <div className="h-64 animate-pulse bg-[#F0EBE0] rounded-xl" />
       </div>
     );
   }
@@ -111,7 +111,7 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   // ── Error
   if (error && !chartData) {
     return (
-      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
         <ErrorState label="hazard trend data" error={error} compact />
       </div>
     );
@@ -120,7 +120,7 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   // ── Empty
   if (chartData && chartData.length === 0) {
     return (
-      <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs">
+      <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm">
         <EmptyState
           title="No event distribution data yet"
           hint="Events will appear here once the pipeline processes its first reports."
@@ -131,18 +131,18 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
   }
 
   return (
-    <div className="bg-surface p-5 rounded-xl border border-border shadow-2xs flex flex-col gap-3">
+    <div className="bg-[#FDFAF5] p-5 rounded-xl border border-[#E8E2D4] shadow-sm flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-bold text-text flex items-center gap-2 font-display">
+          <h3 className="text-sm font-bold text-[#1B2432] flex items-center gap-2 font-display">
             <TrendingUp className="w-4 h-4 text-brand" />
             {t('analytics.hazard_trend_title') || 'Hazard Type Trends'}
           </h3>
-          <p className="text-[11px] text-text-muted mt-0.5">
+          <p className="text-[11px] text-[#7A8599] mt-0.5">
             {t('analytics.hazard_trend_subtitle') || 'Event counts per hazard across 3 time windows — each bar is a real snapshot, not interpolated'}
           </p>
         </div>
-        <span className="text-[10px] font-mono text-text-muted shrink-0">
+        <span className="text-[10px] font-mono text-[#7A8599] shrink-0">
           3 × GET /api/events/distribution
         </span>
       </div>
@@ -154,10 +154,10 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
             data={chartData ?? []}
             margin={{ top: 8, right: 12, left: 0, bottom: 60 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke={tokens.border} vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E8E2D4" vertical={false} />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 9, fill: tokens.textMuted }}
+              tick={{ fontSize: 9, fill: '#7A8599' }}
               axisLine={false}
               tickLine={false}
               angle={-35}
@@ -165,16 +165,16 @@ export default function HazardTrendChart({ refreshTick }: { refreshTick: number 
               interval={0}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: tokens.textMuted }}
+              tick={{ fontSize: 10, fill: '#7A8599' }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
               width={36}
             />
-            <Tooltip content={<HazardTooltip />} cursor={{ fill: tokens.surfaceRaised, opacity: 0.5 }} />
+            <Tooltip content={<HazardTooltip />} cursor={{ fill: '#F0EBE0', opacity: 0.6 }} />
             <Legend
               formatter={(value) => (
-                <span style={{ fontSize: 10, color: tokens.textSecondary }}>
+                <span style={{ fontSize: 10, color: '#4A5568' }}>
                   {value}
                 </span>
               )}

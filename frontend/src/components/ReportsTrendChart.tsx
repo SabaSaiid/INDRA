@@ -32,14 +32,14 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     const val = payload[0].value ?? 0;
     return (
-      <div className="bg-surface-raised/95 backdrop-blur-md text-text rounded-lg shadow-xl border border-border px-3 py-2 text-xs">
-        <p className="text-[10px] text-text-muted font-medium mb-1">{label}</p>
+      <div className="bg-[#FDFAF5]/95 backdrop-blur-md text-[#1B2432] rounded-lg shadow-xl border border-[#E8E2D4] px-3 py-2 text-xs">
+        <p className="text-[10px] text-[#7A8599] font-medium mb-1">{label}</p>
         <div className="flex items-center gap-1.5 font-mono">
           <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-          <span className="text-sm font-bold text-text tabular-nums">
+          <span className="text-sm font-bold text-[#1B2432] tabular-nums">
             {val.toLocaleString()}
           </span>
-          <span className="text-[10px] text-text-muted font-sans">reports</span>
+          <span className="text-[10px] text-[#7A8599] font-sans">reports</span>
         </div>
       </div>
     );
@@ -141,7 +141,7 @@ export default function ReportsTrendChart({
   }, [trendData.length]);
 
   const rangeButtons = (
-    <div className="flex items-center gap-0.5 bg-surface-raised p-0.5 rounded-lg border border-border" role="group" aria-label="Date range">
+    <div className="flex items-center gap-0.5 bg-[#F0EBE0] p-0.5 rounded-lg border border-[#E8E2D4]" role="group" aria-label="Date range">
       {(['7d', '14d', '30d'] as const).map((r) => (
         <button
           key={r}
@@ -149,8 +149,8 @@ export default function ReportsTrendChart({
           onClick={() => setDateRange(r)}
           className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all ${
             dateRange === r
-              ? 'bg-surface text-text shadow-2xs'
-              : 'text-text-muted hover:text-text'
+              ? 'bg-white text-[#1B2432] shadow-xs'
+              : 'text-[#7A8599] hover:text-[#1B2432]'
           }`}
         >
           {r}
@@ -197,7 +197,7 @@ export default function ReportsTrendChart({
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke={tokens.border}
+                  stroke="#E8E2D4"
                   vertical={false}
                 />
                 <XAxis
